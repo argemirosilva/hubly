@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Server } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import amparaLogo from '@/assets/ampara-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,9 @@ const LoginPage: React.FC = () => {
   const { setUser, setConfig } = useAppStore();
   const { toast } = useToast();
   
+  const API_URL = 'https://amparamulher.org';
+  
   const [formData, setFormData] = useState({
-    apiUrl: '',
     username: '',
     password: '',
   });
@@ -25,10 +26,10 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.apiUrl || !formData.username || !formData.password) {
+    if (!formData.username || !formData.password) {
       toast({
         title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos',
+        description: 'Preencha usuário e senha',
         variant: 'destructive',
       });
       return;
@@ -40,7 +41,7 @@ const LoginPage: React.FC = () => {
       const result = await apiService.login(
         formData.username,
         formData.password,
-        formData.apiUrl
+        API_URL
       );
 
       if (result.success && result.data) {
@@ -87,23 +88,6 @@ const LoginPage: React.FC = () => {
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        {/* API URL */}
-        <div className="space-y-2">
-          <Label htmlFor="apiUrl" className="text-sm font-semibold text-foreground">
-            URL da API
-          </Label>
-          <div className="relative">
-            <Server className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              id="apiUrl"
-              type="url"
-              placeholder="https://sua-api.com"
-              value={formData.apiUrl}
-              onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-              className="pl-12 h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
-            />
-          </div>
-        </div>
 
         {/* Username */}
         <div className="space-y-2">
