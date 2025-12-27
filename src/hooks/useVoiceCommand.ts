@@ -1,6 +1,61 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+// Gera um tom de confirmação usando Web Audio API
+const playConfirmationSound = (type: 'start' | 'stop') => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    if (type === 'start') {
+      // Som ascendente para iniciar (dois tons rápidos)
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.1); // A5
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } else {
+      // Som descendente para parar
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime + 0.1); // A4
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    }
+  } catch (e) {
+    console.log('Audio feedback not available:', e);
+  }
+};
+
+// Som de ativação do modo de escuta
+const playActivationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Três tons curtos ascendentes
+    oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.08); // E5
+    oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.16); // G5
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.24);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.24);
+  } catch (e) {
+    console.log('Audio feedback not available:', e);
+  }
+};
+
 interface UseVoiceCommandOptions {
   onStartCommand: () => void;
   onStopCommand: () => void;
@@ -51,14 +106,16 @@ export const useVoiceCommand = ({
         );
 
         if (hasStartCommand && !hasStopCommand) {
+          playConfirmationSound('start');
           toast({
-            title: '🎤 Comando de voz',
+            title: '🎤 Comando reconhecido',
             description: `"${transcript}" - Iniciando gravação`,
           });
           onStartCommand();
         } else if (hasStopCommand) {
+          playConfirmationSound('stop');
           toast({
-            title: '🎤 Comando de voz',
+            title: '🎤 Comando reconhecido',
             description: `"${transcript}" - Parando gravação`,
           });
           onStopCommand();
@@ -109,9 +166,10 @@ export const useVoiceCommand = ({
     try {
       recognitionRef.current.start();
       setIsListening(true);
+      playActivationSound();
       toast({
         title: 'Comando de voz ativado',
-        description: 'Diga "iniciar" ou "parar" para controlar a gravação',
+        description: 'Aguardando seu comando...',
       });
     } catch (e) {
       console.error('Failed to start recognition:', e);
