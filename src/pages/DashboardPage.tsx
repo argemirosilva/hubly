@@ -6,8 +6,10 @@ import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
 import PanicButton from '@/components/PanicButton';
 import NetworkStatusBar from '@/components/NetworkStatusBar';
+import NotificationSettings from '@/components/NotificationSettings';
 import { useToast } from '@/hooks/use-toast';
 import { initOfflineDB } from '@/services/offlineStorage';
+import { pushNotificationService } from '@/services/pushNotifications';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,9 +22,10 @@ const DashboardPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  // Initialize offline database
+  // Initialize offline database and push notifications
   useEffect(() => {
     initOfflineDB().catch(console.error);
+    pushNotificationService.initialize().catch(console.error);
   }, []);
 
   const handleLogout = () => {
@@ -95,6 +98,9 @@ const DashboardPage: React.FC = () => {
 
         {/* GPS Control */}
         <GPSControl />
+
+        {/* Notification Settings */}
+        <NotificationSettings />
 
         {/* Config Info */}
         <div className="bg-card/50 rounded-xl p-4 border border-border">
