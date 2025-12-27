@@ -1,19 +1,25 @@
 import React, { useState, useCallback } from 'react';
-import { AlertTriangle, Phone } from 'lucide-react';
+import { AlertTriangle, Phone, AudioLines, AudioWaveform } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
 import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
+import { usePanicVoiceCommand } from '@/hooks/usePanicVoiceCommand';
 import type { LocationData } from '@/types/app';
 
+const DEFAULT_PANIC_COMMAND = 'Ampara preciso de ajuda';
+
 const PanicButton: React.FC = () => {
-  const { user, isPanicActive, setIsPanicActive } = useAppStore();
+  const { user, config, isPanicActive, setIsPanicActive } = useAppStore();
   const { toast } = useToast();
   const [isTriggering, setIsTriggering] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimeRef = React.useRef<NodeJS.Timeout | null>(null);
   const progressRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Usa o comando personalizado do usuário ou o padrão
+  const panicCommand = config?.voiceCommand || DEFAULT_PANIC_COMMAND;
 
   const triggerPanic = useCallback(async () => {
     setIsTriggering(true);
@@ -88,6 +94,12 @@ const PanicButton: React.FC = () => {
       setIsTriggering(false);
     }
   }, [user, setIsPanicActive, toast]);
+
+  // Hook de comando de voz para pânico
+  const { isListening, isSupported, toggleListening } = usePanicVoiceCommand({
+    onPanicCommand: triggerPanic,
+    panicKeyword: panicCommand,
+  });
 
   const handleTouchStart = () => {
     setHoldProgress(0);
@@ -165,6 +177,31 @@ const PanicButton: React.FC = () => {
         <h3 className="text-lg font-semibold text-foreground">Botão de Pânico</h3>
         <p className="text-sm text-muted-foreground">Segure por 1 segundo para ativar</p>
       </div>
+
+      {/* Voice Command Button */}
+      {isSupported && (
+        <button
+          onClick={toggleListening}
+          className={`mb-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
+            isListening
+              ? 'bg-emergency/20 border-2 border-emergency text-emergency'
+              : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          {isListening ? (
+            <>
+              <AudioWaveform className="w-5 h-5 animate-pulse" />
+              <span className="text-sm font-medium">Escutando...</span>
+              <span className="text-xs opacity-70">"{panicCommand}"</span>
+            </>
+          ) : (
+            <>
+              <AudioLines className="w-5 h-5" />
+              <span className="text-sm font-medium">Ativar comando de voz</span>
+            </>
+          )}
+        </button>
+      )}
 
       <button
         onTouchStart={handleTouchStart}
