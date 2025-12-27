@@ -78,7 +78,7 @@ const LoginPage: React.FC = () => {
         <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 glow-success">
           <Shield className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Monitor App</h1>
+        <h1 className="text-2xl font-bold text-foreground">Ampara</h1>
         <p className="text-sm text-muted-foreground mt-1">Sistema de Monitoramento</p>
       </div>
 
