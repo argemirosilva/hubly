@@ -37,10 +37,10 @@ const RecordingControl: React.FC = () => {
   });
 
   return (
-    <div className="bg-card rounded-2xl p-6 border border-border">
+    <div className="card-ampara">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Gravação de Áudio</h3>
+          <h3 className="text-lg font-bold text-foreground font-display">Gravação de Áudio</h3>
           <p className="text-sm text-muted-foreground">
             {isAnalyzing 
               ? 'Analisando diálogo...' 
@@ -51,7 +51,7 @@ const RecordingControl: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           {/* VAD Status */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent">
             {vadStatus === 'loading' ? (
               <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
             ) : vadStatus === 'ready' ? (
@@ -59,15 +59,15 @@ const RecordingControl: React.FC = () => {
             ) : (
               <Zap className="w-3.5 h-3.5 text-warning" />
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {vadStatus === 'loading' ? 'Carregando' : vadStatus === 'ready' ? 'VAD IA' : 'VAD Básico'}
             </span>
           </div>
           
           {isRecording && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emergency/10">
               <span className="w-2 h-2 rounded-full bg-emergency recording-pulse" />
-              <span className="text-sm font-mono text-foreground">
+              <span className="text-sm font-mono font-medium text-emergency">
                 {formatTime(recordingTime)}
               </span>
             </div>
@@ -80,16 +80,16 @@ const RecordingControl: React.FC = () => {
         <div className="mb-4">
           <button
             onClick={toggleListening}
-            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl transition-all duration-300 ${
               isListening
-                ? 'bg-primary/20 border-2 border-primary text-primary'
-                : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
+                ? 'bg-primary/15 border-2 border-primary text-primary shadow-soft'
+                : 'bg-accent border border-border text-muted-foreground hover:bg-accent/80 hover:text-primary'
             }`}
           >
             {isListening ? (
               <>
                 <AudioWaveform className="w-5 h-5 animate-pulse" />
-                <span className="text-sm font-medium">Escutando...</span>
+                <span className="text-sm font-semibold">Escutando...</span>
               </>
             ) : (
               <>
@@ -101,17 +101,17 @@ const RecordingControl: React.FC = () => {
           
           {/* Lista de comandos disponíveis */}
           {isListening && (
-            <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
-              <p className="text-xs font-medium text-primary mb-2">Comandos disponíveis:</p>
-              <ul className="space-y-1.5">
+            <div className="mt-3 p-4 bg-primary/10 rounded-2xl border border-primary/20 animate-fade-in">
+              <p className="text-xs font-semibold text-primary mb-2">Comandos disponíveis:</p>
+              <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                  <span className="font-medium">"{startCommand}"</span>
+                  <span className="w-2 h-2 rounded-full bg-success" />
+                  <span className="font-semibold">"{startCommand}"</span>
                   <span className="opacity-70">- Iniciar gravação</span>
                 </li>
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
-                  <span className="font-medium">"{stopCommand}"</span>
+                  <span className="w-2 h-2 rounded-full bg-emergency" />
+                  <span className="font-semibold">"{stopCommand}"</span>
                   <span className="opacity-70">- Parar gravação</span>
                 </li>
               </ul>
@@ -121,7 +121,7 @@ const RecordingControl: React.FC = () => {
       )}
 
       {/* Info about VAD */}
-      <div className="mb-4 p-3 bg-secondary/30 rounded-lg">
+      <div className="mb-4 p-4 bg-accent/50 rounded-2xl">
         <p className="text-xs text-muted-foreground">
           {vadStatus === 'ready' 
             ? '🧠 IA Silero ativa: Apenas áudios com diálogo serão enviados'
@@ -134,28 +134,28 @@ const RecordingControl: React.FC = () => {
       <button
         onClick={toggleRecording}
         disabled={isAnalyzing}
-        className={`w-full h-20 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 ${
+        className={`w-full h-20 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 shadow-soft ${
           isAnalyzing
-            ? 'bg-warning/20 border-2 border-warning text-warning'
+            ? 'bg-warning/15 border-2 border-warning text-warning'
             : isRecording
-              ? 'bg-emergency/20 border-2 border-emergency text-emergency'
-              : 'bg-primary/10 border-2 border-primary text-primary hover:bg-primary/20'
+              ? 'bg-emergency/15 border-2 border-emergency text-emergency'
+              : 'gradient-primary text-primary-foreground hover:shadow-medium active:scale-[0.98]'
         }`}
       >
         {isAnalyzing ? (
           <>
             <Loader2 className="w-8 h-8 animate-spin" />
-            <span className="text-lg font-medium">Analisando...</span>
+            <span className="text-lg font-semibold">Analisando...</span>
           </>
         ) : isRecording ? (
           <>
             <MicOff className="w-8 h-8" />
-            <span className="text-lg font-medium">Parar Gravação</span>
+            <span className="text-lg font-semibold">Parar Gravação</span>
           </>
         ) : (
           <>
             <Mic className="w-8 h-8" />
-            <span className="text-lg font-medium">Iniciar Gravação</span>
+            <span className="text-lg font-semibold">Iniciar Gravação</span>
           </>
         )}
       </button>

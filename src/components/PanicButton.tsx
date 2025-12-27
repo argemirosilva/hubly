@@ -199,9 +199,9 @@ const PanicButton: React.FC = () => {
   }
 
   return (
-    <div className="bg-card rounded-2xl p-6 border border-border">
+    <div className="card-ampara">
       <div className="text-center mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Botão de Pânico</h3>
+        <h3 className="text-lg font-bold text-foreground font-display">Botão de Pânico</h3>
         <p className="text-sm text-muted-foreground">Segure por 1 segundo para ativar</p>
       </div>
 
@@ -210,16 +210,16 @@ const PanicButton: React.FC = () => {
         <div className="mb-4">
           <button
             onClick={toggleListening}
-            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl transition-all duration-300 ${
               isListening
-                ? 'bg-emergency/20 border-2 border-emergency text-emergency'
-                : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
+                ? 'bg-emergency/15 border-2 border-emergency text-emergency shadow-soft'
+                : 'bg-accent border border-border text-muted-foreground hover:bg-accent/80 hover:text-primary'
             }`}
           >
             {isListening ? (
               <>
                 <AudioWaveform className="w-5 h-5 animate-pulse" />
-                <span className="text-sm font-medium">Escutando...</span>
+                <span className="text-sm font-semibold">Escutando...</span>
               </>
             ) : (
               <>
@@ -231,17 +231,17 @@ const PanicButton: React.FC = () => {
           
           {/* Lista de comandos disponíveis */}
           {isListening && (
-            <div className="mt-3 p-3 bg-emergency/10 rounded-lg border border-emergency/30">
-              <p className="text-xs font-medium text-emergency mb-2">Comandos de emergência:</p>
-              <ul className="space-y-1.5">
+            <div className="mt-3 p-4 bg-emergency/10 rounded-2xl border border-emergency/20 animate-fade-in">
+              <p className="text-xs font-semibold text-emergency mb-2">Comandos de emergência:</p>
+              <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
-                  <span className="font-medium">"{panicCommand}"</span>
+                  <span className="w-2 h-2 rounded-full bg-emergency" />
+                  <span className="font-semibold">"{panicCommand}"</span>
                   <span className="opacity-70">- Acionar pânico</span>
                 </li>
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                  <span className="font-medium">"{DEFAULT_CANCEL_COMMAND}"</span>
+                  <span className="w-2 h-2 rounded-full bg-success" />
+                  <span className="font-semibold">"{DEFAULT_CANCEL_COMMAND}"</span>
                   <span className="opacity-70">- Cancelar alerta</span>
                 </li>
               </ul>
@@ -257,7 +257,7 @@ const PanicButton: React.FC = () => {
         onMouseUp={handleTouchEnd}
         onMouseLeave={handleTouchEnd}
         disabled={isTriggering}
-        className="relative w-full h-24 rounded-2xl bg-emergency/10 border-2 border-emergency flex items-center justify-center overflow-hidden transition-all duration-200 hover:bg-emergency/20 active:scale-95"
+        className="relative w-full h-28 rounded-2xl bg-emergency/10 border-2 border-emergency flex items-center justify-center overflow-hidden transition-all duration-300 hover:bg-emergency/20 active:scale-[0.98] shadow-soft"
       >
         {/* Progress overlay */}
         <div
@@ -266,8 +266,8 @@ const PanicButton: React.FC = () => {
         />
         
         <div className="relative z-10 flex items-center gap-3">
-          <AlertTriangle className="w-8 h-8 text-emergency" />
-          <span className="text-lg font-bold text-emergency">
+          <AlertTriangle className="w-10 h-10 text-emergency" />
+          <span className="text-xl font-bold text-emergency font-display">
             {isTriggering ? 'ENVIANDO...' : 'SOS'}
           </span>
         </div>

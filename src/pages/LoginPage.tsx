@@ -74,37 +74,37 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 safe-area-inset">
       {/* Logo */}
-      <div className="mb-8 flex flex-col items-center animate-fade-in">
-        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 glow-success">
-          <Shield className="w-10 h-10 text-primary" />
+      <div className="mb-10 flex flex-col items-center animate-fade-in">
+        <div className="w-24 h-24 rounded-3xl bg-accent flex items-center justify-center mb-5 shadow-medium">
+          <Shield className="w-12 h-12 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Ampara</h1>
-        <p className="text-sm text-muted-foreground mt-1">Sistema de Monitoramento</p>
+        <h1 className="text-3xl font-bold text-foreground font-display">Ampara</h1>
+        <p className="text-sm text-muted-foreground mt-2">Proteção Inteligente e Discreta</p>
       </div>
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
         {/* API URL */}
         <div className="space-y-2">
-          <Label htmlFor="apiUrl" className="text-sm font-medium text-foreground">
+          <Label htmlFor="apiUrl" className="text-sm font-semibold text-foreground">
             URL da API
           </Label>
           <div className="relative">
-            <Server className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Server className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               id="apiUrl"
               type="url"
               placeholder="https://sua-api.com"
               value={formData.apiUrl}
               onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-              className="pl-10 h-12 bg-card border-border focus:border-primary focus:ring-primary"
+              className="pl-12 h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
             />
           </div>
         </div>
 
         {/* Username */}
         <div className="space-y-2">
-          <Label htmlFor="username" className="text-sm font-medium text-foreground">
+          <Label htmlFor="username" className="text-sm font-semibold text-foreground">
             Usuário
           </Label>
           <Input
@@ -113,13 +113,13 @@ const LoginPage: React.FC = () => {
             placeholder="seu.usuario"
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            className="h-12 bg-card border-border focus:border-primary focus:ring-primary"
+            className="h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
           />
         </div>
 
         {/* Password */}
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-foreground">
+          <Label htmlFor="password" className="text-sm font-semibold text-foreground">
             Senha
           </Label>
           <div className="relative">
@@ -129,12 +129,12 @@ const LoginPage: React.FC = () => {
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="h-12 pr-12 bg-card border-border focus:border-primary focus:ring-primary"
+              className="h-14 pr-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -145,11 +145,11 @@ const LoginPage: React.FC = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base mt-6"
+          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-8 rounded-2xl transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               Conectando...
             </span>
           ) : (
@@ -158,9 +158,18 @@ const LoginPage: React.FC = () => {
         </Button>
       </form>
 
+      {/* Quote */}
+      <div className="w-full max-w-sm mt-10 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div className="quote-block">
+          <p className="text-sm text-muted-foreground">
+            "O AMPARA é mais do que uma ferramenta - é um abraço tecnológico, uma mão estendida."
+          </p>
+        </div>
+      </div>
+
       {/* Footer */}
-      <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        Versão 1.0.0
+      <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        Proteção sempre que você precisar
       </p>
     </div>
   );
