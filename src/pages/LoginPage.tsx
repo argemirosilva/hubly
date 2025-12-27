@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Eye, EyeOff, Server } from 'lucide-react';
+import { Eye, EyeOff, Server } from 'lucide-react';
+import amparaLogo from '@/assets/ampara-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,11 +76,13 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 safe-area-inset">
       {/* Logo */}
       <div className="mb-10 flex flex-col items-center animate-fade-in">
-        <div className="w-24 h-24 rounded-3xl bg-accent flex items-center justify-center mb-5 shadow-medium">
-          <Shield className="w-12 h-12 text-primary" />
-        </div>
-        <h1 className="text-3xl font-bold text-foreground font-display">Ampara</h1>
-        <p className="text-sm text-muted-foreground mt-2">Proteção Inteligente e Discreta</p>
+        <img 
+          src={amparaLogo} 
+          alt="AMPARA" 
+          className="h-20 w-auto mb-4"
+        />
+        <h1 className="text-2xl font-bold text-foreground font-display">Bem-vinda ao AMPARA</h1>
+        <p className="text-sm text-muted-foreground mt-2">Você não está sozinha.</p>
       </div>
 
       {/* Login Form */}
