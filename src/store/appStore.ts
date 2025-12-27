@@ -34,7 +34,7 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ user: null, config: null, isRecording: false, isTracking: false, isPanicActive: false }),
     }),
     {
-      name: 'monitor-app-storage',
+      name: 'ampara-storage',
       partialize: (state) => ({ user: state.user, config: state.config }),
     }
   )
