@@ -5,7 +5,9 @@ import { useAppStore } from '@/store/appStore';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
 import PanicButton from '@/components/PanicButton';
+import NetworkStatusBar from '@/components/NetworkStatusBar';
 import { useToast } from '@/hooks/use-toast';
+import { initOfflineDB } from '@/services/offlineStorage';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,11 @@ const DashboardPage: React.FC = () => {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Initialize offline database
+  useEffect(() => {
+    initOfflineDB().catch(console.error);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -63,6 +70,9 @@ const DashboardPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Network Status Bar */}
+      <NetworkStatusBar />
+
       {/* Status Bar */}
       <div className="px-4 py-3 bg-card/50 border-b border-border">
         <div className="flex items-center justify-between text-xs">
@@ -71,10 +81,6 @@ const DashboardPage: React.FC = () => {
           </span>
           <span className="text-muted-foreground">
             GPS: <span className="text-foreground font-medium">cada {config?.gpsIntervalSeconds || 30}s</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            <span className="text-primary font-medium">Online</span>
           </span>
         </div>
       </div>
@@ -107,8 +113,12 @@ const DashboardPage: React.FC = () => {
               </span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Modo offline</span>
+              <span className="text-primary">Ativado</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Servidor</span>
-              <span className="text-foreground truncate max-w-[200px]">
+              <span className="text-foreground truncate max-w-[180px]">
                 {config?.apiBaseUrl || 'N/A'}
               </span>
             </div>

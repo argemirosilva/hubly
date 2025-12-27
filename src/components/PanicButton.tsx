@@ -3,6 +3,7 @@ import { AlertTriangle, Phone } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
+import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
 import type { LocationData } from '@/types/app';
 
@@ -56,12 +57,30 @@ const PanicButton: React.FC = () => {
       }
 
       if (user?.token) {
-        await apiService.sendPanicAlert(location, user.token);
+        if (navigator.onLine) {
+          const result = await apiService.sendPanicAlert(location, user.token);
+          if (!result.success) {
+            // Failed, save offline
+            await syncService.saveForOffline('panic', {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              timestamp: location.timestamp,
+            });
+          }
+        } else {
+          // Offline, save for later
+          await syncService.saveForOffline('panic', {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timestamp: location.timestamp,
+          });
+        }
       }
 
+      const offlineNote = navigator.onLine ? '' : ' (salvo offline)';
       toast({
         title: '🚨 ALERTA ENVIADO',
-        description: 'Emergência acionada. Ajuda a caminho.',
+        description: `Emergência acionada${offlineNote}. Ajuda a caminho.`,
       });
     } catch (error) {
       console.error('Error triggering panic:', error);

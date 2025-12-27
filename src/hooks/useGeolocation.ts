@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Geolocation, Position } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
+import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
 import type { LocationData } from '@/types/app';
 
@@ -23,7 +24,26 @@ export const useGeolocation = () => {
     setCurrentLocation(locationData);
     
     if (user?.token) {
-      await apiService.sendLocation(locationData, user.token);
+      if (navigator.onLine) {
+        const result = await apiService.sendLocation(locationData, user.token);
+        if (!result.success) {
+          // Failed, save offline
+          await syncService.saveForOffline('location', {
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            timestamp: locationData.timestamp,
+            accuracy: locationData.accuracy,
+          });
+        }
+      } else {
+        // Offline, save locally
+        await syncService.saveForOffline('location', {
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          timestamp: locationData.timestamp,
+          accuracy: locationData.accuracy,
+        });
+      }
     }
   }, [user]);
 
@@ -73,9 +93,10 @@ export const useGeolocation = () => {
       }, intervalMs);
 
       setIsTracking(true);
+      const offlineNote = navigator.onLine ? '' : ' (modo offline)';
       toast({
         title: 'GPS ativado',
-        description: `Enviando localização a cada ${config?.gpsIntervalSeconds || 30}s`,
+        description: `Enviando localização a cada ${config?.gpsIntervalSeconds || 30}s${offlineNote}`,
       });
     } catch (error) {
       console.error('Error starting tracking:', error);
