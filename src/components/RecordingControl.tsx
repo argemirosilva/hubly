@@ -2,6 +2,9 @@ import React from 'react';
 import { Mic, MicOff, Loader2, Brain, Zap, AudioLines, AudioWaveform } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useVoiceCommand } from '@/hooks/useVoiceCommand';
+import { useAppStore } from '@/store/appStore';
+
+const DEFAULT_VOICE_COMMAND = 'Ampara preciso de ajuda';
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -10,7 +13,11 @@ const formatTime = (seconds: number): string => {
 };
 
 const RecordingControl: React.FC = () => {
+  const { config } = useAppStore();
   const { isRecording, recordingTime, isAnalyzing, vadStatus, startRecording, stopRecording, toggleRecording } = useAudioRecorder();
+  
+  // Usa o comando personalizado do usuário ou o padrão
+  const userVoiceCommand = config?.voiceCommand || DEFAULT_VOICE_COMMAND;
   
   const { isListening, isSupported, toggleListening } = useVoiceCommand({
     onStartCommand: () => {
@@ -23,6 +30,8 @@ const RecordingControl: React.FC = () => {
         stopRecording();
       }
     },
+    startKeywords: [userVoiceCommand.toLowerCase()],
+    stopKeywords: ['parar', 'encerrar', 'stop'],
   });
 
   return (
@@ -77,8 +86,8 @@ const RecordingControl: React.FC = () => {
           {isListening ? (
             <>
               <AudioWaveform className="w-5 h-5 animate-pulse" />
-              <span className="text-sm font-medium">Comando de voz ativo</span>
-              <span className="text-xs opacity-70">Diga "iniciar" ou "parar"</span>
+              <span className="text-sm font-medium">Escutando...</span>
+              <span className="text-xs opacity-70">"{userVoiceCommand}"</span>
             </>
           ) : (
             <>
