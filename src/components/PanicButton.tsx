@@ -207,27 +207,47 @@ const PanicButton: React.FC = () => {
 
       {/* Voice Command Button */}
       {isSupported && (
-        <button
-          onClick={toggleListening}
-          className={`mb-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
-            isListening
-              ? 'bg-emergency/20 border-2 border-emergency text-emergency'
-              : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
-          }`}
-        >
-          {isListening ? (
-            <>
-              <AudioWaveform className="w-5 h-5 animate-pulse" />
-              <span className="text-sm font-medium">Escutando...</span>
-              <span className="text-xs opacity-70">"{panicCommand}"</span>
-            </>
-          ) : (
-            <>
-              <AudioLines className="w-5 h-5" />
-              <span className="text-sm font-medium">Ativar comando de voz</span>
-            </>
+        <div className="mb-4">
+          <button
+            onClick={toggleListening}
+            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
+              isListening
+                ? 'bg-emergency/20 border-2 border-emergency text-emergency'
+                : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
+            }`}
+          >
+            {isListening ? (
+              <>
+                <AudioWaveform className="w-5 h-5 animate-pulse" />
+                <span className="text-sm font-medium">Escutando...</span>
+              </>
+            ) : (
+              <>
+                <AudioLines className="w-5 h-5" />
+                <span className="text-sm font-medium">Ativar comando de voz</span>
+              </>
+            )}
+          </button>
+          
+          {/* Lista de comandos disponíveis */}
+          {isListening && (
+            <div className="mt-3 p-3 bg-emergency/10 rounded-lg border border-emergency/30">
+              <p className="text-xs font-medium text-emergency mb-2">Comandos de emergência:</p>
+              <ul className="space-y-1.5">
+                <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
+                  <span className="font-medium">"{panicCommand}"</span>
+                  <span className="opacity-70">- Acionar pânico</span>
+                </li>
+                <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                  <span className="font-medium">"{DEFAULT_CANCEL_COMMAND}"</span>
+                  <span className="opacity-70">- Cancelar alerta</span>
+                </li>
+              </ul>
+            </div>
           )}
-        </button>
+        </div>
       )}
 
       <button
