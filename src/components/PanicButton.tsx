@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { AlertTriangle, Phone, AudioLines, AudioWaveform } from 'lucide-react';
+import { AlertTriangle, Phone, AudioLines, AudioWaveform, X } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
@@ -9,6 +9,7 @@ import { usePanicVoiceCommand } from '@/hooks/usePanicVoiceCommand';
 import type { LocationData } from '@/types/app';
 
 const DEFAULT_PANIC_COMMAND = 'Ampara preciso de ajuda';
+const DEFAULT_CANCEL_COMMAND = 'Ampara cancela ajuda';
 
 const PanicButton: React.FC = () => {
   const { user, config, isPanicActive, setIsPanicActive } = useAppStore();
@@ -96,9 +97,10 @@ const PanicButton: React.FC = () => {
   }, [user, setIsPanicActive, toast]);
 
   // Hook de comando de voz para pânico
-  const { isListening, isSupported, toggleListening } = usePanicVoiceCommand({
+  const { isListening, isSupported, isPendingPanic, countdownSeconds, toggleListening, cancelPendingPanic } = usePanicVoiceCommand({
     onPanicCommand: triggerPanic,
     panicKeyword: panicCommand,
+    cancelKeyword: DEFAULT_CANCEL_COMMAND,
   });
 
   const handleTouchStart = () => {
@@ -167,6 +169,31 @@ const PanicButton: React.FC = () => {
             Desativar
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // Tela de contagem regressiva
+  if (isPendingPanic && countdownSeconds !== null) {
+    return (
+      <div className="bg-warning/20 rounded-2xl p-6 border-2 border-warning animate-pulse">
+        <div className="text-center mb-4">
+          <div className="w-20 h-20 rounded-full bg-warning/30 border-4 border-warning flex items-center justify-center mx-auto mb-4">
+            <span className="text-4xl font-bold text-warning">{countdownSeconds}</span>
+          </div>
+          <h3 className="text-lg font-bold text-warning">ALERTA DETECTADO</h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            Diga "<span className="font-semibold">{DEFAULT_CANCEL_COMMAND}</span>" para cancelar
+          </p>
+        </div>
+
+        <button
+          onClick={cancelPendingPanic}
+          className="w-full h-14 rounded-xl bg-secondary border-2 border-border flex items-center justify-center gap-2 text-foreground font-medium hover:bg-secondary/80 transition-colors"
+        >
+          <X className="w-5 h-5" />
+          <span>Cancelar Alerta</span>
+        </button>
       </div>
     );
   }

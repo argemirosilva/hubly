@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+const COUNTDOWN_SECONDS = 5;
+const CANCEL_KEYWORD = 'ampara cancela ajuda';
+
 // Vibração para feedback tátil em dispositivos móveis
 const vibrate = (pattern: number | number[]) => {
   try {
@@ -12,9 +15,9 @@ const vibrate = (pattern: number | number[]) => {
   }
 };
 
-// Som de alerta de pânico (mais urgente)
-const playPanicSound = () => {
-  vibrate([200, 100, 200, 100, 200]); // Vibração longa e urgente
+// Bipe de contagem regressiva
+const playCountdownBeep = (secondsRemaining: number) => {
+  vibrate(150);
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -23,14 +26,62 @@ const playPanicSound = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    // Som de alerta urgente - dois tons alternados
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.15);
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.3);
+    // Tom mais agudo conforme o tempo diminui
+    const baseFreq = 600 + (COUNTDOWN_SECONDS - secondsRemaining) * 100;
+    oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
     gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
     oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.45);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (e) {
+    console.log('Audio feedback not available:', e);
+  }
+};
+
+// Som de pânico confirmado (mais urgente)
+const playPanicConfirmedSound = () => {
+  vibrate([200, 100, 200, 100, 200, 100, 200]);
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Som de sirene
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.2);
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.4);
+    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.6);
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.8);
+  } catch (e) {
+    console.log('Audio feedback not available:', e);
+  }
+};
+
+// Som de cancelamento (alívio)
+const playCancelSound = () => {
+  vibrate([50, 50, 50]);
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Tom descendente (alívio)
+    oscillator.frequency.setValueAtTime(784, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.15);
+    oscillator.frequency.setValueAtTime(392, audioContext.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
   } catch (e) {
     console.log('Audio feedback not available:', e);
   }
@@ -62,19 +113,73 @@ const playActivationSound = () => {
 interface UsePanicVoiceCommandOptions {
   onPanicCommand: () => void;
   panicKeyword?: string;
+  cancelKeyword?: string;
   enabled?: boolean;
 }
 
 export const usePanicVoiceCommand = ({
   onPanicCommand,
   panicKeyword = 'ampara preciso de ajuda',
+  cancelKeyword = CANCEL_KEYWORD,
   enabled = true,
 }: UsePanicVoiceCommandOptions) => {
   const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [isPendingPanic, setIsPendingPanic] = useState(false);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const panicTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cancelPendingPanic = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (panicTimeoutRef.current) {
+      clearTimeout(panicTimeoutRef.current);
+      panicTimeoutRef.current = null;
+    }
+    setCountdownSeconds(null);
+    setIsPendingPanic(false);
+  }, []);
+
+  const startPanicCountdown = useCallback(() => {
+    setIsPendingPanic(true);
+    setCountdownSeconds(COUNTDOWN_SECONDS);
+    
+    // Primeiro bipe imediato
+    playCountdownBeep(COUNTDOWN_SECONDS);
+    
+    toast({
+      title: '⚠️ ALERTA DETECTADO',
+      description: `Diga "${cancelKeyword}" para cancelar. ${COUNTDOWN_SECONDS}s restantes...`,
+      variant: 'destructive',
+    });
+
+    let remaining = COUNTDOWN_SECONDS - 1;
+    
+    countdownIntervalRef.current = setInterval(() => {
+      if (remaining > 0) {
+        setCountdownSeconds(remaining);
+        playCountdownBeep(remaining);
+        remaining--;
+      } else {
+        // Countdown terminou - acionar pânico
+        cancelPendingPanic();
+        playPanicConfirmedSound();
+        toast({
+          title: '🚨 EMERGÊNCIA ACIONADA',
+          description: 'Alerta de pânico enviado!',
+          variant: 'destructive',
+        });
+        onPanicCommand();
+      }
+    }, 1000);
+  }, [cancelKeyword, onPanicCommand, toast, cancelPendingPanic]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -94,18 +199,26 @@ export const usePanicVoiceCommand = ({
         console.log('Voice command detected:', transcript);
         setLastCommand(transcript);
 
-        // Verifica se o comando de pânico foi dito
-        const normalizedKeyword = panicKeyword.toLowerCase();
-        const hasPanicCommand = transcript.includes(normalizedKeyword);
+        const normalizedPanicKeyword = panicKeyword.toLowerCase();
+        const normalizedCancelKeyword = cancelKeyword.toLowerCase();
+        
+        const hasCancelCommand = transcript.includes(normalizedCancelKeyword);
+        const hasPanicCommand = transcript.includes(normalizedPanicKeyword);
 
-        if (hasPanicCommand) {
-          playPanicSound();
+        // Prioridade para cancelamento
+        if (hasCancelCommand && isPendingPanic) {
+          cancelPendingPanic();
+          playCancelSound();
           toast({
-            title: '🚨 COMANDO DE EMERGÊNCIA',
-            description: `"${transcript}" - Acionando alerta de pânico!`,
-            variant: 'destructive',
+            title: '✅ Alerta cancelado',
+            description: 'O alerta de emergência foi cancelado.',
           });
-          onPanicCommand();
+          return;
+        }
+
+        // Iniciar contagem se comando de pânico detectado
+        if (hasPanicCommand && !isPendingPanic) {
+          startPanicCountdown();
         }
       }
     };
@@ -136,8 +249,9 @@ export const usePanicVoiceCommand = ({
 
     return () => {
       recognition.stop();
+      cancelPendingPanic();
     };
-  }, [enabled, panicKeyword, onPanicCommand, toast, isListening]);
+  }, [enabled, panicKeyword, cancelKeyword, isPendingPanic, toast, isListening, startPanicCountdown, cancelPendingPanic]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || !isSupported) {
@@ -167,7 +281,8 @@ export const usePanicVoiceCommand = ({
       recognitionRef.current.stop();
       setIsListening(false);
     }
-  }, []);
+    cancelPendingPanic();
+  }, [cancelPendingPanic]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {
@@ -181,8 +296,11 @@ export const usePanicVoiceCommand = ({
     isListening,
     isSupported,
     lastCommand,
+    isPendingPanic,
+    countdownSeconds,
     startListening,
     stopListening,
     toggleListening,
+    cancelPendingPanic,
   };
 };
