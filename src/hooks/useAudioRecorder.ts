@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
+import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
-import { initVAD, analyzeAudioForSpeech, isVADReady } from '@/utils/vadDetection';
+import { initVAD, analyzeAudioForSpeech } from '@/utils/vadDetection';
 
 export const useAudioRecorder = () => {
   const { config, user, isRecording, setIsRecording } = useAppStore();
@@ -42,27 +43,48 @@ export const useAudioRecorder = () => {
       if (result.hasSpeech) {
         toast({
           title: 'Diálogo detectado!',
-          description: `${result.speechPercentage.toFixed(1)}% do áudio contém fala. Enviando...`,
+          description: `${result.speechPercentage.toFixed(1)}% do áudio contém fala.`,
         });
 
-        const sendResult = await apiService.sendAudio(audioBlob, user.token);
-        
-        if (sendResult.success) {
-          toast({
-            title: 'Áudio enviado',
-            description: 'Gravação enviada com sucesso',
-          });
+        // Check if online
+        if (navigator.onLine) {
+          const sendResult = await apiService.sendAudio(audioBlob, user.token);
+          
+          if (sendResult.success) {
+            toast({
+              title: 'Áudio enviado',
+              description: 'Gravação enviada com sucesso',
+            });
+          } else {
+            // Failed to send, save offline
+            await syncService.saveForOffline('audio', {
+              blob: audioBlob,
+              timestamp: Date.now(),
+              hasSpeech: result.hasSpeech,
+              speechPercentage: result.speechPercentage,
+            });
+            toast({
+              title: 'Salvo localmente',
+              description: 'Será enviado quando a conexão for restaurada',
+            });
+          }
         } else {
+          // Offline, save locally
+          await syncService.saveForOffline('audio', {
+            blob: audioBlob,
+            timestamp: Date.now(),
+            hasSpeech: result.hasSpeech,
+            speechPercentage: result.speechPercentage,
+          });
           toast({
-            title: 'Erro ao enviar',
-            description: 'Falha no envio do áudio',
-            variant: 'destructive',
+            title: 'Salvo offline',
+            description: 'Será sincronizado quando houver conexão',
           });
         }
       } else {
         toast({
           title: 'Sem diálogo detectado',
-          description: `Apenas ${result.speechPercentage.toFixed(1)}% do áudio contém fala. Áudio descartado.`,
+          description: `Apenas ${result.speechPercentage.toFixed(1)}% do áudio contém fala. Descartado.`,
         });
       }
     } catch (error) {
@@ -133,9 +155,10 @@ export const useAudioRecorder = () => {
         }
       }, 1000);
 
+      const offlineStatus = navigator.onLine ? '' : ' | Modo Offline';
       toast({
         title: 'Gravação iniciada',
-        description: `Duração: ${config?.recordingDurationMinutes || 5} min | VAD: ${vadStatus === 'ready' ? 'IA' : 'Básico'}`,
+        description: `Duração: ${config?.recordingDurationMinutes || 5} min${offlineStatus}`,
       });
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -145,7 +168,7 @@ export const useAudioRecorder = () => {
         variant: 'destructive',
       });
     }
-  }, [config, setIsRecording, toast, analyzeAndSendAudio, vadStatus]);
+  }, [config, setIsRecording, toast, analyzeAndSendAudio]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
