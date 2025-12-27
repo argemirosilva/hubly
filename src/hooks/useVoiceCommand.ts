@@ -1,8 +1,25 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+// Vibração para feedback tátil em dispositivos móveis
+const vibrate = (pattern: number | number[]) => {
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  } catch (e) {
+    console.log('Vibration not available:', e);
+  }
+};
+
 // Gera um tom de confirmação usando Web Audio API
 const playConfirmationSound = (type: 'start' | 'stop') => {
+  // Vibração: curta para start, dupla para stop
+  if (type === 'start') {
+    vibrate(100); // Uma vibração curta
+  } else {
+    vibrate([100, 50, 100]); // Duas vibrações curtas
+  }
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -35,6 +52,7 @@ const playConfirmationSound = (type: 'start' | 'stop') => {
 
 // Som de ativação do modo de escuta
 const playActivationSound = () => {
+  vibrate([50, 30, 50, 30, 50]); // Padrão de ativação: três vibrações rápidas
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
