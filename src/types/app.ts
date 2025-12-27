@@ -4,7 +4,9 @@ export interface AppConfig {
   apiBaseUrl: string;
   dialogueDetectionEnabled: boolean;
   autoStartRecording: boolean;
-  voiceCommand?: string; // Comando de voz personalizado do usuário
+  voiceCommand?: string; // Comando de voz de pânico
+  recordingStartCommand?: string; // Comando para iniciar gravação
+  recordingStopCommand?: string; // Comando para parar gravação
 }
 
 export interface User {

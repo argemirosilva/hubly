@@ -1,6 +1,11 @@
 import React from 'react';
-import { Mic, MicOff, Loader2, Brain, Zap } from 'lucide-react';
+import { Mic, MicOff, Loader2, Brain, Zap, AudioLines, AudioWaveform } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
+import { useAppStore } from '@/store/appStore';
+
+const DEFAULT_START_COMMAND = 'Ampara iniciar gravação';
+const DEFAULT_STOP_COMMAND = 'Ampara parar gravação';
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -9,7 +14,27 @@ const formatTime = (seconds: number): string => {
 };
 
 const RecordingControl: React.FC = () => {
-  const { isRecording, recordingTime, isAnalyzing, vadStatus, toggleRecording } = useAudioRecorder();
+  const { config } = useAppStore();
+  const { isRecording, recordingTime, isAnalyzing, vadStatus, startRecording, stopRecording, toggleRecording } = useAudioRecorder();
+
+  // Comandos personalizados ou padrões
+  const startCommand = config?.recordingStartCommand || DEFAULT_START_COMMAND;
+  const stopCommand = config?.recordingStopCommand || DEFAULT_STOP_COMMAND;
+
+  const { isListening, isSupported, toggleListening } = useRecordingVoiceCommand({
+    onStartCommand: () => {
+      if (!isRecording && !isAnalyzing) {
+        startRecording();
+      }
+    },
+    onStopCommand: () => {
+      if (isRecording) {
+        stopRecording();
+      }
+    },
+    startKeyword: startCommand,
+    stopKeyword: stopCommand,
+  });
 
   return (
     <div className="bg-card rounded-2xl p-6 border border-border">
@@ -49,6 +74,30 @@ const RecordingControl: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Voice Command Button */}
+      {isSupported && (
+        <button
+          onClick={toggleListening}
+          className={`mb-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all ${
+            isListening
+              ? 'bg-primary/20 border-2 border-primary text-primary'
+              : 'bg-secondary/50 border border-border text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          {isListening ? (
+            <>
+              <AudioWaveform className="w-5 h-5 animate-pulse" />
+              <span className="text-sm font-medium">Escutando...</span>
+            </>
+          ) : (
+            <>
+              <AudioLines className="w-5 h-5" />
+              <span className="text-sm font-medium">Ativar comando de voz</span>
+            </>
+          )}
+        </button>
+      )}
 
       {/* Info about VAD */}
       <div className="mb-4 p-3 bg-secondary/30 rounded-lg">
