@@ -12,14 +12,9 @@ const vibrate = (pattern: number | number[]) => {
   }
 };
 
-// Gera um tom de confirmação usando Web Audio API
-const playConfirmationSound = (type: 'start' | 'stop') => {
-  // Vibração: curta para start, dupla para stop
-  if (type === 'start') {
-    vibrate(100); // Uma vibração curta
-  } else {
-    vibrate([100, 50, 100]); // Duas vibrações curtas
-  }
+// Som de alerta de pânico (mais urgente)
+const playPanicSound = () => {
+  vibrate([200, 100, 200, 100, 200]); // Vibração longa e urgente
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -28,23 +23,14 @@ const playConfirmationSound = (type: 'start' | 'stop') => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    if (type === 'start') {
-      // Som ascendente para iniciar (dois tons rápidos)
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.1); // A5
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } else {
-      // Som descendente para parar
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime + 0.1); // A4
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    }
+    // Som de alerta urgente - dois tons alternados
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.15);
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.45);
   } catch (e) {
     console.log('Audio feedback not available:', e);
   }
@@ -52,7 +38,7 @@ const playConfirmationSound = (type: 'start' | 'stop') => {
 
 // Som de ativação do modo de escuta
 const playActivationSound = () => {
-  vibrate([50, 30, 50, 30, 50]); // Padrão de ativação: três vibrações rápidas
+  vibrate([50, 30, 50, 30, 50]);
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -61,10 +47,9 @@ const playActivationSound = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    // Três tons curtos ascendentes
-    oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
-    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.08); // E5
-    oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.16); // G5
+    oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.08);
+    oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.16);
     gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.24);
     oscillator.start(audioContext.currentTime);
@@ -74,21 +59,17 @@ const playActivationSound = () => {
   }
 };
 
-interface UseVoiceCommandOptions {
-  onStartCommand: () => void;
-  onStopCommand: () => void;
-  startKeywords?: string[];
-  stopKeywords?: string[];
+interface UsePanicVoiceCommandOptions {
+  onPanicCommand: () => void;
+  panicKeyword?: string;
   enabled?: boolean;
 }
 
-export const useVoiceCommand = ({
-  onStartCommand,
-  onStopCommand,
-  startKeywords = ['iniciar', 'gravar', 'começar', 'start', 'record'],
-  stopKeywords = ['parar', 'stop', 'encerrar', 'finalizar'],
+export const usePanicVoiceCommand = ({
+  onPanicCommand,
+  panicKeyword = 'ampara preciso de ajuda',
   enabled = true,
-}: UseVoiceCommandOptions) => {
+}: UsePanicVoiceCommandOptions) => {
   const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
@@ -113,30 +94,18 @@ export const useVoiceCommand = ({
         console.log('Voice command detected:', transcript);
         setLastCommand(transcript);
 
-        // Check for start commands
-        const hasStartCommand = startKeywords.some(keyword => 
-          transcript.includes(keyword.toLowerCase())
-        );
-        
-        // Check for stop commands
-        const hasStopCommand = stopKeywords.some(keyword => 
-          transcript.includes(keyword.toLowerCase())
-        );
+        // Verifica se o comando de pânico foi dito
+        const normalizedKeyword = panicKeyword.toLowerCase();
+        const hasPanicCommand = transcript.includes(normalizedKeyword);
 
-        if (hasStartCommand && !hasStopCommand) {
-          playConfirmationSound('start');
+        if (hasPanicCommand) {
+          playPanicSound();
           toast({
-            title: '🎤 Comando reconhecido',
-            description: `"${transcript}" - Iniciando gravação`,
+            title: '🚨 COMANDO DE EMERGÊNCIA',
+            description: `"${transcript}" - Acionando alerta de pânico!`,
+            variant: 'destructive',
           });
-          onStartCommand();
-        } else if (hasStopCommand) {
-          playConfirmationSound('stop');
-          toast({
-            title: '🎤 Comando reconhecido',
-            description: `"${transcript}" - Parando gravação`,
-          });
-          onStopCommand();
+          onPanicCommand();
         }
       }
     };
@@ -154,7 +123,6 @@ export const useVoiceCommand = ({
     };
 
     recognition.onend = () => {
-      // Restart if still supposed to be listening
       if (isListening && enabled) {
         try {
           recognition.start();
@@ -169,7 +137,7 @@ export const useVoiceCommand = ({
     return () => {
       recognition.stop();
     };
-  }, [enabled, startKeywords, stopKeywords, onStartCommand, onStopCommand, toast, isListening]);
+  }, [enabled, panicKeyword, onPanicCommand, toast, isListening]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || !isSupported) {
@@ -186,8 +154,8 @@ export const useVoiceCommand = ({
       setIsListening(true);
       playActivationSound();
       toast({
-        title: 'Comando de voz ativado',
-        description: 'Aguardando seu comando...',
+        title: 'Comando de emergência ativado',
+        description: 'Aguardando comando de pânico...',
       });
     } catch (e) {
       console.error('Failed to start recognition:', e);
