@@ -1,0 +1,169 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, Eye, EyeOff, Server } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAppStore } from '@/store/appStore';
+import { apiService, setApiBaseUrl } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+
+const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { setUser, setConfig } = useAppStore();
+  const { toast } = useToast();
+  
+  const [formData, setFormData] = useState({
+    apiUrl: '',
+    username: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.apiUrl || !formData.username || !formData.password) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Preencha todos os campos',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await apiService.login(
+        formData.username,
+        formData.password,
+        formData.apiUrl
+      );
+
+      if (result.success && result.data) {
+        setUser(result.data.user);
+        setConfig(result.data.config);
+        setApiBaseUrl(result.data.config.apiBaseUrl);
+        
+        toast({
+          title: 'Login realizado',
+          description: 'Configurações carregadas com sucesso',
+        });
+        
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: 'Erro no login',
+          description: result.error || 'Credenciais inválidas',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 safe-area-inset">
+      {/* Logo */}
+      <div className="mb-8 flex flex-col items-center animate-fade-in">
+        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 glow-success">
+          <Shield className="w-10 h-10 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground">Monitor App</h1>
+        <p className="text-sm text-muted-foreground mt-1">Sistema de Monitoramento</p>
+      </div>
+
+      {/* Login Form */}
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        {/* API URL */}
+        <div className="space-y-2">
+          <Label htmlFor="apiUrl" className="text-sm font-medium text-foreground">
+            URL da API
+          </Label>
+          <div className="relative">
+            <Server className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="apiUrl"
+              type="url"
+              placeholder="https://sua-api.com"
+              value={formData.apiUrl}
+              onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
+              className="pl-10 h-12 bg-card border-border focus:border-primary focus:ring-primary"
+            />
+          </div>
+        </div>
+
+        {/* Username */}
+        <div className="space-y-2">
+          <Label htmlFor="username" className="text-sm font-medium text-foreground">
+            Usuário
+          </Label>
+          <Input
+            id="username"
+            type="text"
+            placeholder="seu.usuario"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            className="h-12 bg-card border-border focus:border-primary focus:ring-primary"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium text-foreground">
+            Senha
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="h-12 pr-12 bg-card border-border focus:border-primary focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base mt-6"
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              Conectando...
+            </span>
+          ) : (
+            'Entrar'
+          )}
+        </Button>
+      </form>
+
+      {/* Footer */}
+      <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        Versão 1.0.0
+      </p>
+    </div>
+  );
+};
+
+export default LoginPage;
