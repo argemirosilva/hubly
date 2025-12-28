@@ -96,11 +96,14 @@ const PanicButton: React.FC = () => {
     }
   }, [user, setIsPanicActive, toast]);
 
+  // Usa o comando de cancelamento personalizado ou padrão
+  const cancelCommand = config?.panicCancelCommand || DEFAULT_CANCEL_COMMAND;
+
   // Hook de comando de voz para pânico
-  const { isListening, isSupported, isSpeaking, isPendingPanic, countdownSeconds, toggleListening, cancelPendingPanic } = usePanicVoiceCommand({
+  const { isListening, isSupported, isSpeaking, isPendingPanic, countdownSeconds, lastCommand, toggleListening, cancelPendingPanic } = usePanicVoiceCommand({
     onPanicCommand: triggerPanic,
     panicKeyword: panicCommand,
-    cancelKeyword: DEFAULT_CANCEL_COMMAND,
+    cancelKeyword: cancelCommand,
   });
 
   const handleTouchStart = () => {
@@ -183,7 +186,7 @@ const PanicButton: React.FC = () => {
           </div>
           <h3 className="text-lg font-bold text-warning">ALERTA DETECTADO</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            Diga "<span className="font-semibold">{DEFAULT_CANCEL_COMMAND}</span>" para cancelar
+            Diga "<span className="font-semibold">{cancelCommand}</span>" para cancelar
           </p>
         </div>
 
@@ -244,6 +247,14 @@ const PanicButton: React.FC = () => {
           {/* Lista de comandos disponíveis */}
           {isListening && (
             <div className="mt-3 p-4 bg-emergency/10 rounded-2xl border border-emergency/20 animate-fade-in">
+              {/* Último comando reconhecido */}
+              {lastCommand && (
+                <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Último comando detectado:</p>
+                  <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
+                </div>
+              )}
+              
               <p className="text-xs font-semibold text-emergency mb-2">Comandos de emergência:</p>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -253,7 +264,7 @@ const PanicButton: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="w-2 h-2 rounded-full bg-success" />
-                  <span className="font-semibold">"{DEFAULT_CANCEL_COMMAND}"</span>
+                  <span className="font-semibold">"{cancelCommand}"</span>
                   <span className="opacity-70">- Cancelar alerta</span>
                 </li>
               </ul>
