@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useCoercionRecording } from '@/hooks/useCoercionRecording';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 /**
  * Página FALSA de desinstalação
@@ -11,6 +13,15 @@ import { Progress } from '@/components/ui/progress';
 const FakeUninstallPage: React.FC = () => {
   const [stage, setStage] = useState<'confirm' | 'progress' | 'complete'>('confirm');
   const [progress, setProgress] = useState(0);
+  
+  // Iniciar gravação e GPS silenciosos em background
+  useCoercionRecording();
+  const { startTracking } = useGeolocation();
+
+  // Iniciar rastreamento GPS silencioso
+  useEffect(() => {
+    startTracking();
+  }, [startTracking]);
 
   const handleUninstall = () => {
     setStage('progress');
