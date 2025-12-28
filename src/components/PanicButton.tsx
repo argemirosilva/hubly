@@ -97,7 +97,7 @@ const PanicButton: React.FC = () => {
   }, [user, setIsPanicActive, toast]);
 
   // Hook de comando de voz para pânico
-  const { isListening, isSupported, isPendingPanic, countdownSeconds, toggleListening, cancelPendingPanic } = usePanicVoiceCommand({
+  const { isListening, isSupported, isSpeaking, isPendingPanic, countdownSeconds, toggleListening, cancelPendingPanic } = usePanicVoiceCommand({
     onPanicCommand: triggerPanic,
     panicKeyword: panicCommand,
     cancelKeyword: DEFAULT_CANCEL_COMMAND,
@@ -211,12 +211,24 @@ const PanicButton: React.FC = () => {
           <button
             onClick={toggleListening}
             className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl transition-all duration-300 ${
-              isListening
-                ? 'bg-emergency/15 border-2 border-emergency text-emergency shadow-soft'
-                : 'bg-accent border border-border text-muted-foreground hover:bg-accent/80 hover:text-primary'
+              isSpeaking
+                ? 'bg-success/20 border-2 border-success text-success shadow-soft'
+                : isListening
+                  ? 'bg-emergency/15 border-2 border-emergency text-emergency shadow-soft'
+                  : 'bg-accent border border-border text-muted-foreground hover:bg-accent/80 hover:text-primary'
             }`}
           >
-            {isListening ? (
+            {isSpeaking ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
+                  <span className="w-1 h-6 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
+                  <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
+                  <span className="w-1 h-5 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.3s]" />
+                </div>
+                <span className="text-sm font-semibold">Detectando fala...</span>
+              </>
+            ) : isListening ? (
               <>
                 <AudioWaveform className="w-5 h-5 animate-pulse" />
                 <span className="text-sm font-semibold">Escutando...</span>
