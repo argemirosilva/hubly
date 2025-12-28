@@ -86,6 +86,24 @@ export const useRecordingVoiceCommand = ({
   const [isSupported, setIsSupported] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isListeningRef = useRef(false);
+  const onStartCommandRef = useRef(onStartCommand);
+  const onStopCommandRef = useRef(onStopCommand);
+  const startKeywordRef = useRef(startKeyword);
+  const stopKeywordRef = useRef(stopKeyword);
+
+  // Atualiza refs quando as props mudam
+  useEffect(() => {
+    onStartCommandRef.current = onStartCommand;
+    onStopCommandRef.current = onStopCommand;
+    startKeywordRef.current = startKeyword;
+    stopKeywordRef.current = stopKeyword;
+  }, [onStartCommand, onStopCommand, startKeyword, stopKeyword]);
+
+  // Sincroniza ref com state
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -105,8 +123,8 @@ export const useRecordingVoiceCommand = ({
         console.log('Recording voice command detected:', transcript);
         setLastCommand(transcript);
 
-        const normalizedStart = startKeyword.toLowerCase();
-        const normalizedStop = stopKeyword.toLowerCase();
+        const normalizedStart = startKeywordRef.current.toLowerCase();
+        const normalizedStop = stopKeywordRef.current.toLowerCase();
 
         const hasStartCommand = transcript.includes(normalizedStart);
         const hasStopCommand = transcript.includes(normalizedStop);
@@ -117,14 +135,14 @@ export const useRecordingVoiceCommand = ({
             title: '🎤 Comando reconhecido',
             description: `"${transcript}" - Parando gravação`,
           });
-          onStopCommand();
+          onStopCommandRef.current();
         } else if (hasStartCommand) {
           playConfirmationSound('start');
           toast({
             title: '🎤 Comando reconhecido',
             description: `"${transcript}" - Iniciando gravação`,
           });
-          onStartCommand();
+          onStartCommandRef.current();
         }
       }
     };
@@ -138,25 +156,46 @@ export const useRecordingVoiceCommand = ({
           variant: 'destructive',
         });
         setIsListening(false);
+      } else if (event.error === 'aborted' || event.error === 'network') {
+        // Tenta reiniciar em caso de erro de rede
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.log('Recognition restart after error failed:', e);
+            }
+          }
+        }, 1000);
       }
     };
 
     recognition.onend = () => {
-      if (isListening && enabled) {
-        try {
-          recognition.start();
-        } catch (e) {
-          console.log('Recognition restart failed:', e);
-        }
+      console.log('Speech recognition ended, isListening:', isListeningRef.current);
+      if (isListeningRef.current && enabled) {
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+              console.log('Speech recognition restarted');
+            } catch (e) {
+              console.log('Recognition restart failed:', e);
+            }
+          }
+        }, 100);
       }
     };
 
     recognitionRef.current = recognition;
 
     return () => {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch (e) {
+        // ignore
+      }
     };
-  }, [enabled, startKeyword, stopKeyword, onStartCommand, onStopCommand, toast, isListening]);
+  }, [enabled, toast]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || !isSupported) {

@@ -133,6 +133,25 @@ export const usePanicVoiceCommand = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const panicTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isListeningRef = useRef(false);
+  const isPendingPanicRef = useRef(false);
+  const panicKeywordRef = useRef(panicKeyword);
+  const cancelKeywordRef = useRef(cancelKeyword);
+
+  // Atualiza refs quando as props mudam
+  useEffect(() => {
+    panicKeywordRef.current = panicKeyword;
+    cancelKeywordRef.current = cancelKeyword;
+  }, [panicKeyword, cancelKeyword]);
+
+  // Sincroniza refs com state
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    isPendingPanicRef.current = isPendingPanic;
+  }, [isPendingPanic]);
 
   const cancelPendingPanic = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -156,7 +175,7 @@ export const usePanicVoiceCommand = ({
     
     toast({
       title: '⚠️ ALERTA DETECTADO',
-      description: `Diga "${cancelKeyword}" para cancelar. ${COUNTDOWN_SECONDS}s restantes...`,
+      description: `Diga "${cancelKeywordRef.current}" para cancelar. ${COUNTDOWN_SECONDS}s restantes...`,
       variant: 'destructive',
     });
 
@@ -179,7 +198,7 @@ export const usePanicVoiceCommand = ({
         onPanicCommand();
       }
     }, 1000);
-  }, [cancelKeyword, onPanicCommand, toast, cancelPendingPanic]);
+  }, [onPanicCommand, toast, cancelPendingPanic]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -199,14 +218,14 @@ export const usePanicVoiceCommand = ({
         console.log('Voice command detected:', transcript);
         setLastCommand(transcript);
 
-        const normalizedPanicKeyword = panicKeyword.toLowerCase();
-        const normalizedCancelKeyword = cancelKeyword.toLowerCase();
+        const normalizedPanicKeyword = panicKeywordRef.current.toLowerCase();
+        const normalizedCancelKeyword = cancelKeywordRef.current.toLowerCase();
         
         const hasCancelCommand = transcript.includes(normalizedCancelKeyword);
         const hasPanicCommand = transcript.includes(normalizedPanicKeyword);
 
         // Prioridade para cancelamento
-        if (hasCancelCommand && isPendingPanic) {
+        if (hasCancelCommand && isPendingPanicRef.current) {
           cancelPendingPanic();
           playCancelSound();
           toast({
@@ -217,7 +236,7 @@ export const usePanicVoiceCommand = ({
         }
 
         // Iniciar contagem se comando de pânico detectado
-        if (hasPanicCommand && !isPendingPanic) {
+        if (hasPanicCommand && !isPendingPanicRef.current) {
           startPanicCountdown();
         }
       }
@@ -232,26 +251,47 @@ export const usePanicVoiceCommand = ({
           variant: 'destructive',
         });
         setIsListening(false);
+      } else if (event.error === 'aborted' || event.error === 'network') {
+        // Tenta reiniciar em caso de erro de rede
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.log('Recognition restart after error failed:', e);
+            }
+          }
+        }, 1000);
       }
     };
 
     recognition.onend = () => {
-      if (isListening && enabled) {
-        try {
-          recognition.start();
-        } catch (e) {
-          console.log('Recognition restart failed:', e);
-        }
+      console.log('Panic speech recognition ended, isListening:', isListeningRef.current);
+      if (isListeningRef.current && enabled) {
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+              console.log('Panic speech recognition restarted');
+            } catch (e) {
+              console.log('Recognition restart failed:', e);
+            }
+          }
+        }, 100);
       }
     };
 
     recognitionRef.current = recognition;
 
     return () => {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch (e) {
+        // ignore
+      }
       cancelPendingPanic();
     };
-  }, [enabled, panicKeyword, cancelKeyword, isPendingPanic, toast, isListening, startPanicCountdown, cancelPendingPanic]);
+  }, [enabled, toast, startPanicCountdown, cancelPendingPanic]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || !isSupported) {
