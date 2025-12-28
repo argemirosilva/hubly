@@ -21,7 +21,7 @@ const RecordingControl: React.FC = () => {
   const startCommand = config?.recordingStartCommand || DEFAULT_START_COMMAND;
   const stopCommand = config?.recordingStopCommand || DEFAULT_STOP_COMMAND;
 
-  const { isListening, isSupported, isSpeaking, toggleListening } = useRecordingVoiceCommand({
+  const { isListening, isSupported, isSpeaking, lastCommand, toggleListening } = useRecordingVoiceCommand({
     onStartCommand: () => {
       if (!isRecording && !isAnalyzing) {
         startRecording();
@@ -114,6 +114,14 @@ const RecordingControl: React.FC = () => {
           {/* Lista de comandos disponíveis */}
           {isListening && (
             <div className="mt-3 p-4 bg-primary/10 rounded-2xl border border-primary/20 animate-fade-in">
+              {/* Último comando reconhecido */}
+              {lastCommand && (
+                <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Último comando detectado:</p>
+                  <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
+                </div>
+              )}
+              
               <p className="text-xs font-semibold text-primary mb-2">Comandos disponíveis:</p>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
