@@ -78,6 +78,7 @@ const DashboardPage: React.FC = () => {
               {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
             <button
+              onClick={() => navigate('/settings')}
               className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center text-primary hover:bg-accent/80 transition-all duration-300 shadow-soft"
             >
               <Settings className="w-5 h-5" />
