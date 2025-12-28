@@ -11,13 +11,13 @@ import { useToast } from '@/hooks/use-toast';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser, setConfig } = useAppStore();
+  const { setUser, setConfig, setLoginTipo, setCoercionMode } = useAppStore();
   const { toast } = useToast();
   
   const API_URL = 'https://amparamulher.org';
   
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -26,10 +26,10 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.username || !formData.password) {
+    if (!formData.email || !formData.password) {
       toast({
         title: 'Campos obrigatórios',
-        description: 'Preencha usuário e senha',
+        description: 'Preencha e-mail e senha',
         variant: 'destructive',
       });
       return;
@@ -39,22 +39,30 @@ const LoginPage: React.FC = () => {
 
     try {
       const result = await apiService.login(
-        formData.username,
+        formData.email,
         formData.password,
-        API_URL
+        API_URL,
+        'login'
       );
 
       if (result.success && result.data) {
         setUser(result.data.user);
         setConfig(result.data.config);
+        setLoginTipo(result.data.loginTipo);
         setApiBaseUrl(result.data.config.apiBaseUrl);
         
-        toast({
-          title: 'Login realizado',
-          description: 'Configurações carregadas com sucesso',
-        });
-        
-        navigate('/dashboard');
+        // Se for login de coação, ativar modo coação
+        if (result.data.loginTipo === 'coacao') {
+          setCoercionMode(true);
+          // Navegar para tela falsa de desinstalação
+          navigate('/uninstall');
+        } else {
+          toast({
+            title: 'Login realizado',
+            description: `Bem-vinda, ${result.data.user.nome}`,
+          });
+          navigate('/dashboard');
+        }
       } else {
         toast({
           title: 'Erro no login',
@@ -89,17 +97,17 @@ const LoginPage: React.FC = () => {
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
 
-        {/* Username */}
+        {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="username" className="text-sm font-semibold text-foreground">
-            Usuário
+          <Label htmlFor="email" className="text-sm font-semibold text-foreground">
+            E-mail
           </Label>
           <Input
-            id="username"
-            type="text"
-            placeholder="seu.usuario"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            id="email"
+            type="email"
+            placeholder="seu.email@exemplo.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
           />
         </div>

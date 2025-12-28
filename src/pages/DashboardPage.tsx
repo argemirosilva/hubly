@@ -52,7 +52,7 @@ const DashboardPage: React.FC = () => {
               <h1 className="text-xl font-bold text-foreground font-display">Ampara</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <User className="w-3 h-3" />
-                {user.username}
+                {user.nome || user.email}
               </p>
             </div>
           </div>
