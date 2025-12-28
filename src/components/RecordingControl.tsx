@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Loader2, Brain, Zap, AudioLines, AudioWaveform } from 'lucide-react';
+import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
 import { useAppStore } from '@/store/appStore';
@@ -21,7 +21,7 @@ const RecordingControl: React.FC = () => {
   const startCommand = config?.recordingStartCommand || DEFAULT_START_COMMAND;
   const stopCommand = config?.recordingStopCommand || DEFAULT_STOP_COMMAND;
 
-  const { isListening, isSupported, isSpeaking, lastCommand, toggleListening } = useRecordingVoiceCommand({
+  const { isListening, isSupported, isSpeaking, lastCommand } = useRecordingVoiceCommand({
     onStartCommand: () => {
       if (!isRecording && !isAnalyzing) {
         startRecording();
@@ -75,68 +75,48 @@ const RecordingControl: React.FC = () => {
         </div>
       </div>
 
-      {/* Voice Command Button */}
-      {isSupported && (
-        <div className="mb-4">
-          <button
-            onClick={toggleListening}
-            className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl transition-all duration-300 ${
-              isSpeaking
-                ? 'bg-success/20 border-2 border-success text-success shadow-soft'
-                : isListening
-                  ? 'bg-primary/15 border-2 border-primary text-primary shadow-soft'
-                  : 'bg-accent border border-border text-muted-foreground hover:bg-accent/80 hover:text-primary'
-            }`}
-          >
-            {isSpeaking ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
-                  <span className="w-1 h-6 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
-                  <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
-                  <span className="w-1 h-5 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.3s]" />
-                </div>
-                <span className="text-sm font-semibold">Detectando fala...</span>
-              </>
-            ) : isListening ? (
-              <>
-                <AudioWaveform className="w-5 h-5 animate-pulse" />
-                <span className="text-sm font-semibold">Escutando...</span>
-              </>
-            ) : (
-              <>
-                <AudioLines className="w-5 h-5" />
-                <span className="text-sm font-medium">Ativar comando de voz</span>
-              </>
-            )}
-          </button>
-          
-          {/* Lista de comandos disponíveis */}
-          {isListening && (
-            <div className="mt-3 p-4 bg-primary/10 rounded-2xl border border-primary/20 animate-fade-in">
-              {/* Último comando reconhecido */}
-              {lastCommand && (
-                <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Último comando detectado:</p>
-                  <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
-                </div>
+      {/* Voice Command Status - Always listening */}
+      {isSupported && isListening && (
+        <div className="mb-4 p-4 bg-primary/10 rounded-2xl border border-primary/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {isSpeaking ? (
+                <>
+                  <div className="flex items-center gap-0.5">
+                    <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
+                    <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
+                    <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
+                  </div>
+                  <span className="text-xs font-semibold text-success">Detectando fala...</span>
+                </>
+              ) : (
+                <>
+                  <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
+                  <span className="text-xs font-semibold text-primary">Escutando comandos</span>
+                </>
               )}
-              
-              <p className="text-xs font-semibold text-primary mb-2">Comandos disponíveis:</p>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-2 h-2 rounded-full bg-success" />
-                  <span className="font-semibold">"{startCommand}"</span>
-                  <span className="opacity-70">- Iniciar gravação</span>
-                </li>
-                <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-2 h-2 rounded-full bg-emergency" />
-                  <span className="font-semibold">"{stopCommand}"</span>
-                  <span className="opacity-70">- Parar gravação</span>
-                </li>
-              </ul>
+            </div>
+          </div>
+          
+          {/* Último comando reconhecido */}
+          {lastCommand && (
+            <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Último comando:</p>
+              <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
             </div>
           )}
+          
+          <p className="text-xs text-muted-foreground mb-2">Comandos disponíveis:</p>
+          <ul className="space-y-1.5">
+            <li className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-success" />
+              <span className="font-medium">"{startCommand}"</span>
+            </li>
+            <li className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
+              <span className="font-medium">"{stopCommand}"</span>
+            </li>
+          </ul>
         </div>
       )}
 

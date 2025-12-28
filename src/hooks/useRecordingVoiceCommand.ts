@@ -163,26 +163,27 @@ export const useRecordingVoiceCommand = ({
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || !isSupported) {
-      toast({
-        title: 'Não suportado',
-        description: 'Reconhecimento de voz não disponível neste navegador',
-        variant: 'destructive',
-      });
       return;
     }
 
     try {
       recognitionRef.current.start();
       setIsListening(true);
-      playActivationSound();
-      toast({
-        title: 'Comando de gravação ativado',
-        description: 'Aguardando comando...',
-      });
+      console.log('Recording voice command started');
     } catch (e) {
       console.error('Failed to start recognition:', e);
     }
-  }, [isSupported, toast]);
+  }, [isSupported]);
+
+  // Auto-start listening when component mounts
+  useEffect(() => {
+    if (enabled && isSupported && recognitionRef.current && !isListening) {
+      const timer = setTimeout(() => {
+        startListening();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [enabled, isSupported, startListening, isListening]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
