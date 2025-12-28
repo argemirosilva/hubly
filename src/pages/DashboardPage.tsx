@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
@@ -13,7 +13,7 @@ import { pushNotificationService } from '@/services/pushNotifications';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, config, logout } = useAppStore();
+  const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,6 +58,25 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setSoundEnabled(!soundEnabled);
+                toast({
+                  title: soundEnabled ? 'Sons desativados' : 'Sons ativados',
+                  description: soundEnabled 
+                    ? 'O app respeitará o modo silencioso' 
+                    : 'Alertas sonoros habilitados',
+                });
+              }}
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-soft ${
+                soundEnabled 
+                  ? 'bg-accent text-primary hover:bg-accent/80' 
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+              title={soundEnabled ? 'Desativar sons' : 'Ativar sons'}
+            >
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
             <button
               className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center text-primary hover:bg-accent/80 transition-all duration-300 shadow-soft"
             >

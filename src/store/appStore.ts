@@ -8,12 +8,14 @@ interface AppState {
   isRecording: boolean;
   isTracking: boolean;
   isPanicActive: boolean;
+  soundEnabled: boolean;
   
   setUser: (user: User | null) => void;
   setConfig: (config: AppConfig | null) => void;
   setIsRecording: (isRecording: boolean) => void;
   setIsTracking: (isTracking: boolean) => void;
   setIsPanicActive: (isPanicActive: boolean) => void;
+  setSoundEnabled: (enabled: boolean) => void;
   logout: () => void;
 }
 
@@ -25,17 +27,19 @@ export const useAppStore = create<AppState>()(
       isRecording: false,
       isTracking: false,
       isPanicActive: false,
+      soundEnabled: true,
       
       setUser: (user) => set({ user }),
       setConfig: (config) => set({ config }),
       setIsRecording: (isRecording) => set({ isRecording }),
       setIsTracking: (isTracking) => set({ isTracking }),
       setIsPanicActive: (isPanicActive) => set({ isPanicActive }),
-      logout: () => set({ user: null, config: null, isRecording: false, isTracking: false, isPanicActive: false }),
+      setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
+      logout: () => set({ user: null, config: null, isRecording: false, isTracking: false, isPanicActive: false, soundEnabled: true }),
     }),
     {
       name: 'ampara-storage',
-      partialize: (state) => ({ user: state.user, config: state.config }),
+      partialize: (state) => ({ user: state.user, config: state.config, soundEnabled: state.soundEnabled }),
     }
   )
 );
