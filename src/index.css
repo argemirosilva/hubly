@@ -188,6 +188,15 @@
     }
   }
 
+  @keyframes soundwave {
+    0%, 100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+  }
+
   .glow-success {
     box-shadow: 0 0 20px hsl(var(--success) / 0.3);
   }

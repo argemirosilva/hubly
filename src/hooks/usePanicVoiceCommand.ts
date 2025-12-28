@@ -129,6 +129,7 @@ export const usePanicVoiceCommand = ({
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [isPendingPanic, setIsPendingPanic] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -211,7 +212,16 @@ export const usePanicVoiceCommand = ({
     recognition.continuous = true;
     recognition.interimResults = false;
 
+    (recognition as any).onspeechstart = () => {
+      setIsSpeaking(true);
+    };
+
+    (recognition as any).onspeechend = () => {
+      setIsSpeaking(false);
+    };
+
     recognition.onresult = (event) => {
+      setIsSpeaking(false);
       const last = event.results[event.results.length - 1];
       if (last.isFinal) {
         const transcript = last[0].transcript.toLowerCase().trim();
@@ -336,6 +346,7 @@ export const usePanicVoiceCommand = ({
     isListening,
     isSupported,
     lastCommand,
+    isSpeaking,
     isPendingPanic,
     countdownSeconds,
     startListening,

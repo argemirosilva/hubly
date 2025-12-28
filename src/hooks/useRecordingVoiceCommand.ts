@@ -85,6 +85,7 @@ export const useRecordingVoiceCommand = ({
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isListeningRef = useRef(false);
   const onStartCommandRef = useRef(onStartCommand);
@@ -116,7 +117,16 @@ export const useRecordingVoiceCommand = ({
     recognition.continuous = true;
     recognition.interimResults = false;
 
+    (recognition as any).onspeechstart = () => {
+      setIsSpeaking(true);
+    };
+
+    (recognition as any).onspeechend = () => {
+      setIsSpeaking(false);
+    };
+
     recognition.onresult = (event) => {
+      setIsSpeaking(false);
       const last = event.results[event.results.length - 1];
       if (last.isFinal) {
         const transcript = last[0].transcript.toLowerCase().trim();
@@ -239,6 +249,7 @@ export const useRecordingVoiceCommand = ({
     isListening,
     isSupported,
     lastCommand,
+    isSpeaking,
     startListening,
     stopListening,
     toggleListening,
