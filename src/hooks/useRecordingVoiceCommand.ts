@@ -69,14 +69,23 @@ export const useRecordingVoiceCommand = ({
         console.log('Recording voice command detected:', transcript);
         setLastCommand(transcript);
 
-        // Detecta comandos de forma flexível
+        // Detecta comandos de forma flexível (não precisa de contexto "gravação")
         const hasStopWords = 
-          (transcript.includes('parar') || transcript.includes('para') || transcript.includes('stop') || transcript.includes('encerrar') || transcript.includes('finalizar')) &&
-          (transcript.includes('gravação') || transcript.includes('gravar') || transcript.includes('áudio') || transcript.includes('audio'));
+          transcript.includes('parar') || 
+          transcript.includes('para') || 
+          transcript.includes('stop') || 
+          transcript.includes('encerrar') || 
+          transcript.includes('finalizar') ||
+          transcript.includes('terminar');
         
         const hasStartWords = 
-          (transcript.includes('iniciar') || transcript.includes('começar') || transcript.includes('start') || transcript.includes('gravar') || transcript.includes('inicía')) &&
-          (transcript.includes('gravação') || transcript.includes('gravar') || transcript.includes('áudio') || transcript.includes('audio'));
+          transcript.includes('iniciar') || 
+          transcript.includes('começar') || 
+          transcript.includes('start') || 
+          transcript.includes('gravar') || 
+          transcript.includes('inicía') ||
+          transcript.includes('começá') ||
+          transcript.includes('começa');
 
         // Também aceita palavra-chave exata
         const normalizedStart = startKeywordRef.current.toLowerCase();
