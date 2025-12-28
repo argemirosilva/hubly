@@ -1,4 +1,4 @@
-import type { ApiResponse, AppConfig, User, LocationData } from '@/types/app';
+import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
 
 // Base URL will be set from config
 let API_BASE_URL = '';
@@ -17,44 +17,84 @@ const getHeaders = (token?: string) => {
   return headers;
 };
 
+interface LoginApiResponse {
+  success: boolean;
+  usuario?: {
+    id: string;
+    email: string;
+    nome_vitima: string;
+    telefone_vitima?: string;
+    gravacao_inicio?: string;
+    gravacao_fim?: string;
+    gravacao_dias?: string[];
+    contatos_rede_apoio?: ContatoRedeApoio[];
+  };
+  loginTipo?: LoginTipo;
+  error?: string;
+}
+
 export const apiService = {
-  async login(username: string, password: string, baseUrl: string): Promise<ApiResponse<{ user: User; config: AppConfig }>> {
+  async login(
+    email: string, 
+    senha: string, 
+    baseUrl: string,
+    tipoAcao: 'login' | 'desinstalacao' = 'login'
+  ): Promise<ApiResponse<{ user: User; config: AppConfig; loginTipo: LoginTipo }>> {
     try {
-      // For demo purposes, simulate API response
-      // Replace this with actual API call to your platform
-      const response = await fetch(`${baseUrl}/api/auth/login`, {
+      setApiBaseUrl(baseUrl);
+      
+      const response = await fetch(`${baseUrl}/api/functions/loginCustomizado`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ 
+          email, 
+          senha,
+          tipo_acao: tipoAcao
+        }),
       });
       
-      if (!response.ok) {
-        throw new Error('Credenciais inválidas');
+      const data: LoginApiResponse = await response.json();
+      
+      if (!data.success || !data.usuario) {
+        return { 
+          success: false, 
+          error: data.error || 'Credenciais inválidas' 
+        };
       }
       
-      const data = await response.json();
-      setApiBaseUrl(baseUrl);
-      return { success: true, data };
+      const user: User = {
+        id: data.usuario.id,
+        email: data.usuario.email,
+        nome: data.usuario.nome_vitima,
+        telefone: data.usuario.telefone_vitima,
+        token: data.usuario.id, // Usar ID como token temporário
+      };
+      
+      const config: AppConfig = {
+        recordingDurationMinutes: 5,
+        gpsIntervalSeconds: 30,
+        apiBaseUrl: baseUrl,
+        dialogueDetectionEnabled: true,
+        autoStartRecording: false,
+        gravacaoInicio: data.usuario.gravacao_inicio,
+        gravacaoFim: data.usuario.gravacao_fim,
+        gravacaoDias: data.usuario.gravacao_dias,
+        contatosRedeApoio: data.usuario.contatos_rede_apoio,
+      };
+      
+      return { 
+        success: true, 
+        data: { 
+          user, 
+          config, 
+          loginTipo: data.loginTipo || 'normal' 
+        } 
+      };
     } catch (error) {
-      // Demo mode - simulate successful login
-      console.log('Demo mode: simulating login');
-      setApiBaseUrl(baseUrl);
-      return {
-        success: true,
-        data: {
-          user: {
-            id: '1',
-            username,
-            token: 'demo-token-123',
-          },
-          config: {
-            recordingDurationMinutes: 5,
-            gpsIntervalSeconds: 30,
-            apiBaseUrl: baseUrl,
-            dialogueDetectionEnabled: true,
-            autoStartRecording: false,
-          },
-        },
+      console.error('Erro no login:', error);
+      return { 
+        success: false, 
+        error: 'Não foi possível conectar ao servidor' 
       };
     }
   },
