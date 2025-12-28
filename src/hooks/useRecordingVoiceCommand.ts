@@ -69,20 +69,29 @@ export const useRecordingVoiceCommand = ({
         console.log('Recording voice command detected:', transcript);
         setLastCommand(transcript);
 
+        // Detecta comandos de forma flexível
+        const hasStopWords = 
+          (transcript.includes('parar') || transcript.includes('para') || transcript.includes('stop') || transcript.includes('encerrar') || transcript.includes('finalizar')) &&
+          (transcript.includes('gravação') || transcript.includes('gravar') || transcript.includes('áudio') || transcript.includes('audio'));
+        
+        const hasStartWords = 
+          (transcript.includes('iniciar') || transcript.includes('começar') || transcript.includes('start') || transcript.includes('gravar') || transcript.includes('inicía')) &&
+          (transcript.includes('gravação') || transcript.includes('gravar') || transcript.includes('áudio') || transcript.includes('audio'));
+
+        // Também aceita palavra-chave exata
         const normalizedStart = startKeywordRef.current.toLowerCase();
         const normalizedStop = stopKeywordRef.current.toLowerCase();
+        const hasExactStart = transcript.includes(normalizedStart);
+        const hasExactStop = transcript.includes(normalizedStop);
 
-        const hasStartCommand = transcript.includes(normalizedStart);
-        const hasStopCommand = transcript.includes(normalizedStop);
-
-        if (hasStopCommand) {
+        if (hasStopWords || hasExactStop) {
           playConfirmationSound('stop');
           toast({
             title: '🎤 Comando reconhecido',
             description: `"${transcript}" - Parando gravação`,
           });
           onStopCommandRef.current();
-        } else if (hasStartCommand) {
+        } else if (hasStartWords || hasExactStart) {
           playConfirmationSound('start');
           toast({
             title: '🎤 Comando reconhecido',

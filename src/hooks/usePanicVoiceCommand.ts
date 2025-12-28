@@ -128,14 +128,27 @@ export const usePanicVoiceCommand = ({
         console.log('Voice command detected:', transcript);
         setLastCommand(transcript);
 
+        // Detecta cancelamento de forma flexível
+        const hasCancelWords = 
+          (transcript.includes('cancelar') || transcript.includes('cancela') || transcript.includes('cancel') || transcript.includes('parar') || transcript.includes('para'));
+        
+        // Detecta pânico de forma flexível
+        const hasPanicWords = 
+          transcript.includes('ajuda') || 
+          transcript.includes('socorro') || 
+          transcript.includes('emergência') || 
+          transcript.includes('emergencia') ||
+          transcript.includes('help') ||
+          transcript.includes('perigo');
+
+        // Também aceita palavra-chave exata
         const normalizedPanicKeyword = panicKeywordRef.current.toLowerCase();
         const normalizedCancelKeyword = cancelKeywordRef.current.toLowerCase();
-        
-        const hasCancelCommand = transcript.includes(normalizedCancelKeyword);
-        const hasPanicCommand = transcript.includes(normalizedPanicKeyword);
+        const hasExactCancel = transcript.includes(normalizedCancelKeyword);
+        const hasExactPanic = transcript.includes(normalizedPanicKeyword);
 
         // Prioridade para cancelamento
-        if (hasCancelCommand && isPendingPanicRef.current) {
+        if ((hasCancelWords || hasExactCancel) && isPendingPanicRef.current) {
           cancelPendingPanic();
           playCancelSound();
           toast({
@@ -146,7 +159,7 @@ export const usePanicVoiceCommand = ({
         }
 
         // Iniciar contagem se comando de pânico detectado
-        if (hasPanicCommand && !isPendingPanicRef.current) {
+        if ((hasPanicWords || hasExactPanic) && !isPendingPanicRef.current) {
           startPanicCountdown();
         }
       }
