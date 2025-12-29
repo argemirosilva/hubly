@@ -4,8 +4,7 @@ import { apiService } from '@/services/api';
 import { backgroundService, registerHeadlessTask } from '@/services/backgroundService';
 import { Capacitor } from '@capacitor/core';
 
-const PING_INTERVAL_NORMAL = 5 * 60 * 1000; // 5 minutos
-const PING_INTERVAL_LOW_BATTERY = 15 * 60 * 1000; // 15 minutos
+const PING_INTERVAL = 15 * 60 * 1000; // 15 minutos padrão
 const RETRY_INTERVAL = 30 * 1000; // 30 segundos
 
 interface PingPayload {
@@ -182,10 +181,7 @@ export const usePingService = () => {
       clearInterval(intervalRef.current);
     }
 
-    const batteryLevel = await apiService.getBatteryLevel();
-    const interval = (batteryLevel && batteryLevel < 15) 
-      ? PING_INTERVAL_LOW_BATTERY 
-      : PING_INTERVAL_NORMAL;
+    const interval = PING_INTERVAL;
 
     console.log(`[Ping] Próximo ping em ${interval / 60000} minutos`);
 

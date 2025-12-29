@@ -1,6 +1,5 @@
 // Service Worker para persistência do ping em background
-const PING_INTERVAL = 5 * 60 * 1000; // 5 minutos
-const PING_INTERVAL_LOW_BATTERY = 15 * 60 * 1000; // 15 minutos
+const PING_INTERVAL = 15 * 60 * 1000; // 15 minutos padrão
 let pingIntervalId = null;
 let userEmail = null;
 let apiBaseUrl = null;
@@ -41,8 +40,7 @@ function startPingService() {
   // Enviar ping imediato
   sendPing();
   
-  // Determinar intervalo baseado na bateria
-  const interval = lastBatteryLevel < 15 ? PING_INTERVAL_LOW_BATTERY : PING_INTERVAL;
+  const interval = PING_INTERVAL;
   
   console.log(`[SW Ping] Iniciando serviço com intervalo de ${interval / 60000} minutos`);
   
