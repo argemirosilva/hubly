@@ -79,7 +79,7 @@ const configureBackgroundFetch = async (onPing: () => Promise<void>) => {
     // Agendar tarefa periódica customizada
     await BackgroundFetch.scheduleTask({
       taskId: 'ampara-ping',
-      delay: 5 * 60 * 1000, // 5 minutos
+      delay: 15 * 60 * 1000, // 15 minutos
       periodic: true,
       forceAlarmManager: true,
       stopOnTerminate: false,
