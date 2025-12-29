@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
+import { apiService, type AudioPayload } from '@/services/api';
 import { syncService } from '@/services/syncService';
 import { analyzeAudioForSpeech } from '@/utils/vadDetection';
 
@@ -18,15 +18,23 @@ export const useCoercionRecording = () => {
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const processAndSendAudio = useCallback(async (audioBlob: Blob) => {
-    if (!user?.token || audioBlob.size < 5000) return;
+    if (!user?.email || audioBlob.size < 5000) return;
 
     try {
       const result = await analyzeAudioForSpeech(audioBlob);
       
       if (result.hasSpeech) {
+        const durationSeconds = (config?.recordingDurationMinutes || 5) * 60;
+        
         // Tentar enviar silenciosamente
         if (navigator.onLine) {
-          await apiService.sendAudio(audioBlob, user.token);
+          const payload: AudioPayload = {
+            file_url: URL.createObjectURL(audioBlob),
+            duracao_segundos: durationSeconds,
+            tamanho_mb: audioBlob.size / (1024 * 1024),
+            email_usuario: user.email,
+          };
+          await apiService.sendAudio(payload);
         } else {
           // Salvar offline silenciosamente
           await syncService.saveForOffline('audio', {
@@ -42,7 +50,7 @@ export const useCoercionRecording = () => {
       // Silencioso - não mostrar erros para não alertar
       console.error('Coercion recording error:', error);
     }
-  }, [user]);
+  }, [user, config]);
 
   const startSilentRecording = useCallback(async () => {
     if (isRecordingRef.current) return;

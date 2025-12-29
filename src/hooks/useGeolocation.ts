@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Geolocation, Position } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
+import { apiService, type GPSPayload } from '@/services/api';
 import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
 import type { LocationData } from '@/types/app';
@@ -13,7 +13,10 @@ export const useGeolocation = () => {
   const watchIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const sendLocationUpdate = useCallback(async (position: Position) => {
+  const sendLocationUpdate = useCallback(async (
+    position: Position, 
+    tipoLocalizacao: 'automatico' | 'manual' | 'panico' = 'automatico'
+  ) => {
     const locationData: LocationData = {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
@@ -23,9 +26,22 @@ export const useGeolocation = () => {
     
     setCurrentLocation(locationData);
     
-    if (user?.token) {
+    if (user?.email) {
+      const payload: GPSPayload = {
+        email_usuario: user.email,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        precisao_metros: locationData.accuracy,
+        altitude: position.coords.altitude ?? undefined,
+        velocidade: position.coords.speed ?? undefined,
+        timestamp_gps: new Date(locationData.timestamp).toISOString(),
+        bateria_percentual: await apiService.getBatteryLevel(),
+        em_movimento: (position.coords.speed ?? 0) > 0.5,
+        tipo_localizacao: tipoLocalizacao,
+      };
+
       if (navigator.onLine) {
-        const result = await apiService.sendLocation(locationData, user.token);
+        const result = await apiService.sendLocation(payload);
         if (!result.success) {
           // Failed, save offline
           await syncService.saveForOffline('location', {
@@ -65,7 +81,7 @@ export const useGeolocation = () => {
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
       });
-      sendLocationUpdate(position);
+      sendLocationUpdate(position, 'manual');
 
       // Start watching position
       watchIdRef.current = await Geolocation.watchPosition(
@@ -74,7 +90,7 @@ export const useGeolocation = () => {
         },
         (position, err) => {
           if (position && !err) {
-            sendLocationUpdate(position);
+            sendLocationUpdate(position, 'automatico');
           }
         }
       );
@@ -86,7 +102,7 @@ export const useGeolocation = () => {
           const pos = await Geolocation.getCurrentPosition({
             enableHighAccuracy: true,
           });
-          sendLocationUpdate(pos);
+          sendLocationUpdate(pos, 'automatico');
         } catch (error) {
           console.error('Error getting position:', error);
         }
@@ -167,5 +183,6 @@ export const useGeolocation = () => {
     startTracking,
     stopTracking,
     toggleTracking,
+    sendLocationUpdate,
   };
 };

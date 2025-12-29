@@ -1,5 +1,6 @@
 import { offlineStorage } from './offlineStorage';
-import { apiService } from './api';
+import { apiService, type GPSPayload, type PanicPayload } from './api';
+import { useAppStore } from '@/store/appStore';
 
 const MAX_RETRIES = 5;
 
@@ -20,8 +21,13 @@ class SyncService {
     this.syncListeners.forEach((listener) => listener(pending));
   }
 
-  async syncAll(token: string): Promise<{ success: number; failed: number }> {
+  async syncAll(): Promise<{ success: number; failed: number }> {
     if (this.isSyncing) {
+      return { success: 0, failed: 0 };
+    }
+
+    const user = useAppStore.getState().user;
+    if (!user?.email) {
       return { success: 0, failed: 0 };
     }
 
@@ -39,14 +45,15 @@ class SyncService {
           continue;
         }
 
-        const result = await apiService.sendPanicAlert(
-          {
-            latitude: panic.latitude,
-            longitude: panic.longitude,
-            timestamp: panic.timestamp,
-          },
-          token
-        );
+        const payload: PanicPayload = {
+          email_usuario: user.email,
+          latitude: panic.latitude,
+          longitude: panic.longitude,
+          tipo_acionamento: 'botao_panico',
+          bateria_percentual: await apiService.getBatteryLevel(),
+        };
+
+        const result = await apiService.sendPanicAlert(payload);
 
         if (result.success) {
           await offlineStorage.deletePanic(panic.id);
@@ -56,7 +63,7 @@ class SyncService {
         }
       }
 
-      // Sync audios
+      // Sync audios - skip for now as they need storage upload
       const audios = await offlineStorage.getAudios();
       for (const audio of audios) {
         if (audio.retryCount >= MAX_RETRIES) {
@@ -64,30 +71,24 @@ class SyncService {
           failed++;
           continue;
         }
-
-        const result = await apiService.sendAudio(audio.blob, token);
-
-        if (result.success) {
-          await offlineStorage.deleteAudio(audio.id);
-          success++;
-        } else {
-          await offlineStorage.updateAudioRetry(audio.id);
-          failed++;
-        }
+        // Mark as failed for now - need storage implementation
+        await offlineStorage.updateAudioRetry(audio.id);
+        failed++;
       }
 
-      // Sync locations (batch if many)
+      // Sync locations
       const locations = await offlineStorage.getLocations();
       for (const location of locations) {
-        const result = await apiService.sendLocation(
-          {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            timestamp: location.timestamp,
-            accuracy: location.accuracy,
-          },
-          token
-        );
+        const payload: GPSPayload = {
+          email_usuario: user.email,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          precisao_metros: location.accuracy,
+          timestamp_gps: new Date(location.timestamp).toISOString(),
+          tipo_localizacao: 'automatico',
+        };
+
+        const result = await apiService.sendLocation(payload);
 
         if (result.success) {
           await offlineStorage.deleteLocation(location.id);

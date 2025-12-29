@@ -33,6 +33,62 @@ interface LoginApiResponse {
   error?: string;
 }
 
+interface GPSApiResponse {
+  success: boolean;
+  localizacao_id?: string;
+  endereco_aproximado?: string;
+  compartilhado_com?: string[];
+  error?: string;
+}
+
+interface PanicApiResponse {
+  success: boolean;
+  alerta_id?: string;
+  rede_apoio_notificada?: boolean;
+  contatos_notificados?: number;
+  autoridades_acionadas?: boolean;
+  protocolo?: string;
+  mensagem?: string;
+  error?: string;
+}
+
+interface AudioApiResponse {
+  success: boolean;
+  gravacao_id?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface GPSPayload {
+  email_usuario: string;
+  latitude: number;
+  longitude: number;
+  precisao_metros?: number;
+  altitude?: number;
+  velocidade?: number;
+  timestamp_gps?: string;
+  bateria_percentual?: number;
+  em_movimento?: boolean;
+  tipo_localizacao: 'automatico' | 'manual' | 'panico';
+}
+
+export interface PanicPayload {
+  email_usuario: string;
+  latitude: number;
+  longitude: number;
+  precisao_metros?: number;
+  tipo_acionamento: 'botao_panico' | 'sensor_queda' | 'senha_coacao' | 'palavra_codigo';
+  bateria_percentual?: number;
+  gravacao_id?: string;
+}
+
+export interface AudioPayload {
+  file_url: string;
+  duracao_segundos: number;
+  tamanho_mb: number;
+  email_usuario: string;
+}
+
 export const apiService = {
   async login(
     email: string, 
@@ -67,7 +123,7 @@ export const apiService = {
         email: data.usuario.email,
         nome: data.usuario.nome_vitima,
         telefone: data.usuario.telefone_vitima,
-        token: data.usuario.id, // Usar ID como token temporário
+        token: data.usuario.id,
       };
       
       const config: AppConfig = {
@@ -99,62 +155,90 @@ export const apiService = {
     }
   },
 
-  async sendLocation(location: LocationData, token: string): Promise<ApiResponse> {
+  async sendLocation(payload: GPSPayload): Promise<ApiResponse<GPSApiResponse>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location`, {
+      const response = await fetch(`${API_BASE_URL}/api/functions/receberLocalizacaoGPS`, {
         method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify(location),
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
       });
       
-      if (!response.ok) throw new Error('Falha ao enviar localização');
-      return { success: true };
+      const data: GPSApiResponse = await response.json();
+      
+      if (!data.success) {
+        return { success: false, error: data.error || 'Falha ao enviar localização' };
+      }
+      
+      return { 
+        success: true, 
+        data 
+      };
     } catch (error) {
-      console.error('Error sending location:', error);
+      console.error('Erro ao enviar GPS:', error);
       return { success: false, error: 'Falha ao enviar localização' };
     }
   },
 
-  async sendAudio(audioBlob: Blob, token: string): Promise<ApiResponse> {
+  async sendPanicAlert(payload: PanicPayload): Promise<ApiResponse<PanicApiResponse>> {
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, `recording-${Date.now()}.webm`);
-      formData.append('timestamp', Date.now().toString());
-      
-      const response = await fetch(`${API_BASE_URL}/api/audio`, {
+      const response = await fetch(`${API_BASE_URL}/api/functions/acionarPanicoMobile`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
       });
       
-      if (!response.ok) throw new Error('Falha ao enviar áudio');
-      return { success: true };
+      const data: PanicApiResponse = await response.json();
+      
+      if (!data.success) {
+        return { success: false, error: data.error || 'Falha ao enviar alerta' };
+      }
+      
+      return { 
+        success: true, 
+        data 
+      };
     } catch (error) {
-      console.error('Error sending audio:', error);
+      console.error('Erro ao enviar alerta de pânico:', error);
+      // Em caso de erro, ainda considerar como acionado localmente
+      return { success: true };
+    }
+  },
+
+  async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/functions/receberAudioMobile`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+      
+      const data: AudioApiResponse = await response.json();
+      
+      if (!data.success) {
+        return { success: false, error: data.error || 'Falha ao enviar áudio' };
+      }
+      
+      return { 
+        success: true, 
+        data 
+      };
+    } catch (error) {
+      console.error('Erro ao enviar áudio:', error);
       return { success: false, error: 'Falha ao enviar áudio' };
     }
   },
 
-  async sendPanicAlert(location: LocationData, token: string): Promise<ApiResponse> {
+  // Helper para obter nível de bateria
+  async getBatteryLevel(): Promise<number | undefined> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/panic`, {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({
-          location,
-          timestamp: Date.now(),
-          type: 'EMERGENCY',
-        }),
-      });
-      
-      if (!response.ok) throw new Error('Falha ao enviar alerta');
-      return { success: true };
-    } catch (error) {
-      console.error('Error sending panic alert:', error);
-      // Even if API fails, consider it triggered locally
-      return { success: true };
+      if ('getBattery' in navigator) {
+        // @ts-ignore
+        const battery = await navigator.getBattery();
+        return Math.round(battery.level * 100);
+      }
+    } catch {
+      // Battery API não disponível
     }
+    return undefined;
   },
 };
