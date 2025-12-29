@@ -11,6 +11,7 @@ interface AppState {
   soundEnabled: boolean;
   loginTipo: LoginTipo;
   isCoercionMode: boolean; // Modo coação ativo
+  voiceCommandManualOverride: boolean | null; // null = seguir horário, true/false = manual
   
   setUser: (user: User | null) => void;
   setConfig: (config: AppConfig | null) => void;
@@ -20,6 +21,7 @@ interface AppState {
   setSoundEnabled: (enabled: boolean) => void;
   setLoginTipo: (tipo: LoginTipo) => void;
   setCoercionMode: (active: boolean) => void;
+  setVoiceCommandManualOverride: (override: boolean | null) => void;
   logout: () => void;
 }
 
@@ -34,6 +36,7 @@ export const useAppStore = create<AppState>()(
       soundEnabled: true,
       loginTipo: 'normal' as LoginTipo,
       isCoercionMode: false,
+      voiceCommandManualOverride: null,
       
       setUser: (user) => set({ user }),
       setConfig: (config) => set({ config }),
@@ -43,6 +46,7 @@ export const useAppStore = create<AppState>()(
       setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
       setLoginTipo: (tipo) => set({ loginTipo: tipo }),
       setCoercionMode: (active) => set({ isCoercionMode: active }),
+      setVoiceCommandManualOverride: (override) => set({ voiceCommandManualOverride: override }),
       logout: () => set({ 
         user: null, 
         config: null, 
@@ -52,6 +56,7 @@ export const useAppStore = create<AppState>()(
         soundEnabled: true,
         loginTipo: 'normal' as LoginTipo,
         isCoercionMode: false,
+        voiceCommandManualOverride: null,
       }),
     }),
     {
@@ -62,6 +67,7 @@ export const useAppStore = create<AppState>()(
         soundEnabled: state.soundEnabled,
         loginTipo: state.loginTipo,
         isCoercionMode: state.isCoercionMode,
+        voiceCommandManualOverride: state.voiceCommandManualOverride,
       }),
     }
   )

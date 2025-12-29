@@ -1,8 +1,9 @@
 import React from 'react';
-import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock } from 'lucide-react';
+import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock, Power } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
 import { useAppStore } from '@/store/appStore';
+import { Switch } from '@/components/ui/switch';
 
 const DEFAULT_START_COMMAND = 'Ampara iniciar gravação';
 const DEFAULT_STOP_COMMAND = 'Ampara parar gravação';
@@ -16,13 +17,17 @@ const formatTime = (seconds: number): string => {
 interface RecordingControlProps {
   voiceCommandEnabled?: boolean;
   scheduleInfo?: string;
+  isInSchedule?: boolean;
+  isManualOverride?: boolean;
 }
 
 const RecordingControl: React.FC<RecordingControlProps> = ({ 
   voiceCommandEnabled = true,
-  scheduleInfo 
+  scheduleInfo,
+  isInSchedule = false,
+  isManualOverride = false,
 }) => {
-  const { config } = useAppStore();
+  const { config, voiceCommandManualOverride, setVoiceCommandManualOverride } = useAppStore();
   const { isRecording, recordingTime, isAnalyzing, vadStatus, startRecording, stopRecording, toggleRecording } = useAudioRecorder();
 
   // Comandos personalizados ou padrões
@@ -44,6 +49,22 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
     stopKeyword: stopCommand,
     enabled: voiceCommandEnabled,
   });
+
+  // Handler para toggle manual
+  const handleManualToggle = (checked: boolean) => {
+    if (checked) {
+      // Ativar manualmente
+      setVoiceCommandManualOverride(true);
+    } else {
+      // Desativar manualmente
+      setVoiceCommandManualOverride(false);
+    }
+  };
+
+  // Resetar para modo automático (seguir horário)
+  const handleResetToAuto = () => {
+    setVoiceCommandManualOverride(null);
+  };
 
   return (
     <div className="card-ampara">
@@ -84,35 +105,70 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
         </div>
       </div>
 
-      {/* Voice Command Status - Based on schedule */}
+      {/* Voice Command Status - With manual override toggle */}
       {isSupported && (
         <div className={`mb-4 p-4 rounded-2xl border ${
           voiceCommandEnabled 
             ? 'bg-primary/10 border-primary/20' 
             : 'bg-muted/50 border-border'
         }`}>
+          {/* Manual Toggle Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Power className={`w-4 h-4 ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-sm font-semibold ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+                Escuta de Comandos
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {isManualOverride && (
+                <button
+                  onClick={handleResetToAuto}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
+                >
+                  Modo Auto
+                </button>
+              )}
+              <Switch
+                checked={voiceCommandEnabled}
+                onCheckedChange={handleManualToggle}
+              />
+            </div>
+          </div>
+
+          {/* Status info */}
+          <div className="flex items-center gap-2 mb-3 text-xs">
+            {isManualOverride ? (
+              <span className={`px-2 py-1 rounded-full ${voiceCommandEnabled ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                Controle manual
+              </span>
+            ) : (
+              <span className={`px-2 py-1 rounded-full ${isInSchedule ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
+                {isInSchedule ? 'Dentro do horário' : 'Fora do horário'}
+              </span>
+            )}
+            {scheduleInfo && (
+              <span className="text-muted-foreground">{scheduleInfo}</span>
+            )}
+          </div>
+
           {voiceCommandEnabled && isListening ? (
             <>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  {isSpeaking ? (
-                    <>
-                      <div className="flex items-center gap-0.5">
-                        <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
-                        <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
-                        <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
-                      </div>
-                      <span className="text-xs font-semibold text-success">Detectando fala...</span>
-                    </>
-                  ) : (
-                    <>
-                      <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
-                      <span className="text-xs font-semibold text-primary">Escutando comandos</span>
-                    </>
-                  )}
-                </div>
-                {scheduleInfo && (
-                  <span className="text-xs text-muted-foreground">{scheduleInfo}</span>
+              <div className="flex items-center gap-2 mb-3">
+                {isSpeaking ? (
+                  <>
+                    <div className="flex items-center gap-0.5">
+                      <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
+                      <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
+                      <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
+                    </div>
+                    <span className="text-xs font-semibold text-success">Detectando fala...</span>
+                  </>
+                ) : (
+                  <>
+                    <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
+                    <span className="text-xs font-semibold text-primary">Escutando comandos</span>
+                  </>
                 )}
               </div>
               
@@ -137,12 +193,11 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
               </ul>
             </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                Escuta de comandos desativada - fora do horário programado
-              </span>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {voiceCommandEnabled 
+                ? 'Inicializando escuta...' 
+                : 'Use o switch acima para ativar a escuta de comandos de voz'}
+            </p>
           )}
         </div>
       )}

@@ -14,20 +14,19 @@ const DAY_MAP: Record<string, number> = {
 /**
  * Hook para controle automático da escuta de comandos de voz baseado nos períodos configurados
  * Gerencia quando a escuta de comandos deve estar ativa baseado em gravacao_inicio, gravacao_fim e gravacao_dias
+ * Suporta override manual pelo usuário
  */
 export const useScheduledRecording = () => {
-  const { config, user } = useAppStore();
+  const { config, user, voiceCommandManualOverride } = useAppStore();
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInSchedule, setIsInSchedule] = useState(false);
   const [nextScheduleInfo, setNextScheduleInfo] = useState<string>('');
-  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
 
   // Verificar se está dentro do horário configurado
   const checkSchedule = useCallback((): boolean => {
     if (!config?.gravacaoInicio || !config?.gravacaoFim || !config?.gravacaoDias) {
       setIsInSchedule(false);
       setNextScheduleInfo('Horários não configurados');
-      setVoiceCommandEnabled(false);
       return false;
     }
 
@@ -52,16 +51,15 @@ export const useScheduledRecording = () => {
 
     const inSchedule = isDayConfigured && isTimeInRange;
     setIsInSchedule(inSchedule);
-    setVoiceCommandEnabled(inSchedule);
 
     // Info sobre próximo agendamento
     if (inSchedule) {
       const remainingMinutes = endTimeMinutes - currentTimeMinutes;
       const hours = Math.floor(remainingMinutes / 60);
       const mins = remainingMinutes % 60;
-      setNextScheduleInfo(`Escuta ativa - termina em ${hours}h${mins}m`);
+      setNextScheduleInfo(`Termina em ${hours}h${mins}m`);
     } else {
-      setNextScheduleInfo(`Aguardando: ${config.gravacaoInicio} - ${config.gravacaoFim}`);
+      setNextScheduleInfo(`Agendado: ${config.gravacaoInicio} - ${config.gravacaoFim}`);
     }
 
     return inSchedule;
@@ -84,6 +82,11 @@ export const useScheduledRecording = () => {
     };
   }, [user, config, checkSchedule]);
 
+  // Calcular se a escuta está habilitada (override manual tem prioridade)
+  const voiceCommandEnabled = voiceCommandManualOverride !== null 
+    ? voiceCommandManualOverride 
+    : isInSchedule;
+
   return {
     isInSchedule,
     nextScheduleInfo,
@@ -91,5 +94,6 @@ export const useScheduledRecording = () => {
     scheduledStart: config?.gravacaoInicio || '',
     scheduledEnd: config?.gravacaoFim || '',
     voiceCommandEnabled,
+    isManualOverride: voiceCommandManualOverride !== null,
   };
 };

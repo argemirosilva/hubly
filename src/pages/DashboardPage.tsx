@@ -20,7 +20,7 @@ const DashboardPage: React.FC = () => {
   const { toast } = useToast();
   
   // Hook para controle automático da escuta de comandos de voz por horário
-  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays, voiceCommandEnabled } = useScheduledRecording();
+  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays, voiceCommandEnabled, isManualOverride } = useScheduledRecording();
   
   // Hook para serviço de ping (mantém status online)
   usePingService();
@@ -144,6 +144,8 @@ const DashboardPage: React.FC = () => {
         <RecordingControl 
           voiceCommandEnabled={voiceCommandEnabled} 
           scheduleInfo={nextScheduleInfo}
+          isInSchedule={isInSchedule}
+          isManualOverride={isManualOverride}
         />
 
         {/* GPS Control */}
