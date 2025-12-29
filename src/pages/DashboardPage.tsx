@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { initOfflineDB } from '@/services/offlineStorage';
 import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
+import { usePingService } from '@/hooks/usePingService';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ const DashboardPage: React.FC = () => {
   
   // Hook para gravação automática por horário
   const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays } = useScheduledRecording();
+  
+  // Hook para serviço de ping (mantém status online)
+  usePingService();
 
   useEffect(() => {
     if (!user) {
