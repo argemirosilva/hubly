@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
+import { apiService, type AudioPayload } from '@/services/api';
 import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
 import { initVAD, analyzeAudioForSpeech } from '@/utils/vadDetection';
@@ -25,8 +25,38 @@ export const useAudioRecorder = () => {
     loadVAD();
   }, []);
 
-  const analyzeAndSendAudio = useCallback(async (audioBlob: Blob) => {
-    if (!user?.token) return;
+  const uploadAndSendAudio = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
+    if (!user?.email) return;
+
+    // TODO: Implementar upload para storage e obter URL
+    // Por enquanto, converter para base64 e simular URL
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve) => {
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64);
+      };
+      reader.readAsDataURL(audioBlob);
+    });
+
+    const base64Data = await base64Promise;
+    
+    // Simular URL do storage (em produção, fazer upload real)
+    const fakeUrl = `data:audio/webm;base64,${base64Data.split(',')[1]}`;
+    
+    const payload: AudioPayload = {
+      file_url: fakeUrl,
+      duracao_segundos: durationSeconds,
+      tamanho_mb: audioBlob.size / (1024 * 1024),
+      email_usuario: user.email,
+    };
+
+    const result = await apiService.sendAudio(payload);
+    return result;
+  }, [user]);
+
+  const analyzeAndSendAudio = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
+    if (!user?.email) return;
 
     setIsAnalyzing(true);
     
@@ -48,9 +78,9 @@ export const useAudioRecorder = () => {
 
         // Check if online
         if (navigator.onLine) {
-          const sendResult = await apiService.sendAudio(audioBlob, user.token);
+          const sendResult = await uploadAndSendAudio(audioBlob, durationSeconds);
           
-          if (sendResult.success) {
+          if (sendResult?.success) {
             toast({
               title: 'Áudio enviado',
               description: 'Gravação enviada com sucesso',
@@ -62,6 +92,7 @@ export const useAudioRecorder = () => {
               timestamp: Date.now(),
               hasSpeech: result.hasSpeech,
               speechPercentage: result.speechPercentage,
+              durationSeconds,
             });
             toast({
               title: 'Salvo localmente',
@@ -75,6 +106,7 @@ export const useAudioRecorder = () => {
             timestamp: Date.now(),
             hasSpeech: result.hasSpeech,
             speechPercentage: result.speechPercentage,
+            durationSeconds,
           });
           toast({
             title: 'Salvo offline',
@@ -97,7 +129,7 @@ export const useAudioRecorder = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [user, toast]);
+  }, [user, toast, uploadAndSendAudio]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -123,13 +155,16 @@ export const useAudioRecorder = () => {
         }
       };
 
+      const durationMinutes = config?.recordingDurationMinutes || 5;
+      
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach((track) => track.stop());
         
         // Analyze with VAD before sending
         if (audioBlob.size > 5000) {
-          await analyzeAndSendAudio(audioBlob);
+          const durationSeconds = recordingTime || durationMinutes * 60;
+          await analyzeAndSendAudio(audioBlob, durationSeconds);
         } else {
           toast({
             title: 'Áudio muito curto',
@@ -143,7 +178,7 @@ export const useAudioRecorder = () => {
       setRecordingTime(0);
 
       // Timer for recording duration
-      const durationMs = (config?.recordingDurationMinutes || 5) * 60 * 1000;
+      const durationMs = durationMinutes * 60 * 1000;
       let elapsed = 0;
       
       timerRef.current = setInterval(() => {
@@ -158,7 +193,7 @@ export const useAudioRecorder = () => {
       const offlineStatus = navigator.onLine ? '' : ' | Modo Offline';
       toast({
         title: 'Gravação iniciada',
-        description: `Duração: ${config?.recordingDurationMinutes || 5} min${offlineStatus}`,
+        description: `Duração: ${durationMinutes} min${offlineStatus}`,
       });
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -168,7 +203,7 @@ export const useAudioRecorder = () => {
         variant: 'destructive',
       });
     }
-  }, [config, setIsRecording, toast, analyzeAndSendAudio]);
+  }, [config, setIsRecording, toast, analyzeAndSendAudio, recordingTime]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

@@ -18,11 +18,11 @@ export const useNetworkStatus = () => {
 
   // Sync pending items
   const syncPending = useCallback(async () => {
-    if (!user?.token || isSyncing || !isOnline) return;
+    if (!user?.email || isSyncing || !isOnline) return;
 
     setIsSyncing(true);
     try {
-      const result = await syncService.syncAll(user.token);
+      const result = await syncService.syncAll();
       
       if (result.success > 0) {
         toast({

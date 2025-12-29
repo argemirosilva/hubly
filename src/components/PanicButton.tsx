@@ -2,11 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { AlertTriangle, Phone, AudioWaveform, X } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
+import { apiService, type PanicPayload } from '@/services/api';
 import { syncService } from '@/services/syncService';
 import { useToast } from '@/hooks/use-toast';
 import { usePanicVoiceCommand } from '@/hooks/usePanicVoiceCommand';
-import type { LocationData } from '@/types/app';
 
 const DEFAULT_PANIC_COMMAND = 'Ampara preciso de ajuda';
 const DEFAULT_CANCEL_COMMAND = 'Ampara cancela ajuda';
@@ -22,39 +21,33 @@ const PanicButton: React.FC = () => {
   // Usa o comando personalizado do usuário ou o padrão
   const panicCommand = config?.voiceCommand || DEFAULT_PANIC_COMMAND;
 
-  const triggerPanic = useCallback(async () => {
+  const triggerPanic = useCallback(async (tipoAcionamento: PanicPayload['tipo_acionamento'] = 'botao_panico') => {
+    if (!user?.email) return;
+    
     setIsTriggering(true);
     setIsPanicActive(true);
 
     try {
-      let location: LocationData = {
-        latitude: 0,
-        longitude: 0,
-        timestamp: Date.now(),
-      };
+      let latitude = 0;
+      let longitude = 0;
+      let precisao_metros: number | undefined;
 
       try {
         const position = await Geolocation.getCurrentPosition({
           enableHighAccuracy: true,
         });
-        location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          timestamp: position.timestamp,
-          accuracy: position.coords.accuracy,
-        };
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+        precisao_metros = position.coords.accuracy;
       } catch (error) {
         // Try web fallback
         if ('geolocation' in navigator) {
           await new Promise<void>((resolve) => {
             navigator.geolocation.getCurrentPosition(
               (pos) => {
-                location = {
-                  latitude: pos.coords.latitude,
-                  longitude: pos.coords.longitude,
-                  timestamp: pos.timestamp,
-                  accuracy: pos.coords.accuracy,
-                };
+                latitude = pos.coords.latitude;
+                longitude = pos.coords.longitude;
+                precisao_metros = pos.coords.accuracy;
                 resolve();
               },
               () => resolve()
@@ -63,25 +56,40 @@ const PanicButton: React.FC = () => {
         }
       }
 
-      if (user?.token) {
-        if (navigator.onLine) {
-          const result = await apiService.sendPanicAlert(location, user.token);
-          if (!result.success) {
-            // Failed, save offline
-            await syncService.saveForOffline('panic', {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              timestamp: location.timestamp,
-            });
-          }
-        } else {
-          // Offline, save for later
+      const payload: PanicPayload = {
+        email_usuario: user.email,
+        latitude,
+        longitude,
+        precisao_metros,
+        tipo_acionamento: tipoAcionamento,
+        bateria_percentual: await apiService.getBatteryLevel(),
+      };
+
+      if (navigator.onLine) {
+        const result = await apiService.sendPanicAlert(payload);
+        if (!result.success) {
+          // Failed, save offline
           await syncService.saveForOffline('panic', {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            timestamp: location.timestamp,
+            latitude,
+            longitude,
+            timestamp: Date.now(),
+            accuracy: precisao_metros,
           });
+        } else if (result.data) {
+          toast({
+            title: '🚨 ALERTA ENVIADO',
+            description: result.data.mensagem || `Emergência acionada. Rede de apoio notificada.`,
+          });
+          return;
         }
+      } else {
+        // Offline, save for later
+        await syncService.saveForOffline('panic', {
+          latitude,
+          longitude,
+          timestamp: Date.now(),
+          accuracy: precisao_metros,
+        });
       }
 
       const offlineNote = navigator.onLine ? '' : ' (salvo offline)';
@@ -101,7 +109,7 @@ const PanicButton: React.FC = () => {
 
   // Hook de comando de voz para pânico
   const { isListening, isSupported, isSpeaking, isPendingPanic, countdownSeconds, lastCommand, cancelPendingPanic } = usePanicVoiceCommand({
-    onPanicCommand: triggerPanic,
+    onPanicCommand: () => triggerPanic('palavra_codigo'),
     panicKeyword: panicCommand,
     cancelKeyword: cancelCommand,
   });
@@ -119,7 +127,7 @@ const PanicButton: React.FC = () => {
     }, 50);
 
     holdTimeRef.current = setTimeout(() => {
-      triggerPanic();
+      triggerPanic('botao_panico');
       if (progressRef.current) clearInterval(progressRef.current);
     }, 1000);
   };
