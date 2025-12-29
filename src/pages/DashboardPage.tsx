@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, RefreshCw } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
@@ -13,22 +13,14 @@ import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
 import { useConfigRefresh } from '@/hooks/useConfigRefresh';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
   const { toast } = useToast();
   
-  // Hook de gravação de áudio
-  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
-  
-  // Hook para gravação automática por horário
-  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays } = useScheduledRecording(
-    isRecording,
-    startRecording,
-    stopRecording
-  );
+  // Hook para controle automático da escuta de comandos de voz por horário
+  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays, voiceCommandEnabled } = useScheduledRecording();
   
   // Hook para serviço de ping (mantém status online)
   usePingService();
@@ -132,7 +124,7 @@ const DashboardPage: React.FC = () => {
           <div className="mt-2 flex items-center gap-2 text-xs">
             <Clock className="w-3 h-3 text-muted-foreground" />
             <span className={isInSchedule ? 'text-success font-semibold' : 'text-muted-foreground'}>
-              {isInSchedule ? '● Gravando' : 'Agendado:'} {scheduledStart} - {scheduledEnd}
+              {isInSchedule ? '● Escuta ativa' : 'Agendado:'} {scheduledStart} - {scheduledEnd}
             </span>
             {scheduledDays.length > 0 && (
               <span className="text-muted-foreground">
@@ -149,7 +141,10 @@ const DashboardPage: React.FC = () => {
         <PanicButton />
 
         {/* Recording Control */}
-        <RecordingControl />
+        <RecordingControl 
+          voiceCommandEnabled={voiceCommandEnabled} 
+          scheduleInfo={nextScheduleInfo}
+        />
 
         {/* GPS Control */}
         <GPSControl />
