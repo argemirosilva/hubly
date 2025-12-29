@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
@@ -12,17 +12,29 @@ import { initOfflineDB } from '@/services/offlineStorage';
 import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
+import { useConfigRefresh } from '@/hooks/useConfigRefresh';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
   const { toast } = useToast();
   
+  // Hook de gravação de áudio
+  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+  
   // Hook para gravação automática por horário
-  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays } = useScheduledRecording();
+  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays } = useScheduledRecording(
+    isRecording,
+    startRecording,
+    stopRecording
+  );
   
   // Hook para serviço de ping (mantém status online)
   usePingService();
+  
+  // Hook para atualizar configurações a cada 15 min
+  useConfigRefresh();
 
   useEffect(() => {
     if (!user) {
