@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
+import { backgroundService, registerHeadlessTask } from '@/services/backgroundService';
+import { Capacitor } from '@capacitor/core';
 
 const PING_INTERVAL_NORMAL = 5 * 60 * 1000; // 5 minutos
 const PING_INTERVAL_LOW_BATTERY = 15 * 60 * 1000; // 15 minutos
@@ -20,6 +22,7 @@ export const usePingService = () => {
   const isRunningRef = useRef(false);
   const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const [isServiceWorkerActive, setIsServiceWorkerActive] = useState(false);
+  const [isNativeBackgroundActive, setIsNativeBackgroundActive] = useState(false);
 
   const getDeviceInfo = useCallback((): string => {
     const ua = navigator.userAgent;
@@ -44,7 +47,49 @@ export const usePingService = () => {
     return '1.0.0';
   }, []);
 
-  // Registrar Service Worker para background sync
+  // Enviar ping - função principal
+  const sendPing = useCallback(async (): Promise<boolean> => {
+    if (!user?.email || !config?.apiBaseUrl) return false;
+
+    try {
+      if (!navigator.onLine) {
+        console.log('[Ping] Sem internet, adiando ping');
+        return false;
+      }
+
+      const batteryLevel = await apiService.getBatteryLevel();
+      
+      const payload: PingPayload = {
+        email_usuario: user.email,
+        dispositivo_info: getDeviceInfo(),
+        bateria_percentual: batteryLevel,
+        versao_app: getAppVersion(),
+      };
+
+      const response = await fetch(`${config.apiBaseUrl}/api/functions/pingMobile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('[Ping] ✅ Enviado com sucesso');
+        return true;
+      } else {
+        console.error('[Ping] ❌ Erro:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('[Ping] ❌ Erro ao enviar:', error);
+      return false;
+    }
+  }, [user, config, getDeviceInfo, getAppVersion]);
+
+  // Registrar Service Worker para background sync (Web/PWA)
   const registerServiceWorker = useCallback(async () => {
     if (!('serviceWorker' in navigator)) {
       console.log('[Ping] Service Worker não suportado');
@@ -59,7 +104,6 @@ export const usePingService = () => {
       swRegistrationRef.current = registration;
       console.log('[Ping] Service Worker registrado');
 
-      // Aguardar ativação
       await navigator.serviceWorker.ready;
       setIsServiceWorkerActive(true);
 
@@ -68,7 +112,7 @@ export const usePingService = () => {
         try {
           // @ts-ignore - API experimental
           await registration.periodicSync.register('ping-sync', {
-            minInterval: 5 * 60 * 1000, // 5 minutos
+            minInterval: 5 * 60 * 1000,
           });
           console.log('[Ping] Periodic Sync registrado');
         } catch (error) {
@@ -101,61 +145,38 @@ export const usePingService = () => {
     console.log('[Ping] Configuração enviada ao Service Worker');
   }, [user, config]);
 
-  // Atualizar bateria no Service Worker
-  const updateBatteryInSW = useCallback(async () => {
-    if (!navigator.serviceWorker.controller) return;
-    
-    const batteryLevel = await apiService.getBatteryLevel();
-    
-    navigator.serviceWorker.controller.postMessage({
-      type: 'UPDATE_BATTERY',
-      data: { batteryLevel },
-    });
-  }, []);
-
-  const sendPing = useCallback(async (): Promise<boolean> => {
-    if (!user?.email || !config?.apiBaseUrl) return false;
-
-    try {
-      if (!navigator.onLine) {
-        console.log('[Ping] Sem internet, adiando ping');
-        return false;
-      }
-
-      const batteryLevel = await apiService.getBatteryLevel();
-      
-      const payload: PingPayload = {
-        email_usuario: user.email,
-        dispositivo_info: getDeviceInfo(),
-        bateria_percentual: batteryLevel,
-        versao_app: getAppVersion(),
-      };
-
-      const response = await fetch(`${config.apiBaseUrl}/api/functions/pingMobile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        console.log('[Ping] ✅ Enviado com sucesso');
-        // Atualizar bateria no SW
-        updateBatteryInSW();
-        return true;
-      } else {
-        console.error('[Ping] ❌ Erro:', data.error);
-        return false;
-      }
-    } catch (error) {
-      console.error('[Ping] ❌ Erro ao enviar:', error);
+  // Iniciar serviço nativo de background (Capacitor)
+  const startNativeBackgroundService = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[Ping] Não é plataforma nativa');
       return false;
     }
-  }, [user, config, getDeviceInfo, getAppVersion, updateBatteryInSW]);
 
+    try {
+      // Registrar handler headless
+      await registerHeadlessTask();
+
+      // Wrapper para converter retorno para void
+      const pingWrapper = async (): Promise<void> => {
+        await sendPing();
+      };
+
+      // Iniciar serviço de background nativo
+      const started = await backgroundService.start(pingWrapper);
+      
+      if (started) {
+        setIsNativeBackgroundActive(true);
+        console.log('[Ping] ✅ Serviço nativo de background iniciado');
+      }
+      
+      return started;
+    } catch (error) {
+      console.error('[Ping] Erro ao iniciar background nativo:', error);
+      return false;
+    }
+  }, [sendPing]);
+
+  // Agendar próximo ping (foreground fallback)
   const scheduleNextPing = useCallback(async () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -180,44 +201,46 @@ export const usePingService = () => {
     }, interval);
   }, [sendPing]);
 
+  // Iniciar serviço completo
   const start = useCallback(async () => {
     if (isRunningRef.current) return;
     
     isRunningRef.current = true;
     console.log('[Ping] Serviço iniciado');
 
-    // Registrar Service Worker para background
-    const swRegistered = await registerServiceWorker();
-    
-    if (swRegistered) {
-      // Aguardar um pouco para o SW estar pronto
-      setTimeout(() => {
-        initServiceWorkerPing();
-      }, 1000);
+    // 1. Tentar serviço nativo primeiro (melhor para background)
+    const nativeStarted = await startNativeBackgroundService();
+
+    // 2. Se não for nativo, usar Service Worker (PWA)
+    if (!nativeStarted) {
+      const swRegistered = await registerServiceWorker();
+      
+      if (swRegistered) {
+        setTimeout(() => {
+          initServiceWorkerPing();
+        }, 1000);
+      }
     }
 
-    // Enviar ping imediato
+    // 3. Enviar ping imediato
     await sendPing();
 
-    // Agendar pings regulares (fallback quando app está ativo)
+    // 4. Agendar pings no foreground (backup)
     await scheduleNextPing();
 
-    // Listener para quando voltar online
+    // Listeners
     const handleOnline = () => {
       console.log('[Ping] Conexão restaurada, enviando ping');
       sendPing();
     };
 
-    // Listener para visibilidade (atualizar SW quando app volta ao foco)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('[Ping] App voltou ao foco');
         sendPing();
-        updateBatteryInSW();
       }
     };
 
-    // Listener para mensagens do Service Worker
     const handleSWMessage = (event: MessageEvent) => {
       const { type } = event.data;
       if (type === 'PING_SUCCESS') {
@@ -236,9 +259,10 @@ export const usePingService = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
     };
-  }, [sendPing, scheduleNextPing, registerServiceWorker, initServiceWorkerPing, updateBatteryInSW]);
+  }, [sendPing, scheduleNextPing, registerServiceWorker, initServiceWorkerPing, startNativeBackgroundService]);
 
-  const stop = useCallback(() => {
+  // Parar serviço
+  const stop = useCallback(async () => {
     isRunningRef.current = false;
     
     if (intervalRef.current) {
@@ -252,9 +276,13 @@ export const usePingService = () => {
     }
 
     // Parar Service Worker
-    if (navigator.serviceWorker.controller) {
+    if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'STOP_PING' });
     }
+
+    // Parar serviço nativo
+    await backgroundService.stop();
+    setIsNativeBackgroundActive(false);
     
     console.log('[Ping] Serviço parado');
   }, []);
@@ -275,5 +303,7 @@ export const usePingService = () => {
     start,
     stop,
     isServiceWorkerActive,
+    isNativeBackgroundActive,
+    isNative: Capacitor.isNativePlatform(),
   };
 };
