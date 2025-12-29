@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
@@ -10,11 +10,15 @@ import NotificationSettings from '@/components/NotificationSettings';
 import { useToast } from '@/hooks/use-toast';
 import { initOfflineDB } from '@/services/offlineStorage';
 import { pushNotificationService } from '@/services/pushNotifications';
+import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
   const { toast } = useToast();
+  
+  // Hook para gravação automática por horário
+  const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays } = useScheduledRecording();
 
   useEffect(() => {
     if (!user) {
@@ -106,6 +110,21 @@ const DashboardPage: React.FC = () => {
             GPS: <span className="text-primary font-semibold">cada {config?.gpsIntervalSeconds || 30}s</span>
           </span>
         </div>
+        
+        {/* Horário Programado */}
+        {scheduledStart && scheduledEnd && (
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            <span className={isInSchedule ? 'text-success font-semibold' : 'text-muted-foreground'}>
+              {isInSchedule ? '● Gravando' : 'Agendado:'} {scheduledStart} - {scheduledEnd}
+            </span>
+            {scheduledDays.length > 0 && (
+              <span className="text-muted-foreground">
+                ({scheduledDays.join(', ')})
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
