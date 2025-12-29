@@ -12,26 +12,22 @@ const DAY_MAP: Record<string, number> = {
 };
 
 /**
- * Hook para gravação automática baseada nos períodos configurados
- * Gerencia start/stop automaticamente baseado em gravacao_inicio, gravacao_fim e gravacao_dias
+ * Hook para controle automático da escuta de comandos de voz baseado nos períodos configurados
+ * Gerencia quando a escuta de comandos deve estar ativa baseado em gravacao_inicio, gravacao_fim e gravacao_dias
  */
-export const useScheduledRecording = (
-  isRecording: boolean,
-  startRecording: () => void,
-  stopRecording: () => void
-) => {
+export const useScheduledRecording = () => {
   const { config, user } = useAppStore();
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInSchedule, setIsInSchedule] = useState(false);
   const [nextScheduleInfo, setNextScheduleInfo] = useState<string>('');
-  const wasInScheduleRef = useRef(false);
-  const isManuallyControlledRef = useRef(false);
+  const [voiceCommandEnabled, setVoiceCommandEnabled] = useState(false);
 
   // Verificar se está dentro do horário configurado
   const checkSchedule = useCallback((): boolean => {
     if (!config?.gravacaoInicio || !config?.gravacaoFim || !config?.gravacaoDias) {
       setIsInSchedule(false);
       setNextScheduleInfo('Horários não configurados');
+      setVoiceCommandEnabled(false);
       return false;
     }
 
@@ -56,13 +52,14 @@ export const useScheduledRecording = (
 
     const inSchedule = isDayConfigured && isTimeInRange;
     setIsInSchedule(inSchedule);
+    setVoiceCommandEnabled(inSchedule);
 
     // Info sobre próximo agendamento
     if (inSchedule) {
       const remainingMinutes = endTimeMinutes - currentTimeMinutes;
       const hours = Math.floor(remainingMinutes / 60);
       const mins = remainingMinutes % 60;
-      setNextScheduleInfo(`Gravando - termina em ${hours}h${mins}m`);
+      setNextScheduleInfo(`Escuta ativa - termina em ${hours}h${mins}m`);
     } else {
       setNextScheduleInfo(`Aguardando: ${config.gravacaoInicio} - ${config.gravacaoFim}`);
     }
@@ -70,58 +67,22 @@ export const useScheduledRecording = (
     return inSchedule;
   }, [config]);
 
-  // Gerenciar gravação automaticamente baseada no schedule
+  // Verificar schedule periodicamente
   useEffect(() => {
     if (!user?.email || !config) return;
 
-    const manageRecording = () => {
-      const shouldRecord = checkSchedule();
-      const wasInSchedule = wasInScheduleRef.current;
-
-      // Detectar transição para dentro do horário
-      if (shouldRecord && !wasInSchedule) {
-        console.log('[Schedule] Entrando no horário de gravação - iniciando');
-        isManuallyControlledRef.current = false;
-        if (!isRecording) {
-          startRecording();
-        }
-      }
-      
-      // Detectar transição para fora do horário
-      if (!shouldRecord && wasInSchedule) {
-        console.log('[Schedule] Saindo do horário de gravação - parando');
-        isManuallyControlledRef.current = false;
-        if (isRecording) {
-          stopRecording();
-        }
-      }
-
-      // Se está no horário mas não está gravando (e não foi parada manualmente)
-      if (shouldRecord && !isRecording && !isManuallyControlledRef.current) {
-        console.log('[Schedule] Dentro do horário, reiniciando gravação');
-        startRecording();
-      }
-
-      wasInScheduleRef.current = shouldRecord;
-    };
-
     // Verificar imediatamente
-    manageRecording();
+    checkSchedule();
 
     // Verificar a cada 30 segundos para melhor responsividade
-    checkIntervalRef.current = setInterval(manageRecording, 30 * 1000);
+    checkIntervalRef.current = setInterval(checkSchedule, 30 * 1000);
 
     return () => {
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
       }
     };
-  }, [user, config, isRecording, startRecording, stopRecording, checkSchedule]);
-
-  // Permitir controle manual (para override temporário)
-  const setManualControl = useCallback((value: boolean) => {
-    isManuallyControlledRef.current = value;
-  }, []);
+  }, [user, config, checkSchedule]);
 
   return {
     isInSchedule,
@@ -129,6 +90,6 @@ export const useScheduledRecording = (
     scheduledDays: config?.gravacaoDias || [],
     scheduledStart: config?.gravacaoInicio || '',
     scheduledEnd: config?.gravacaoFim || '',
-    setManualControl,
+    voiceCommandEnabled,
   };
 };

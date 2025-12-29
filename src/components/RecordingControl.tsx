@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform } from 'lucide-react';
+import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
 import { useAppStore } from '@/store/appStore';
@@ -13,7 +13,15 @@ const formatTime = (seconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const RecordingControl: React.FC = () => {
+interface RecordingControlProps {
+  voiceCommandEnabled?: boolean;
+  scheduleInfo?: string;
+}
+
+const RecordingControl: React.FC<RecordingControlProps> = ({ 
+  voiceCommandEnabled = true,
+  scheduleInfo 
+}) => {
   const { config } = useAppStore();
   const { isRecording, recordingTime, isAnalyzing, vadStatus, startRecording, stopRecording, toggleRecording } = useAudioRecorder();
 
@@ -34,6 +42,7 @@ const RecordingControl: React.FC = () => {
     },
     startKeyword: startCommand,
     stopKeyword: stopCommand,
+    enabled: voiceCommandEnabled,
   });
 
   return (
@@ -75,48 +84,66 @@ const RecordingControl: React.FC = () => {
         </div>
       </div>
 
-      {/* Voice Command Status - Always listening */}
-      {isSupported && isListening && (
-        <div className="mb-4 p-4 bg-primary/10 rounded-2xl border border-primary/20">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              {isSpeaking ? (
-                <>
-                  <div className="flex items-center gap-0.5">
-                    <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
-                    <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
-                    <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
-                  </div>
-                  <span className="text-xs font-semibold text-success">Detectando fala...</span>
-                </>
-              ) : (
-                <>
-                  <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
-                  <span className="text-xs font-semibold text-primary">Escutando comandos</span>
-                </>
+      {/* Voice Command Status - Based on schedule */}
+      {isSupported && (
+        <div className={`mb-4 p-4 rounded-2xl border ${
+          voiceCommandEnabled 
+            ? 'bg-primary/10 border-primary/20' 
+            : 'bg-muted/50 border-border'
+        }`}>
+          {voiceCommandEnabled && isListening ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {isSpeaking ? (
+                    <>
+                      <div className="flex items-center gap-0.5">
+                        <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
+                        <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
+                        <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
+                      </div>
+                      <span className="text-xs font-semibold text-success">Detectando fala...</span>
+                    </>
+                  ) : (
+                    <>
+                      <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
+                      <span className="text-xs font-semibold text-primary">Escutando comandos</span>
+                    </>
+                  )}
+                </div>
+                {scheduleInfo && (
+                  <span className="text-xs text-muted-foreground">{scheduleInfo}</span>
+                )}
+              </div>
+              
+              {/* Último comando reconhecido */}
+              {lastCommand && (
+                <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Último comando:</p>
+                  <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
+                </div>
               )}
-            </div>
-          </div>
-          
-          {/* Último comando reconhecido */}
-          {lastCommand && (
-            <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Último comando:</p>
-              <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
+              
+              <p className="text-xs text-muted-foreground mb-2">Comandos disponíveis:</p>
+              <ul className="space-y-1.5">
+                <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                  <span className="font-medium">"{startCommand}"</span>
+                </li>
+                <li className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
+                  <span className="font-medium">"{stopCommand}"</span>
+                </li>
+              </ul>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Escuta de comandos desativada - fora do horário programado
+              </span>
             </div>
           )}
-          
-          <p className="text-xs text-muted-foreground mb-2">Comandos disponíveis:</p>
-          <ul className="space-y-1.5">
-            <li className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-success" />
-              <span className="font-medium">"{startCommand}"</span>
-            </li>
-            <li className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
-              <span className="font-medium">"{stopCommand}"</span>
-            </li>
-          </ul>
         </div>
       )}
 
