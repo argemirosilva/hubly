@@ -26,10 +26,17 @@ const LoginPage: React.FC = () => {
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleRecoverPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!recoveryEmail.trim()) {
+    const trimmedEmail = recoveryEmail.trim();
+    
+    if (!trimmedEmail) {
       toast({
         title: 'E-mail obrigatório',
         description: 'Informe seu e-mail para recuperar a senha',
@@ -38,10 +45,19 @@ const LoginPage: React.FC = () => {
       return;
     }
 
+    if (!validateEmail(trimmedEmail)) {
+      toast({
+        title: 'E-mail inválido',
+        description: 'Informe um endereço de e-mail válido',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsRecovering(true);
 
     try {
-      const result = await apiService.recuperarSenha(recoveryEmail.trim(), API_URL);
+      const result = await apiService.recuperarSenha(trimmedEmail, API_URL);
 
       if (result.success) {
         toast({
