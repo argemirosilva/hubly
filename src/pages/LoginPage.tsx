@@ -25,6 +25,8 @@ const LoginPage: React.FC = () => {
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [recoveryEmailError, setRecoveryEmailError] = useState('');
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,24 +35,17 @@ const LoginPage: React.FC = () => {
 
   const handleRecoverPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setRecoveryEmailError('');
     
     const trimmedEmail = recoveryEmail.trim();
     
     if (!trimmedEmail) {
-      toast({
-        title: 'E-mail obrigatório',
-        description: 'Informe seu e-mail para recuperar a senha',
-        variant: 'destructive',
-      });
+      setRecoveryEmailError('Informe seu e-mail para recuperar a senha');
       return;
     }
 
     if (!validateEmail(trimmedEmail)) {
-      toast({
-        title: 'E-mail inválido',
-        description: 'Informe um endereço de e-mail válido',
-        variant: 'destructive',
-      });
+      setRecoveryEmailError('Informe um endereço de e-mail válido');
       return;
     }
 
@@ -86,22 +81,24 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError('');
     
     if (!formData.email || !formData.password) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha e-mail e senha',
-        variant: 'destructive',
-      });
+      if (!formData.email) {
+        setEmailError('Informe seu e-mail');
+      }
+      if (!formData.password) {
+        toast({
+          title: 'Senha obrigatória',
+          description: 'Preencha sua senha',
+          variant: 'destructive',
+        });
+      }
       return;
     }
 
     if (!validateEmail(formData.email)) {
-      toast({
-        title: 'E-mail inválido',
-        description: 'Informe um endereço de e-mail válido',
-        variant: 'destructive',
-      });
+      setEmailError('Informe um endereço de e-mail válido');
       return;
     }
 
@@ -177,9 +174,15 @@ const LoginPage: React.FC = () => {
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
+            onChange={(e) => {
+              setFormData({ ...formData, email: e.target.value });
+              if (emailError) setEmailError('');
+            }}
+            className={`h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base ${emailError ? 'border-destructive' : ''}`}
           />
+          {emailError && (
+            <p className="text-sm text-destructive mt-1">{emailError}</p>
+          )}
         </div>
 
         {/* Password */}
@@ -258,10 +261,16 @@ const LoginPage: React.FC = () => {
                   id="recovery-email"
                   type="email"
                   value={recoveryEmail}
-                  onChange={(e) => setRecoveryEmail(e.target.value)}
-                  className="h-14 bg-background border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
+                  onChange={(e) => {
+                    setRecoveryEmail(e.target.value);
+                    if (recoveryEmailError) setRecoveryEmailError('');
+                  }}
+                  className={`h-14 bg-background border-border rounded-2xl focus:border-primary focus:ring-primary text-base ${recoveryEmailError ? 'border-destructive' : ''}`}
                   autoFocus
                 />
+                {recoveryEmailError && (
+                  <p className="text-sm text-destructive mt-1">{recoveryEmailError}</p>
+                )}
               </div>
               
               <Button
