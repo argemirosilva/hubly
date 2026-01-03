@@ -90,6 +90,27 @@ export interface AudioPayload {
 }
 
 export const apiService = {
+  async recuperarSenha(email: string, baseUrl: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await fetch(`${baseUrl}/api/functions/recuperarSenha`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ email }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        return { success: false, error: data.error || 'Não foi possível processar a solicitação' };
+      }
+      
+      return { success: true, data: { message: data.message || 'Instruções enviadas para seu e-mail' } };
+    } catch (error) {
+      console.error('Erro na recuperação de senha:', error);
+      return { success: false, error: 'Não foi possível conectar ao servidor' };
+    }
+  },
+
   async login(
     email: string, 
     senha: string, 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import amparaLogo from '@/assets/ampara-logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,51 @@ const LoginPage: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
+
+  const handleRecoverPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!recoveryEmail.trim()) {
+      toast({
+        title: 'E-mail obrigatório',
+        description: 'Informe seu e-mail para recuperar a senha',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsRecovering(true);
+
+    try {
+      const result = await apiService.recuperarSenha(recoveryEmail.trim(), API_URL);
+
+      if (result.success) {
+        toast({
+          title: 'Solicitação enviada',
+          description: 'Verifique seu e-mail para instruções de recuperação',
+        });
+        setShowRecovery(false);
+        setRecoveryEmail('');
+      } else {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Não foi possível processar a solicitação',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRecovering(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,13 +178,23 @@ const LoginPage: React.FC = () => {
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowRecovery(true);
+              setRecoveryEmail(formData.email);
+            }}
+            className="text-sm text-primary hover:text-primary/80 transition-colors mt-1"
+          >
+            Esqueceu sua senha?
+          </button>
         </div>
 
         {/* Submit Button */}
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-8 rounded-2xl transition-all duration-300"
+          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-6 rounded-2xl transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
@@ -152,6 +207,56 @@ const LoginPage: React.FC = () => {
         </Button>
       </form>
 
+      {/* Password Recovery Modal */}
+      {showRecovery && (
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-sm bg-card rounded-3xl p-6 shadow-lg border border-border animate-scale-in">
+            <button
+              onClick={() => setShowRecovery(false)}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Voltar</span>
+            </button>
+            
+            <h2 className="text-xl font-bold text-foreground mb-2">Recuperar senha</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Informe seu e-mail cadastrado para receber instruções de recuperação.
+            </p>
+            
+            <form onSubmit={handleRecoverPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="recovery-email" className="text-sm font-semibold text-foreground">
+                  E-mail
+                </Label>
+                <Input
+                  id="recovery-email"
+                  type="email"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  className="h-14 bg-background border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
+                  autoFocus
+                />
+              </div>
+              
+              <Button
+                type="submit"
+                disabled={isRecovering}
+                className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base rounded-2xl transition-all duration-300"
+              >
+                {isRecovering ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    Enviando...
+                  </span>
+                ) : (
+                  'Enviar instruções'
+                )}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
