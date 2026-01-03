@@ -105,7 +105,6 @@ const LoginPage: React.FC = () => {
           <Input
             id="email"
             type="email"
-            placeholder="seu.email@exemplo.com"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
@@ -121,7 +120,6 @@ const LoginPage: React.FC = () => {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               className="h-14 pr-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
