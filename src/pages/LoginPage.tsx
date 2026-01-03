@@ -96,6 +96,15 @@ const LoginPage: React.FC = () => {
       return;
     }
 
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: 'E-mail inválido',
+        description: 'Informe um endereço de e-mail válido',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
