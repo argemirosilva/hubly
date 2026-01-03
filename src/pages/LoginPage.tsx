@@ -153,14 +153,6 @@ const LoginPage: React.FC = () => {
         </Button>
       </form>
 
-      {/* Quote */}
-      <div className="w-full max-w-sm mt-10 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        <div className="quote-block">
-          <p className="text-sm text-muted-foreground">
-            "O AMPARA é mais do que uma ferramenta - é um abraço tecnológico, uma mão estendida."
-          </p>
-        </div>
-      </div>
 
       {/* Footer */}
       <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
