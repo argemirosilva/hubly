@@ -84,14 +84,15 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 safe-area-inset">
       {/* Logo */}
-      <div className="mb-10 flex flex-col items-center animate-fade-in">
+      <div className="mb-10 flex flex-col items-center">
         <img 
           src={amparaLogo} 
           alt="AMPARA" 
-          className="h-20 w-auto mb-4"
+          className="h-20 w-auto mb-4 animate-scale-in"
+          style={{ animationDuration: '0.6s', animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         />
-        <h1 className="text-2xl font-bold text-foreground font-display">Bem-vinda ao AMPARA</h1>
-        <p className="text-sm text-muted-foreground mt-2">Você não está sozinha.</p>
+        <h1 className="text-2xl font-bold text-foreground font-display animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>Bem-vinda ao AMPARA</h1>
+        <p className="text-sm text-muted-foreground mt-2 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
       </div>
 
       {/* Login Form */}
