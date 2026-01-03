@@ -156,6 +156,57 @@ export const offlineStorage = {
     const counts = await this.getPendingCounts();
     return counts.audios + counts.locations + counts.panics;
   },
+
+  // Clear all pending data (after successful sync)
+  async clearAll(): Promise<void> {
+    const database = await initOfflineDB();
+    await Promise.all([
+      database.clear('pendingAudios'),
+      database.clear('pendingLocations'),
+      database.clear('pendingPanics'),
+    ]);
+    console.log('[OfflineStorage] Cache limpo com sucesso');
+  },
+
+  // Clear old entries (items older than 7 days that failed too many times)
+  async clearStaleEntries(): Promise<number> {
+    const database = await initOfflineDB();
+    const staleThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days
+    let cleared = 0;
+
+    const [audios, locations, panics] = await Promise.all([
+      database.getAll('pendingAudios'),
+      database.getAll('pendingLocations'),
+      database.getAll('pendingPanics'),
+    ]);
+
+    for (const audio of audios) {
+      if (audio.timestamp < staleThreshold && audio.retryCount >= 3) {
+        await database.delete('pendingAudios', audio.id);
+        cleared++;
+      }
+    }
+
+    for (const location of locations) {
+      if (location.timestamp < staleThreshold && location.retryCount >= 3) {
+        await database.delete('pendingLocations', location.id);
+        cleared++;
+      }
+    }
+
+    for (const panic of panics) {
+      if (panic.timestamp < staleThreshold && panic.retryCount >= 3) {
+        await database.delete('pendingPanics', panic.id);
+        cleared++;
+      }
+    }
+
+    if (cleared > 0) {
+      console.log(`[OfflineStorage] ${cleared} entradas antigas removidas`);
+    }
+
+    return cleared;
+  },
 };
 
 export type { PendingAudio, PendingLocation, PendingPanic };

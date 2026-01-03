@@ -98,11 +98,19 @@ class SyncService {
         }
       }
 
+      // Clear stale entries after sync attempt
+      await offlineStorage.clearStaleEntries();
+
       await this.notifyListeners();
     } catch (error) {
       console.error('Sync error:', error);
     } finally {
       this.isSyncing = false;
+    }
+
+    // Log sync results
+    if (success > 0 || failed > 0) {
+      console.log(`[Sync] Concluído: ${success} enviados, ${failed} falharam`);
     }
 
     return { success, failed };
