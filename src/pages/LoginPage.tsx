@@ -136,7 +136,7 @@ const LoginPage: React.FC = () => {
           className="h-20 w-auto mb-4 animate-scale-in"
           style={{ animationDuration: '0.6s', animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         />
-        <h1 className="text-2xl font-bold text-foreground font-display animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>Bem-vinda ao AMPARA</h1>
+        <h1 className="text-2xl font-bold text-foreground font-display animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>Bem Vinda</h1>
         <p className="text-sm text-muted-foreground mt-2 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
       </div>
 
