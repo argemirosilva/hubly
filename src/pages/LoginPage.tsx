@@ -149,21 +149,21 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 safe-area-inset">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12 safe-area-inset">
       {/* Logo */}
-      <div className="mb-10 flex flex-col items-center">
+      <div className="mb-12 flex flex-col items-center">
         <img 
           src={amparaLogo} 
           alt="AMPARA" 
-          className="h-20 w-auto mb-4 animate-scale-in"
+          className="h-24 w-auto mb-6 animate-scale-in"
           style={{ animationDuration: '0.6s', animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         />
-        <h1 className="text-2xl font-bold text-foreground font-display animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>Bem Vinda</h1>
-        <p className="text-sm text-muted-foreground mt-2 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
+        <h1 className="text-3xl font-bold text-foreground font-display animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>Bem Vinda</h1>
+        <p className="text-base text-muted-foreground mt-3 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
       </div>
 
       {/* Login Form */}
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
 
         {/* Email */}
         <div className="space-y-2">
@@ -222,7 +222,7 @@ const LoginPage: React.FC = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-6 rounded-2xl transition-all duration-300"
+          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-4 rounded-2xl transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
@@ -293,7 +293,7 @@ const LoginPage: React.FC = () => {
       )}
 
       {/* Footer */}
-      <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+      <p className="text-sm text-muted-foreground mt-12 animate-fade-in" style={{ animationDelay: '0.3s' }}>
         Proteção sempre que você precisar
       </p>
     </div>
