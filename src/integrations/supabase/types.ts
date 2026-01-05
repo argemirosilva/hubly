@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audio_recordings: {
+        Row: {
+          created_at: string
+          duracao_segundos: number | null
+          email_usuario: string
+          file_name: string | null
+          file_path: string
+          id: string
+          tamanho_mb: number | null
+        }
+        Insert: {
+          created_at?: string
+          duracao_segundos?: number | null
+          email_usuario: string
+          file_name?: string | null
+          file_path: string
+          id?: string
+          tamanho_mb?: number | null
+        }
+        Update: {
+          created_at?: string
+          duracao_segundos?: number | null
+          email_usuario?: string
+          file_name?: string | null
+          file_path?: string
+          id?: string
+          tamanho_mb?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
