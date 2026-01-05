@@ -15,6 +15,16 @@ import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
 import { useConfigRefresh } from '@/hooks/useConfigRefresh';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
@@ -42,6 +52,7 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -117,7 +128,7 @@ const DashboardPage: React.FC = () => {
               <Settings className="w-5 h-5" />
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center text-primary hover:text-emergency hover:bg-emergency/10 transition-all duration-300"
             >
               <LogOut className="w-5 h-5" />
@@ -207,6 +218,28 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do aplicativo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao sair, o monitoramento de proteção será desativado. Você precisará fazer login novamente para reativar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoggingOut ? 'Saindo...' : 'Sair'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
