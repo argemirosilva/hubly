@@ -156,10 +156,25 @@ export const AudioUploadTest = () => {
     return new Promise((resolve) => {
       const audio = new Audio();
       audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src);
         resolve(Math.round(audio.duration));
       };
       audio.onerror = () => resolve(0);
       audio.src = URL.createObjectURL(file);
+    });
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        // Remove data:audio/wav;base64, prefix
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
   };
 
@@ -198,25 +213,29 @@ export const AudioUploadTest = () => {
 
       const duration = await getAudioDuration(wavBlob);
       
-      // Criar uma URL simulada para teste
+      // Converter para base64 para enviar diretamente
+      toast.info('Preparando áudio para envio...');
+      const base64Data = await blobToBase64(wavBlob);
+      
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
-      const simulatedUrl = `https://storage.ampara.org/audios/${user.email}/${timestamp}_${fileName}`;
 
       const payload: AudioPayload = {
-        file_url: simulatedUrl,
+        file_base64: base64Data,
+        file_name: `${timestamp}_${fileName}`,
         duracao_segundos: duration || 60,
         tamanho_mb: wavBlob.size / (1024 * 1024),
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando áudio WAV:', {
+      console.log('[AudioUploadTest] Enviando áudio WAV como base64:', {
         nome_original: selectedFile.name,
-        formato_envio: 'WAV',
+        formato_envio: 'WAV (base64)',
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
-        file_url: payload.file_url,
+        file_name: payload.file_name,
+        base64_length: base64Data.length,
       });
 
       const result = await apiService.sendAudio(payload);

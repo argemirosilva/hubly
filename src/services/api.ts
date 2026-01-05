@@ -75,7 +75,9 @@ export interface PanicPayload {
 }
 
 export interface AudioPayload {
-  file_url: string;
+  file_url?: string;
+  file_base64?: string;
+  file_name?: string;
   duracao_segundos: number;
   tamanho_mb: number;
   email_usuario: string;
