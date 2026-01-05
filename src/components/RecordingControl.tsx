@@ -238,7 +238,7 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
         ) : (
           <>
             <Mic className="w-6 h-6" />
-            <span className="text-sm font-semibold">Iniciar Gravação</span>
+            <span className="text-sm font-semibold">Iniciar Gravação Manual</span>
           </>
         )}
       </button>
