@@ -14,46 +14,46 @@ const NotificationSettings: React.FC = () => {
 
   if (!isSupported) {
     return (
-      <div className="card-ampara">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center">
-            <Smartphone className="w-5 h-5 text-muted-foreground" />
+      <div className="card-ampara !p-4">
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center">
+            <Smartphone className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground font-display">Notificações Push</h3>
-            <p className="text-xs text-muted-foreground">Apenas no app nativo</p>
+            <h3 className="text-sm font-bold text-foreground font-display">Notificações Push</h3>
+            <p className="text-[10px] text-muted-foreground">Apenas no app nativo</p>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Notificações push funcionam apenas no app instalado no celular (iOS/Android).
+        <p className="text-xs text-muted-foreground">
+          Notificações push funcionam apenas no app instalado (iOS/Android).
         </p>
       </div>
     );
   }
 
   return (
-    <div className="card-ampara">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
+    <div className="card-ampara !p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
             isRegistered ? 'bg-primary/10' : 'bg-accent'
           }`}>
             {isRegistered ? (
-              <BellRing className="w-5 h-5 text-primary" />
+              <BellRing className="w-4 h-4 text-primary" />
             ) : (
-              <BellOff className="w-5 h-5 text-muted-foreground" />
+              <BellOff className="w-4 h-4 text-muted-foreground" />
             )}
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground font-display">Notificações Push</h3>
-            <p className="text-xs text-muted-foreground">
+            <h3 className="text-sm font-bold text-foreground font-display">Notificações Push</h3>
+            <p className="text-[10px] text-muted-foreground">
               {isRegistered ? 'Ativadas' : 'Desativadas'}
             </p>
           </div>
         </div>
 
         {isRegistered && (
-          <span className="px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-semibold">
+          <span className="px-2 py-1 rounded-full bg-success/10 text-success text-[10px] font-semibold">
             Ativo
           </span>
         )}
@@ -63,45 +63,45 @@ const NotificationSettings: React.FC = () => {
         <button
           onClick={initialize}
           disabled={isInitializing}
-          className="w-full h-12 rounded-2xl gradient-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:shadow-medium transition-all duration-300 disabled:opacity-50"
+          className="w-full h-9 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-1.5 hover:shadow-medium transition-all duration-300 disabled:opacity-50"
         >
           {isInitializing ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
               Ativando...
             </>
           ) : (
             <>
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4" />
               Ativar Notificações
             </>
           )}
         </button>
       ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
             Você receberá notificações de:
           </p>
-          <ul className="space-y-2.5 text-sm">
-            <li className="flex items-center gap-2 text-foreground">
-              <span className="w-2 h-2 rounded-full bg-emergency" />
+          <ul className="space-y-1.5 text-xs">
+            <li className="flex items-center gap-1.5 text-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
               Alertas de emergência
             </li>
-            <li className="flex items-center gap-2 text-foreground">
-              <span className="w-2 h-2 rounded-full bg-primary" />
+            <li className="flex items-center gap-1.5 text-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               Status de sincronização
             </li>
-            <li className="flex items-center gap-2 text-foreground">
-              <span className="w-2 h-2 rounded-full bg-warning" />
+            <li className="flex items-center gap-1.5 text-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
               Avisos do sistema
             </li>
           </ul>
 
           <button
             onClick={handleTestNotification}
-            className="w-full h-11 rounded-2xl bg-accent text-foreground font-medium flex items-center justify-center gap-2 hover:bg-accent/80 transition-all duration-300 mt-4"
+            className="w-full h-8 rounded-lg bg-accent text-foreground text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-accent/80 transition-all duration-300 mt-2"
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-3 h-3" />
             Testar Notificação
           </button>
         </div>
