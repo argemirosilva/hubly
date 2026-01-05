@@ -15,6 +15,7 @@ import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
 import { useConfigRefresh } from '@/hooks/useConfigRefresh';
+import { useMonitoringNotifications } from '@/hooks/useMonitoringNotifications';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled, setCoercionMode } = useAppStore();
@@ -38,6 +40,9 @@ const DashboardPage: React.FC = () => {
   
   // Hook para atualizar configurações a cada 15 min
   useConfigRefresh();
+  
+  // Hook para notificações de transição do período de monitoramento
+  useMonitoringNotifications(isInSchedule);
 
   useEffect(() => {
     if (!user) {
