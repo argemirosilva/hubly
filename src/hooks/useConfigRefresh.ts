@@ -21,12 +21,12 @@ export const useConfigRefresh = () => {
     try {
       console.log('[ConfigRefresh] Buscando configurações atualizadas...');
       
-      // Usar o endpoint de login para obter config atualizada
-      // Passamos um token vazio pois já estamos logados
-      const response = await fetch(`${config.apiBaseUrl}/api/functions/loginCustomizado`, {
+      // Usar o endpoint mobile-api com action para obter config atualizada
+      const response = await fetch(config.apiBaseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          action: 'loginCustomizado',
           email: user.email,
           refresh: true // Flag para indicar que é um refresh
         }),
