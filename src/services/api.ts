@@ -1,5 +1,6 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_BASE_URL = 'https://amparamulher.lovable.app/functions/v1';
 
 // Mantido para compatibilidade
 export const setApiBaseUrl = (url: string) => {};
@@ -76,12 +77,32 @@ export interface AudioPayload {
   email_usuario: string;
 }
 
+async function apiRequest<T>(endpoint: string, body: object): Promise<{ data: T | null; error: Error | null }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { data, error: null };
+  } catch (error) {
+    console.error(`[API] Erro em ${endpoint}:`, error);
+    return { data: null, error: error as Error };
+  }
+}
+
 export const apiService = {
   async recuperarSenha(email: string, baseUrl?: string): Promise<ApiResponse<{ message: string }>> {
     try {
-      const { data, error } = await supabase.functions.invoke('recuperarSenha', {
-        body: { email },
-      });
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('recuperarSenha', { email });
       
       if (error) {
         console.error('[API] Erro recuperarSenha:', error);
@@ -108,8 +129,10 @@ export const apiService = {
     try {
       console.log('[API] Tentando login para:', email);
       
-      const { data, error } = await supabase.functions.invoke('loginCustomizado', {
-        body: { email, senha, tipo_acao: tipoAcao },
+      const { data, error } = await apiRequest<LoginApiResponse>('loginCustomizado', { 
+        email, 
+        senha, 
+        tipo_acao: tipoAcao 
       });
       
       console.log('[API] Resposta login:', data, error);
@@ -137,7 +160,7 @@ export const apiService = {
       const config: AppConfig = {
         recordingDurationMinutes: 5,
         gpsIntervalSeconds: 30,
-        apiBaseUrl: '',
+        apiBaseUrl: API_BASE_URL,
         dialogueDetectionEnabled: true,
         autoStartRecording: false,
         gravacaoInicio: data.usuario.gravacao_inicio,
@@ -165,9 +188,7 @@ export const apiService = {
 
   async sendLocation(payload: GPSPayload): Promise<ApiResponse<GPSApiResponse>> {
     try {
-      const { data, error } = await supabase.functions.invoke('receberLocalizacaoGPS', {
-        body: payload,
-      });
+      const { data, error } = await apiRequest<GPSApiResponse>('receberLocalizacaoGPS', payload);
       
       if (error) {
         console.error('[API] Erro GPS:', error);
@@ -187,32 +208,27 @@ export const apiService = {
 
   async sendPanicAlert(payload: PanicPayload): Promise<ApiResponse<PanicApiResponse>> {
     try {
-      const { data, error } = await supabase.functions.invoke('acionarPanicoMobile', {
-        body: payload,
-      });
+      const { data, error } = await apiRequest<PanicApiResponse>('acionarPanicoMobile', payload);
       
       if (error) {
         console.error('[API] Erro pânico:', error);
-        // Em caso de erro, ainda considerar como acionado localmente
         return { success: true };
       }
       
       if (!data?.success) {
-        return { success: true }; // Fallback local
+        return { success: true };
       }
       
       return { success: true, data };
     } catch (error) {
       console.error('Erro ao enviar alerta de pânico:', error);
-      return { success: true }; // Fallback local
+      return { success: true };
     }
   },
 
   async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
     try {
-      const { data, error } = await supabase.functions.invoke('receberAudioMobile', {
-        body: payload,
-      });
+      const { data, error } = await apiRequest<AudioApiResponse>('receberAudioMobile', payload);
       
       if (error) {
         console.error('[API] Erro áudio:', error);
@@ -232,9 +248,7 @@ export const apiService = {
 
   async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string }): Promise<ApiResponse<{ message: string }>> {
     try {
-      const { data, error } = await supabase.functions.invoke('pingMobile', {
-        body: payload,
-      });
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('pingMobile', payload);
       
       if (error) {
         console.error('[API] Erro ping:', error);
@@ -245,14 +259,13 @@ export const apiService = {
         return { success: false, error: data?.error || 'Falha ao enviar ping' };
       }
       
-      return { success: true, data };
+      return { success: true, data: { message: data.message || 'Ping recebido' } };
     } catch (error) {
       console.error('Erro ao enviar ping:', error);
       return { success: false, error: 'Falha ao enviar ping' };
     }
   },
 
-  // Helper para obter nível de bateria
   async getBatteryLevel(): Promise<number | undefined> {
     try {
       if ('getBattery' in navigator) {
