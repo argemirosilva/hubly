@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, FileAudio, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 
 /**
@@ -213,58 +214,69 @@ export const AudioUploadTest = () => {
 
       const duration = await getAudioDuration(wavBlob);
       
-      // Converter para base64 para enviar diretamente
-      toast.info('Preparando áudio para envio...');
-      const base64Data = await blobToBase64(wavBlob);
-      
+      // Step 1: Upload to local storage to get a public URL
+      toast.info('Fazendo upload do áudio...');
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const sanitizedEmail = user.email.replace(/[^a-zA-Z0-9]/g, '_');
       const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
+      const filePath = `${sanitizedEmail}/${timestamp}_${fileName}`;
 
+      console.log('[AudioUploadTest] Fazendo upload para storage:', filePath);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audio-recordings')
+        .upload(filePath, wavBlob, {
+          contentType: 'audio/wav',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[AudioUploadTest] Erro no upload:', uploadError);
+        throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
+      }
+
+      // Step 2: Get public URL
+      const { data: urlData } = supabase.storage
+        .from('audio-recordings')
+        .getPublicUrl(uploadData.path);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('[AudioUploadTest] URL pública obtida:', publicUrl);
+
+      // Step 3: Send URL to external Ampara API
+      toast.info('Enviando para API do Ampara...');
+      
       const payload = {
-        file_base64: base64Data,
-        file_name: `${timestamp}_${fileName}`,
+        file_url: publicUrl,
         duracao_segundos: duration || 60,
         tamanho_mb: wavBlob.size / (1024 * 1024),
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando áudio WAV para edge function local:', {
+      console.log('[AudioUploadTest] Enviando para API externa:', {
         nome_original: selectedFile.name,
-        formato_envio: 'WAV (base64)',
+        file_url: publicUrl,
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
-        file_name: payload.file_name,
-        base64_length: base64Data.length,
       });
 
-      // Chamar edge function local diretamente
-      const { data, error } = await supabase.functions.invoke('receberAudioMobile', {
-        body: payload,
-      });
+      const result = await apiService.sendAudio(payload);
 
-      console.log('[AudioUploadTest] Resposta raw:', { data, error });
+      console.log('[AudioUploadTest] Resposta da API:', result);
 
-      if (error) {
-        throw error;
-      }
-
-      // Parse the response if it's a string
-      const result = typeof data === 'string' ? JSON.parse(data) : data;
-      console.log('[AudioUploadTest] Resultado parseado:', result);
-
-      if (result?.success) {
+      if (result.success) {
         setUploadStatus('success');
         toast.success('Áudio WAV enviado com sucesso!', {
-          description: `Gravação ID: ${result?.gravacao_id || 'N/A'}`,
+          description: `Gravação ID: ${result.data?.gravacao_id || 'N/A'}`,
         });
-        console.log('[AudioUploadTest] Sucesso:', result);
+        console.log('[AudioUploadTest] Sucesso:', result.data);
       } else {
         setUploadStatus('error');
         toast.error('Falha ao enviar áudio', {
-          description: result?.error || 'Erro desconhecido',
+          description: result.error || 'Erro desconhecido',
         });
-        console.error('[AudioUploadTest] Erro:', result?.error);
+        console.error('[AudioUploadTest] Erro:', result.error);
       }
     } catch (error) {
       setUploadStatus('error');
