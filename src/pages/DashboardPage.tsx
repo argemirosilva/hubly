@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
@@ -15,19 +15,19 @@ import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
 import { useConfigRefresh } from '@/hooks/useConfigRefresh';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
+  const { user, config, logout, soundEnabled, setSoundEnabled, setCoercionMode } = useAppStore();
   const { toast } = useToast();
   
   // Hook para controle automático da escuta de comandos de voz por horário
@@ -53,13 +53,48 @@ const DashboardPage: React.FC = () => {
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutPassword, setLogoutPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleLogout = async () => {
+  const API_URL = 'https://amparamulher.lovable.app';
+
+  const handleConfirmLogout = async () => {
     if (isLoggingOut) return;
     
+    if (!logoutPassword.trim()) {
+      setPasswordError('Digite sua senha para confirmar');
+      return;
+    }
+    
     setIsLoggingOut(true);
+    setPasswordError('');
     
     try {
+      // Verificar a senha via API
+      const result = await apiService.login(
+        user?.email || '',
+        logoutPassword,
+        API_URL,
+        'login'
+      );
+
+      if (!result.success) {
+        setPasswordError('Senha incorreta');
+        setIsLoggingOut(false);
+        return;
+      }
+
+      // Se for senha de coação, iniciar modo coação
+      if (result.data?.loginTipo === 'coacao') {
+        setCoercionMode(true);
+        setShowLogoutConfirm(false);
+        setLogoutPassword('');
+        // Navegar para tela falsa de desinstalação
+        navigate('/uninstall');
+        return;
+      }
+
       // Parar serviço de ping ANTES do logout
       await stopPingService();
       console.log('[Logout] Serviço de ping parado');
@@ -68,17 +103,27 @@ const DashboardPage: React.FC = () => {
       if (user?.email) {
         await apiService.logout(user.email, user.sessionToken);
       }
-    } catch (error) {
-      console.error('[Logout] Erro ao notificar servidor:', error);
-    } finally {
-      // Sempre limpar estado local, mesmo se a API falhar
+      
+      // Limpar estado local
       logout();
       toast({
         title: 'Desconectado',
         description: 'Sessão encerrada com sucesso',
       });
       navigate('/');
+    } catch (error) {
+      console.error('[Logout] Erro:', error);
+      setPasswordError('Erro ao verificar senha. Tente novamente.');
+    } finally {
+      setIsLoggingOut(false);
     }
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setShowLogoutConfirm(false);
+    setLogoutPassword('');
+    setPasswordError('');
+    setShowPassword(false);
   };
 
   if (!user) return null;
@@ -219,27 +264,74 @@ const DashboardPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Logout Confirmation Dialog */}
-      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <AlertDialogContent className="max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sair do aplicativo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao sair, o monitoramento de proteção será desativado. Você precisará fazer login novamente para reativar.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoggingOut}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleLogout}
+      {/* Logout Confirmation Dialog with Password */}
+      <Dialog open={showLogoutConfirm} onOpenChange={handleCloseLogoutDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar saída</DialogTitle>
+            <DialogDescription>
+              Digite sua senha para confirmar a saída do aplicativo.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="logout-password" className="text-sm font-medium">
+                Senha
+              </Label>
+              <div className="relative">
+                <Input
+                  id="logout-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={logoutPassword}
+                  onChange={(e) => {
+                    setLogoutPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
+                  placeholder="Digite sua senha"
+                  className={`pr-12 ${passwordError ? 'border-destructive' : ''}`}
+                  disabled={isLoggingOut}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isLoggingOut}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="text-sm text-destructive">{passwordError}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={handleCloseLogoutDialog}
               disabled={isLoggingOut}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoggingOut ? 'Saindo...' : 'Sair'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmLogout}
+              disabled={isLoggingOut}
+              variant="destructive"
+            >
+              {isLoggingOut ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                  Verificando...
+                </span>
+              ) : (
+                'Confirmar saída'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
