@@ -1,6 +1,6 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
 
-const API_BASE_URL = 'https://amparamulher.lovable.app/functions/v1';
+const API_BASE_URL = 'https://amparamulher.lovable.app/functions/v1/mobile-api';
 
 // Mantido para compatibilidade
 export const setApiBaseUrl = (url: string) => {};
@@ -77,14 +77,14 @@ export interface AudioPayload {
   email_usuario: string;
 }
 
-async function apiRequest<T>(endpoint: string, body: object): Promise<{ data: T | null; error: Error | null }> {
+async function apiRequest<T>(action: string, body: object): Promise<{ data: T | null; error: Error | null }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+    const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ action, ...body }),
     });
     
     if (!response.ok) {
@@ -94,7 +94,7 @@ async function apiRequest<T>(endpoint: string, body: object): Promise<{ data: T 
     const data = await response.json();
     return { data, error: null };
   } catch (error) {
-    console.error(`[API] Erro em ${endpoint}:`, error);
+    console.error(`[API] Erro em ${action}:`, error);
     return { data: null, error: error as Error };
   }
 }
