@@ -286,6 +286,51 @@ export const apiService = {
     }
   },
 
+  async refreshConfig(email: string, sessionToken?: string): Promise<ApiResponse<{ 
+    gravacao_inicio?: string; 
+    gravacao_fim?: string; 
+    gravacao_dias?: string[]; 
+    contatos_rede_apoio?: ContatoRedeApoio[];
+  }>> {
+    try {
+      const { data, error } = await apiRequest<{ 
+        success: boolean; 
+        usuario?: {
+          gravacao_inicio?: string;
+          gravacao_fim?: string;
+          gravacao_dias?: string[];
+          contatos_rede_apoio?: ContatoRedeApoio[];
+        };
+        error?: string;
+      }>('refreshConfig', { 
+        email_usuario: email,
+        token_sessao: sessionToken
+      });
+      
+      if (error) {
+        console.error('[API] Erro refreshConfig:', error);
+        return { success: false, error: error.message || 'Falha ao atualizar configurações' };
+      }
+      
+      if (!data?.success || !data?.usuario) {
+        return { success: false, error: data?.error || 'Falha ao atualizar configurações' };
+      }
+      
+      return { 
+        success: true, 
+        data: {
+          gravacao_inicio: data.usuario.gravacao_inicio,
+          gravacao_fim: data.usuario.gravacao_fim,
+          gravacao_dias: data.usuario.gravacao_dias,
+          contatos_rede_apoio: data.usuario.contatos_rede_apoio,
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao atualizar configurações:', error);
+      return { success: false, error: 'Falha ao atualizar configurações' };
+    }
+  },
+
   async logout(email: string, sessionToken?: string): Promise<ApiResponse<{ message: string }>> {
     try {
       console.log('[API] Enviando logout para:', email);
