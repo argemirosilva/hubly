@@ -29,6 +29,7 @@ export interface User {
   nome: string;
   telefone?: string;
   token: string;
+  sessionToken?: string; // Token de sessão para autenticação
 }
 
 export type LoginTipo = 'normal' | 'coacao';
