@@ -149,25 +149,25 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12 safe-area-inset">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5 py-8 safe-area-inset">
       {/* Logo */}
-      <div className="mb-12 flex flex-col items-center">
+      <div className="mb-8 flex flex-col items-center">
         <img 
           src={amparaLogo} 
           alt="AMPARA" 
-          className="h-24 w-auto mb-6 animate-scale-in"
+          className="h-20 w-auto mb-4 animate-scale-in"
           style={{ animationDuration: '0.6s', animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         />
         
-        <p className="text-base text-muted-foreground mt-3 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
+        <p className="text-sm text-muted-foreground mt-2 animate-fade-in" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>Você não está sozinha.</p>
       </div>
 
       {/* Login Form */}
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
 
         {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-semibold text-foreground">
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs font-semibold text-foreground">
             E-mail
           </Label>
           <Input
@@ -178,16 +178,16 @@ const LoginPage: React.FC = () => {
               setFormData({ ...formData, email: e.target.value });
               if (emailError) setEmailError('');
             }}
-            className={`h-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base ${emailError ? 'border-destructive' : ''}`}
+            className={`h-10 bg-card border-border rounded-xl focus:border-primary focus:ring-primary ${emailError ? 'border-destructive' : ''}`}
           />
           {emailError && (
-            <p className="text-sm text-destructive mt-1">{emailError}</p>
+            <p className="text-xs text-destructive mt-1">{emailError}</p>
           )}
         </div>
 
         {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-semibold text-foreground">
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-xs font-semibold text-foreground">
             Senha
           </Label>
           <div className="relative">
@@ -196,14 +196,14 @@ const LoginPage: React.FC = () => {
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="h-14 pr-14 bg-card border-border rounded-2xl focus:border-primary focus:ring-primary text-base"
+              className="h-10 pr-10 bg-card border-border rounded-xl focus:border-primary focus:ring-primary"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           <button
@@ -212,7 +212,7 @@ const LoginPage: React.FC = () => {
               setShowRecovery(true);
               setRecoveryEmail(formData.email);
             }}
-            className="text-sm text-primary hover:text-primary/80 transition-colors mt-1"
+            className="text-xs text-primary hover:text-primary/80 transition-colors mt-0.5"
           >
             Esqueceu sua senha?
           </button>
@@ -222,11 +222,11 @@ const LoginPage: React.FC = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base mt-4 rounded-2xl transition-all duration-300"
+          className="w-full h-10 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-sm mt-3 rounded-xl transition-all duration-300"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
-              <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               Conectando...
             </span>
           ) : (
@@ -237,24 +237,24 @@ const LoginPage: React.FC = () => {
 
       {/* Password Recovery Modal */}
       {showRecovery && (
-        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-sm bg-card rounded-3xl p-6 shadow-lg border border-border animate-scale-in">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-5 animate-fade-in">
+          <div className="w-full max-w-xs bg-card rounded-2xl p-5 shadow-lg border border-border animate-scale-in">
             <button
               onClick={() => setShowRecovery(false)}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors mb-4"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Voltar</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="text-xs">Voltar</span>
             </button>
             
-            <h2 className="text-xl font-bold text-foreground mb-2">Recuperar senha</h2>
-            <p className="text-sm text-muted-foreground mb-6">
+            <h2 className="text-lg font-bold text-foreground mb-1.5">Recuperar senha</h2>
+            <p className="text-xs text-muted-foreground mb-4">
               Informe seu e-mail cadastrado para receber instruções de recuperação.
             </p>
             
-            <form onSubmit={handleRecoverPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="recovery-email" className="text-sm font-semibold text-foreground">
+            <form onSubmit={handleRecoverPassword} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="recovery-email" className="text-xs font-semibold text-foreground">
                   E-mail
                 </Label>
                 <Input
@@ -265,22 +265,22 @@ const LoginPage: React.FC = () => {
                     setRecoveryEmail(e.target.value);
                     if (recoveryEmailError) setRecoveryEmailError('');
                   }}
-                  className={`h-14 bg-background border-border rounded-2xl focus:border-primary focus:ring-primary text-base ${recoveryEmailError ? 'border-destructive' : ''}`}
+                  className={`h-10 bg-background border-border rounded-xl focus:border-primary focus:ring-primary ${recoveryEmailError ? 'border-destructive' : ''}`}
                   autoFocus
                 />
                 {recoveryEmailError && (
-                  <p className="text-sm text-destructive mt-1">{recoveryEmailError}</p>
+                  <p className="text-xs text-destructive mt-1">{recoveryEmailError}</p>
                 )}
               </div>
               
               <Button
                 type="submit"
                 disabled={isRecovering}
-                className="w-full h-14 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-base rounded-2xl transition-all duration-300"
+                className="w-full h-10 gradient-primary hover:shadow-medium text-primary-foreground font-semibold text-sm rounded-xl transition-all duration-300"
               >
                 {isRecovering ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                     Enviando...
                   </span>
                 ) : (
@@ -293,7 +293,7 @@ const LoginPage: React.FC = () => {
       )}
 
       {/* Footer */}
-      <p className="text-sm text-muted-foreground mt-12 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+      <p className="text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
         Proteção sempre que você precisar
       </p>
     </div>
