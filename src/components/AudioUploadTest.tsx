@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Upload, FileAudio, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import { apiService, type AudioPayload } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -220,7 +220,7 @@ export const AudioUploadTest = () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
 
-      const payload: AudioPayload = {
+      const payload = {
         file_base64: base64Data,
         file_name: `${timestamp}_${fileName}`,
         duracao_segundos: duration || 60,
@@ -228,7 +228,7 @@ export const AudioUploadTest = () => {
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando áudio WAV como base64:', {
+      console.log('[AudioUploadTest] Enviando áudio WAV para edge function local:', {
         nome_original: selectedFile.name,
         formato_envio: 'WAV (base64)',
         tamanho_mb: payload.tamanho_mb.toFixed(2),
@@ -238,20 +238,27 @@ export const AudioUploadTest = () => {
         base64_length: base64Data.length,
       });
 
-      const result = await apiService.sendAudio(payload);
+      // Chamar edge function local diretamente
+      const { data: result, error } = await supabase.functions.invoke('receberAudioMobile', {
+        body: payload,
+      });
 
-      if (result.success) {
+      if (error) {
+        throw error;
+      }
+
+      if (result?.success) {
         setUploadStatus('success');
         toast.success('Áudio WAV enviado com sucesso!', {
-          description: `Gravação ID: ${result.data?.gravacao_id || 'N/A'}`,
+          description: `Gravação ID: ${result?.gravacao_id || 'N/A'}`,
         });
-        console.log('[AudioUploadTest] Sucesso:', result.data);
+        console.log('[AudioUploadTest] Sucesso:', result);
       } else {
         setUploadStatus('error');
         toast.error('Falha ao enviar áudio', {
-          description: result.error,
+          description: result?.error || 'Erro desconhecido',
         });
-        console.error('[AudioUploadTest] Erro:', result.error);
+        console.error('[AudioUploadTest] Erro:', result?.error);
       }
     } catch (error) {
       setUploadStatus('error');
