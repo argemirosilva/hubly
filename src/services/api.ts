@@ -109,8 +109,11 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
       return { data: null, error: new Error('Sessão expirada'), isSessionExpired: true };
     }
     
+    // Retornar dados mesmo em caso de erro HTTP para permitir tratamento específico
+    // Cada método pode decidir como tratar erros específicos (ex: "Ação não reconhecida")
     if (!response.ok) {
-      throw new Error(data?.error || `HTTP error! status: ${response.status}`);
+      // Incluir os dados de erro na resposta para tratamento específico
+      return { data: data as T, error: new Error(data?.error || `HTTP error! status: ${response.status}`) };
     }
     
     return { data, error: null };
