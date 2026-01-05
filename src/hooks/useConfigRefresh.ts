@@ -1,98 +1,46 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
 
 const CONFIG_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutos
 
 /**
  * Hook para atualizar configurações do servidor periodicamente
+ * NOTA: As configurações são obtidas durante o login.
+ * Este hook apenas mantém o estado sincronizado localmente.
+ * Se precisar atualizar configs do servidor, o usuário deve fazer novo login.
  */
 export const useConfigRefresh = () => {
-  const { user, config, setConfig } = useAppStore();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastRefreshRef = useRef<number>(0);
+  const { user, config } = useAppStore();
+  const lastRefreshRef = useRef<number>(Date.now());
 
   const refreshConfig = useCallback(async () => {
-    if (!user?.email || !config?.apiBaseUrl) {
-      console.log('[ConfigRefresh] Sem usuário ou URL configurada');
+    if (!user?.email) {
+      console.log('[ConfigRefresh] Sem usuário logado');
       return false;
     }
 
-    try {
-      console.log('[ConfigRefresh] Buscando configurações atualizadas...');
-      
-      // Usar o endpoint mobile-api com action para obter config atualizada
-      const response = await fetch(config.apiBaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'refreshConfig',
-          email_usuario: user.email,
-          token_sessao: user.sessionToken
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.usuario) {
-        const updatedConfig = {
-          ...config,
-          gravacaoInicio: data.usuario.gravacao_inicio,
-          gravacaoFim: data.usuario.gravacao_fim,
-          gravacaoDias: data.usuario.gravacao_dias,
-          contatosRedeApoio: data.usuario.contatos_rede_apoio,
-        };
-        
-        // Verificar se houve mudanças
-        const hasChanges = 
-          config.gravacaoInicio !== updatedConfig.gravacaoInicio ||
-          config.gravacaoFim !== updatedConfig.gravacaoFim ||
-          JSON.stringify(config.gravacaoDias) !== JSON.stringify(updatedConfig.gravacaoDias);
-        
-        if (hasChanges) {
-          console.log('[ConfigRefresh] Configurações atualizadas:', {
-            inicio: updatedConfig.gravacaoInicio,
-            fim: updatedConfig.gravacaoFim,
-            dias: updatedConfig.gravacaoDias
-          });
-          setConfig(updatedConfig);
-        } else {
-          console.log('[ConfigRefresh] Sem alterações nas configurações');
-        }
-        
-        lastRefreshRef.current = Date.now();
-        return true;
-      }
-      
-      console.log('[ConfigRefresh] Resposta inválida do servidor');
-      return false;
-    } catch (error) {
-      console.error('[ConfigRefresh] Erro ao buscar configurações:', error);
-      return false;
-    }
-  }, [user, config, setConfig]);
+    // As configurações são obtidas no login e mantidas no estado local
+    // Não há endpoint separado para refresh - configs são atualizadas no próximo login
+    console.log('[ConfigRefresh] Configurações atuais:', {
+      inicio: config?.gravacaoInicio,
+      fim: config?.gravacaoFim,
+      dias: config?.gravacaoDias
+    });
+    
+    lastRefreshRef.current = Date.now();
+    return true;
+  }, [user, config]);
 
-  // Iniciar refresh periódico
+  // Log periódico para debug (não faz chamada de rede)
   useEffect(() => {
-    if (!user?.email || !config?.apiBaseUrl) return;
+    if (!user?.email) return;
 
-    // Refresh inicial após 1 minuto (para não sobrecarregar no login)
-    const initialTimeout = setTimeout(() => {
-      refreshConfig();
-    }, 60 * 1000);
-
-    // Refresh periódico a cada 15 minutos
-    intervalRef.current = setInterval(() => {
-      refreshConfig();
+    const interval = setInterval(() => {
+      console.log('[ConfigRefresh] Config check - usando dados do login');
     }, CONFIG_REFRESH_INTERVAL);
 
-    return () => {
-      clearTimeout(initialTimeout);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [user, config?.apiBaseUrl, refreshConfig]);
+    return () => clearInterval(interval);
+  }, [user?.email]);
 
   return {
     refreshConfig,
