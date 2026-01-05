@@ -7,13 +7,13 @@ import GPSControl from '@/components/GPSControl';
 import PanicButton from '@/components/PanicButton';
 import NetworkStatusBar from '@/components/NetworkStatusBar';
 import NotificationSettings from '@/components/NotificationSettings';
+import { AudioUploadTest } from '@/components/AudioUploadTest';
 import { useToast } from '@/hooks/use-toast';
 import { initOfflineDB } from '@/services/offlineStorage';
 import { pushNotificationService } from '@/services/pushNotifications';
 import { useScheduledRecording } from '@/hooks/useScheduledRecording';
 import { usePingService } from '@/hooks/usePingService';
 import { useConfigRefresh } from '@/hooks/useConfigRefresh';
-
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, config, logout, soundEnabled, setSoundEnabled } = useAppStore();
@@ -153,6 +153,9 @@ const DashboardPage: React.FC = () => {
 
         {/* Notification Settings */}
         <NotificationSettings />
+
+        {/* Teste de Upload de Áudio - REMOVER APÓS TESTES */}
+        <AudioUploadTest />
 
         {/* Config Info */}
         <div className="card-ampara">
