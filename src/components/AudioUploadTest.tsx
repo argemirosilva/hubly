@@ -7,12 +7,101 @@ import { apiService, type AudioPayload } from '@/services/api';
 import { toast } from 'sonner';
 
 /**
+ * Converte um arquivo de áudio para WAV
+ */
+const convertToWav = async (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const audioContext = new AudioContext();
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        // Criar WAV a partir do AudioBuffer
+        const wavBlob = audioBufferToWav(audioBuffer);
+        resolve(wavBlob);
+      } catch (error) {
+        reject(error);
+      } finally {
+        audioContext.close();
+      }
+    };
+
+    reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+/**
+ * Converte AudioBuffer para WAV Blob
+ */
+const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+  
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  
+  const samples = buffer.length;
+  const dataSize = samples * blockAlign;
+  const headerSize = 44;
+  const totalSize = headerSize + dataSize;
+  
+  const arrayBuffer = new ArrayBuffer(totalSize);
+  const view = new DataView(arrayBuffer);
+  
+  // WAV header
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+  
+  writeString(0, 'RIFF');
+  view.setUint32(4, totalSize - 8, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // fmt chunk size
+  view.setUint16(20, format, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+  
+  // Write audio data
+  let offset = 44;
+  const channelData: Float32Array[] = [];
+  for (let ch = 0; ch < numChannels; ch++) {
+    channelData.push(buffer.getChannelData(ch));
+  }
+  
+  for (let i = 0; i < samples; i++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const sample = Math.max(-1, Math.min(1, channelData[ch][i]));
+      const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+      view.setInt16(offset, intSample, true);
+      offset += 2;
+    }
+  }
+  
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+};
+
+/**
  * Componente de teste para upload de arquivos de áudio
  * REMOVER APÓS TESTES
  */
 export const AudioUploadTest = () => {
-  const { user, config } = useAppStore();
+  const { user } = useAppStore();
   const [isUploading, setIsUploading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -20,9 +109,10 @@ export const AudioUploadTest = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Verificar se é um arquivo de áudio
-      if (!file.type.startsWith('audio/')) {
-        toast.error('Por favor, selecione um arquivo de áudio');
+      // Verificar se é WAV ou MP3
+      const validTypes = ['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3'];
+      if (!validTypes.includes(file.type) && !file.name.match(/\.(wav|mp3)$/i)) {
+        toast.error('Por favor, selecione um arquivo WAV ou MP3');
         return;
       }
       setSelectedFile(file);
@@ -30,7 +120,7 @@ export const AudioUploadTest = () => {
     }
   };
 
-  const getAudioDuration = (file: File): Promise<number> => {
+  const getAudioDuration = (file: File | Blob): Promise<number> => {
     return new Promise((resolve) => {
       const audio = new Audio();
       audio.onloadedmetadata = () => {
@@ -51,23 +141,42 @@ export const AudioUploadTest = () => {
     setUploadStatus('idle');
 
     try {
-      const duration = await getAudioDuration(selectedFile);
+      let wavBlob: Blob;
+      const isWav = selectedFile.type === 'audio/wav' || 
+                    selectedFile.type === 'audio/x-wav' || 
+                    selectedFile.name.toLowerCase().endsWith('.wav');
+
+      if (isWav) {
+        // Já é WAV, usar diretamente
+        wavBlob = selectedFile;
+        console.log('[AudioUploadTest] Arquivo já é WAV, enviando diretamente');
+      } else {
+        // Converter MP3 para WAV
+        setIsConverting(true);
+        toast.info('Convertendo MP3 para WAV...');
+        console.log('[AudioUploadTest] Convertendo MP3 para WAV...');
+        wavBlob = await convertToWav(selectedFile);
+        setIsConverting(false);
+        console.log('[AudioUploadTest] Conversão concluída');
+      }
+
+      const duration = await getAudioDuration(wavBlob);
       
-      // Criar uma URL simulada para teste (a API espera uma URL, não base64)
-      // Em produção, o arquivo deveria ser enviado para um storage primeiro
+      // Criar uma URL simulada para teste
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const simulatedUrl = `https://storage.ampara.org/audios/${user.email}/${timestamp}_${selectedFile.name}`;
+      const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
+      const simulatedUrl = `https://storage.ampara.org/audios/${user.email}/${timestamp}_${fileName}`;
 
       const payload: AudioPayload = {
         file_url: simulatedUrl,
         duracao_segundos: duration || 60,
-        tamanho_mb: selectedFile.size / (1024 * 1024),
+        tamanho_mb: wavBlob.size / (1024 * 1024),
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando áudio:', {
-        nome: selectedFile.name,
-        tipo: selectedFile.type,
+      console.log('[AudioUploadTest] Enviando áudio WAV:', {
+        nome_original: selectedFile.name,
+        formato_envio: 'WAV',
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
@@ -78,7 +187,7 @@ export const AudioUploadTest = () => {
 
       if (result.success) {
         setUploadStatus('success');
-        toast.success('Áudio enviado com sucesso!', {
+        toast.success('Áudio WAV enviado com sucesso!', {
           description: `Gravação ID: ${result.data?.gravacao_id || 'N/A'}`,
         });
         console.log('[AudioUploadTest] Sucesso:', result.data);
@@ -95,6 +204,7 @@ export const AudioUploadTest = () => {
       console.error('[AudioUploadTest] Erro:', error);
     } finally {
       setIsUploading(false);
+      setIsConverting(false);
     }
   };
 
@@ -119,7 +229,7 @@ export const AudioUploadTest = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="audio/wav,audio/x-wav,.wav"
+          accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -154,7 +264,7 @@ export const AudioUploadTest = () => {
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enviando...
+                    {isConverting ? 'Convertendo...' : 'Enviando...'}
                   </>
                 ) : uploadStatus === 'success' ? (
                   <>
@@ -181,7 +291,7 @@ export const AudioUploadTest = () => {
         )}
 
         <p className="text-xs text-muted-foreground">
-          Formato aceito: WAV
+          Formatos aceitos: WAV, MP3 (convertido para WAV automaticamente)
         </p>
       </CardContent>
     </Card>
