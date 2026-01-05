@@ -42,7 +42,7 @@ export const useAudioRecorder = () => {
     const base64Data = await base64Promise;
     
     // Simular URL do storage (em produção, fazer upload real)
-    const fakeUrl = `data:audio/webm;base64,${base64Data.split(',')[1]}`;
+    const fakeUrl = `data:audio/wav;base64,${base64Data.split(',')[1]}`;
     
     const payload: AudioPayload = {
       file_url: fakeUrl,
@@ -142,9 +142,14 @@ export const useAudioRecorder = () => {
         },
       });
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
+      // Use WAV format - fallback to webm if not supported
+      const mimeType = MediaRecorder.isTypeSupported('audio/wav') 
+        ? 'audio/wav' 
+        : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -158,7 +163,7 @@ export const useAudioRecorder = () => {
       const durationMinutes = config?.recordingDurationMinutes || 5;
       
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
         stream.getTracks().forEach((track) => track.stop());
         
         // Analyze with VAD before sending
