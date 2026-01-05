@@ -24,7 +24,7 @@ const DashboardPage: React.FC = () => {
   const { isInSchedule, nextScheduleInfo, scheduledStart, scheduledEnd, scheduledDays, voiceCommandEnabled, isManualOverride } = useScheduledRecording();
   
   // Hook para serviço de ping (mantém status online)
-  usePingService();
+  const { stop: stopPingService } = usePingService();
   
   // Hook para atualizar configurações a cada 15 min
   useConfigRefresh();
@@ -49,6 +49,10 @@ const DashboardPage: React.FC = () => {
     setIsLoggingOut(true);
     
     try {
+      // Parar serviço de ping ANTES do logout
+      await stopPingService();
+      console.log('[Logout] Serviço de ping parado');
+      
       // Notificar a API sobre o logout
       if (user?.email) {
         await apiService.logout(user.email, user.sessionToken);
