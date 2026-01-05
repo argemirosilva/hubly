@@ -1,5 +1,8 @@
 project_id = "ekozrkhblqikcsniiwzz"
 
+[functions.mobile-api]
+verify_jwt = false
+
 [functions.loginCustomizado]
 verify_jwt = false
 
