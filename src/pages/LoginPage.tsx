@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
   const { setUser, setConfig, setLoginTipo, setCoercionMode } = useAppStore();
   const { toast } = useToast();
   
-  const API_URL = 'https://amparamulher.org';
+  const API_URL = 'https://amparamulher.lovable.app';
   
   const [formData, setFormData] = useState({
     email: '',
