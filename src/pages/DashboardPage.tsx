@@ -51,7 +51,7 @@ const DashboardPage: React.FC = () => {
     try {
       // Notificar a API sobre o logout
       if (user?.email) {
-        await apiService.logout(user.email);
+        await apiService.logout(user.email, user.sessionToken);
       }
     } catch (error) {
       console.error('[Logout] Erro ao notificar servidor:', error);

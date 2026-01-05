@@ -17,6 +17,10 @@ interface LoginApiResponse {
     gravacao_dias?: string[];
     contatos_rede_apoio?: ContatoRedeApoio[];
   };
+  session?: {
+    token: string;
+    expires_at: string;
+  };
   loginTipo?: LoginTipo;
   error?: string;
 }
@@ -155,6 +159,7 @@ export const apiService = {
         nome: data.usuario.nome_vitima,
         telefone: data.usuario.telefone_vitima,
         token: data.usuario.id,
+        sessionToken: data.session?.token,
       };
       
       const config: AppConfig = {
@@ -266,12 +271,13 @@ export const apiService = {
     }
   },
 
-  async logout(email: string): Promise<ApiResponse<{ message: string }>> {
+  async logout(email: string, sessionToken?: string): Promise<ApiResponse<{ message: string }>> {
     try {
       console.log('[API] Enviando logout para:', email);
       
       const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('logoutMobile', { 
-        email_usuario: email 
+        email_usuario: email,
+        token_sessao: sessionToken
       });
       
       if (error) {
