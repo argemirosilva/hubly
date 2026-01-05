@@ -63,6 +63,7 @@ export const usePingService = () => {
         dispositivo_info: getDeviceInfo(),
         bateria_percentual: batteryLevel || 100,
         versao_app: getAppVersion(),
+        token_sessao: user.sessionToken,
       };
 
       const result = await apiService.sendPing(payload);

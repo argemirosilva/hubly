@@ -251,7 +251,7 @@ export const apiService = {
     }
   },
 
-  async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string }): Promise<ApiResponse<{ message: string }>> {
+  async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string; token_sessao?: string }): Promise<ApiResponse<{ message: string }>> {
     try {
       const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('pingMobile', payload);
       

@@ -26,9 +26,9 @@ export const useConfigRefresh = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          action: 'loginCustomizado',
-          email: user.email,
-          refresh: true // Flag para indicar que é um refresh
+          action: 'refreshConfig',
+          email_usuario: user.email,
+          token_sessao: user.sessionToken
         }),
       });
       
