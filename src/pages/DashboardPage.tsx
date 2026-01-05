@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
+import { apiService } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
 import PanicButton from '@/components/PanicButton';
@@ -40,13 +41,29 @@ const DashboardPage: React.FC = () => {
     pushNotificationService.initialize().catch(console.error);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: 'Desconectado',
-      description: 'Sessão encerrada com sucesso',
-    });
-    navigate('/');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    
+    try {
+      // Notificar a API sobre o logout
+      if (user?.email) {
+        await apiService.logout(user.email);
+      }
+    } catch (error) {
+      console.error('[Logout] Erro ao notificar servidor:', error);
+    } finally {
+      // Sempre limpar estado local, mesmo se a API falhar
+      logout();
+      toast({
+        title: 'Desconectado',
+        description: 'Sessão encerrada com sucesso',
+      });
+      navigate('/');
+    }
   };
 
   if (!user) return null;
