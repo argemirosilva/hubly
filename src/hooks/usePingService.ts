@@ -48,7 +48,7 @@ export const usePingService = () => {
 
   // Enviar ping - função principal
   const sendPing = useCallback(async (): Promise<boolean> => {
-    if (!user?.email || !config?.apiBaseUrl) return false;
+    if (!user?.email) return false;
 
     try {
       if (!navigator.onLine) {
@@ -58,35 +58,27 @@ export const usePingService = () => {
 
       const batteryLevel = await apiService.getBatteryLevel();
       
-      const payload: PingPayload = {
+      const payload = {
         email_usuario: user.email,
         dispositivo_info: getDeviceInfo(),
-        bateria_percentual: batteryLevel,
+        bateria_percentual: batteryLevel || 100,
         versao_app: getAppVersion(),
       };
 
-      const response = await fetch(`${config.apiBaseUrl}/api/functions/pingMobile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const result = await apiService.sendPing(payload);
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (result.success) {
         console.log('[Ping] ✅ Enviado com sucesso');
         return true;
       } else {
-        console.error('[Ping] ❌ Erro:', data.error);
+        console.error('[Ping] ❌ Erro:', result.error);
         return false;
       }
     } catch (error) {
       console.error('[Ping] ❌ Erro ao enviar:', error);
       return false;
     }
-  }, [user, config, getDeviceInfo, getAppVersion]);
+  }, [user, getDeviceInfo, getAppVersion]);
 
   // Registrar Service Worker para background sync (Web/PWA)
   const registerServiceWorker = useCallback(async () => {
@@ -285,14 +277,14 @@ export const usePingService = () => {
 
   // Iniciar automaticamente quando usuário estiver logado
   useEffect(() => {
-    if (user?.email && config?.apiBaseUrl) {
+    if (user?.email) {
       start();
     }
 
     return () => {
       stop();
     };
-  }, [user, config, start, stop]);
+  }, [user, start, stop]);
 
   return {
     sendPing,

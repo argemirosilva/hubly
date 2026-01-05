@@ -1,6 +1,7 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
+import { supabase } from '@/integrations/supabase/client';
 
-// Base URL will be set from config
+// Base URL will be set from config (for backward compatibility)
 let API_BASE_URL = '';
 
 export const setApiBaseUrl = (url: string) => {
@@ -92,16 +93,16 @@ export interface AudioPayload {
 export const apiService = {
   async recuperarSenha(email: string, baseUrl: string): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await fetch(`${baseUrl}/api/functions/recuperarSenha`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ email }),
+      const { data, error } = await supabase.functions.invoke('recuperarSenha', {
+        body: { email },
       });
       
-      const data = await response.json();
+      if (error) {
+        return { success: false, error: error.message || 'Não foi possível processar a solicitação' };
+      }
       
-      if (!data.success) {
-        return { success: false, error: data.error || 'Não foi possível processar a solicitação' };
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Não foi possível processar a solicitação' };
       }
       
       return { success: true, data: { message: data.message || 'Instruções enviadas para seu e-mail' } };
@@ -120,22 +121,18 @@ export const apiService = {
     try {
       setApiBaseUrl(baseUrl);
       
-      const response = await fetch(`${baseUrl}/api/functions/loginCustomizado`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ 
-          email, 
-          senha,
-          tipo_acao: tipoAcao
-        }),
+      const { data, error } = await supabase.functions.invoke('loginCustomizado', {
+        body: { email, senha, tipo_acao: tipoAcao },
       });
       
-      const data: LoginApiResponse = await response.json();
+      if (error) {
+        return { success: false, error: error.message || 'Credenciais inválidas' };
+      }
       
-      if (!data.success || !data.usuario) {
+      if (!data?.success || !data?.usuario) {
         return { 
           success: false, 
-          error: data.error || 'Credenciais inválidas' 
+          error: data?.error || 'Credenciais inválidas' 
         };
       }
       
@@ -178,16 +175,16 @@ export const apiService = {
 
   async sendLocation(payload: GPSPayload): Promise<ApiResponse<GPSApiResponse>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/functions/receberLocalizacaoGPS`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.functions.invoke('receberLocalizacaoGPS', {
+        body: payload,
       });
       
-      const data: GPSApiResponse = await response.json();
+      if (error) {
+        return { success: false, error: error.message || 'Falha ao enviar localização' };
+      }
       
-      if (!data.success) {
-        return { success: false, error: data.error || 'Falha ao enviar localização' };
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar localização' };
       }
       
       return { 
@@ -202,16 +199,16 @@ export const apiService = {
 
   async sendPanicAlert(payload: PanicPayload): Promise<ApiResponse<PanicApiResponse>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/functions/acionarPanicoMobile`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.functions.invoke('acionarPanicoMobile', {
+        body: payload,
       });
       
-      const data: PanicApiResponse = await response.json();
+      if (error) {
+        return { success: false, error: error.message || 'Falha ao enviar alerta' };
+      }
       
-      if (!data.success) {
-        return { success: false, error: data.error || 'Falha ao enviar alerta' };
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar alerta' };
       }
       
       return { 
@@ -227,16 +224,16 @@ export const apiService = {
 
   async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/functions/receberAudioMobile`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.functions.invoke('receberAudioMobile', {
+        body: payload,
       });
       
-      const data: AudioApiResponse = await response.json();
+      if (error) {
+        return { success: false, error: error.message || 'Falha ao enviar áudio' };
+      }
       
-      if (!data.success) {
-        return { success: false, error: data.error || 'Falha ao enviar áudio' };
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar áudio' };
       }
       
       return { 
@@ -246,6 +243,27 @@ export const apiService = {
     } catch (error) {
       console.error('Erro ao enviar áudio:', error);
       return { success: false, error: 'Falha ao enviar áudio' };
+    }
+  },
+
+  async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string }): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const { data, error } = await supabase.functions.invoke('pingMobile', {
+        body: payload,
+      });
+      
+      if (error) {
+        return { success: false, error: error.message || 'Falha ao enviar ping' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar ping' };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao enviar ping:', error);
+      return { success: false, error: 'Falha ao enviar ping' };
     }
   },
 
