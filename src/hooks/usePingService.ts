@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
 import { backgroundService, registerHeadlessTask } from '@/services/backgroundService';
 import { Capacitor } from '@capacitor/core';
+import { useToast } from '@/hooks/use-toast';
 
 const PING_INTERVAL = 15 * 60 * 1000; // 15 minutos padrão
 const RETRY_INTERVAL = 30 * 1000; // 30 segundos
@@ -15,7 +17,9 @@ interface PingPayload {
 }
 
 export const usePingService = () => {
-  const { user, config } = useAppStore();
+  const { user, config, logout } = useAppStore();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
@@ -46,6 +50,18 @@ export const usePingService = () => {
     return '1.0.0';
   }, []);
 
+  // Função para lidar com sessão expirada
+  const handleSessionExpired = useCallback(() => {
+    console.warn('[Ping] Sessão expirada detectada, fazendo logout');
+    logout();
+    toast({
+      title: 'Sessão expirada',
+      description: 'Faça login novamente para continuar',
+      variant: 'destructive',
+    });
+    navigate('/');
+  }, [logout, toast, navigate]);
+
   // Enviar ping - função principal
   const sendPing = useCallback(async (): Promise<boolean> => {
     if (!user?.email) return false;
@@ -72,6 +88,11 @@ export const usePingService = () => {
         console.log('[Ping] ✅ Enviado com sucesso');
         return true;
       } else {
+        // Verificar se é erro de sessão expirada
+        if (result.error?.includes('Sessão inválida') || result.error?.includes('Sessão expirada')) {
+          handleSessionExpired();
+          return false;
+        }
         console.error('[Ping] ❌ Erro:', result.error);
         return false;
       }
