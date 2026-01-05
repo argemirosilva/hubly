@@ -67,11 +67,11 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
   };
 
   return (
-    <div className="card-ampara">
-      <div className="flex items-center justify-between mb-4">
+    <div className="card-ampara !p-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-foreground font-display">Gravação de Áudio</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-base font-bold text-foreground font-display">Gravação de Áudio</h3>
+          <p className="text-xs text-muted-foreground">
             {isAnalyzing 
               ? 'Analisando diálogo...' 
               : isRecording 
@@ -79,25 +79,25 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
                 : 'Toque para iniciar'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* VAD Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent">
             {vadStatus === 'loading' ? (
-              <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+              <Loader2 className="w-3 h-3 text-muted-foreground animate-spin" />
             ) : vadStatus === 'ready' ? (
-              <Brain className="w-3.5 h-3.5 text-primary" />
+              <Brain className="w-3 h-3 text-primary" />
             ) : (
-              <Zap className="w-3.5 h-3.5 text-warning" />
+              <Zap className="w-3 h-3 text-warning" />
             )}
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="text-[10px] font-medium text-muted-foreground">
               {vadStatus === 'loading' ? 'Carregando' : vadStatus === 'ready' ? 'VAD IA' : 'VAD Básico'}
             </span>
           </div>
           
           {isRecording && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emergency/10">
-              <span className="w-2 h-2 rounded-full bg-emergency recording-pulse" />
-              <span className="text-sm font-mono font-medium text-emergency">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emergency/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-emergency recording-pulse" />
+              <span className="text-xs font-mono font-medium text-emergency">
                 {formatTime(recordingTime)}
               </span>
             </div>
@@ -107,44 +107,45 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
 
       {/* Voice Command Status - With manual override toggle */}
       {isSupported && (
-        <div className={`mb-4 p-4 rounded-2xl border ${
+        <div className={`mb-3 p-3 rounded-xl border ${
           voiceCommandEnabled 
             ? 'bg-primary/10 border-primary/20' 
             : 'bg-muted/50 border-border'
         }`}>
           {/* Manual Toggle Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Power className={`w-4 h-4 ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className={`text-sm font-semibold ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Power className={`w-3 h-3 ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-xs font-semibold ${voiceCommandEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
                 Escuta de Comandos
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {isManualOverride && (
                 <button
                   onClick={handleResetToAuto}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
+                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors px-1.5 py-0.5 rounded hover:bg-primary/10"
                 >
-                  Modo Auto
+                  Auto
                 </button>
               )}
               <Switch
                 checked={voiceCommandEnabled}
                 onCheckedChange={handleManualToggle}
+                className="scale-75"
               />
             </div>
           </div>
 
           {/* Status info */}
-          <div className="flex items-center gap-2 mb-3 text-xs">
+          <div className="flex items-center gap-1.5 mb-2 text-[10px]">
             {isManualOverride ? (
-              <span className={`px-2 py-1 rounded-full ${voiceCommandEnabled ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                Controle manual
+              <span className={`px-1.5 py-0.5 rounded-full ${voiceCommandEnabled ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                Manual
               </span>
             ) : (
-              <span className={`px-2 py-1 rounded-full ${isInSchedule ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
-                {isInSchedule ? 'Dentro do horário' : 'Fora do horário'}
+              <span className={`px-1.5 py-0.5 rounded-full ${isInSchedule ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
+                {isInSchedule ? 'No horário' : 'Fora do horário'}
               </span>
             )}
             {scheduleInfo && (
@@ -154,57 +155,57 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
 
           {voiceCommandEnabled && isListening ? (
             <>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-1.5 mb-2">
                 {isSpeaking ? (
                   <>
                     <div className="flex items-center gap-0.5">
-                      <span className="w-1 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
-                      <span className="w-1 h-4 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
-                      <span className="w-1 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
+                      <span className="w-0.5 h-2 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite]" />
+                      <span className="w-0.5 h-3 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.1s]" />
+                      <span className="w-0.5 h-1.5 bg-success rounded-full animate-[soundwave_0.5s_ease-in-out_infinite_0.2s]" />
                     </div>
-                    <span className="text-xs font-semibold text-success">Detectando fala...</span>
+                    <span className="text-[10px] font-semibold text-success">Detectando fala...</span>
                   </>
                 ) : (
                   <>
-                    <AudioWaveform className="w-4 h-4 text-primary animate-pulse" />
-                    <span className="text-xs font-semibold text-primary">Escutando comandos</span>
+                    <AudioWaveform className="w-3 h-3 text-primary animate-pulse" />
+                    <span className="text-[10px] font-semibold text-primary">Escutando comandos</span>
                   </>
                 )}
               </div>
               
               {/* Último comando reconhecido */}
               {lastCommand && (
-                <div className="mb-3 p-2.5 bg-background rounded-xl border border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Último comando:</p>
-                  <p className="text-sm font-semibold text-foreground">"{lastCommand}"</p>
+                <div className="mb-2 p-2 bg-background rounded-lg border border-border">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Último comando:</p>
+                  <p className="text-xs font-semibold text-foreground">"{lastCommand}"</p>
                 </div>
               )}
               
-              <p className="text-xs text-muted-foreground mb-2">Comandos disponíveis:</p>
-              <ul className="space-y-1.5">
-                <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+              <p className="text-[10px] text-muted-foreground mb-1">Comandos:</p>
+              <ul className="space-y-0.5">
+                <li className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-1 h-1 rounded-full bg-success" />
                   <span className="font-medium">"{startCommand}"</span>
                 </li>
-                <li className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emergency" />
+                <li className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-1 h-1 rounded-full bg-emergency" />
                   <span className="font-medium">"{stopCommand}"</span>
                 </li>
               </ul>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground">
               {voiceCommandEnabled 
                 ? 'Inicializando escuta...' 
-                : 'Use o switch acima para ativar a escuta de comandos de voz'}
+                : 'Use o switch para ativar a escuta de voz'}
             </p>
           )}
         </div>
       )}
 
       {/* Info about VAD */}
-      <div className="mb-4 p-4 bg-accent/50 rounded-2xl">
-        <p className="text-xs text-muted-foreground">
+      <div className="mb-3 p-2.5 bg-accent/50 rounded-lg">
+        <p className="text-[10px] text-muted-foreground">
           {vadStatus === 'ready' 
             ? '🧠 IA Silero ativa: Apenas áudios com diálogo serão enviados'
             : vadStatus === 'loading'
@@ -216,7 +217,7 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
       <button
         onClick={toggleRecording}
         disabled={isAnalyzing}
-        className={`w-full h-20 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-50 shadow-soft ${
+        className={`w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 shadow-soft ${
           isAnalyzing
             ? 'bg-warning/15 border-2 border-warning text-warning'
             : isRecording
@@ -226,18 +227,18 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
       >
         {isAnalyzing ? (
           <>
-            <Loader2 className="w-8 h-8 animate-spin" />
-            <span className="text-lg font-semibold">Analisando...</span>
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="text-sm font-semibold">Analisando...</span>
           </>
         ) : isRecording ? (
           <>
-            <MicOff className="w-8 h-8" />
-            <span className="text-lg font-semibold">Parar Gravação</span>
+            <MicOff className="w-6 h-6" />
+            <span className="text-sm font-semibold">Parar Gravação</span>
           </>
         ) : (
           <>
-            <Mic className="w-8 h-8" />
-            <span className="text-lg font-semibold">Iniciar Gravação</span>
+            <Mic className="w-6 h-6" />
+            <span className="text-sm font-semibold">Iniciar Gravação</span>
           </>
         )}
       </button>

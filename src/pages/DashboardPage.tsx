@@ -151,21 +151,21 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-background safe-area-inset">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl gradient-primary flex items-center justify-center shadow-soft">
-              <Shield className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center justify-between px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-soft">
+              <Shield className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground font-display">Ampara</h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <User className="w-3 h-3" />
+              <h1 className="text-lg font-bold text-foreground font-display">Ampara</h1>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <User className="w-2.5 h-2.5" />
                 {user.nome || user.email}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => {
                 setSoundEnabled(!soundEnabled);
@@ -176,26 +176,26 @@ const DashboardPage: React.FC = () => {
                     : 'Alertas sonoros habilitados',
                 });
               }}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-soft ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 shadow-soft ${
                 soundEnabled 
                   ? 'bg-accent text-primary hover:bg-accent/80' 
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
               title={soundEnabled ? 'Desativar sons' : 'Ativar sons'}
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
             <button
               onClick={() => navigate('/settings')}
-              className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center text-primary hover:bg-accent/80 transition-all duration-300 shadow-soft"
+              className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-primary hover:bg-accent/80 transition-all duration-300 shadow-soft"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-11 h-11 rounded-2xl bg-accent flex items-center justify-center text-primary hover:text-emergency hover:bg-emergency/10 transition-all duration-300"
+              className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-primary hover:text-emergency hover:bg-emergency/10 transition-all duration-300"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -205,8 +205,8 @@ const DashboardPage: React.FC = () => {
       <NetworkStatusBar />
 
       {/* Status Bar */}
-      <div className="px-4 py-3 bg-accent/50 border-b border-border">
-        <div className="flex items-center justify-between text-xs">
+      <div className="px-3 py-2 bg-accent/50 border-b border-border">
+        <div className="flex items-center justify-between text-[10px]">
           <span className="text-muted-foreground">
             Gravação: <span className="text-primary font-semibold">{config?.recordingDurationMinutes || 5} min</span>
           </span>
@@ -217,8 +217,8 @@ const DashboardPage: React.FC = () => {
         
         {/* Horário Programado */}
         {scheduledStart && scheduledEnd && (
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <Clock className="w-3 h-3 text-muted-foreground" />
+          <div className="mt-1.5 flex items-center gap-1.5 text-[10px]">
+            <Clock className="w-2.5 h-2.5 text-muted-foreground" />
             <span className={isInSchedule ? 'text-success font-semibold' : 'text-muted-foreground'}>
               {isInSchedule ? '● Escuta ativa' : 'Agendado:'} {scheduledStart} - {scheduledEnd}
             </span>
@@ -232,7 +232,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="p-4 space-y-4 pb-8">
+      <main className="p-3 space-y-3 pb-6">
         {/* Panic Button - Most prominent */}
         <PanicButton />
 
