@@ -81,7 +81,14 @@ export interface AudioPayload {
   email_usuario: string;
 }
 
-async function apiRequest<T>(action: string, body: object): Promise<{ data: T | null; error: Error | null }> {
+// Evento customizado para sessão expirada
+export const SESSION_EXPIRED_EVENT = 'session-expired';
+
+export function dispatchSessionExpired() {
+  window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+}
+
+async function apiRequest<T>(action: string, body: object): Promise<{ data: T | null; error: Error | null; isSessionExpired?: boolean }> {
   try {
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
@@ -91,11 +98,19 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
       body: JSON.stringify({ action, ...body }),
     });
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    
+    // Detectar sessão expirada
+    if (response.status === 401 || (data && !data.success && data.error?.includes('Sessão inválida'))) {
+      console.warn('[API] Sessão expirada detectada');
+      dispatchSessionExpired();
+      return { data: null, error: new Error('Sessão expirada'), isSessionExpired: true };
     }
     
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || `HTTP error! status: ${response.status}`);
+    }
+    
     return { data, error: null };
   } catch (error) {
     console.error(`[API] Erro em ${action}:`, error);
