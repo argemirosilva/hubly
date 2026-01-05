@@ -30,15 +30,6 @@ export const AudioUploadTest = () => {
     }
   };
 
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const getAudioDuration = (file: File): Promise<number> => {
     return new Promise((resolve) => {
       const audio = new Audio();
@@ -60,15 +51,16 @@ export const AudioUploadTest = () => {
     setUploadStatus('idle');
 
     try {
-      // Converter para base64 e obter duração
-      const [base64Data, duration] = await Promise.all([
-        convertToBase64(selectedFile),
-        getAudioDuration(selectedFile),
-      ]);
+      const duration = await getAudioDuration(selectedFile);
+      
+      // Criar uma URL simulada para teste (a API espera uma URL, não base64)
+      // Em produção, o arquivo deveria ser enviado para um storage primeiro
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const simulatedUrl = `https://storage.ampara.org/audios/${user.email}/${timestamp}_${selectedFile.name}`;
 
       const payload: AudioPayload = {
-        file_url: base64Data, // Usando base64 como URL para teste
-        duracao_segundos: duration,
+        file_url: simulatedUrl,
+        duracao_segundos: duration || 60,
         tamanho_mb: selectedFile.size / (1024 * 1024),
         email_usuario: user.email,
       };
@@ -79,6 +71,7 @@ export const AudioUploadTest = () => {
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
+        file_url: payload.file_url,
       });
 
       const result = await apiService.sendAudio(payload);
