@@ -71,9 +71,14 @@ export const useCoercionRecording = () => {
       const startNewRecordingCycle = () => {
         if (!isRecordingRef.current || !streamRef.current) return;
 
-        const mediaRecorder = new MediaRecorder(streamRef.current, {
-          mimeType: 'audio/webm;codecs=opus',
-        });
+        // Use WAV format - fallback to webm if not supported
+        const mimeType = MediaRecorder.isTypeSupported('audio/wav') 
+          ? 'audio/wav' 
+          : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm';
+        
+        const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType });
 
         mediaRecorderRef.current = mediaRecorder;
         chunksRef.current = [];
@@ -85,7 +90,7 @@ export const useCoercionRecording = () => {
         };
 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          const audioBlob = new Blob(chunksRef.current, { type: mimeType });
           await processAndSendAudio(audioBlob);
           
           // Iniciar novo ciclo de gravação

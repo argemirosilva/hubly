@@ -119,7 +119,7 @@ export const AudioUploadTest = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="audio/*"
+          accept="audio/wav,audio/x-wav,.wav"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -181,7 +181,7 @@ export const AudioUploadTest = () => {
         )}
 
         <p className="text-xs text-muted-foreground">
-          Formatos aceitos: MP3, WAV, WebM, M4A, OGG
+          Formato aceito: WAV
         </p>
       </CardContent>
     </Card>
