@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import { apiService } from '@/services/api';
+import { apiService, SESSION_EXPIRED_EVENT } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
 import GPSControl from '@/components/GPSControl';
 import PanicButton from '@/components/PanicButton';
@@ -50,6 +50,25 @@ const DashboardPage: React.FC = () => {
     initOfflineDB().catch(console.error);
     pushNotificationService.initialize().catch(console.error);
   }, []);
+
+  // Listener para sessão expirada
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      console.warn('[Dashboard] Sessão expirada, fazendo logout automático');
+      logout();
+      toast({
+        title: 'Sessão expirada',
+        description: 'Faça login novamente para continuar',
+        variant: 'destructive',
+      });
+      navigate('/');
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, [logout, navigate, toast]);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
