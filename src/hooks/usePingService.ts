@@ -297,10 +297,13 @@ export const usePingService = () => {
     console.log('[Ping] Serviço parado');
   }, []);
 
-  // Iniciar automaticamente quando usuário estiver logado
+  // Iniciar automaticamente quando usuário estiver logado, parar quando deslogar
   useEffect(() => {
     if (user?.email) {
       start();
+    } else {
+      // Usuário deslogou - parar serviço imediatamente
+      stop();
     }
 
     return () => {
