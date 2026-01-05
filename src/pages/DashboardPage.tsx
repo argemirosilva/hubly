@@ -253,34 +253,6 @@ const DashboardPage: React.FC = () => {
         {/* Teste de Upload de Áudio - REMOVER APÓS TESTES */}
         <AudioUploadTest />
 
-        {/* Config Info */}
-        <div className="card-ampara">
-          <h4 className="text-sm font-semibold text-foreground mb-3 font-display">Configurações Ativas</h4>
-          <div className="space-y-2.5 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Detecção de diálogo</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config?.dialogueDetectionEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                {config?.dialogueDetectionEnabled ? 'Ativado' : 'Desativado'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Gravação automática</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config?.autoStartRecording ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                {config?.autoStartRecording ? 'Sim' : 'Não'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Modo offline</span>
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">Ativado</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Servidor</span>
-              <span className="text-foreground truncate max-w-[180px] text-xs font-mono">
-                {config?.apiBaseUrl || 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Logout Confirmation Dialog with Password */}
