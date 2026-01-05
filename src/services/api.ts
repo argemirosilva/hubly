@@ -310,11 +310,21 @@ export const apiService = {
       });
       
       if (error) {
+        // Se a API externa não suportar refreshConfig, retornar silenciosamente
+        if (error.message?.includes('Ação não reconhecida')) {
+          console.log('[API] refreshConfig não suportado pela API externa, ignorando');
+          return { success: true, data: {} };
+        }
         console.error('[API] Erro refreshConfig:', error);
         return { success: false, error: error.message || 'Falha ao atualizar configurações' };
       }
       
       if (!data?.success || !data?.usuario) {
+        // Se a API retornar erro por não suportar, ignorar silenciosamente
+        if (data?.error?.includes('Ação não reconhecida')) {
+          console.log('[API] refreshConfig não suportado pela API externa, ignorando');
+          return { success: true, data: {} };
+        }
         return { success: false, error: data?.error || 'Falha ao atualizar configurações' };
       }
       
