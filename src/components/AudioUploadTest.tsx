@@ -1,26 +1,46 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Upload, FileAudio, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { apiService, type AudioPayload } from '@/services/api';
 import { toast } from 'sonner';
 
 /**
- * Converte um arquivo de áudio para WAV
+ * Converte um arquivo de áudio para WAV com callback de progresso
  */
-const convertToWav = async (file: File): Promise<Blob> => {
+const convertToWav = async (
+  file: File, 
+  onProgress?: (progress: number) => void
+): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const audioContext = new AudioContext();
     const reader = new FileReader();
 
+    // Fase 1: Leitura do arquivo (0-30%)
+    reader.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        const readProgress = (e.loaded / e.total) * 30;
+        onProgress(readProgress);
+      }
+    };
+
     reader.onload = async (e) => {
       try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        onProgress?.(30); // Leitura concluída
         
-        // Criar WAV a partir do AudioBuffer
-        const wavBlob = audioBufferToWav(audioBuffer);
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        
+        // Fase 2: Decodificação (30-60%)
+        onProgress?.(40);
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        onProgress?.(60);
+        
+        // Fase 3: Conversão para WAV (60-100%)
+        const wavBlob = audioBufferToWav(audioBuffer, onProgress);
+        onProgress?.(100);
+        
         resolve(wavBlob);
       } catch (error) {
         reject(error);
@@ -37,7 +57,10 @@ const convertToWav = async (file: File): Promise<Blob> => {
 /**
  * Converte AudioBuffer para WAV Blob
  */
-const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+const audioBufferToWav = (
+  buffer: AudioBuffer, 
+  onProgress?: (progress: number) => void
+): Blob => {
   const numChannels = buffer.numberOfChannels;
   const sampleRate = buffer.sampleRate;
   const format = 1; // PCM
@@ -75,12 +98,14 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
   writeString(36, 'data');
   view.setUint32(40, dataSize, true);
   
-  // Write audio data
+  // Write audio data with progress updates
   let offset = 44;
   const channelData: Float32Array[] = [];
   for (let ch = 0; ch < numChannels; ch++) {
     channelData.push(buffer.getChannelData(ch));
   }
+  
+  const progressInterval = Math.floor(samples / 10); // Update every 10%
   
   for (let i = 0; i < samples; i++) {
     for (let ch = 0; ch < numChannels; ch++) {
@@ -88,6 +113,12 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
       const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
       view.setInt16(offset, intSample, true);
       offset += 2;
+    }
+    
+    // Update progress (60-100% range)
+    if (onProgress && i % progressInterval === 0) {
+      const writeProgress = 60 + (i / samples) * 40;
+      onProgress(writeProgress);
     }
   }
   
@@ -102,6 +133,7 @@ export const AudioUploadTest = () => {
   const { user } = useAppStore();
   const [isUploading, setIsUploading] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [conversionProgress, setConversionProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,10 +185,14 @@ export const AudioUploadTest = () => {
       } else {
         // Converter MP3 para WAV
         setIsConverting(true);
+        setConversionProgress(0);
         toast.info('Convertendo MP3 para WAV...');
         console.log('[AudioUploadTest] Convertendo MP3 para WAV...');
-        wavBlob = await convertToWav(selectedFile);
+        wavBlob = await convertToWav(selectedFile, (progress) => {
+          setConversionProgress(Math.round(progress));
+        });
         setIsConverting(false);
+        setConversionProgress(0);
         console.log('[AudioUploadTest] Conversão concluída');
       }
 
@@ -254,6 +290,16 @@ export const AudioUploadTest = () => {
                 {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
               </span>
             </div>
+
+            {isConverting && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Convertendo para WAV...</span>
+                  <span>{conversionProgress}%</span>
+                </div>
+                <Progress value={conversionProgress} className="h-2" />
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
