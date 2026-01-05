@@ -239,13 +239,19 @@ export const AudioUploadTest = () => {
       });
 
       // Chamar edge function local diretamente
-      const { data: result, error } = await supabase.functions.invoke('receberAudioMobile', {
+      const { data, error } = await supabase.functions.invoke('receberAudioMobile', {
         body: payload,
       });
+
+      console.log('[AudioUploadTest] Resposta raw:', { data, error });
 
       if (error) {
         throw error;
       }
+
+      // Parse the response if it's a string
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      console.log('[AudioUploadTest] Resultado parseado:', result);
 
       if (result?.success) {
         setUploadStatus('success');
