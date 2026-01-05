@@ -266,6 +266,30 @@ export const apiService = {
     }
   },
 
+  async logout(email: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('[API] Enviando logout para:', email);
+      
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('logoutMobile', { 
+        email_usuario: email 
+      });
+      
+      if (error) {
+        console.error('[API] Erro logout:', error);
+        return { success: false, error: error.message || 'Falha ao fazer logout' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao fazer logout' };
+      }
+      
+      return { success: true, data: { message: data.message || 'Logout realizado' } };
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      return { success: false, error: 'Falha ao fazer logout' };
+    }
+  },
+
   async getBatteryLevel(): Promise<number | undefined> {
     try {
       if ('getBattery' in navigator) {
