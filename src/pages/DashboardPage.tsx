@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff, Radio } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { apiService, SESSION_EXPIRED_EVENT } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
@@ -153,11 +153,21 @@ const DashboardPage: React.FC = () => {
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-soft">
-              <Shield className="w-5 h-5 text-primary-foreground" />
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-soft ${
+              isInSchedule ? 'gradient-primary' : 'bg-muted'
+            }`}>
+              <Shield className={`w-5 h-5 ${isInSchedule ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground font-display">Ampara</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-lg font-bold text-foreground font-display">Ampara</h1>
+                {isInSchedule && (
+                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-success/20">
+                    <Radio className="w-2.5 h-2.5 text-success animate-pulse" />
+                    <span className="text-[8px] font-bold text-success uppercase">Ativo</span>
+                  </div>
+                )}
+              </div>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <User className="w-2.5 h-2.5" />
                 {user.nome || user.email}
