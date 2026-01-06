@@ -42,12 +42,36 @@ export const useRecordingVoiceCommand = ({
     isListeningRef.current = isListening;
   }, [isListening]);
 
+  // Verifica suporte ao SpeechRecognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     setIsSupported(!!SpeechRecognition);
+  }, []);
 
-    if (!SpeechRecognition || !enabled) return;
+  // Gerencia o ciclo de vida do recognition baseado em enabled
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    // Se não há suporte ou não está habilitado, limpa tudo
+    if (!SpeechRecognition || !enabled) {
+      // Para e limpa recognition existente
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+        recognitionRef.current = null;
+      }
+      setIsListening(false);
+      setIsSpeaking(false);
+      console.log('Voice command disabled - microphone access stopped');
+      return;
+    }
 
+    // Só cria novo recognition se enabled=true
+    console.log('Voice command enabled - requesting microphone access');
+    
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
     recognition.continuous = true;
@@ -123,7 +147,7 @@ export const useRecordingVoiceCommand = ({
       } else if (event.error === 'aborted' || event.error === 'network') {
         // Tenta reiniciar em caso de erro de rede
         setTimeout(() => {
-          if (isListeningRef.current && recognitionRef.current) {
+          if (isListeningRef.current && recognitionRef.current && enabled) {
             try {
               recognitionRef.current.start();
             } catch (e) {
@@ -136,9 +160,10 @@ export const useRecordingVoiceCommand = ({
 
     recognition.onend = () => {
       console.log('Speech recognition ended, isListening:', isListeningRef.current);
-      if (isListeningRef.current && enabled) {
+      // Só reinicia se ainda estiver enabled e listening
+      if (isListeningRef.current && enabled && recognitionRef.current) {
         setTimeout(() => {
-          if (isListeningRef.current && recognitionRef.current) {
+          if (isListeningRef.current && recognitionRef.current && enabled) {
             try {
               recognitionRef.current.start();
               console.log('Speech recognition restarted');
@@ -158,6 +183,8 @@ export const useRecordingVoiceCommand = ({
       } catch (e) {
         // ignore
       }
+      recognitionRef.current = null;
+      setIsListening(false);
     };
   }, [enabled, toast]);
 
@@ -175,11 +202,14 @@ export const useRecordingVoiceCommand = ({
     }
   }, [isSupported]);
 
-  // Auto-start listening when component mounts
+  // Auto-start listening when enabled and supported
   useEffect(() => {
+    // Só inicia se enabled=true e há recognition disponível
     if (enabled && isSupported && recognitionRef.current && !isListening) {
       const timer = setTimeout(() => {
-        startListening();
+        if (enabled && recognitionRef.current) {
+          startListening();
+        }
       }, 500);
       return () => clearTimeout(timer);
     }
