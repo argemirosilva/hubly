@@ -24,12 +24,20 @@ export const useConfigRefresh = () => {
       const response = await apiService.refreshConfig(user.email, user.sessionToken);
       
       if (response.success && response.data) {
+        // Mapear campos da API para o formato do config local
+        const apiData = response.data as {
+          gravacao_inicio?: string;
+          gravacao_fim?: string;
+          gravacao_dias?: string[];
+          contatos_rede_apoio?: any[];
+        };
+        
         const updatedConfig = {
           ...config,
-          gravacaoInicio: response.data.gravacao_inicio || config?.gravacaoInicio,
-          gravacaoFim: response.data.gravacao_fim || config?.gravacaoFim,
-          gravacaoDias: response.data.gravacao_dias || config?.gravacaoDias,
-          contatosRedeApoio: response.data.contatos_rede_apoio || config?.contatosRedeApoio,
+          gravacaoInicio: apiData.gravacao_inicio || config?.gravacaoInicio,
+          gravacaoFim: apiData.gravacao_fim || config?.gravacaoFim,
+          gravacaoDias: apiData.gravacao_dias || config?.gravacaoDias,
+          contatosRedeApoio: apiData.contatos_rede_apoio || config?.contatosRedeApoio,
         };
         
         // Verificar se houve mudanças
