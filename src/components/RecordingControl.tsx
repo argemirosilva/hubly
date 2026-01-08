@@ -1,6 +1,6 @@
-import React from 'react';
-import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock, Power } from 'lucide-react';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import React, { useEffect, useRef } from 'react';
+import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock, Power, Layers } from 'lucide-react';
+import { useContinuousRecording } from '@/hooks/useContinuousRecording';
 import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
 import { useAppStore } from '@/store/appStore';
 import { Switch } from '@/components/ui/switch';
@@ -28,7 +28,20 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
   isManualOverride = false,
 }) => {
   const { config, voiceCommandManualOverride, setVoiceCommandManualOverride } = useAppStore();
-  const { isRecording, recordingTime, isAnalyzing, vadStatus, startRecording, stopRecording, toggleRecording } = useAudioRecorder();
+  const { 
+    isRecording, 
+    recordingTime, 
+    currentSegmentTime,
+    segmentCount,
+    isAnalyzing, 
+    vadStatus, 
+    startRecording, 
+    stopRecording, 
+    toggleRecording 
+  } = useContinuousRecording();
+
+  // Ref para controlar se já paramos por fim de período
+  const wasRecordingRef = useRef(false);
 
   // Comandos personalizados ou padrões
   const startCommand = config?.recordingStartCommand || DEFAULT_START_COMMAND;
@@ -50,6 +63,15 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
     enabled: voiceCommandEnabled,
   });
 
+  // NOVO: Parar gravação automaticamente quando sair do período de monitoramento
+  useEffect(() => {
+    // Se estava gravando e agora não está mais no período (e não é override manual)
+    if (isRecording && !isInSchedule && !isManualOverride) {
+      console.log('[RecordingControl] Fim do período de monitoramento - parando gravação automaticamente');
+      stopRecording();
+    }
+  }, [isInSchedule, isRecording, isManualOverride, stopRecording]);
+
   // Handler para toggle manual
   const handleManualToggle = (checked: boolean) => {
     if (checked) {
@@ -66,17 +88,19 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
     setVoiceCommandManualOverride(null);
   };
 
+  const durationMinutes = config?.recordingDurationMinutes || 5;
+
   return (
     <div className="card-ampara !p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-base font-bold text-foreground font-display">Gravação de Áudio</h3>
+          <h3 className="text-base font-bold text-foreground font-display">Gravação Contínua</h3>
           <p className="text-xs text-muted-foreground">
             {isAnalyzing 
-              ? 'Analisando diálogo...' 
+              ? 'Processando segmento...' 
               : isRecording 
-                ? 'Gravando...' 
-                : 'Toque para iniciar'}
+                ? `Segmentos de ${durationMinutes} min` 
+                : 'Toque ou use comando de voz'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -104,6 +128,35 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
           )}
         </div>
       </div>
+
+      {/* Segment Info - Mostrar durante gravação */}
+      {isRecording && (
+        <div className="mb-3 p-2.5 bg-primary/10 rounded-xl border border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary">
+                Segmento #{segmentCount + 1}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs font-mono text-muted-foreground">
+                {formatTime(currentSegmentTime)} / {formatTime(durationMinutes * 60)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 w-full bg-muted rounded-full h-1.5">
+            <div 
+              className="bg-primary h-1.5 rounded-full transition-all duration-1000"
+              style={{ width: `${Math.min((currentSegmentTime / (durationMinutes * 60)) * 100, 100)}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            Próximo envio automático em {formatTime((durationMinutes * 60) - currentSegmentTime)}
+          </p>
+        </div>
+      )}
 
       {/* Voice Command Status - With manual override toggle */}
       {isSupported && (
@@ -203,14 +256,16 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
         </div>
       )}
 
-      {/* Info about VAD */}
+      {/* Info about continuous recording */}
       <div className="mb-3 p-2.5 bg-accent/50 rounded-lg">
         <p className="text-[10px] text-muted-foreground">
-          {vadStatus === 'ready' 
-            ? '🧠 IA Silero ativa: Apenas áudios com diálogo serão enviados'
-            : vadStatus === 'loading'
-              ? '⏳ Carregando modelo de detecção de voz...'
-              : '⚡ Detecção básica: Análise por energia do áudio'}
+          {isRecording 
+            ? `🔄 Gravação contínua: arquivos de ${durationMinutes} min são enviados automaticamente`
+            : vadStatus === 'ready' 
+              ? '🧠 IA Silero ativa: Apenas segmentos com diálogo serão enviados'
+              : vadStatus === 'loading'
+                ? '⏳ Carregando modelo de detecção de voz...'
+                : '⚡ Detecção básica: Análise por energia do áudio'}
         </p>
       </div>
 
@@ -228,7 +283,7 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
         {isAnalyzing ? (
           <>
             <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="text-sm font-semibold">Analisando...</span>
+            <span className="text-sm font-semibold">Processando...</span>
           </>
         ) : isRecording ? (
           <>
@@ -238,7 +293,7 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
         ) : (
           <>
             <Mic className="w-6 h-6" />
-            <span className="text-sm font-semibold">Iniciar Gravação Manual</span>
+            <span className="text-sm font-semibold">Iniciar Gravação</span>
           </>
         )}
       </button>
