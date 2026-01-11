@@ -9,13 +9,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApiLogsStore, ApiLog } from '@/store/apiLogsStore';
 
-const formatTime = (date: Date) => {
+const formatTime = (dateStr: string) => {
+  const date = new Date(dateStr);
   const pad = (n: number) => n.toString().padStart(2, '0');
   const ms = date.getMilliseconds().toString().padStart(3, '0');
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${ms}`;
 };
 
-const formatDate = (date: Date) => {
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
