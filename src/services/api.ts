@@ -1,5 +1,6 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
 import { useApiLogsStore } from '@/store/apiLogsStore';
+import { debugLog } from '@/components/AudioDebugPanel';
 
 const API_BASE_URL = 'https://ilikiajeduezvvanjejz.supabase.co/functions/v1/mobile-api';
 
@@ -327,9 +328,19 @@ export const apiService = {
 
   async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
     const logId = `AUDIO-${Date.now()}`;
+    
+    // Log visual
+    debugLog.info('📤 Iniciando envio de áudio', {
+      email_usuario: payload.email_usuario,
+      file_name: payload.file_name,
+      duracao_segundos: payload.duracao_segundos,
+      tamanho_mb: payload.tamanho_mb?.toFixed(3),
+      file_base64_length: payload.file_base64?.length || 0,
+    });
+    
     try {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (v2) =====`);
+      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (v3) =====`);
       console.log(`[${logId}] Timestamp: ${new Date().toISOString()}`);
       console.log(`[${logId}] Payload completo:`, JSON.stringify({
         email_usuario: payload.email_usuario,
@@ -339,6 +350,15 @@ export const apiService = {
         file_base64_length: payload.file_base64?.length || 0,
       }));
       console.log(`[${logId}] URL API: ${API_BASE_URL}`);
+      
+      // Log visual - request body
+      debugLog.info('📋 Payload sendo enviado', {
+        action: 'receberAudioMobile',
+        email_usuario: payload.email_usuario,
+        duracao_segundos: payload.duracao_segundos,
+        tamanho_mb: payload.tamanho_mb,
+        file_base64_preview: payload.file_base64?.substring(0, 50) + '...',
+      });
       
       const startTime = Date.now();
       const { data, error } = await apiRequest<AudioApiResponse>('receberAudioMobile', payload);
@@ -350,16 +370,30 @@ export const apiService = {
       console.log(`[${logId}] Error:`, error?.message || 'Nenhum');
       
       if (error) {
+        debugLog.error(`❌ Erro na requisição (${elapsed}ms)`, {
+          error: error.message,
+          data: data,
+        });
         console.error(`[${logId}] ERRO na requisição:`, error);
         console.log(`${'='.repeat(60)}\n`);
         return { success: false, error: error.message || 'Falha ao enviar áudio' };
       }
       
       if (!data?.success) {
+        debugLog.error(`❌ Servidor retornou erro (${elapsed}ms)`, {
+          error: data?.error,
+          data: data,
+        });
         console.error(`[${logId}] Servidor retornou success=false:`, data?.error);
         console.log(`${'='.repeat(60)}\n`);
         return { success: false, error: data?.error || 'Falha ao enviar áudio' };
       }
+      
+      debugLog.success(`✅ Áudio enviado com sucesso (${elapsed}ms)`, {
+        gravacao_id: data.gravacao_id,
+        file_path: data.file_path,
+        message: data.message,
+      });
       
       console.log(`[${logId}] ===== SUCESSO =====`);
       console.log(`[${logId}] Gravação ID: ${data.gravacao_id}`);
@@ -369,6 +403,9 @@ export const apiService = {
       
       return { success: true, data };
     } catch (error) {
+      debugLog.error('❌ Exceção ao enviar áudio', {
+        error: (error as Error).message,
+      });
       console.error(`[${logId}] EXCEÇÃO ao enviar áudio:`, error);
       console.log(`${'='.repeat(60)}\n`);
       return { success: false, error: 'Falha ao enviar áudio' };
