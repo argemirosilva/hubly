@@ -323,14 +323,15 @@ export const apiService = {
     const logId = `AUDIO-${Date.now()}`;
     try {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`[${logId}] ===== ENVIANDO ÁUDIO =====`);
+      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (v2) =====`);
       console.log(`[${logId}] Timestamp: ${new Date().toISOString()}`);
-      console.log(`[${logId}] Email: ${payload.email_usuario}`);
-      console.log(`[${logId}] File name: ${payload.file_name}`);
-      console.log(`[${logId}] Duração: ${payload.duracao_segundos}s`);
-      console.log(`[${logId}] Tamanho: ${payload.tamanho_mb}MB`);
-      console.log(`[${logId}] Base64 presente: ${!!payload.file_base64}`);
-      console.log(`[${logId}] Base64 length: ${payload.file_base64?.length || 0}`);
+      console.log(`[${logId}] Payload completo:`, JSON.stringify({
+        email_usuario: payload.email_usuario,
+        file_name: payload.file_name,
+        duracao_segundos: payload.duracao_segundos,
+        tamanho_mb: payload.tamanho_mb,
+        file_base64_length: payload.file_base64?.length || 0,
+      }));
       console.log(`[${logId}] URL API: ${API_BASE_URL}`);
       
       const startTime = Date.now();
