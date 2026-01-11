@@ -1,7 +1,7 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
 import { useApiLogsStore } from '@/store/apiLogsStore';
 
-const API_BASE_URL = 'https://ekozrkhblqikcsniiwzz.supabase.co/functions/v1/mobile-api';
+const API_BASE_URL = 'https://ilikiajeduezvvanjejz.supabase.co/functions/v1/mobile-api';
 
 // Mantido para compatibilidade
 export const setApiBaseUrl = (url: string) => {};
