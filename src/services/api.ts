@@ -110,9 +110,15 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
   
   // Debug: log the complete request body
   const requestBody = { action, ...body };
-  console.log(`[API DEBUG] Action: ${action}`);
-  console.log(`[API DEBUG] Body keys:`, Object.keys(body));
-  console.log(`[API DEBUG] Request body keys:`, Object.keys(requestBody));
+  console.log(`[API DEBUG v3] Action: ${action}`);
+  console.log(`[API DEBUG v3] Body keys:`, Object.keys(body));
+  console.log(`[API DEBUG v3] Request body keys:`, Object.keys(requestBody));
+  console.log(`[API DEBUG v3] email_usuario present:`, 'email_usuario' in requestBody);
+  console.log(`[API DEBUG v3] duracao_segundos present:`, 'duracao_segundos' in requestBody);
+  
+  const jsonBody = JSON.stringify(requestBody);
+  console.log(`[API DEBUG v3] JSON length:`, jsonBody.length);
+  console.log(`[API DEBUG v3] JSON preview (first 500):`, jsonBody.substring(0, 500));
   
   try {
     const response = await fetch(API_BASE_URL, {
@@ -120,7 +126,7 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: jsonBody,
     });
     
     const data = await response.json();
