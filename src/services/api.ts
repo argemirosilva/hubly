@@ -116,9 +116,10 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
     const data = await response.json();
     const durationMs = Date.now() - startTime;
     
-    // Detectar sessão expirada
+    // Detectar sessão expirada - DESABILITADO temporariamente para debug
+    // Apenas loga, não faz logout automático
     if (response.status === 401 || (data && !data.success && data.error?.includes('Sessão inválida'))) {
-      console.warn('[API] Sessão expirada detectada');
+      console.warn('[API] Sessão inválida detectada (logout automático DESABILITADO)');
       
       addLog({
         timestamp: new Date(),
@@ -128,13 +129,13 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
         requestPayload: { action, ...sanitizedBody },
         responseData: data,
         responseStatus: response.status,
-        error: 'Sessão expirada',
+        error: 'Sessão inválida (sem logout)',
         durationMs,
         success: false,
       });
       
-      dispatchSessionExpired();
-      return { data: null, error: new Error('Sessão expirada'), isSessionExpired: true };
+      // dispatchSessionExpired(); // DESABILITADO
+      return { data: null, error: new Error('Sessão inválida'), isSessionExpired: true };
     }
     
     // Log success or error
