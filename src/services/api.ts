@@ -47,6 +47,9 @@ interface PanicApiResponse {
 interface AudioApiResponse {
   success: boolean;
   gravacao_id?: string;
+  file_path?: string;
+  request_id?: string;
+  processing_time_ms?: number;
   message?: string;
   error?: string;
 }
@@ -252,21 +255,50 @@ export const apiService = {
   },
 
   async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
+    const logId = `AUDIO-${Date.now()}`;
     try {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`[${logId}] ===== ENVIANDO ÁUDIO =====`);
+      console.log(`[${logId}] Timestamp: ${new Date().toISOString()}`);
+      console.log(`[${logId}] Email: ${payload.email_usuario}`);
+      console.log(`[${logId}] File name: ${payload.file_name}`);
+      console.log(`[${logId}] Duração: ${payload.duracao_segundos}s`);
+      console.log(`[${logId}] Tamanho: ${payload.tamanho_mb}MB`);
+      console.log(`[${logId}] Base64 presente: ${!!payload.file_base64}`);
+      console.log(`[${logId}] Base64 length: ${payload.file_base64?.length || 0}`);
+      console.log(`[${logId}] URL API: ${API_BASE_URL}`);
+      
+      const startTime = Date.now();
       const { data, error } = await apiRequest<AudioApiResponse>('receberAudioMobile', payload);
+      const elapsed = Date.now() - startTime;
+      
+      console.log(`[${logId}] ===== RESPOSTA SERVIDOR =====`);
+      console.log(`[${logId}] Tempo resposta: ${elapsed}ms`);
+      console.log(`[${logId}] Data:`, JSON.stringify(data, null, 2));
+      console.log(`[${logId}] Error:`, error?.message || 'Nenhum');
       
       if (error) {
-        console.error('[API] Erro áudio:', error);
+        console.error(`[${logId}] ERRO na requisição:`, error);
+        console.log(`${'='.repeat(60)}\n`);
         return { success: false, error: error.message || 'Falha ao enviar áudio' };
       }
       
       if (!data?.success) {
+        console.error(`[${logId}] Servidor retornou success=false:`, data?.error);
+        console.log(`${'='.repeat(60)}\n`);
         return { success: false, error: data?.error || 'Falha ao enviar áudio' };
       }
       
+      console.log(`[${logId}] ===== SUCESSO =====`);
+      console.log(`[${logId}] Gravação ID: ${data.gravacao_id}`);
+      console.log(`[${logId}] File path: ${data.file_path}`);
+      console.log(`[${logId}] Message: ${data.message}`);
+      console.log(`${'='.repeat(60)}\n`);
+      
       return { success: true, data };
     } catch (error) {
-      console.error('Erro ao enviar áudio:', error);
+      console.error(`[${logId}] EXCEÇÃO ao enviar áudio:`, error);
+      console.log(`${'='.repeat(60)}\n`);
       return { success: false, error: 'Falha ao enviar áudio' };
     }
   },
