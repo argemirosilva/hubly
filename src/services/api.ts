@@ -108,13 +108,19 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
     (sanitizedBody as any).file_base64 = `[BASE64 - ${((body as any).file_base64?.length || 0)} chars]`;
   }
   
+  // Debug: log the complete request body
+  const requestBody = { action, ...body };
+  console.log(`[API DEBUG] Action: ${action}`);
+  console.log(`[API DEBUG] Body keys:`, Object.keys(body));
+  console.log(`[API DEBUG] Request body keys:`, Object.keys(requestBody));
+  
   try {
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action, ...body }),
+      body: JSON.stringify(requestBody),
     });
     
     const data = await response.json();
