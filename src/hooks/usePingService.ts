@@ -6,7 +6,7 @@ import { backgroundService, registerHeadlessTask } from '@/services/backgroundSe
 import { Capacitor } from '@capacitor/core';
 import { useToast } from '@/hooks/use-toast';
 
-const PING_INTERVAL = 15 * 60 * 1000; // 15 minutos padrão
+const PING_INTERVAL = 120 * 1000; // 120 segundos (2 minutos)
 const RETRY_INTERVAL = 30 * 1000; // 30 segundos
 
 interface PingPayload {
