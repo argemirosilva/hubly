@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader2, Brain, Zap, AudioWaveform, Clock, Power, Layers } from 'lucide-react';
 import { useContinuousRecording } from '@/hooks/useContinuousRecording';
-import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
+// DESATIVADO: import { useRecordingVoiceCommand } from '@/hooks/useRecordingVoiceCommand';
 import { useAppStore } from '@/store/appStore';
 import { Switch } from '@/components/ui/switch';
 
@@ -47,21 +47,28 @@ const RecordingControl: React.FC<RecordingControlProps> = ({
   const startCommand = config?.recordingStartCommand || DEFAULT_START_COMMAND;
   const stopCommand = config?.recordingStopCommand || DEFAULT_STOP_COMMAND;
 
-  const { isListening, isSupported, isSpeaking, lastCommand } = useRecordingVoiceCommand({
-    onStartCommand: () => {
-      if (!isRecording && !isAnalyzing) {
-        startRecording();
-      }
-    },
-    onStopCommand: () => {
-      if (isRecording) {
-        stopRecording();
-      }
-    },
-    startKeyword: startCommand,
-    stopKeyword: stopCommand,
-    enabled: voiceCommandEnabled,
-  });
+  // DESATIVADO: Hook de comandos de voz - causa erro de microfone
+  // const { isListening, isSupported, isSpeaking, lastCommand } = useRecordingVoiceCommand({
+  //   onStartCommand: () => {
+  //     if (!isRecording && !isAnalyzing) {
+  //       startRecording();
+  //     }
+  //   },
+  //   onStopCommand: () => {
+  //     if (isRecording) {
+  //       stopRecording();
+  //     }
+  //   },
+  //   startKeyword: startCommand,
+  //   stopKeyword: stopCommand,
+  //   enabled: voiceCommandEnabled,
+  // });
+  
+  // Valores mockados enquanto desativado
+  const isListening = false;
+  const isSupported = false;
+  const isSpeaking = false;
+  const lastCommand = null;
 
   // NOVO: Parar gravação automaticamente quando sair do período de monitoramento
   useEffect(() => {
