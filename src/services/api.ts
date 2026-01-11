@@ -11,8 +11,12 @@ interface LoginApiResponse {
   usuario?: {
     id: string;
     email: string;
-    nome_vitima: string;
+    // Campos podem vir com nomes diferentes dependendo do backend
+    nome_vitima?: string;
+    nome_completo?: string;
     telefone_vitima?: string;
+    telefone?: string;
+    tipo_interesse?: string;
     gravacao_inicio?: string;
     gravacao_fim?: string;
     gravacao_dias?: string[];
@@ -232,11 +236,13 @@ export const apiService = {
       const user: User = {
         id: data.usuario.id,
         email: data.usuario.email,
-        nome: data.usuario.nome_vitima,
-        telefone: data.usuario.telefone_vitima,
+        nome: data.usuario.nome_completo || data.usuario.nome_vitima || '',
+        telefone: data.usuario.telefone || data.usuario.telefone_vitima || '',
         token: data.usuario.id,
         sessionToken: data.session?.token,
       };
+      
+      console.log('[API] User criado com sessionToken:', user.sessionToken ? 'SIM' : 'NÃO');
       
       const config: AppConfig = {
         recordingDurationMinutes: 5,
