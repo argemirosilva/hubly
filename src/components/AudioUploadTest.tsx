@@ -215,30 +215,24 @@ export const AudioUploadTest = () => {
       const duration = await getAudioDuration(wavBlob);
       const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
       
-      // Convert blob to base64
-      toast.info('Preparando áudio...');
-      const base64Data = await blobToBase64(wavBlob);
-      
-      console.log('[AudioUploadTest] Áudio convertido para base64, tamanho:', Math.round(base64Data.length / 1024), 'KB');
-
-      // Send directly to API with base64 content
       toast.info('Enviando para API do Ampara...');
       
+      // Send directly with blob (multipart/form-data)
       const payload = {
-        file_base64: base64Data,
+        file_blob: wavBlob,
         file_name: fileName,
         duracao_segundos: duration || 60,
         tamanho_mb: wavBlob.size / (1024 * 1024),
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando para API:', {
+      console.log('[AudioUploadTest] Enviando para API (multipart/form-data):', {
         nome_original: selectedFile.name,
         file_name: fileName,
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
-        base64_length: base64Data.length,
+        blob_size: wavBlob.size,
       });
 
       const result = await apiService.sendAudio(payload);

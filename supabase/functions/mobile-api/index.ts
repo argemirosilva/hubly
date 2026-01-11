@@ -6,6 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Supported audio formats
+const SUPPORTED_AUDIO_TYPES = [
+  'audio/mpeg', 'audio/mp3',
+  'audio/wav', 'audio/x-wav',
+  'audio/ogg', 'audio/webm',
+  'audio/aac', 'audio/m4a', 'audio/x-m4a',
+];
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,15 +23,24 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
-    const { action, ...rest } = payload;
-
-    console.log(`[mobile-api] Ação recebida: ${action}`);
-
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const contentType = req.headers.get('content-type') || '';
+    
+    // Check if it's multipart/form-data (audio upload)
+    if (contentType.includes('multipart/form-data')) {
+      console.log('[mobile-api] Recebendo upload multipart/form-data');
+      return await handleAudioMultipart(req, supabase);
+    }
+
+    // Otherwise, handle as JSON
+    const payload = await req.json();
+    const { action, ...rest } = payload;
+
+    console.log(`[mobile-api] Ação recebida: ${action}`);
 
     let response: Response;
 
@@ -47,7 +66,7 @@ serve(async (req) => {
         break;
       
       case 'receberAudioMobile':
-        response = await handleAudio(rest, supabase);
+        response = await handleAudioJson(rest, supabase);
         break;
       
       case 'refreshConfig':
@@ -174,41 +193,131 @@ async function handlePanico(payload: any): Promise<Response> {
   );
 }
 
-// Process base64 in chunks to prevent memory issues
-function processBase64Chunks(base64String: string, chunkSize = 32768): Uint8Array {
-  const chunks: Uint8Array[] = [];
-  let position = 0;
-  
-  while (position < base64String.length) {
-    const chunk = base64String.slice(position, position + chunkSize);
-    const binaryChunk = atob(chunk);
-    const bytes = new Uint8Array(binaryChunk.length);
+// Handler for audio via multipart/form-data
+async function handleAudioMultipart(req: Request, supabase: any): Promise<Response> {
+  try {
+    const formData = await req.formData();
     
-    for (let i = 0; i < binaryChunk.length; i++) {
-      bytes[i] = binaryChunk.charCodeAt(i);
+    const audioFile = formData.get('audio') as File | null;
+    const emailUsuario = formData.get('email_usuario') as string | null;
+    const duracaoSegundos = formData.get('duracao_segundos') as string | null;
+    
+    console.log(`[mobile-api] Upload multipart:`, {
+      email_usuario: emailUsuario || 'NÃO INFORMADO',
+      duracao_segundos: duracaoSegundos || 'NÃO INFORMADO',
+      audio_name: audioFile?.name || 'NÃO INFORMADO',
+      audio_size: audioFile?.size || 0,
+      audio_type: audioFile?.type || 'NÃO INFORMADO',
+    });
+
+    // Validate required fields
+    const camposFaltando: string[] = [];
+    if (!emailUsuario) camposFaltando.push('email_usuario');
+    if (!audioFile) camposFaltando.push('audio');
+    
+    if (camposFaltando.length > 0) {
+      console.error(`[mobile-api] Campos obrigatórios faltando:`, camposFaltando);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Campos obrigatórios não preenchidos: ${camposFaltando.join(', ')}` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Validate file size
+    if (audioFile!.size > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Arquivo muito grande. Limite: 50MB, Enviado: ${(audioFile!.size / (1024 * 1024)).toFixed(2)}MB` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get file bytes
+    const audioBytes = new Uint8Array(await audioFile!.arrayBuffer());
     
-    chunks.push(bytes);
-    position += chunkSize;
+    // Determine content type
+    let contentType = audioFile!.type || 'audio/wav';
+    const fileName = audioFile!.name || 'audio.wav';
+    
+    // Generate unique file path
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const sanitizedEmail = emailUsuario!.replace(/[^a-zA-Z0-9]/g, '_');
+    const filePath = `${sanitizedEmail}/${timestamp}_${fileName}`;
+
+    console.log(`[mobile-api] Salvando áudio: ${filePath}, tamanho: ${audioBytes.length} bytes`);
+
+    // Upload to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('audio-recordings')
+      .upload(filePath, audioBytes, {
+        contentType,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('[mobile-api] Erro no upload:', uploadError);
+      return new Response(
+        JSON.stringify({ success: false, error: `Erro ao salvar áudio: ${uploadError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Save record to database
+    const duracao = duracaoSegundos ? parseInt(duracaoSegundos, 10) : 0;
+    const tamanhoMb = audioFile!.size / (1024 * 1024);
+
+    const { data: dbData, error: dbError } = await supabase
+      .from('audio_recordings')
+      .insert({
+        email_usuario: emailUsuario,
+        file_path: uploadData.path,
+        file_name: fileName,
+        duracao_segundos: duracao,
+        tamanho_mb: tamanhoMb,
+      })
+      .select('id')
+      .single();
+
+    if (dbError) {
+      console.error('[mobile-api] Erro ao salvar no banco:', dbError);
+      await supabase.storage.from('audio-recordings').remove([filePath]);
+      return new Response(
+        JSON.stringify({ success: false, error: `Erro ao registrar gravação: ${dbError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[mobile-api] Áudio salvo com sucesso: ${dbData.id}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        gravacao_id: dbData.id,
+        file_path: uploadData.path,
+        message: 'Áudio salvo com sucesso',
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('[mobile-api] Erro ao processar áudio multipart:', errorMessage);
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return result;
 }
 
-// Handler for audio
-async function handleAudio(payload: any, supabase: any): Promise<Response> {
+// Handler for audio via JSON (base64) - kept for backwards compatibility
+async function handleAudioJson(payload: any, supabase: any): Promise<Response> {
   const { file_base64, file_name, duracao_segundos, tamanho_mb, email_usuario } = payload;
   
-  console.log(`[mobile-api] Áudio recebido:`, {
+  console.log(`[mobile-api] Áudio JSON recebido:`, {
     email_usuario: email_usuario || 'NÃO INFORMADO',
     file_name: file_name || 'NÃO INFORMADO',
     duracao_segundos: duracao_segundos || 'NÃO INFORMADO',
@@ -235,7 +344,11 @@ async function handleAudio(payload: any, supabase: any): Promise<Response> {
 
   try {
     // Convert base64 to binary
-    const audioBytes = processBase64Chunks(file_base64);
+    const binaryString = atob(file_base64);
+    const audioBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      audioBytes[i] = binaryString.charCodeAt(i);
+    }
     
     // Generate unique file path
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -292,7 +405,7 @@ async function handleAudio(payload: any, supabase: any): Promise<Response> {
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    console.error('[mobile-api] Erro ao processar áudio:', errorMessage);
+    console.error('[mobile-api] Erro ao processar áudio JSON:', errorMessage);
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
