@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff, Radio } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff, Radio, Mic, MicOff } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { apiService, SESSION_EXPIRED_EVENT } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
@@ -30,7 +30,7 @@ import {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, config, logout, soundEnabled, setSoundEnabled, setCoercionMode } = useAppStore();
+  const { user, config, logout, soundEnabled, setSoundEnabled, setCoercionMode, microphoneEnabled, setMicrophoneEnabled } = useAppStore();
   const { toast } = useToast();
   
   // Hook para controle automático da escuta de comandos de voz por horário
@@ -182,6 +182,26 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Microphone Toggle (for testing) */}
+            <button
+              onClick={() => {
+                setMicrophoneEnabled(!microphoneEnabled);
+                toast({
+                  title: microphoneEnabled ? 'Microfone desativado' : 'Microfone ativado',
+                  description: microphoneEnabled 
+                    ? 'Captura de áudio desativada para testes' 
+                    : 'Captura de áudio habilitada',
+                });
+              }}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 shadow-soft ${
+                microphoneEnabled 
+                  ? 'bg-success/20 text-success hover:bg-success/30' 
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+              title={microphoneEnabled ? 'Desativar microfone' : 'Ativar microfone'}
+            >
+              {microphoneEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => {
                 setSoundEnabled(!soundEnabled);

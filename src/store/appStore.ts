@@ -12,6 +12,7 @@ interface AppState {
   loginTipo: LoginTipo;
   isCoercionMode: boolean; // Modo coação ativo
   voiceCommandManualOverride: boolean | null; // null = seguir horário, true/false = manual
+  microphoneEnabled: boolean; // Flag para ativar/desativar microfone (testes)
   
   setUser: (user: User | null) => void;
   setConfig: (config: AppConfig | null) => void;
@@ -22,6 +23,7 @@ interface AppState {
   setLoginTipo: (tipo: LoginTipo) => void;
   setCoercionMode: (active: boolean) => void;
   setVoiceCommandManualOverride: (override: boolean | null) => void;
+  setMicrophoneEnabled: (enabled: boolean) => void;
   logout: () => void;
 }
 
@@ -37,6 +39,7 @@ export const useAppStore = create<AppState>()(
       loginTipo: 'normal' as LoginTipo,
       isCoercionMode: false,
       voiceCommandManualOverride: null,
+      microphoneEnabled: false, // Desativado por padrão para testes
       
       setUser: (user) => set({ user }),
       setConfig: (config) => set({ config }),
@@ -47,6 +50,7 @@ export const useAppStore = create<AppState>()(
       setLoginTipo: (tipo) => set({ loginTipo: tipo }),
       setCoercionMode: (active) => set({ isCoercionMode: active }),
       setVoiceCommandManualOverride: (override) => set({ voiceCommandManualOverride: override }),
+      setMicrophoneEnabled: (enabled) => set({ microphoneEnabled: enabled }),
       logout: () => set({ 
         user: null, 
         config: null, 
@@ -57,6 +61,7 @@ export const useAppStore = create<AppState>()(
         loginTipo: 'normal' as LoginTipo,
         isCoercionMode: false,
         voiceCommandManualOverride: null,
+        // microphoneEnabled mantém o valor para testes
       }),
     }),
     {
@@ -68,6 +73,7 @@ export const useAppStore = create<AppState>()(
         loginTipo: state.loginTipo,
         isCoercionMode: state.isCoercionMode,
         voiceCommandManualOverride: state.voiceCommandManualOverride,
+        microphoneEnabled: state.microphoneEnabled,
       }),
     }
   )
