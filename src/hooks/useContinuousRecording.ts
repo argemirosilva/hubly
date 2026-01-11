@@ -155,6 +155,14 @@ export const useContinuousRecording = () => {
 
   // Iniciar gravação contínua
   const startRecording = useCallback(async () => {
+    // TEMPORARIAMENTE DESATIVADO PARA TESTES
+    console.log('[ContinuousRecording] ⚠️ Captura de microfone DESATIVADA temporariamente');
+    toast({
+      title: 'Microfone desativado',
+      description: 'Captura de áudio desativada para testes',
+    });
+    return;
+    
     try {
       console.log('[ContinuousRecording] Iniciando gravação contínua...');
       
