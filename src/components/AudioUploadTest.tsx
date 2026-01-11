@@ -213,52 +213,32 @@ export const AudioUploadTest = () => {
       }
 
       const duration = await getAudioDuration(wavBlob);
-      
-      // Step 1: Upload to local storage to get a public URL
-      toast.info('Fazendo upload do áudio...');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const sanitizedEmail = user.email.replace(/[^a-zA-Z0-9]/g, '_');
       const fileName = selectedFile.name.replace(/\.(mp3|wav)$/i, '.wav');
-      const filePath = `${sanitizedEmail}/${timestamp}_${fileName}`;
+      
+      // Convert blob to base64
+      toast.info('Preparando áudio...');
+      const base64Data = await blobToBase64(wavBlob);
+      
+      console.log('[AudioUploadTest] Áudio convertido para base64, tamanho:', Math.round(base64Data.length / 1024), 'KB');
 
-      console.log('[AudioUploadTest] Fazendo upload para storage:', filePath);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('audio-recordings')
-        .upload(filePath, wavBlob, {
-          contentType: 'audio/wav',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error('[AudioUploadTest] Erro no upload:', uploadError);
-        throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
-      }
-
-      // Step 2: Get public URL
-      const { data: urlData } = supabase.storage
-        .from('audio-recordings')
-        .getPublicUrl(uploadData.path);
-
-      const publicUrl = urlData.publicUrl;
-      console.log('[AudioUploadTest] URL pública obtida:', publicUrl);
-
-      // Step 3: Send URL to external Ampara API
+      // Send directly to API with base64 content
       toast.info('Enviando para API do Ampara...');
       
       const payload = {
-        file_url: publicUrl,
+        file_base64: base64Data,
+        file_name: fileName,
         duracao_segundos: duration || 60,
         tamanho_mb: wavBlob.size / (1024 * 1024),
         email_usuario: user.email,
       };
 
-      console.log('[AudioUploadTest] Enviando para API externa:', {
+      console.log('[AudioUploadTest] Enviando para API:', {
         nome_original: selectedFile.name,
-        file_url: publicUrl,
+        file_name: fileName,
         tamanho_mb: payload.tamanho_mb.toFixed(2),
         duracao_segundos: payload.duracao_segundos,
         email: payload.email_usuario,
+        base64_length: base64Data.length,
       });
 
       const result = await apiService.sendAudio(payload);
