@@ -83,9 +83,13 @@ export const useScheduledRecording = () => {
   }, [user, config, checkSchedule]);
 
   // Calcular se a escuta está habilitada (override manual tem prioridade)
-  const voiceCommandEnabled = voiceCommandManualOverride !== null 
-    ? voiceCommandManualOverride 
-    : isInSchedule;
+  // DESATIVADO TEMPORARIAMENTE: Ativação automática por horário
+  // const voiceCommandEnabled = voiceCommandManualOverride !== null 
+  //   ? voiceCommandManualOverride 
+  //   : isInSchedule;
+  
+  // Versão desativada: só ativa se usuário ativar manualmente
+  const voiceCommandEnabled = voiceCommandManualOverride === true;
 
   return {
     isInSchedule,
