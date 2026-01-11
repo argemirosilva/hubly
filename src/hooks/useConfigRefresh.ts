@@ -69,8 +69,12 @@ export const useConfigRefresh = () => {
     }
   }, [user, config, setConfig]);
 
+  // TEMPORARIAMENTE DESABILITADO para debug
   // Iniciar refresh periódico
   useEffect(() => {
+    console.log('[ConfigRefresh] Serviço DESABILITADO para debug');
+    return;
+    /*
     if (!user?.email) return;
 
     // Refresh inicial após 1 minuto (para não sobrecarregar no login)
@@ -89,6 +93,7 @@ export const useConfigRefresh = () => {
         clearInterval(intervalRef.current);
       }
     };
+    */
   }, [user?.email, refreshConfig]);
 
   return {
