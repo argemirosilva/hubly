@@ -19,7 +19,7 @@ export const useRecordingVoiceCommand = ({
   enabled = true,
 }: UseRecordingVoiceCommandOptions) => {
   const { toast } = useToast();
-  const { microphoneEnabled } = useAppStore();
+  const microphoneEnabled = useAppStore((state) => state.microphoneEnabled);
   
   // Só habilita se ambos enabled E microphoneEnabled forem true
   const effectiveEnabled = enabled && microphoneEnabled;
