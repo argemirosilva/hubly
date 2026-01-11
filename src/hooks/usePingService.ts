@@ -64,7 +64,11 @@ export const usePingService = () => {
 
   // Enviar ping - função principal
   const sendPing = useCallback(async (): Promise<boolean> => {
-    if (!user?.email) return false;
+    // Verificar se está logado com email e token válidos
+    if (!user?.email || !user?.sessionToken) {
+      console.log('[Ping] ⚠️ Não logado ou sem token - ping ignorado');
+      return false;
+    }
 
     try {
       if (!navigator.onLine) {
