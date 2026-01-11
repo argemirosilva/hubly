@@ -14,7 +14,7 @@ import { initVAD, analyzeAudioForSpeech } from '@/utils/vadDetection';
  * 3. Para quando: comando stop OU fim do período de monitoramento
  */
 export const useContinuousRecording = () => {
-  const { config, user, isRecording, setIsRecording } = useAppStore();
+  const { config, user, isRecording, setIsRecording, microphoneEnabled } = useAppStore();
   const { toast } = useToast();
   
   // Refs para controle de gravação
@@ -155,13 +155,15 @@ export const useContinuousRecording = () => {
 
   // Iniciar gravação contínua
   const startRecording = useCallback(async () => {
-    // TEMPORARIAMENTE DESATIVADO PARA TESTES
-    console.log('[ContinuousRecording] ⚠️ Captura de microfone DESATIVADA temporariamente');
-    toast({
-      title: 'Microfone desativado',
-      description: 'Captura de áudio desativada para testes',
-    });
-    return;
+    // Verificar flag de microfone
+    if (!microphoneEnabled) {
+      console.log('[ContinuousRecording] ⚠️ Microfone desativado via configuração');
+      toast({
+        title: 'Microfone desativado',
+        description: 'Ative o microfone nas configurações para gravar',
+      });
+      return;
+    }
     
     try {
       console.log('[ContinuousRecording] Iniciando gravação contínua...');
