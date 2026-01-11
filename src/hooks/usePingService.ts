@@ -301,8 +301,12 @@ export const usePingService = () => {
     console.log('[Ping] Serviço parado');
   }, []);
 
+  // TEMPORARIAMENTE DESABILITADO - ping automático causando logout
   // Iniciar automaticamente quando usuário estiver logado COM token, parar quando deslogar
   useEffect(() => {
+    // Desabilitado temporariamente para debug
+    console.log('[Ping] Serviço de ping automático DESABILITADO para debug');
+    /*
     if (user?.email && user?.sessionToken) {
       console.log('[Ping] Usuário logado com token, iniciando serviço');
       start();
@@ -311,6 +315,7 @@ export const usePingService = () => {
       console.log('[Ping] Sem usuário/token, parando serviço');
       stop();
     }
+    */
 
     return () => {
       stop();
