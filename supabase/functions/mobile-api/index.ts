@@ -208,18 +208,27 @@ function processBase64Chunks(base64String: string, chunkSize = 32768): Uint8Arra
 async function handleAudio(payload: any, supabase: any): Promise<Response> {
   const { file_base64, file_name, duracao_segundos, tamanho_mb, email_usuario } = payload;
   
-  console.log(`[mobile-api] Áudio de: ${email_usuario}, Duração: ${duracao_segundos}s`);
+  console.log(`[mobile-api] Áudio recebido:`, {
+    email_usuario: email_usuario || 'NÃO INFORMADO',
+    file_name: file_name || 'NÃO INFORMADO',
+    duracao_segundos: duracao_segundos || 'NÃO INFORMADO',
+    tamanho_mb: tamanho_mb || 'NÃO INFORMADO',
+    file_base64_length: file_base64?.length || 0,
+    payload_keys: Object.keys(payload),
+  });
   
-  if (!email_usuario) {
+  // Validar campos obrigatórios
+  const camposFaltando: string[] = [];
+  if (!email_usuario) camposFaltando.push('email_usuario');
+  if (!file_base64) camposFaltando.push('file_base64');
+  
+  if (camposFaltando.length > 0) {
+    console.error(`[mobile-api] Campos obrigatórios não preenchidos:`, camposFaltando);
     return new Response(
-      JSON.stringify({ success: false, error: 'Email do usuário é obrigatório' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (!file_base64) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Conteúdo do áudio (file_base64) é obrigatório' }),
+      JSON.stringify({ 
+        success: false, 
+        error: `Campos obrigatórios não preenchidos: ${camposFaltando.join(', ')}` 
+      }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
