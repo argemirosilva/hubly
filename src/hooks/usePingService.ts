@@ -301,19 +301,21 @@ export const usePingService = () => {
     console.log('[Ping] Serviço parado');
   }, []);
 
-  // Iniciar automaticamente quando usuário estiver logado, parar quando deslogar
+  // Iniciar automaticamente quando usuário estiver logado COM token, parar quando deslogar
   useEffect(() => {
-    if (user?.email) {
+    if (user?.email && user?.sessionToken) {
+      console.log('[Ping] Usuário logado com token, iniciando serviço');
       start();
     } else {
-      // Usuário deslogou - parar serviço imediatamente
+      // Usuário deslogou ou sem token - parar serviço imediatamente
+      console.log('[Ping] Sem usuário/token, parando serviço');
       stop();
     }
 
     return () => {
       stop();
     };
-  }, [user, start, stop]);
+  }, [user?.email, user?.sessionToken, start, stop]);
 
   return {
     sendPing,
