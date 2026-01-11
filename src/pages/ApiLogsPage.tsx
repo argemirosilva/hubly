@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, RefreshCw, ChevronDown, ChevronRight, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Trash2, RefreshCw, ChevronDown, ChevronRight, Search, Filter, Key, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApiLogsStore, ApiLog } from '@/store/apiLogsStore';
+import { useAppStore } from '@/store/appStore';
 
 const formatTime = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -114,9 +115,19 @@ const LogEntry = ({ log }: { log: ApiLog }) => {
 export default function ApiLogsPage() {
   const navigate = useNavigate();
   const { logs, clearLogs } = useApiLogsStore();
+  const { user } = useAppStore();
   const [search, setSearch] = useState('');
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [copiedToken, setCopiedToken] = useState(false);
+
+  const copyToken = () => {
+    if (user?.sessionToken) {
+      navigator.clipboard.writeText(user.sessionToken);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
 
   // Get unique actions for filter
   const uniqueActions = [...new Set(logs.map(l => l.action))];
@@ -165,6 +176,41 @@ export default function ApiLogsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Session Info */}
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Key className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Sessão Atual</span>
+            </div>
+            <div className="grid gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground w-16">Email:</span>
+                <code className="bg-muted px-2 py-0.5 rounded">{user?.email || 'Não logado'}</code>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground w-16">User ID:</span>
+                <code className="bg-muted px-2 py-0.5 rounded">{user?.id || 'N/A'}</code>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground w-16">Token:</span>
+                {user?.sessionToken ? (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <code className="bg-muted px-2 py-0.5 rounded truncate max-w-[300px]">
+                      {user.sessionToken}
+                    </code>
+                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={copyToken}>
+                      {copiedToken ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">Nenhum token</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-3 mb-6">
