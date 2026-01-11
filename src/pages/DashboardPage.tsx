@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff, Radio, Mic, MicOff } from 'lucide-react';
+import { LogOut, Settings, User, Shield, Volume2, VolumeX, Clock, Eye, EyeOff, Radio, Mic, MicOff, FileText } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { apiService, SESSION_EXPIRED_EVENT } from '@/services/api';
 import RecordingControl from '@/components/RecordingControl';
@@ -220,6 +220,13 @@ const DashboardPage: React.FC = () => {
               title={soundEnabled ? 'Desativar sons' : 'Ativar sons'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => navigate('/logs')}
+              className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-primary hover:bg-accent/80 transition-all duration-300 shadow-soft"
+              title="Ver logs da API"
+            >
+              <FileText className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate('/settings')}

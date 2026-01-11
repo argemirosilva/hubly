@@ -1,4 +1,5 @@
 import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
+import { useApiLogsStore } from '@/store/apiLogsStore';
 
 const API_BASE_URL = 'https://ekozrkhblqikcsniiwzz.supabase.co/functions/v1/mobile-api';
 
@@ -94,6 +95,15 @@ export function dispatchSessionExpired() {
 }
 
 async function apiRequest<T>(action: string, body: object): Promise<{ data: T | null; error: Error | null; isSessionExpired?: boolean }> {
+  const startTime = Date.now();
+  const addLog = useApiLogsStore.getState().addLog;
+  
+  // Sanitize payload for logging (remove base64 data)
+  const sanitizedBody = { ...body };
+  if ('file_base64' in sanitizedBody) {
+    (sanitizedBody as any).file_base64 = `[BASE64 - ${((body as any).file_base64?.length || 0)} chars]`;
+  }
+  
   try {
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
@@ -104,24 +114,66 @@ async function apiRequest<T>(action: string, body: object): Promise<{ data: T | 
     });
     
     const data = await response.json();
+    const durationMs = Date.now() - startTime;
     
     // Detectar sessão expirada
     if (response.status === 401 || (data && !data.success && data.error?.includes('Sessão inválida'))) {
       console.warn('[API] Sessão expirada detectada');
+      
+      addLog({
+        timestamp: new Date(),
+        action,
+        method: 'POST',
+        url: API_BASE_URL,
+        requestPayload: { action, ...sanitizedBody },
+        responseData: data,
+        responseStatus: response.status,
+        error: 'Sessão expirada',
+        durationMs,
+        success: false,
+      });
+      
       dispatchSessionExpired();
       return { data: null, error: new Error('Sessão expirada'), isSessionExpired: true };
     }
     
+    // Log success or error
+    addLog({
+      timestamp: new Date(),
+      action,
+      method: 'POST',
+      url: API_BASE_URL,
+      requestPayload: { action, ...sanitizedBody },
+      responseData: data,
+      responseStatus: response.status,
+      error: !response.ok ? (data?.error || `HTTP ${response.status}`) : null,
+      durationMs,
+      success: response.ok && data?.success !== false,
+    });
+    
     // Retornar dados mesmo em caso de erro HTTP para permitir tratamento específico
-    // Cada método pode decidir como tratar erros específicos (ex: "Ação não reconhecida")
     if (!response.ok) {
-      // Incluir os dados de erro na resposta para tratamento específico
       return { data: data as T, error: new Error(data?.error || `HTTP error! status: ${response.status}`) };
     }
     
     return { data, error: null };
   } catch (error) {
+    const durationMs = Date.now() - startTime;
     console.error(`[API] Erro em ${action}:`, error);
+    
+    addLog({
+      timestamp: new Date(),
+      action,
+      method: 'POST',
+      url: API_BASE_URL,
+      requestPayload: { action, ...sanitizedBody },
+      responseData: null,
+      responseStatus: null,
+      error: (error as Error).message,
+      durationMs,
+      success: false,
+    });
+    
     return { data: null, error: error as Error };
   }
 }
