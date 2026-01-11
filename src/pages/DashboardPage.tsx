@@ -9,6 +9,7 @@ import PanicButton from '@/components/PanicButton';
 import NetworkStatusBar from '@/components/NetworkStatusBar';
 import NotificationSettings from '@/components/NotificationSettings';
 import { AudioUploadTest } from '@/components/AudioUploadTest';
+import { AudioDebugPanel } from '@/components/AudioDebugPanel';
 import { ConfigRefreshTest } from '@/components/ConfigRefreshTest';
 import { useToast } from '@/hooks/use-toast';
 import { initOfflineDB } from '@/services/offlineStorage';
@@ -292,6 +293,9 @@ const DashboardPage: React.FC = () => {
 
         {/* Notification Settings */}
         <NotificationSettings />
+
+        {/* Debug Panel de Áudio */}
+        <AudioDebugPanel />
 
         {/* Teste de Upload de Áudio - REMOVER APÓS TESTES */}
         <AudioUploadTest />
