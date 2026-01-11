@@ -86,6 +86,7 @@ export interface PanicPayload {
 export interface AudioPayload {
   file_url?: string;
   file_base64?: string;
+  file_blob?: Blob;  // New: for multipart/form-data
   file_name?: string;
   duracao_segundos: number;
   tamanho_mb: number;
@@ -328,55 +329,107 @@ export const apiService = {
 
   async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
     const logId = `AUDIO-${Date.now()}`;
+    const addLog = useApiLogsStore.getState().addLog;
+    const startTime = Date.now();
     
     // Log visual
-    debugLog.info('📤 Iniciando envio de áudio', {
+    debugLog.info('📤 Iniciando envio de áudio (multipart/form-data)', {
       email_usuario: payload.email_usuario,
       file_name: payload.file_name,
       duracao_segundos: payload.duracao_segundos,
       tamanho_mb: payload.tamanho_mb?.toFixed(3),
-      file_base64_length: payload.file_base64?.length || 0,
+      has_blob: !!payload.file_blob,
+      has_base64: !!payload.file_base64,
     });
     
     try {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (v3) =====`);
+      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (multipart/form-data) =====`);
       console.log(`[${logId}] Timestamp: ${new Date().toISOString()}`);
-      console.log(`[${logId}] Payload completo:`, JSON.stringify({
-        email_usuario: payload.email_usuario,
-        file_name: payload.file_name,
-        duracao_segundos: payload.duracao_segundos,
-        tamanho_mb: payload.tamanho_mb,
-        file_base64_length: payload.file_base64?.length || 0,
-      }));
       console.log(`[${logId}] URL API: ${API_BASE_URL}`);
       
-      // Log visual - request body
-      debugLog.info('📋 Payload sendo enviado', {
-        action: 'receberAudioMobile',
+      // Create FormData
+      const formData = new FormData();
+      formData.append('email_usuario', payload.email_usuario);
+      formData.append('duracao_segundos', payload.duracao_segundos.toString());
+      
+      // Add audio file
+      let audioBlob: Blob;
+      let fileName = payload.file_name || 'audio.wav';
+      
+      if (payload.file_blob) {
+        audioBlob = payload.file_blob;
+      } else if (payload.file_base64) {
+        // Convert base64 to blob
+        const binaryString = atob(payload.file_base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        audioBlob = new Blob([bytes], { type: 'audio/wav' });
+      } else {
+        debugLog.error('❌ Nenhum arquivo de áudio fornecido');
+        return { success: false, error: 'Nenhum arquivo de áudio fornecido' };
+      }
+      
+      formData.append('audio', audioBlob, fileName);
+      
+      debugLog.info('📋 FormData preparado', {
         email_usuario: payload.email_usuario,
         duracao_segundos: payload.duracao_segundos,
-        tamanho_mb: payload.tamanho_mb,
-        file_base64_preview: payload.file_base64?.substring(0, 50) + '...',
+        file_name: fileName,
+        blob_size: audioBlob.size,
+        blob_type: audioBlob.type,
       });
       
-      const startTime = Date.now();
-      const { data, error } = await apiRequest<AudioApiResponse>('receberAudioMobile', payload);
+      console.log(`[${logId}] FormData:`, {
+        email_usuario: payload.email_usuario,
+        duracao_segundos: payload.duracao_segundos,
+        file_name: fileName,
+        blob_size: audioBlob.size,
+      });
+      
+      // Send as multipart/form-data (don't set Content-Type, let browser set it with boundary)
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
       const elapsed = Date.now() - startTime;
       
       console.log(`[${logId}] ===== RESPOSTA SERVIDOR =====`);
       console.log(`[${logId}] Tempo resposta: ${elapsed}ms`);
+      console.log(`[${logId}] Status: ${response.status}`);
       console.log(`[${logId}] Data:`, JSON.stringify(data, null, 2));
-      console.log(`[${logId}] Error:`, error?.message || 'Nenhum');
       
-      if (error) {
-        debugLog.error(`❌ Erro na requisição (${elapsed}ms)`, {
-          error: error.message,
-          data: data,
+      // Log to API logs store
+      addLog({
+        timestamp: new Date(),
+        action: 'sendAudio (multipart)',
+        method: 'POST',
+        url: API_BASE_URL,
+        requestPayload: {
+          email_usuario: payload.email_usuario,
+          duracao_segundos: payload.duracao_segundos,
+          file_name: fileName,
+          file_size: audioBlob.size,
+        },
+        responseData: data,
+        responseStatus: response.status,
+        error: !response.ok ? (data?.error || `HTTP ${response.status}`) : null,
+        durationMs: elapsed,
+        success: response.ok && data?.success !== false,
+      });
+      
+      if (!response.ok) {
+        debugLog.error(`❌ Erro HTTP ${response.status} (${elapsed}ms)`, {
+          error: data?.error,
+          status: response.status,
         });
-        console.error(`[${logId}] ERRO na requisição:`, error);
+        console.error(`[${logId}] ERRO HTTP:`, response.status, data?.error);
         console.log(`${'='.repeat(60)}\n`);
-        return { success: false, error: error.message || 'Falha ao enviar áudio' };
+        return { success: false, error: data?.error || `HTTP ${response.status}` };
       }
       
       if (!data?.success) {
@@ -403,7 +456,8 @@ export const apiService = {
       
       return { success: true, data };
     } catch (error) {
-      debugLog.error('❌ Exceção ao enviar áudio', {
+      const elapsed = Date.now() - startTime;
+      debugLog.error(`❌ Exceção ao enviar áudio (${elapsed}ms)`, {
         error: (error as Error).message,
       });
       console.error(`[${logId}] EXCEÇÃO ao enviar áudio:`, error);
@@ -411,6 +465,7 @@ export const apiService = {
       return { success: false, error: 'Falha ao enviar áudio' };
     }
   },
+
 
   async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string; token_sessao?: string }): Promise<ApiResponse<{ message: string }>> {
     try {
