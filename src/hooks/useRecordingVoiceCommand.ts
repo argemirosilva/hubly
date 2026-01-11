@@ -141,13 +141,9 @@ export const useRecordingVoiceCommand = ({
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
+      console.log('Speech recognition error (silent):', event.error);
       if (event.error === 'not-allowed') {
-        toast({
-          title: 'Microfone negado',
-          description: 'Permita o acesso ao microfone para comandos de voz',
-          variant: 'destructive',
-        });
+        // Silently handle - no toast notification
         setIsListening(false);
       } else if (event.error === 'aborted' || event.error === 'network') {
         // Tenta reiniciar em caso de erro de rede
