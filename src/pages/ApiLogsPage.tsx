@@ -177,6 +177,24 @@ export default function ApiLogsPage() {
           </div>
         </div>
 
+        {/* API Connection Info */}
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Key className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Conexão da API</span>
+            </div>
+            <div className="grid gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground w-16">URL:</span>
+                <code className="bg-muted px-2 py-0.5 rounded break-all">
+                  https://ilikiajeduezvvanjejz.supabase.co/functions/v1/mobile-api
+                </code>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Session Info */}
         <Card className="mb-4">
           <CardContent className="p-3">
