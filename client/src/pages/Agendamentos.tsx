@@ -1,13 +1,14 @@
-import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Filter, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Search, Clock } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { ServiceIcon } from "@/lib/serviceIcons";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
@@ -120,31 +121,44 @@ export default function Agendamentos() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {filtrados.map(ag => (
-                <div
-                  key={ag.id}
-                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => setAgSelecionado(ag.id)}
-                >
-                  <div className="text-center min-w-[52px]">
-                    <p className="text-xs text-muted-foreground">{ag.data.split("-").reverse().join("/")}</p>
-                    <p className="text-sm font-semibold">{ag.horaInicio.slice(0, 5)}</p>
+              {filtrados.map(ag => {
+                const servicoNome = servicoMap[ag.servicoId] ?? "";
+                return (
+                  <div
+                    key={ag.id}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer group"
+                    onClick={() => setAgSelecionado(ag.id)}
+                  >
+                    {/* Ícone do serviço */}
+                    <ServiceIcon serviceName={servicoNome} size="md" showBackground />
+
+                    {/* Data e hora */}
+                    <div className="text-center min-w-[52px]">
+                      <p className="text-xs text-muted-foreground">{ag.data.split("-").reverse().join("/")}</p>
+                      <p className="text-sm font-semibold tabular-nums">{ag.horaInicio.slice(0, 5)}</p>
+                    </div>
+                    <div className="w-px h-8 bg-border" />
+
+                    {/* Cliente e serviço */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{clienteMap[ag.clienteId] ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {servicoNome || "—"} · {profMap[ag.profissionalId] ?? "—"}
+                      </p>
+                    </div>
+
+                    {/* Status */}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {statusLabel[ag.status] ?? ag.status}
+                    </span>
+
+                    {/* Valor */}
+                    <span className="text-sm font-semibold flex-shrink-0 tabular-nums">
+                      {formatCurrency(parseFloat(String(ag.valorTotal)))}
+                    </span>
                   </div>
-                  <div className="w-px h-8 bg-border" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{clienteMap[ag.clienteId] ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {servicoMap[ag.servicoId] ?? "—"} · {profMap[ag.profissionalId] ?? "—"}
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
-                    {statusLabel[ag.status] ?? ag.status}
-                  </span>
-                  <span className="text-sm font-semibold flex-shrink-0">
-                    {formatCurrency(parseFloat(String(ag.valorTotal)))}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

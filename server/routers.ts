@@ -17,6 +17,11 @@ import {
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
+  getGruposByEmpresa, getGrupoById, createGrupo, updateGrupo, deleteGrupo,
+  getPermissoesGrupo, updatePermissoesGrupo,
+  getMembrosGrupo, getMembrosEmpresa, addMembroGrupo, removeMembroGrupo, getPermissoesUsuario,
+  getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
+  createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
 } from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
@@ -669,6 +674,198 @@ export const appRouter = router({
         return { id, success: true };
       }),
   }),
-});
 
+  // ─── GRUPOS DE PERMISSÕES ──────────────────────────────────────────────────
+  grupos: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      const grupos = await getGruposByEmpresa(empresa.id);
+      // Para cada grupo, buscar contagem de membros e permissões
+      const result = await Promise.all(grupos.map(async (g) => {
+        const membros = await getMembrosGrupo(g.id);
+        const perms = await getPermissoesGrupo(g.id);
+        return { ...g, totalMembros: membros.length, permissoes: perms };
+      }));
+      return result;
+    }),
+
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const grupo = await getGrupoById(input.id);
+        if (!grupo) return null;
+        const membros = await getMembrosGrupo(input.id);
+        const perms = await getPermissoesGrupo(input.id);
+        return { ...grupo, membros, permissoes: perms };
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        descricao: z.string().optional(),
+        cor: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createGrupo({ ...input, empresaId: empresa.id });
+        return { id };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().min(1).optional(),
+        descricao: z.string().optional(),
+        cor: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateGrupo(id, data);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteGrupo(input.id);
+        return { success: true };
+      }),
+
+    updatePermissoes: protectedProcedure
+      .input(z.object({
+        grupoId: z.number(),
+        permissoes: z.record(z.string(), z.boolean()),
+      }))
+      .mutation(async ({ input }) => {
+        await updatePermissoesGrupo(input.grupoId, input.permissoes as any);
+        return { success: true };
+      }),
+
+    addMembro: protectedProcedure
+      .input(z.object({ grupoId: z.number(), userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await addMembroGrupo(input.grupoId, input.userId, empresa.id, ctx.user.id);
+        return { id };
+      }),
+
+    removeMembro: protectedProcedure
+      .input(z.object({ membroId: z.number() }))
+      .mutation(async ({ input }) => {
+        await removeMembroGrupo(input.membroId);
+        return { success: true };
+      }),
+  }),
+
+  // ─── USUÁRIOS DA EMPRESA ───────────────────────────────────────────────────
+  usuarios: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getUsersByEmpresa(empresa.id);
+    }),
+
+    minhasPermissoes: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+      // Owner tem todas as permissões
+      if (empresa.ownerId === ctx.user.id) return { isOwner: true };
+      return getPermissoesUsuario(ctx.user.id, empresa.id);
+    }),
+
+    convites: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) return [];
+        return getConvitesByEmpresa(empresa.id);
+      }),
+
+      criar: protectedProcedure
+        .input(z.object({
+          email: z.string().email(),
+          grupoId: z.number().optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id);
+          if (!empresa) throw new Error("Empresa não encontrada");
+          const token = nanoid(32);
+          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+          const id = await createConvite({
+            empresaId: empresa.id,
+            email: input.email,
+            grupoId: input.grupoId,
+            token,
+            expiresAt,
+            convidadoPorId: ctx.user.id,
+          });
+          return { id, token, link: `/convite/${token}` };
+        }),
+
+      cancelar: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          await updateConvite(input.id, { status: "expirado" });
+          return { success: true };
+        }),
+    }),
+    // ─── Usuários do Sistema (cadastro por admin com senha) ───
+    systemUsers: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) return [];
+        return getSystemUsersByEmpresa(empresa.id);
+      }),
+      criar: protectedProcedure
+        .input(z.object({
+          nome: z.string().min(2),
+          email: z.string().email(),
+          senha: z.string().min(6),
+          grupoId: z.number().optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id);
+          if (!empresa) throw new Error("Empresa não encontrada");
+          return createSystemUser({
+            empresaId: empresa.id,
+            nome: input.nome,
+            email: input.email,
+            senha: input.senha,
+            grupoId: input.grupoId,
+            criadoPorId: ctx.user.id,
+          });
+        }),
+      atualizar: protectedProcedure
+        .input(z.object({
+          id: z.number(),
+          nome: z.string().min(2).optional(),
+          email: z.string().email().optional(),
+          senha: z.string().min(6).optional(),
+          grupoId: z.number().nullable().optional(),
+          ativo: z.boolean().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { id, ...data } = input;
+          await updateSystemUser(id, data);
+          return { success: true };
+        }),
+      excluir: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          await deleteSystemUser(input.id);
+          return { success: true };
+        }),
+      resetarSenha: protectedProcedure
+        .input(z.object({ id: z.number(), novaSenha: z.string().min(6) }))
+        .mutation(async ({ input }) => {
+          await resetSystemUserPassword(input.id, input.novaSenha);
+          return { success: true };
+        }),
+    }),
+  }),
+});
 export type AppRouter = typeof appRouter;

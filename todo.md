@@ -75,3 +75,38 @@
 
 ## Bugs
 - [x] Corrigir campo reservaHorasExpiracao: input retorna string mas router espera number
+
+## Controle de Usuários e Permissões Granulares
+- [ ] Schema: tabelas gruposPermissoes, permissoesGrupo, membrosGrupo
+- [ ] Backend: routers de grupos, permissões e usuários
+- [ ] Página: Gestão de Grupos (criar, editar, excluir grupos)
+- [ ] Página: Editor de Permissões por Grupo (item a item)
+- [ ] Página: Gestão de Usuários (listar, convidar, atribuir grupos)
+- [ ] Integração: verificação de permissões nas páginas existentes
+- [ ] Testes unitários do módulo de permissões
+
+## Esteira Visual de Automações
+- [ ] Interface de timeline/fluxo visual com nós conectados para criar automações
+- [ ] Nós de gatilho (evento, data fixa, aniversário, dias antes)
+- [ ] Nós de condição (filtros por tag, profissional, serviço)
+- [ ] Nós de ação (enviar WhatsApp, notificação interna, aguardar)
+- [ ] Nó de delay (aguardar X horas/dias)
+- [ ] Preview da mensagem com variáveis dinâmicas
+- [ ] Ativar/desativar fluxo completo
+
+## Ícones por Tipo de Serviço
+- [ ] Criar utilitário de mapeamento de categoria → ícone Lucide
+- [ ] Aplicar ícones no Calendário mensal (cards de evento)
+- [ ] Aplicar ícones na página de Agendamentos (lista e cards)
+- [ ] Aplicar ícones nos modais de detalhe e criação de agendamento
+
+## Bugs / Melhorias Pendentes
+- [x] Adicionar item "Usuários" no menu da sidebar (AdminLayout)
+
+## Refatoração Módulo de Usuários (v2)
+- [ ] Remover sistema de convites — cadastro direto por admin (nome, e-mail, senha)
+- [ ] Adicionar hash de senha no schema (campo passwordHash)
+- [ ] Backend: criar/editar/desativar usuários com senha
+- [ ] Grupos com níveis de acesso detalhados (leitura, escrita, exclusão por módulo)
+- [ ] Página de Usuários refatorada com cadastro direto
+- [ ] Esteira visual de automações com fluxo de nós

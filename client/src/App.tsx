@@ -18,6 +18,7 @@ import Notificacoes from "./pages/Notificacoes";
 import Bloqueios from "./pages/Bloqueios";
 import PortalCliente from "./pages/PortalCliente";
 import Setup from "./pages/Setup";
+import Usuarios from "./pages/Usuarios";
 import AdminLayout from "./components/AdminLayout";
 
 function AdminRoutes() {
@@ -36,6 +37,7 @@ function AdminRoutes() {
         <Route path="/admin/notificacoes" component={Notificacoes} />
         <Route path="/admin/bloqueios" component={Bloqueios} />
         <Route path="/admin/configuracoes" component={Configuracoes} />
+        <Route path="/admin/usuarios" component={Usuarios} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

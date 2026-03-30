@@ -1,8 +1,9 @@
-import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
+import { trpc } from "@/lib/trpc";
+import { getServiceIcon } from "@/lib/serviceIcons";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -192,15 +193,18 @@ export default function Calendario() {
                 <div className="space-y-0.5">
                   {ags.slice(0, 3).map(ag => {
                     const cor = profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                    const servicoNome = (ag as any).servicoNome ?? "";
+                    const { icon: SvcIcon, color: svcColor } = getServiceIcon(servicoNome);
                     return (
                       <div
                         key={ag.id}
-                        className="text-[11px] px-1.5 py-0.5 rounded-sm truncate font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
                         style={{ backgroundColor: cor, color: "white", lineHeight: "1.4" }}
                         onClick={e => { e.stopPropagation(); setAgendamentoSelecionado(ag.id); }}
-                        title={`${ag.horaInicio.slice(0, 5)} — ${clienteMap[ag.clienteId] ?? "Cliente"}`}
+                        title={`${ag.horaInicio.slice(0, 5)} — ${clienteMap[ag.clienteId] ?? "Cliente"}${servicoNome ? ` • ${servicoNome}` : ""}`}
                       >
-                        {ag.horaInicio.slice(0, 5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
+                        <SvcIcon className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
+                        <span className="truncate font-medium">{ag.horaInicio.slice(0, 5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}</span>
                       </div>
                     );
                   })}

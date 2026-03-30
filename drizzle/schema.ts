@@ -293,3 +293,142 @@ export const coresStatus = mysqlTable("cores_status", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+// ─── GRUPOS DE PERMISSÕES ─────────────────────────────────────────────────────
+export const gruposPermissoes = mysqlTable("grupos_permissoes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  descricao: text("descricao"),
+  cor: varchar("cor", { length: 7 }).default("#6366f1"),
+  isDefault: boolean("isDefault").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GrupoPermissoes = typeof gruposPermissoes.$inferSelect;
+export type InsertGrupoPermissoes = typeof gruposPermissoes.$inferInsert;
+
+// ─── PERMISSÕES DO GRUPO (granulares) ─────────────────────────────────────────
+// Cada linha = 1 permissão específica de um grupo
+export const permissoesGrupo = mysqlTable("permissoes_grupo", {
+  id: int("id").autoincrement().primaryKey(),
+  grupoId: int("grupoId").notNull(),
+  // ── Agendamentos ──
+  agendamentosVer: boolean("agendamentosVer").default(false),
+  agendamentosCriar: boolean("agendamentosCriar").default(false),
+  agendamentosEditar: boolean("agendamentosEditar").default(false),
+  agendamentosCancelar: boolean("agendamentosCancelar").default(false),
+  agendamentosRemarcar: boolean("agendamentosRemarcar").default(false),
+  agendamentosConfirmar: boolean("agendamentosConfirmar").default(false),
+  agendamentosConcluir: boolean("agendamentosConcluir").default(false),
+  agendamentosVerTodos: boolean("agendamentosVerTodos").default(false), // ver de todos os profissionais
+  // ── Clientes ──
+  clientesVer: boolean("clientesVer").default(false),
+  clientesCriar: boolean("clientesCriar").default(false),
+  clientesEditar: boolean("clientesEditar").default(false),
+  clientesExcluir: boolean("clientesExcluir").default(false),
+  clientesVerHistorico: boolean("clientesVerHistorico").default(false),
+  clientesVerProntuario: boolean("clientesVerProntuario").default(false),
+  clientesEditarProntuario: boolean("clientesEditarProntuario").default(false),
+  clientesVerContato: boolean("clientesVerContato").default(false), // telefone/email
+  // ── Profissionais ──
+  profissionaisVer: boolean("profissionaisVer").default(false),
+  profissionaisCriar: boolean("profissionaisCriar").default(false),
+  profissionaisEditar: boolean("profissionaisEditar").default(false),
+  profissionaisExcluir: boolean("profissionaisExcluir").default(false),
+  profissionaisGerenciarPermissoes: boolean("profissionaisGerenciarPermissoes").default(false),
+  // ── Serviços ──
+  servicosVer: boolean("servicosVer").default(false),
+  servicosCriar: boolean("servicosCriar").default(false),
+  servicosEditar: boolean("servicosEditar").default(false),
+  servicosExcluir: boolean("servicosExcluir").default(false),
+  // ── Financeiro ──
+  financeiroVer: boolean("financeiroVer").default(false),
+  financeiroVerComissoes: boolean("financeiroVerComissoes").default(false),
+  financeiroEditarComissoes: boolean("financeiroEditarComissoes").default(false),
+  financeiroVerReceita: boolean("financeiroVerReceita").default(false),
+  financeiroVerCustos: boolean("financeiroVerCustos").default(false),
+  financeiroMarcarPago: boolean("financeiroMarcarPago").default(false),
+  financeiroVerRelatorios: boolean("financeiroVerRelatorios").default(false),
+  // ── Agenda / Bloqueios ──
+  agendaSolicitarBloqueio: boolean("agendaSolicitarBloqueio").default(false),
+  agendaAprovarBloqueio: boolean("agendaAprovarBloqueio").default(false),
+  agendaVerBloqueiosTodos: boolean("agendaVerBloqueiosTodos").default(false),
+  // ── Automações ──
+  automacoesVer: boolean("automacoesVer").default(false),
+  automacoesCriar: boolean("automacoesCriar").default(false),
+  automacoesEditar: boolean("automacoesEditar").default(false),
+  automacoesExcluir: boolean("automacoesExcluir").default(false),
+  automacoesAtivar: boolean("automacoesAtivar").default(false),
+  // ── Notificações ──
+  notificacoesVer: boolean("notificacoesVer").default(true),
+  // ── Relatórios ──
+  relatoriosVer: boolean("relatoriosVer").default(false),
+  relatoriosExportar: boolean("relatoriosExportar").default(false),
+  // ── Configurações ──
+  configuracoesVer: boolean("configuracoesVer").default(false),
+  configuracoesEditar: boolean("configuracoesEditar").default(false),
+  // ── Usuários e Grupos ──
+  usuariosVer: boolean("usuariosVer").default(false),
+  usuariosConvidar: boolean("usuariosConvidar").default(false),
+  usuariosEditar: boolean("usuariosEditar").default(false),
+  usuariosRemover: boolean("usuariosRemover").default(false),
+  gruposVer: boolean("gruposVer").default(false),
+  gruposCriar: boolean("gruposCriar").default(false),
+  gruposEditar: boolean("gruposEditar").default(false),
+  gruposExcluir: boolean("gruposExcluir").default(false),
+  // ── Dashboard ──
+  dashboardVer: boolean("dashboardVer").default(false),
+  dashboardVerMetricas: boolean("dashboardVerMetricas").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PermissoesGrupo = typeof permissoesGrupo.$inferSelect;
+export type InsertPermissoesGrupo = typeof permissoesGrupo.$inferInsert;
+
+// ─── MEMBROS DO GRUPO ─────────────────────────────────────────────────────────
+export const membrosGrupo = mysqlTable("membros_grupo", {
+  id: int("id").autoincrement().primaryKey(),
+  grupoId: int("grupoId").notNull(),
+  userId: int("userId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  adicionadoPorId: int("adicionadoPorId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MembroGrupo = typeof membrosGrupo.$inferSelect;
+
+// ─── CONVITES DE USUÁRIO ──────────────────────────────────────────────────────
+export const convitesUsuario = mysqlTable("convites_usuario", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  grupoId: int("grupoId"),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  status: mysqlEnum("status", ["pendente", "aceito", "expirado"]).default("pendente").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  convidadoPorId: int("convidadoPorId").notNull(),
+  aceitoEm: timestamp("aceitoEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ConviteUsuario = typeof convitesUsuario.$inferSelect;
+
+// ─── USUÁRIOS DO SISTEMA (cadastro por admin, com senha) ──────────────────────
+export const systemUsers = mysqlTable("system_users", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 120 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  grupoId: int("grupoId"),
+  ativo: boolean("ativo").default(true).notNull(),
+  ultimoAcesso: timestamp("ultimoAcesso"),
+  criadoPorId: int("criadoPorId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SystemUser = typeof systemUsers.$inferSelect;
+export type InsertSystemUser = typeof systemUsers.$inferInsert;

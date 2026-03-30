@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, Settings,
-  UserCog, Users, X, Lock, Sparkles, ChevronRight
+  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -38,6 +38,7 @@ const navGroups = [
     label: "Sistema",
     items: [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
+      { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
     ],
   },
