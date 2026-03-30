@@ -73,9 +73,9 @@ export default function Configuracoes() {
       <button
         onClick={() => updateMutation.mutate({
           ...form,
-          reservaPercentual: parseFloat(form.reservaPercentual) || 30,
+          reservaPercentual: form.reservaPercentual,
           reservaHorasExpiracao: parseInt(form.reservaHorasExpiracao) || 24,
-        } as any)}
+        })}
         disabled={updateMutation.isPending}
         className="btn-primary">
         <Save className="w-4 h-4" />

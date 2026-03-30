@@ -153,6 +153,9 @@
 - [x] Configuração de pipelines e colunas
 - [ ] Link de integração externa (POST externo cria cartão no pipeline)
 
+## Bugs (v5)
+- [x] Perfil: erro ao salvar — reservaPercentual enviado como number mas schema espera string
+
 ## Públicos de Automação (v5) — funcionalidade do Zandu não presente no Agendei
 - [ ] Schema: tabela publicosAutomacao com regras de filtro por evento
 - [ ] Backend: router de públicos (CRUD + contagem de pessoas)
