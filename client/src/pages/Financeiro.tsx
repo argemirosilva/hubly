@@ -1,7 +1,5 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, TrendingUp, CheckCircle, Clock } from "lucide-react";
@@ -42,48 +40,46 @@ export default function Financeiro() {
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-        Financeiro
-      </h1>
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
+      <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
 
       {/* Cards de métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Comissões pagas", value: "—", icon: CheckCircle, color: "text-purple-600", bg: "bg-purple-50" },
-          { label: "Comissões pendentes", value: metrics?.comissoesPendentes ?? 0, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)" },
+          { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), icon: TrendingUp, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
+          { label: "Comissões pagas", value: formatCurrency(comissoes?.filter(c => c.paga).reduce((a, c) => a + parseFloat(String(c.valorComissao)), 0) ?? 0), icon: CheckCircle, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
+          { label: "Comissões pendentes", value: formatCurrency(metrics?.comissoesPendentes ?? 0), icon: Clock, iconBg: "oklch(72% 0.16 80 / 12%)", iconColor: "oklch(40% 0.14 75)" },
         ].map(stat => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="border-border shadow-none">
-              <CardContent className="p-5">
-                <div className={`w-9 h-9 ${stat.bg} rounded-lg flex items-center justify-center mb-3`}>
-                  <Icon className={`w-4 h-4 ${stat.color}`} />
-                </div>
-                <p className="text-xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-              </CardContent>
-            </Card>
+            <div key={stat.label} className="stat-card">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+                style={{ background: stat.iconBg }}>
+                <Icon className="w-4 h-4" style={{ color: stat.iconColor }} />
+              </div>
+              <p className="text-lg lg:text-xl font-bold text-foreground tracking-tight">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            </div>
           );
         })}
       </div>
 
       {/* Comissões */}
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between flex-wrap gap-3">
+      <div className="card-elegant overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4"
+          style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
           <div>
-            <CardTitle className="text-base font-semibold">Comissões</CardTitle>
+            <h3 className="font-semibold text-sm tracking-tight">Comissões</h3>
             {totalPendente > 0 && (
-              <p className="text-sm text-amber-600 mt-0.5">
-                {formatCurrency(totalPendente)} pendente de pagamento
+              <p className="text-xs mt-0.5" style={{ color: "oklch(40% 0.14 75)" }}>
+                {formatCurrency(totalPendente)} pendente
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Select value={filtroProfId} onValueChange={setFiltroProfId}>
-              <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
                 <SelectValue placeholder="Profissional" />
               </SelectTrigger>
               <SelectContent>
@@ -94,7 +90,7 @@ export default function Financeiro() {
               </SelectContent>
             </Select>
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectTrigger className="w-auto min-w-[110px] h-8 text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -104,47 +100,47 @@ export default function Financeiro() {
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
+        </div>
+        <div>
           {filtradas.length === 0 ? (
             <div className="py-12 text-center">
               <DollarSign className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">Nenhuma comissão encontrada</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
               {filtradas.map(c => (
-                <div key={c.id} className="flex items-center gap-4 px-5 py-3.5">
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3.5">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{profMap[c.profissionalId] ?? "—"}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{profMap[c.profissionalId] ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
                       {c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : "—"}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{formatCurrency(parseFloat(String(c.valorComissao)))}</p>
-                    <p className="text-xs text-muted-foreground">{parseFloat(String(c.percentualComissao ?? 0)).toFixed(0)}% de comissão</p>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold">{formatCurrency(parseFloat(String(c.valorComissao)))}</p>
+                    <p className="text-xs text-muted-foreground">{parseFloat(String(c.percentualComissao ?? 0)).toFixed(0)}%</p>
                   </div>
                   {c.paga ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Paga</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                      style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                    <button
+                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border font-medium flex-shrink-0 transition-colors"
+                      style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
                       onClick={() => pagarMutation.mutate({ id: c.id })}
                       disabled={pagarMutation.isPending}
                     >
                       <CheckCircle className="w-3 h-3" />
                       Pagar
-                    </Button>
+                    </button>
                   )}
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

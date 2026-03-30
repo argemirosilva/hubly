@@ -1,15 +1,17 @@
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, CheckCircle, XCircle, Plus } from "lucide-react";
+import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-const statusLabel: Record<string, string> = { pendente: "Pendente", aprovado: "Aprovado", recusado: "Recusado" };
-const statusColor: Record<string, string> = { pendente: "bg-amber-100 text-amber-700", aprovado: "bg-emerald-100 text-emerald-700", recusado: "bg-red-100 text-red-700" };
+const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+  pendente:  { label: "Pendente",  bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(40% 0.14 75)" },
+  aprovado:  { label: "Aprovado",  bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
+  recusado:  { label: "Recusado",  bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+};
 
 export default function Bloqueios() {
   const utils = trpc.useUtils();
@@ -36,61 +38,119 @@ export default function Bloqueios() {
   profissionais?.forEach(p => { profMap[p.id] = p.nome; });
 
   return (
-    <div className="p-6 space-y-5 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Bloqueios de Agenda</h1>
-        <Button onClick={() => setModalOpen(true)} className="gap-2"><Plus className="w-4 h-4" />Solicitar Bloqueio</Button>
+    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto animate-in-up">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Bloqueios de Agenda</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{bloqueios?.length ?? 0} solicitações</p>
+        </div>
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-3 text-xs">
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Solicitar Bloqueio</span>
+          <span className="sm:hidden">Solicitar</span>
+        </button>
       </div>
-      <Card className="border-border shadow-none">
-        <CardContent className="p-0">
-          {(bloqueios ?? []).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Lock className="w-10 h-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhuma solicitação de bloqueio</p>
+
+      <div className="card-elegant overflow-hidden">
+        {(bloqueios ?? []).length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
+              <Lock className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
             </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {(bloqueios ?? []).map(b => (
-                <div key={b.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{profMap[b.profissionalId] ?? "Profissional"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {b.dataInicio?.split("-").reverse().join("/")} até {b.dataFim?.split("-").reverse().join("/")} · {b.horaInicio?.slice(0,5)} - {b.horaFim?.slice(0,5)}
-                    </p>
-                    {b.motivo && <p className="text-xs text-muted-foreground mt-0.5 italic">"{b.motivo}"</p>}
+            <p className="text-sm font-medium text-foreground mb-1">Nenhuma solicitação</p>
+            <p className="text-xs text-muted-foreground mb-4">Solicite bloqueios para férias, folgas ou consultas</p>
+            <button className="btn-primary text-xs py-1.5" onClick={() => setModalOpen(true)}>
+              <Plus className="w-3.5 h-3.5" /> Solicitar bloqueio
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+            {(bloqueios ?? []).map(b => {
+              const cfg = statusConfig[b.status] ?? statusConfig.pendente;
+              return (
+                <div key={b.id} className="px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
+                      <Lock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground">{profMap[b.profissionalId] ?? "Profissional"}</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
+                          style={{ background: cfg.bg, color: cfg.color }}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 mt-1">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
+                          {b.dataInicio?.split("-").reverse().join("/")} → {b.dataFim?.split("-").reverse().join("/")}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          {b.horaInicio?.slice(0, 5)} – {b.horaFim?.slice(0, 5)}
+                        </span>
+                      </div>
+                      {b.motivo && (
+                        <p className="text-xs text-muted-foreground mt-0.5 italic truncate">"{b.motivo}"</p>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[b.status] ?? "bg-gray-100 text-gray-600"}`}>
-                    {statusLabel[b.status] ?? b.status}
-                  </span>
                   {b.status === "pendente" && (
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="h-7 gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                        onClick={() => aprovarMutation.mutate({ id: b.id })}>
-                        <CheckCircle className="w-3 h-3" />Aprovar
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                        onClick={() => recusarMutation.mutate({ id: b.id, motivoRecusa: "Recusado pela gestão" })}>
-                        <XCircle className="w-3 h-3" />Recusar
-                      </Button>
+                    <div className="flex gap-2 mt-3 ml-12">
+                      <button
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                        style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                        onClick={() => aprovarMutation.mutate({ id: b.id })}
+                        disabled={aprovarMutation.isPending}>
+                        <CheckCircle className="w-3 h-3" /> Aprovar
+                      </button>
+                      <button
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                        style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
+                        onClick={() => recusarMutation.mutate({ id: b.id, motivoRecusa: "Recusado pela gestão" })}
+                        disabled={recusarMutation.isPending}>
+                        <XCircle className="w-3 h-3" /> Recusar
+                      </button>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>Solicitar Bloqueio</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-bold tracking-tight">Solicitar Bloqueio</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs text-muted-foreground mb-1.5 block">Data início *</Label><Input type="date" value={form.dataInicio} onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} /></div>
-              <div><Label className="text-xs text-muted-foreground mb-1.5 block">Data fim *</Label><Input type="date" value={form.dataFim} onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))} /></div>
-              <div><Label className="text-xs text-muted-foreground mb-1.5 block">Hora início</Label><Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} /></div>
-              <div><Label className="text-xs text-muted-foreground mb-1.5 block">Hora fim</Label><Input type="time" value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Data início *</Label>
+                <Input type="date" value={form.dataInicio} onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Data fim *</Label>
+                <Input type="date" value={form.dataFim} onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Hora início</Label>
+                <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Hora fim</Label>
+                <Input type="time" value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} />
+              </div>
             </div>
-            <div><Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label><Input value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Férias, consulta médica..." /></div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label>
+              <Input value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Férias, consulta médica..." />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>

@@ -80,7 +80,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
@@ -88,8 +88,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
               <Select value={form.clienteId} onValueChange={v => setForm(f => ({ ...f, clienteId: v }))}>
                 <SelectTrigger>
@@ -149,7 +149,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
             </div>
 
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
               <Textarea
                 placeholder="Observações para o agendamento..."
@@ -159,7 +159,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            <div className="col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="sm:col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-foreground">Exigir reserva (pré-agendamento)</p>
                 <p className="text-xs text-muted-foreground">Envia mensagem de reserva e aguarda pagamento</p>
@@ -171,7 +171,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {servicoSelecionado && (
-              <div className="col-span-2 p-3 bg-secondary/50 rounded-lg">
+              <div className="sm:col-span-2 p-3 bg-secondary/50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Valor do serviço</span>
                   <span className="text-base font-bold text-foreground">

@@ -116,3 +116,19 @@
 
 ## Bugs (v3)
 - [x] Bug: ao reabrir automação, os nós do fluxo não são carregados (configurações perdidas)
+
+## Melhorias Mobile (v4)
+- [x] AdminLayout: bottom navigation bar para mobile, overlay da sidebar
+- [x] AdminLayout: header mobile com hamburger menu
+- [x] Dashboard: cards em coluna única no mobile, agenda do dia em lista compacta
+- [x] Calendário: visualização mobile em lista (agenda view) em vez de grid mensal
+- [x] Agendamentos: tabela vira cards empilhados no mobile
+- [x] Clientes: lista compacta com swipe actions no mobile
+- [x] Financeiro: tabelas viram cards no mobile
+- [x] Automações: canvas desativado no mobile, lista simplificada
+- [x] Portal do Cliente: otimizar steps para tela pequena
+- [x] Modais: altura máxima com scroll interno no mobile
+- [x] Profissionais: header responsivo, modais com scroll
+- [x] Bloqueios: layout mobile-first com ações adaptáveis
+- [x] Serviços: header responsivo, modal com scroll
+- [x] Configurações: grids responsivos 1→2 colunas

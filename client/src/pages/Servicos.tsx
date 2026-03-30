@@ -25,18 +25,17 @@ export default function Servicos() {
   });
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="p-4 lg:p-6 space-y-4 max-w-5xl mx-auto animate-in-up">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Serviços
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{servicos?.length ?? 0} serviços cadastrados</p>
+          <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Serviços</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{servicos?.length ?? 0} cadastrados</p>
         </div>
-        <Button onClick={() => setModalOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Serviço
-        </Button>
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-3 text-xs">
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Novo Serviço</span>
+          <span className="sm:hidden">Novo</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -75,9 +74,9 @@ export default function Servicos() {
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>Novo Serviço</DialogTitle>
+            <DialogTitle className="font-bold tracking-tight">Novo Serviço</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>

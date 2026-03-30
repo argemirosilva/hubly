@@ -102,38 +102,40 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-5 lg:p-7 max-w-7xl mx-auto space-y-6 animate-in-up">
+    <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5 animate-in-up">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground font-medium capitalize mb-0.5">{dataFormatada}</p>
-          <h1 className="font-bold tracking-tight" style={{ fontSize: "1.6rem" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground font-medium capitalize mb-0.5 hidden sm:block">{dataFormatada}</p>
+          <h1 className="font-bold tracking-tight text-xl lg:text-2xl truncate">
             {saudacao(user?.name ?? undefined)}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{empresa.nome}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">{empresa.nome}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {pendentes > 0 && (
             <Link href="/admin/agendamentos">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                 style={{ background: "oklch(72% 0.16 80 / 15%)", color: "oklch(40% 0.14 75)" }}>
                 <AlertCircle className="w-3.5 h-3.5" />
-                {pendentes} pendente{pendentes > 1 ? "s" : ""}
+                <span className="hidden sm:inline">{pendentes} pendente{pendentes > 1 ? "s" : ""}</span>
+                <span className="sm:hidden">{pendentes}</span>
               </div>
             </Link>
           )}
           <button
             onClick={() => setNovaAgendaOpen(true)}
-            className="btn-primary">
+            className="btn-primary py-2 px-3 text-xs">
             <Plus className="w-3.5 h-3.5" />
-            Novo Agendamento
+            <span className="hidden sm:inline">Novo Agendamento</span>
+            <span className="sm:hidden">Novo</span>
           </button>
         </div>
       </div>
 
       {/* ── Stats ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
             label: "Hoje",
@@ -243,9 +245,9 @@ export default function Dashboard() {
                 const prof = profMap[ag.profissionalId];
                 return (
                   <div key={ag.id}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors">
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
                     {/* Hora */}
-                    <div className="text-center flex-shrink-0 w-12">
+                    <div className="text-center flex-shrink-0 w-10">
                       <p className="text-sm font-bold tracking-tight text-foreground">
                         {ag.horaInicio.slice(0, 5)}
                       </p>

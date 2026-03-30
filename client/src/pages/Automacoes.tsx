@@ -568,23 +568,26 @@ export default function Automacoes() {
   if (view === "list") {
     return (
       <AdminLayout>
-        <div className="p-6 max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+        <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-5 gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Automações</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Crie fluxos automáticos de mensagens e ações</p>
+              <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Automações</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Fluxos automáticos de mensagens e ações</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
-                <Sparkles size={14} className="mr-1.5" />Templates
+                <Sparkles size={14} className="mr-1" />
+                <span className="hidden sm:inline">Templates</span>
               </Button>
               <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
-                <Plus size={14} className="mr-1.5" />Nova automação
+                <Plus size={14} className="mr-1" />
+                <span className="hidden sm:inline">Nova automação</span>
+                <span className="sm:hidden">Nova</span>
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-3 mb-5">
             {[
               { label: "Total", value: automacoesSalvas.length, color: "text-gray-900" },
               { label: "Ativas", value: (automacoesSalvas as any[]).filter(a => a.ativo).length, color: "text-emerald-600" },
@@ -612,33 +615,33 @@ export default function Automacoes() {
           ) : (
             <div className="space-y-3">
               {(automacoesSalvas as any[]).map(a => (
-                <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:border-indigo-200 transition-colors">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
-                    <Zap size={18} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
+                <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
+                    <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-gray-900 truncate">{a.nome}</p>
-                      <Badge className={`text-xs ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
+                      <p className="font-semibold text-gray-900 text-sm truncate">{a.nome}</p>
+                      <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
                         {a.ativo ? "Ativa" : "Pausada"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-gray-500 flex items-center gap-1"><Zap size={10} />{getTriggerLabel(a)}</span>
-                      <span className="text-xs text-gray-400">·</span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <MessageSquare size={10} />{a.canalEnvio === "whatsapp" ? "WhatsApp" : a.canalEnvio === "email" ? "E-mail" : "SMS"}
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-500 flex items-center gap-1 truncate"><Zap size={9} />{getTriggerLabel(a)}</span>
+                      <span className="hidden sm:flex text-xs text-gray-400">·</span>
+                      <span className="hidden sm:flex text-xs text-gray-500 items-center gap-1">
+                        <MessageSquare size={9} />{a.canalEnvio === "whatsapp" ? "WhatsApp" : a.canalEnvio === "email" ? "E-mail" : "SMS"}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
-                    <Button variant="ghost" size="sm" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
-                      <Edit2 size={14} />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
+                      <Edit2 size={13} />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
                       onClick={() => setConfirmDeleteId(a.id)}>
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </Button>
                   </div>
                 </div>
@@ -668,11 +671,11 @@ export default function Automacoes() {
         </Dialog>
 
         <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><Sparkles size={17} className="text-indigo-600" />Templates de automação</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {TEMPLATES.map((t, i) => (
                 <button key={i} className="text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
                   onClick={() => { openEditor({ nome: t.nome, descricao: t.descricao, ativo: true, nodes: t.nodes }); setShowTemplates(false); }}>

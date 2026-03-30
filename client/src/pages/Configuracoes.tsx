@@ -1,7 +1,5 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Building2, Save } from "lucide-react";
@@ -32,30 +30,32 @@ export default function Configuracoes() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>Configurações</h1>
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-3xl mx-auto animate-in-up">
+      <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Configurações</h1>
 
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2"><Building2 className="w-4 h-4" />Dados da Empresa</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Nome do estabelecimento</Label><Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
+      <div className="card-elegant">
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          <h3 className="font-semibold text-sm">Dados da Empresa</h3>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Nome do estabelecimento</Label><Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
             <div><Label className="text-xs text-muted-foreground mb-1.5 block">Telefone</Label><Input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
             <div><Label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</Label><Input value={form.whatsappNumero} onChange={e => setForm(f => ({ ...f, whatsappNumero: e.target.value }))} placeholder="5511999999999" /></div>
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Endereço</Label><Input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><Label className="text-xs text-muted-foreground mb-1.5 block">Endereço</Label><Input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} /></div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2"><Settings className="w-4 h-4" />Regras de Agendamento</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      <div className="card-elegant">
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          <Settings className="w-4 h-4 text-muted-foreground" />
+          <h3 className="font-semibold text-sm">Regras de Agendamento</h3>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">% de reserva antecipada</Label>
               <Input type="number" min="0" max="100" value={form.reservaPercentual} onChange={e => setForm(f => ({ ...f, reservaPercentual: e.target.value }))} />
@@ -67,17 +67,20 @@ export default function Configuracoes() {
               <p className="text-xs text-muted-foreground mt-1">Horas até cancelar automaticamente</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Button onClick={() => updateMutation.mutate({
+      <button
+        onClick={() => updateMutation.mutate({
           ...form,
           reservaPercentual: parseFloat(form.reservaPercentual) || 30,
           reservaHorasExpiracao: parseInt(form.reservaHorasExpiracao) || 24,
-        } as any)} disabled={updateMutation.isPending} className="gap-2">
+        } as any)}
+        disabled={updateMutation.isPending}
+        className="btn-primary">
         <Save className="w-4 h-4" />
         {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}
-      </Button>
+      </button>
     </div>
   );
 }

@@ -151,7 +151,7 @@ export default function PortalCliente() {
         </div>
 
         {/* Card principal */}
-        <div className="w-full max-w-lg card-elegant overflow-hidden animate-in-up">
+        <div className="w-full max-w-lg card-elegant overflow-hidden animate-in-up" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
 
           {/* Step 1: Serviço */}
           {step === "servico" && (
@@ -288,7 +288,7 @@ export default function PortalCliente() {
                     <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">
                       Horário disponível
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                       {HORARIOS.map(h => (
                         <button key={h} onClick={() => setHora(h)}
                           className="py-2 rounded-xl text-xs font-semibold transition-all"

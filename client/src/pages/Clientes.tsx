@@ -40,55 +40,56 @@ export default function Clientes() {
   }, [clientes, busca]);
 
   return (
-    <div className="p-6 space-y-5 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto animate-in-up">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Clientes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{clientes?.length ?? 0} clientes cadastrados</p>
+          <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Clientes</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{clientes?.length ?? 0} cadastrados</p>
         </div>
-        <Button onClick={() => setModalOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Cliente
-        </Button>
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-3 text-xs">
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Novo Cliente</span>
+          <span className="sm:hidden">Novo</span>
+        </button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome, telefone ou email..." className="pl-9" value={busca} onChange={e => setBusca(e.target.value)} />
+        <Input placeholder="Buscar por nome, telefone ou email..." className="pl-9 h-10" value={busca} onChange={e => setBusca(e.target.value)} />
       </div>
 
-      <Card className="border-border shadow-none">
-        <CardContent className="p-0">
+      <div className="card-elegant overflow-hidden">
           {filtrados.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Users className="w-10 h-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhum cliente encontrado</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => setModalOpen(true)}>
-                Cadastrar cliente
-              </Button>
+            <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
+                <Users className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">Nenhum cliente encontrado</p>
+              <p className="text-xs text-muted-foreground mb-4">Cadastre o primeiro cliente para começar</p>
+              <button className="btn-primary text-xs py-1.5" onClick={() => setModalOpen(true)}>
+                <Plus className="w-3.5 h-3.5" /> Cadastrar cliente
+              </button>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
               {filtrados.map(c => (
                 <Link key={c.id} href={`/admin/clientes/${c.id}`}>
-                  <div className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-sm font-semibold">
-                        {c.nome.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
+                      style={{ background: "oklch(55% 0.22 264)" }}>
+                      {c.nome.charAt(0).toUpperCase()}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{c.nome}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
+                      <p className="text-sm font-semibold text-foreground truncate">{c.nome}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
                         {c.telefone && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Phone className="w-3 h-3" />{c.telefone}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <Phone className="w-3 h-3 flex-shrink-0" />{c.telefone}
                           </span>
                         )}
                         {c.dataNascimento && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span className="hidden sm:flex text-xs text-muted-foreground items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {c.dataNascimento.split("-").reverse().join("/")}
                           </span>
@@ -96,7 +97,7 @@ export default function Clientes() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-foreground">{formatCurrency(parseFloat(String(c.totalGasto ?? 0)))}</p>
+                      <p className="text-sm font-bold" style={{ color: "oklch(35% 0.14 155)" }}>{formatCurrency(parseFloat(String(c.totalGasto ?? 0)))}</p>
                       <p className="text-xs text-muted-foreground">{c.totalAtendimentos ?? 0} atend.</p>
                     </div>
                   </div>
@@ -104,16 +105,15 @@ export default function Clientes() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>Novo Cliente</DialogTitle>
+            <DialogTitle className="font-bold tracking-tight">Novo Cliente</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-2">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Nome completo *</Label>
               <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Nome da cliente" />
             </div>
@@ -133,7 +133,7 @@ export default function Clientes() {
               <Label className="text-xs text-muted-foreground mb-1.5 block">Data de nascimento</Label>
               <Input type="date" value={form.dataNascimento} onChange={e => setForm(f => ({ ...f, dataNascimento: e.target.value }))} />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
               <Input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Alergias, preferências..." />
             </div>

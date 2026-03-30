@@ -51,7 +51,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden gap-0">
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
@@ -74,7 +74,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         </div>
 
         {/* Corpo */}
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Info block */}
           <div className="rounded-xl p-4 space-y-3.5"
             style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
