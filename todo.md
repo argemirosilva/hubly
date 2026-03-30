@@ -113,3 +113,6 @@
 
 ## Bugs / Melhorias (v2)
 - [x] Adicionar exclusão de automações (botão delete com confirmação)
+
+## Bugs (v3)
+- [x] Bug: ao reabrir automação, os nós do fluxo não são carregados (configurações perdidas)

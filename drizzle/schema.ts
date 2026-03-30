@@ -257,11 +257,11 @@ export const automacoes = mysqlTable("automacoes", {
   segmentacaoTipo: mysqlEnum("segmentacaoTipo", ["todas", "por_profissional", "por_tag"]).default("todas"),
   segmentacaoValor: varchar("segmentacaoValor", { length: 255 }),
   ativo: boolean("ativo").default(true),
+  flowJson: text("flowJson"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
-// ─── PRONTUÁRIOS ──────────────────────────────────────────────────────────────
+// ─── PRONTUÁRIOSS ──────────────────────────────────────────────────────────────
 export const prontuarios = mysqlTable("prontuarios", {
   id: int("id").autoincrement().primaryKey(),
   empresaId: int("empresaId").notNull(),

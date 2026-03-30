@@ -550,6 +550,7 @@ export const appRouter = router({
         corpoMensagem: z.string().min(1),
         segmentacaoTipo: z.enum(["todas", "por_profissional", "por_tag"]).default("todas"),
         segmentacaoValor: z.string().optional(),
+        flowJson: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
@@ -563,6 +564,7 @@ export const appRouter = router({
         nome: z.string().optional(),
         corpoMensagem: z.string().optional(),
         ativo: z.boolean().optional(),
+        flowJson: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);

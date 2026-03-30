@@ -282,7 +282,7 @@ export async function getAutomacoesByEmpresa(empresaId: number) {
   return db.select().from(automacoes).where(eq(automacoes.empresaId, empresaId));
 }
 
-export async function createAutomacao(data: typeof automacoes.$inferInsert) {
+export async function createAutomacao(data: typeof automacoes.$inferInsert & { flowJson?: string }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const result = await db.insert(automacoes).values(data);
@@ -295,7 +295,7 @@ export async function deleteAutomacao(id: number) {
   await db.delete(automacoes).where(eq(automacoes.id, id));
 }
 
-export async function updateAutomacao(id: number, data: Partial<typeof automacoes.$inferInsert>) {
+export async function updateAutomacao(id: number, data: Partial<typeof automacoes.$inferInsert> & { flowJson?: string }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(automacoes).set(data).where(eq(automacoes.id, id));

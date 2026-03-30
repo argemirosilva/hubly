@@ -487,9 +487,20 @@ export default function Automacoes() {
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null;
 
-  const openEditor = (flow?: Partial<FlowAutomacao>) => {
+  const openEditor = (flow?: Partial<FlowAutomacao> & { id?: number; flowJson?: string }) => {
     setCurrentFlow({ nome: flow?.nome || "Nova Automação", descricao: flow?.descricao, ativo: flow?.ativo ?? true, nodes: [] });
-    setNodes(flow?.nodes || []);
+    // Tentar restaurar nós do flowJson salvo
+    if (flow?.flowJson) {
+      try {
+        const parsed = JSON.parse(flow.flowJson);
+        setNodes(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setNodes(flow?.nodes || []);
+      }
+    } else {
+      setNodes(flow?.nodes || []);
+    }
+    if (flow?.id) setCurrentFlow(p => ({ ...p, id: flow.id }));
     setSelectedNodeId(null);
     setView("editor");
   };
@@ -513,20 +524,33 @@ export default function Automacoes() {
       : tipo === "dias_antes_agendamento" ? "dias_antes_agendamento"
       : "horas_apos_agendamento";
     const actionNode = nodes.find(n => n.type === "action");
-    createMutation.mutate({
-      nome: currentFlow.nome,
-      descricao: currentFlow.descricao,
-      tipoGatilho,
-      evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
-      diasAntesDepois: triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined,
-      horaDisparo: triggerNode.data.hora,
-      dataFixaDia: triggerNode.data.dia ? Number(triggerNode.data.dia) : undefined,
-      dataFixaMes: triggerNode.data.mes ? Number(triggerNode.data.mes) : undefined,
-      dataFixaHora: triggerNode.data.hora,
-      canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
-      tituloMensagem: actionNode?.data.titulo,
-      corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
-    }, { onSuccess: () => setView("list") });
+    const flowJsonStr = JSON.stringify(nodes);
+    if (currentFlow.id) {
+      // Atualizar automação existente
+      updateMutation.mutate({
+        id: currentFlow.id,
+        nome: currentFlow.nome,
+        corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
+        flowJson: flowJsonStr,
+      }, { onSuccess: () => setView("list") });
+    } else {
+      // Criar nova automação
+      createMutation.mutate({
+        nome: currentFlow.nome,
+        descricao: currentFlow.descricao,
+        tipoGatilho,
+        evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
+        diasAntesDepois: triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined,
+        horaDisparo: triggerNode.data.hora,
+        dataFixaDia: triggerNode.data.dia ? Number(triggerNode.data.dia) : undefined,
+        dataFixaMes: triggerNode.data.mes ? Number(triggerNode.data.mes) : undefined,
+        dataFixaHora: triggerNode.data.hora,
+        canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
+        tituloMensagem: actionNode?.data.titulo,
+        corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
+        flowJson: flowJsonStr,
+      }, { onSuccess: () => setView("list") });
+    }
   };
 
   const getTriggerLabel = (a: any) => {
@@ -609,7 +633,7 @@ export default function Automacoes() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
-                    <Button variant="ghost" size="sm" onClick={() => openEditor({ nome: a.nome, ativo: a.ativo, nodes: [] })}>
+                    <Button variant="ghost" size="sm" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
                       <Edit2 size={14} />
                     </Button>
                     <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50"
