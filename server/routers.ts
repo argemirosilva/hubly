@@ -1,28 +1,674 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import {
+  getEmpresaByOwnerId, createEmpresa, updateEmpresa,
+  getProfissionaisByEmpresa, getProfissionalById, createProfissional, updateProfissional,
+  getPermissoesByProfissional, updatePermissoes,
+  getClientesByEmpresa, getClienteById, createCliente, updateCliente,
+  getServicosByEmpresa, createServico, updateServico,
+  getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
+  getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
+  getComissoesByEmpresa, createComissao, updateComissao,
+  getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
+  getAutomacoesByEmpresa, createAutomacao, updateAutomacao,
+  getProntuariosByCliente, createProntuario,
+  getCoresStatus, upsertCoresStatus,
+  getDashboardMetrics,
+} from "./db";
+import { storagePut } from "./storage";
+import { nanoid } from "nanoid";
+
+// Helper para obter empresa do usuário logado
+async function getEmpresaDoUsuario(userId: number) {
+  return getEmpresaByOwnerId(userId);
+}
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ─── EMPRESA ──────────────────────────────────────────────────────────────
+  empresa: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return getEmpresaByOwnerId(ctx.user.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        tipo: z.enum(["salao", "clinica", "barbearia", "consultorio", "outro"]).default("salao"),
+        telefone: z.string().optional(),
+        email: z.string().email().optional(),
+        endereco: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getEmpresaByOwnerId(ctx.user.id);
+        if (existing) throw new Error("Empresa já cadastrada");
+        await createEmpresa({ ...input, ownerId: ctx.user.id });
+        return { success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        nome: z.string().optional(),
+        tipo: z.enum(["salao", "clinica", "barbearia", "consultorio", "outro"]).optional(),
+        telefone: z.string().optional(),
+        email: z.string().optional(),
+        endereco: z.string().optional(),
+        whatsappNumero: z.string().optional(),
+        taxaMaquininha: z.string().optional(),
+        percentualDona: z.string().optional(),
+        reservaPercentual: z.string().optional(),
+        reservaHorasExpiracao: z.number().optional(),
+        corPrimaria: z.string().optional(),
+        corSecundaria: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaByOwnerId(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateEmpresa(empresa.id, input as any);
+        return { success: true };
+      }),
+  }),
+
+  // ─── PROFISSIONAIS ────────────────────────────────────────────────────────
+  profissionais: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      const profs = await getProfissionaisByEmpresa(empresa.id);
+      const result = await Promise.all(profs.map(async (p) => {
+        const perms = await getPermissoesByProfissional(p.id);
+        return { ...p, permissoes: perms };
+      }));
+      return result;
+    }),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const prof = await getProfissionalById(input.id);
+        if (!prof || prof.empresaId !== empresa.id) throw new Error("Profissional não encontrado");
+        const perms = await getPermissoesByProfissional(prof.id);
+        return { ...prof, permissoes: perms };
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        email: z.string().email().optional(),
+        telefone: z.string().optional(),
+        especialidade: z.string().optional(),
+        corCalendario: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createProfissional({ ...input, empresaId: empresa.id });
+        return { id, success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        email: z.string().optional(),
+        telefone: z.string().optional(),
+        especialidade: z.string().optional(),
+        corCalendario: z.string().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, ...data } = input;
+        await updateProfissional(id, data);
+        return { success: true };
+      }),
+    updatePermissoes: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        podeAgendar: z.boolean().optional(),
+        podeCancelar: z.boolean().optional(),
+        podeRemarcar: z.boolean().optional(),
+        podeEditarCliente: z.boolean().optional(),
+        podeSolicitarBloqueio: z.boolean().optional(),
+        podeVerComissoes: z.boolean().optional(),
+        podeVerFinanceiro: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { profissionalId, ...perms } = input;
+        await updatePermissoes(profissionalId, perms);
+        return { success: true };
+      }),
+  }),
+
+  // ─── CLIENTES ─────────────────────────────────────────────────────────────
+  clientes: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getClientesByEmpresa(empresa.id);
+    }),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const cliente = await getClienteById(input.id);
+        if (!cliente || cliente.empresaId !== empresa.id) throw new Error("Cliente não encontrado");
+        const pronts = await getProntuariosByCliente(cliente.id);
+        return { ...cliente, prontuarios: pronts };
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        email: z.string().email().optional(),
+        telefone: z.string().optional(),
+        whatsapp: z.string().optional(),
+        cpf: z.string().optional(),
+        dataNascimento: z.string().optional(),
+        endereco: z.string().optional(),
+        observacoes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createCliente({ ...input, empresaId: empresa.id });
+        return { id, success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        email: z.string().optional(),
+        telefone: z.string().optional(),
+        whatsapp: z.string().optional(),
+        cpf: z.string().optional(),
+        dataNascimento: z.string().optional(),
+        endereco: z.string().optional(),
+        observacoes: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        saldoSessoes: z.number().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, ...data } = input;
+        await updateCliente(id, data as any);
+        return { success: true };
+      }),
+    addProntuario: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        agendamentoId: z.number().optional(),
+        profissionalId: z.number().optional(),
+        titulo: z.string().min(1),
+        conteudo: z.string().optional(),
+        tipo: z.enum(["anamnese", "evolucao", "foto", "documento", "contrato", "outro"]).default("evolucao"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createProntuario({ ...input, empresaId: empresa.id });
+        return { id, success: true };
+      }),
+    uploadArquivo: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        titulo: z.string(),
+        tipo: z.enum(["anamnese", "evolucao", "foto", "documento", "contrato", "outro"]),
+        arquivoBase64: z.string(),
+        arquivoNome: z.string(),
+        arquivoTipo: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const buffer = Buffer.from(input.arquivoBase64, "base64");
+        const key = `empresa-${empresa.id}/clientes/${input.clienteId}/${nanoid()}-${input.arquivoNome}`;
+        const { url } = await storagePut(key, buffer, input.arquivoTipo);
+        const id = await createProntuario({
+          clienteId: input.clienteId,
+          empresaId: empresa.id,
+          titulo: input.titulo,
+          tipo: input.tipo,
+          arquivoUrl: url,
+          arquivoKey: key,
+          arquivoNome: input.arquivoNome,
+          arquivoTipo: input.arquivoTipo,
+        });
+        return { id, url, success: true };
+      }),
+  }),
+
+  // ─── SERVIÇOS ─────────────────────────────────────────────────────────────
+  servicos: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getServicosByEmpresa(empresa.id);
+    }),
+    listPublico: publicProcedure
+      .input(z.object({ empresaId: z.number() }))
+      .query(async ({ input }) => {
+        return getServicosByEmpresa(input.empresaId);
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        descricao: z.string().optional(),
+        valor: z.string(),
+        duracaoMinutos: z.number().default(60),
+        categoria: z.string().optional(),
+        cor: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createServico({ ...input, empresaId: empresa.id });
+        return { id, success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        descricao: z.string().optional(),
+        valor: z.string().optional(),
+        duracaoMinutos: z.number().optional(),
+        categoria: z.string().optional(),
+        cor: z.string().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, ...data } = input;
+        await updateServico(id, data as any);
+        return { success: true };
+      }),
+  }),
+
+  // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────
+  agendamentos: router({
+    list: protectedProcedure
+      .input(z.object({
+        dataInicio: z.string().optional(),
+        dataFim: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) return [];
+        return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim);
+      }),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        return getAgendamentoById(input.id);
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        profissionalId: z.number(),
+        servicoId: z.number(),
+        data: z.string(),
+        horaInicio: z.string(),
+        horaFim: z.string(),
+        valorTotal: z.string(),
+        status: z.enum(["pre_agendado", "aguardando_reserva", "agendado", "confirmado"]).default("agendado"),
+        observacoes: z.string().optional(),
+        observacoesInternas: z.string().optional(),
+        comReserva: z.boolean().default(false),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { comReserva, ...rest } = input;
+        let valorReserva: string | undefined;
+        let reservaExpiracaoEm: Date | undefined;
+        let status = rest.status;
+        if (comReserva) {
+          const percentual = parseFloat(String(empresa.reservaPercentual)) / 100;
+          valorReserva = (parseFloat(rest.valorTotal) * percentual).toFixed(2);
+          reservaExpiracaoEm = new Date(Date.now() + (empresa.reservaHorasExpiracao ?? 24) * 60 * 60 * 1000);
+          status = "aguardando_reserva";
+        }
+        const id = await createAgendamento({
+          ...rest,
+          empresaId: empresa.id,
+          status,
+          valorReserva,
+          reservaExpiracaoEm,
+        } as any);
+        return { id, success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pre_agendado", "aguardando_reserva", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]).optional(),
+        data: z.string().optional(),
+        horaInicio: z.string().optional(),
+        horaFim: z.string().optional(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+        observacoes: z.string().optional(),
+        observacoesInternas: z.string().optional(),
+        reservaPaga: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, ...data } = input;
+        const updates: Record<string, any> = { ...data };
+        if (data.status === "confirmado") updates.confirmadoEm = new Date();
+        if (data.status === "concluido") updates.concluidoEm = new Date();
+        if (data.reservaPaga) updates.reservaPagaEm = new Date();
+        await updateAgendamento(id, updates);
+        return { success: true };
+      }),
+    confirmarReserva: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateAgendamento(input.id, {
+          status: "agendado",
+          reservaPaga: true,
+          reservaPagaEm: new Date(),
+        });
+        return { success: true };
+      }),
+  }),
+
+  // ─── BLOQUEIOS ────────────────────────────────────────────────────────────
+  bloqueios: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getBloqueiosByEmpresa(empresa.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        dataInicio: z.string(),
+        horaInicio: z.string(),
+        dataFim: z.string(),
+        horaFim: z.string(),
+        motivo: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createBloqueio({ ...input, empresaId: empresa.id });
+        // Notificar dona
+        await createNotificacao({
+          empresaId: empresa.id,
+          destinatarioId: ctx.user.id,
+          tipo: "bloqueio_solicitado",
+          titulo: "Nova solicitação de bloqueio",
+          mensagem: `Profissional solicitou bloqueio de agenda para ${input.dataInicio}`,
+          dadosContexto: { bloqueioId: id, ...input },
+        });
+        return { id, success: true };
+      }),
+    aprovar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateBloqueio(input.id, { status: "aprovado", aprovadoPorId: ctx.user.id });
+        return { success: true };
+      }),
+    recusar: protectedProcedure
+      .input(z.object({ id: z.number(), motivoRecusa: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateBloqueio(input.id, { status: "recusado", motivoRecusa: input.motivoRecusa, aprovadoPorId: ctx.user.id });
+        return { success: true };
+      }),
+  }),
+
+  // ─── FINANCEIRO / COMISSÕES ───────────────────────────────────────────────
+  financeiro: router({
+    comissoes: protectedProcedure
+      .input(z.object({ profissionalId: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) return [];
+        return getComissoesByEmpresa(empresa.id, input?.profissionalId);
+      }),
+    criarComissao: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        agendamentoId: z.number(),
+        valorServico: z.string(),
+        percentualComissao: z.string(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+        custoReposicao: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const valorServico = parseFloat(input.valorServico);
+        const percentualComissao = parseFloat(input.percentualComissao);
+        const custoReposicao = parseFloat(input.custoReposicao ?? "0");
+        const taxaMaquininha = (input.tipoPagamento === "cartao_debito" || input.tipoPagamento === "cartao_credito")
+          ? valorServico * (parseFloat(String(empresa.taxaMaquininha)) / 100) : 0;
+        const valorLiquido = valorServico - taxaMaquininha - custoReposicao;
+        const valorComissao = valorLiquido * (percentualComissao / 100);
+        const receitaDona = valorLiquido * (parseFloat(String(empresa.percentualDona)) / 100);
+        const id = await createComissao({
+          empresaId: empresa.id,
+          profissionalId: input.profissionalId,
+          agendamentoId: input.agendamentoId,
+          valorServico: input.valorServico,
+          percentualComissao: input.percentualComissao,
+          tipoPagamento: input.tipoPagamento,
+          taxaMaquininha: taxaMaquininha.toFixed(2),
+          custoReposicao: custoReposicao.toFixed(2),
+          valorLiquido: valorLiquido.toFixed(2),
+          valorComissao: valorComissao.toFixed(2),
+          receitaDona: receitaDona.toFixed(2),
+        } as any);
+        return { id, success: true };
+      }),
+    marcarPaga: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateComissao(input.id, { paga: true, pagaEm: new Date() });
+        return { success: true };
+      }),
+    dashboard: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+      return getDashboardMetrics(empresa.id);
+    }),
+  }),
+
+  // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────
+  notificacoes: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getNotificacoesByDestinatario(ctx.user.id, empresa.id);
+    }),
+    marcarLida: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await marcarNotificacaoLida(input.id);
+        return { success: true };
+      }),
+    marcarTodasLidas: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      await marcarTodasNotificacoesLidas(ctx.user.id, empresa.id);
+      return { success: true };
+    }),
+  }),
+
+  // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────
+  automacoes: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      return getAutomacoesByEmpresa(empresa.id);
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        descricao: z.string().optional(),
+        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_apos_agendamento"]),
+        evento: z.string().optional(),
+        delayMinutos: z.number().optional(),
+        dataFixaDia: z.number().optional(),
+        dataFixaMes: z.number().optional(),
+        dataFixaHora: z.string().optional(),
+        diasAntesDepois: z.number().optional(),
+        horaDisparo: z.string().optional(),
+        canalEnvio: z.enum(["whatsapp", "email", "sms"]).default("whatsapp"),
+        tituloMensagem: z.string().optional(),
+        corpoMensagem: z.string().min(1),
+        segmentacaoTipo: z.enum(["todas", "por_profissional", "por_tag"]).default("todas"),
+        segmentacaoValor: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const id = await createAutomacao({ ...input, empresaId: empresa.id });
+        return { id, success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        corpoMensagem: z.string().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, ...data } = input;
+        await updateAutomacao(id, data);
+        return { success: true };
+      }),
+  }),
+
+  // ─── CORES / CONFIGURAÇÕES ────────────────────────────────────────────────
+  configuracoes: router({
+    getCores: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+      return getCoresStatus(empresa.id);
+    }),
+    updateCores: protectedProcedure
+      .input(z.object({
+        corAgendado: z.string().optional(),
+        corConfirmado: z.string().optional(),
+        corConcluido: z.string().optional(),
+        corCancelado: z.string().optional(),
+        corFaltou: z.string().optional(),
+        corPreAgendado: z.string().optional(),
+        corAguardandoReserva: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await upsertCoresStatus(empresa.id, input);
+        return { success: true };
+      }),
+  }),
+
+  // ─── PORTAL PÚBLICO ───────────────────────────────────────────────────────
+  portal: router({
+    getEmpresa: publicProcedure
+      .input(z.object({ empresaId: z.number() }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return null;
+        const { empresas: emp } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const result = await db.select({
+          id: emp.id,
+          nome: emp.nome,
+          tipo: emp.tipo,
+          telefone: emp.telefone,
+          email: emp.email,
+          endereco: emp.endereco,
+          logoUrl: emp.logoUrl,
+          corPrimaria: emp.corPrimaria,
+          corSecundaria: emp.corSecundaria,
+        }).from(emp).where(eq(emp.id, input.empresaId)).limit(1);
+        return result[0] ?? null;
+      }),
+    getServicos: publicProcedure
+      .input(z.object({ empresaId: z.number() }))
+      .query(async ({ input }) => {
+        return getServicosByEmpresa(input.empresaId);
+      }),
+    getProfissionais: publicProcedure
+      .input(z.object({ empresaId: z.number() }))
+      .query(async ({ input }) => {
+        const profs = await getProfissionaisByEmpresa(input.empresaId);
+        return profs.filter(p => p.ativo).map(p => ({
+          id: p.id,
+          nome: p.nome,
+          especialidade: p.especialidade,
+          avatarUrl: p.avatarUrl,
+          corCalendario: p.corCalendario,
+        }));
+      }),
+    criarAgendamento: publicProcedure
+      .input(z.object({
+        empresaId: z.number(),
+        clienteNome: z.string().min(1),
+        clienteWhatsapp: z.string().min(1),
+        clienteEmail: z.string().email().optional(),
+        profissionalId: z.number(),
+        servicoId: z.number(),
+        data: z.string(),
+        horaInicio: z.string(),
+        horaFim: z.string(),
+        valorTotal: z.string(),
+        observacoes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { empresaId, clienteNome, clienteWhatsapp, clienteEmail, ...agendData } = input;
+        // Criar ou encontrar cliente
+        const clientesExistentes = await getClientesByEmpresa(empresaId);
+        let clienteId = clientesExistentes.find(c => c.whatsapp === clienteWhatsapp)?.id;
+        if (!clienteId) {
+          clienteId = await createCliente({
+            empresaId,
+            nome: clienteNome,
+            whatsapp: clienteWhatsapp,
+            email: clienteEmail,
+          });
+        }
+        const id = await createAgendamento({
+          ...agendData,
+          empresaId,
+          clienteId,
+          status: "pre_agendado",
+        } as any);
+        return { id, success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

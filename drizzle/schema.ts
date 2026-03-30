@@ -1,17 +1,22 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  decimal,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  time,
+  json,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+// Use varchar(10) for date fields to avoid Date/string type conflicts
+const dateField = (name: string) => varchar(name, { length: 10 });
+
+// ─── USERS (auth base) ────────────────────────────────────────────────────────
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,4 +30,266 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// ─── EMPRESAS ─────────────────────────────────────────────────────────────────
+export const empresas = mysqlTable("empresas", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  tipo: mysqlEnum("tipo", ["salao", "clinica", "barbearia", "consultorio", "outro"]).default("salao").notNull(),
+  telefone: varchar("telefone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  endereco: text("endereco"),
+  logoUrl: text("logoUrl"),
+  corPrimaria: varchar("corPrimaria", { length: 7 }).default("#1a1a2e"),
+  corSecundaria: varchar("corSecundaria", { length: 7 }).default("#e8d5c4"),
+  whatsappNumero: varchar("whatsappNumero", { length: 20 }),
+  whatsappApiKey: text("whatsappApiKey"),
+  taxaMaquininha: decimal("taxaMaquininha", { precision: 5, scale: 2 }).default("2.99"),
+  percentualDona: decimal("percentualDona", { precision: 5, scale: 2 }).default("0.00"),
+  reservaPercentual: decimal("reservaPercentual", { precision: 5, scale: 2 }).default("30.00"),
+  reservaHorasExpiracao: int("reservaHorasExpiracao").default(24),
+  ownerId: int("ownerId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Empresa = typeof empresas.$inferSelect;
+
+// ─── PROFISSIONAIS ────────────────────────────────────────────────────────────
+export const profissionais = mysqlTable("profissionais", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  userId: int("userId"),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  telefone: varchar("telefone", { length: 20 }),
+  especialidade: varchar("especialidade", { length: 255 }),
+  corCalendario: varchar("corCalendario", { length: 7 }).default("#7c3aed"),
+  avatarUrl: text("avatarUrl"),
+  ativo: boolean("ativo").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Profissional = typeof profissionais.$inferSelect;
+
+// ─── PERMISSÕES ───────────────────────────────────────────────────────────────
+export const permissoes = mysqlTable("permissoes", {
+  id: int("id").autoincrement().primaryKey(),
+  profissionalId: int("profissionalId").notNull().unique(),
+  podeAgendar: boolean("podeAgendar").default(true),
+  podeCancelar: boolean("podeCancelar").default(false),
+  podeRemarcar: boolean("podeRemarcar").default(false),
+  podeEditarCliente: boolean("podeEditarCliente").default(false),
+  podeSolicitarBloqueio: boolean("podeSolicitarBloqueio").default(true),
+  podeVerComissoes: boolean("podeVerComissoes").default(false),
+  podeVerFinanceiro: boolean("podeVerFinanceiro").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ─── CLIENTES ─────────────────────────────────────────────────────────────────
+export const clientes = mysqlTable("clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  telefone: varchar("telefone", { length: 20 }),
+  whatsapp: varchar("whatsapp", { length: 20 }),
+  cpf: varchar("cpf", { length: 14 }),
+  dataNascimento: dateField("dataNascimento"),
+  endereco: text("endereco"),
+  observacoes: text("observacoes"),
+  tags: json("tags").$type<string[]>().default([]),
+  saldoSessoes: int("saldoSessoes").default(0),
+  totalGasto: decimal("totalGasto", { precision: 10, scale: 2 }).default("0.00"),
+  totalAtendimentos: int("totalAtendimentos").default(0),
+  ultimoAtendimento: timestamp("ultimoAtendimento"),
+  ativo: boolean("ativo").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Cliente = typeof clientes.$inferSelect;
+
+// ─── SERVIÇOS ─────────────────────────────────────────────────────────────────
+export const servicos = mysqlTable("servicos", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  duracaoMinutos: int("duracaoMinutos").default(60),
+  categoria: varchar("categoria", { length: 100 }),
+  cor: varchar("cor", { length: 7 }).default("#7c3aed"),
+  ativo: boolean("ativo").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Servico = typeof servicos.$inferSelect;
+
+// ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
+export const agendamentos = mysqlTable("agendamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  profissionalId: int("profissionalId").notNull(),
+  servicoId: int("servicoId").notNull(),
+  data: dateField("data").notNull(),
+  horaInicio: time("horaInicio").notNull(),
+  horaFim: time("horaFim").notNull(),
+  status: mysqlEnum("status", [
+    "pre_agendado",
+    "aguardando_reserva",
+    "agendado",
+    "confirmado",
+    "em_andamento",
+    "concluido",
+    "cancelado",
+    "faltou",
+  ]).default("agendado").notNull(),
+  valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull(),
+  valorReserva: decimal("valorReserva", { precision: 10, scale: 2 }),
+  reservaPaga: boolean("reservaPaga").default(false),
+  reservaPagaEm: timestamp("reservaPagaEm"),
+  reservaExpiracaoEm: timestamp("reservaExpiracaoEm"),
+  tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  observacoes: text("observacoes"),
+  observacoesInternas: text("observacoesInternas"),
+  confirmadoEm: timestamp("confirmadoEm"),
+  concluidoEm: timestamp("concluidoEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Agendamento = typeof agendamentos.$inferSelect;
+
+// ─── BLOQUEIOS DE AGENDA ──────────────────────────────────────────────────────
+export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  profissionalId: int("profissionalId").notNull(),
+  dataInicio: dateField("dataInicio").notNull(),
+  horaInicio: time("horaInicio").notNull(),
+  dataFim: dateField("dataFim").notNull(),
+  horaFim: time("horaFim").notNull(),
+  motivo: varchar("motivo", { length: 500 }),
+  status: mysqlEnum("status", ["pendente", "aprovado", "recusado"]).default("pendente").notNull(),
+  motivoRecusa: varchar("motivoRecusa", { length: 500 }),
+  aprovadoPorId: int("aprovadoPorId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ─── COMISSÕES ────────────────────────────────────────────────────────────────
+export const comissoes = mysqlTable("comissoes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  profissionalId: int("profissionalId").notNull(),
+  agendamentoId: int("agendamentoId").notNull(),
+  valorServico: decimal("valorServico", { precision: 10, scale: 2 }).notNull(),
+  percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).notNull(),
+  tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  taxaMaquininha: decimal("taxaMaquininha", { precision: 10, scale: 2 }).default("0.00"),
+  custoReposicao: decimal("custoReposicao", { precision: 10, scale: 2 }).default("0.00"),
+  valorLiquido: decimal("valorLiquido", { precision: 10, scale: 2 }).notNull(),
+  valorComissao: decimal("valorComissao", { precision: 10, scale: 2 }).notNull(),
+  receitaDona: decimal("receitaDona", { precision: 10, scale: 2 }).default("0.00"),
+  paga: boolean("paga").default(false),
+  pagaEm: timestamp("pagaEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
+export const notificacoes = mysqlTable("notificacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  destinatarioId: int("destinatarioId").notNull(),
+  tipo: mysqlEnum("tipo", [
+    "agendamento_criado",
+    "agendamento_confirmado",
+    "agendamento_cancelado",
+    "agendamento_remarcado",
+    "bloqueio_aprovado",
+    "bloqueio_recusado",
+    "bloqueio_solicitado",
+    "reserva_expirada",
+    "lembrete",
+    "sistema",
+  ]).notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  mensagem: text("mensagem").notNull(),
+  dadosContexto: json("dadosContexto"),
+  lida: boolean("lida").default(false),
+  lidaEm: timestamp("lidaEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────────
+export const automacoes = mysqlTable("automacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  tipoGatilho: mysqlEnum("tipoGatilho", [
+    "evento",
+    "data_fixa",
+    "aniversario_mes",
+    "dias_antes_agendamento",
+    "horas_apos_agendamento",
+  ]).notNull(),
+  // Para tipo 'evento'
+  evento: varchar("evento", { length: 100 }),
+  delayMinutos: int("delayMinutos"),
+  // Para tipo 'data_fixa'
+  dataFixaDia: int("dataFixaDia"),
+  dataFixaMes: int("dataFixaMes"),
+  dataFixaHora: time("dataFixaHora"),
+  // Para tipo 'dias_antes_agendamento' ou 'aniversario_mes'
+  diasAntesDepois: int("diasAntesDepois"),
+  horaDisparo: time("horaDisparo"),
+  // Conteúdo
+  canalEnvio: mysqlEnum("canalEnvio", ["whatsapp", "email", "sms"]).default("whatsapp").notNull(),
+  tituloMensagem: varchar("tituloMensagem", { length: 255 }),
+  corpoMensagem: text("corpoMensagem").notNull(),
+  // Segmentação
+  segmentacaoTipo: mysqlEnum("segmentacaoTipo", ["todas", "por_profissional", "por_tag"]).default("todas"),
+  segmentacaoValor: varchar("segmentacaoValor", { length: 255 }),
+  ativo: boolean("ativo").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ─── PRONTUÁRIOS ──────────────────────────────────────────────────────────────
+export const prontuarios = mysqlTable("prontuarios", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  agendamentoId: int("agendamentoId"),
+  profissionalId: int("profissionalId"),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  conteudo: text("conteudo"),
+  tipo: mysqlEnum("tipo", ["anamnese", "evolucao", "foto", "documento", "contrato", "outro"]).default("evolucao"),
+  arquivoUrl: text("arquivoUrl"),
+  arquivoKey: text("arquivoKey"),
+  arquivoNome: varchar("arquivoNome", { length: 255 }),
+  arquivoTipo: varchar("arquivoTipo", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ─── CONFIGURAÇÕES DE CORES ───────────────────────────────────────────────────
+export const coresStatus = mysqlTable("cores_status", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull().unique(),
+  corAgendado: varchar("corAgendado", { length: 7 }).default("#3b82f6"),
+  corConfirmado: varchar("corConfirmado", { length: 7 }).default("#10b981"),
+  corConcluido: varchar("corConcluido", { length: 7 }).default("#6b7280"),
+  corCancelado: varchar("corCancelado", { length: 7 }).default("#ef4444"),
+  corFaltou: varchar("corFaltou", { length: 7 }).default("#f59e0b"),
+  corPreAgendado: varchar("corPreAgendado", { length: 7 }).default("#8b5cf6"),
+  corAguardandoReserva: varchar("corAguardandoReserva", { length: 7 }).default("#f97316"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
