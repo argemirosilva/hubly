@@ -82,7 +82,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>
+          <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
           </DialogTitle>
         </DialogHeader>

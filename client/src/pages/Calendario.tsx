@@ -1,23 +1,11 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-
-const statusColors: Record<string, string> = {
-  pre_agendado: "bg-purple-500 text-white",
-  aguardando_reserva: "bg-orange-500 text-white",
-  agendado: "bg-blue-500 text-white",
-  confirmado: "bg-emerald-500 text-white",
-  em_andamento: "bg-cyan-500 text-white",
-  concluido: "bg-gray-400 text-white",
-  cancelado: "bg-red-500 text-white",
-  faltou: "bg-amber-500 text-white",
-};
 
 export default function Calendario() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -36,145 +24,190 @@ export default function Calendario() {
   const { data: profissionais } = trpc.profissionais.list.useQuery();
 
   const clienteMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    clientes?.forEach(c => { map[c.id] = c.nome; });
-    return map;
+    const m: Record<number, string> = {};
+    clientes?.forEach(c => { m[c.id] = c.nome; });
+    return m;
   }, [clientes]);
 
   const profMap = useMemo(() => {
-    const map: Record<number, { nome: string; cor: string }> = {};
-    profissionais?.forEach(p => { map[p.id] = { nome: p.nome, cor: p.corCalendario ?? "#6366f1" }; });
-    return map;
+    const m: Record<number, { nome: string; cor: string }> = {};
+    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(50% 0.06 68)" }; });
+    return m;
   }, [profissionais]);
 
-  // Agrupar agendamentos por data
   const agendamentosPorDia = useMemo(() => {
-    const map: Record<string, typeof agendamentos> = {};
+    const m: Record<string, typeof agendamentos> = {};
     agendamentos?.forEach(ag => {
-      if (!map[ag.data]) map[ag.data] = [];
-      map[ag.data]!.push(ag);
+      if (!m[ag.data]) m[ag.data] = [];
+      m[ag.data]!.push(ag);
     });
-    return map;
+    return m;
   }, [agendamentos]);
 
-  // Gerar dias do calendário
   const calDays = useMemo(() => {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
     const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
 
-    // Dias do mês anterior
     for (let i = firstDay - 1; i >= 0; i--) {
       const d = daysInPrevMonth - i;
       const m = month === 0 ? 12 : month;
       const y = month === 0 ? year - 1 : year;
       days.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
     }
-
-    // Dias do mês atual
     for (let d = 1; d <= daysInMonth; d++) {
       days.push({ date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: true });
     }
-
-    // Dias do próximo mês
     const remaining = 42 - days.length;
     for (let d = 1; d <= remaining; d++) {
       const m = month === 11 ? 1 : month + 2;
       const y = month === 11 ? year + 1 : year;
       days.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
     }
-
     return days;
   }, [year, month]);
 
   const today = new Date().toISOString().split("T")[0];
-
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
   return (
-    <div className="p-6 space-y-4 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-            {MESES[month]} {year}
-          </h1>
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in-up">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-5">
+          <div>
+            <p className="text-xs text-muted-foreground tracking-[0.15em] uppercase mb-0.5">Calendário</p>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.8rem", fontWeight: 400, color: "oklch(18% 0.018 52)" }}>
+              {MESES[month]} {year}
+            </h1>
+          </div>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setCurrentDate(new Date())}>
+            <button onClick={prevMonth}
+              className="w-7 h-7 rounded-md border flex items-center justify-center hover:bg-secondary transition-colors"
+              style={{ borderColor: "oklch(87% 0.016 68)" }}>
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <button onClick={() => setCurrentDate(new Date())}
+              className="px-3 h-7 rounded-md border text-xs hover:bg-secondary transition-colors"
+              style={{ borderColor: "oklch(87% 0.016 68)", color: "oklch(40% 0.012 68)" }}>
               Hoje
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            </button>
+            <button onClick={nextMonth}
+              className="w-7 h-7 rounded-md border flex items-center justify-center hover:bg-secondary transition-colors"
+              style={{ borderColor: "oklch(87% 0.016 68)" }}>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           </div>
         </div>
-        <Button onClick={() => { setNovaAgendaData(today); setNovaAgendaOpen(true); }} className="gap-2">
-          <Plus className="w-4 h-4" />
+
+        <button
+          onClick={() => { setNovaAgendaData(today); setNovaAgendaOpen(true); }}
+          className="flex items-center gap-2 px-4 py-2 text-xs tracking-wider uppercase transition-opacity hover:opacity-80"
+          style={{ background: "oklch(22% 0.018 52)", color: "oklch(97% 0.006 68)", borderRadius: "4px", letterSpacing: "0.07em" }}>
+          <Plus className="w-3.5 h-3.5" />
           Novo Agendamento
-        </Button>
+        </button>
       </div>
 
-      {/* Legenda de profissionais */}
-      {profissionais && profissionais.length > 0 && (
-        <div className="flex flex-wrap gap-3">
+      {/* ── Legenda de profissionais ────────────────────────────────────── */}
+      {profissionais && profissionais.filter(p => p.ativo).length > 0 && (
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-[11px] tracking-[0.12em] uppercase text-muted-foreground">Profissionais:</span>
           {profissionais.filter(p => p.ativo).map(p => (
             <div key={p.id} className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.corCalendario ?? "#6366f1" }} />
-              <span className="text-xs text-muted-foreground">{p.nome}</span>
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.corCalendario ?? "oklch(50% 0.06 68)" }} />
+              <span className="text-xs text-muted-foreground">{p.nome.split(" ")[0]}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Calendário */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden shadow-none">
-        {/* Cabeçalho dos dias */}
-        <div className="grid grid-cols-7 border-b border-border">
-          {DIAS_SEMANA.map(dia => (
-            <div key={dia} className="px-2 py-2.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              {dia}
+      {/* ── Calendário ─────────────────────────────────────────────────── */}
+      <div className="card-elegant overflow-hidden">
+        {/* Cabeçalho dos dias da semana */}
+        <div className="grid grid-cols-7" style={{ borderBottom: "1px solid oklch(87% 0.016 68)", background: "oklch(97% 0.008 68)" }}>
+          {DIAS_SEMANA.map((dia, i) => (
+            <div key={dia} className="py-3 text-center"
+              style={{ borderRight: i < 6 ? "1px solid oklch(92% 0.012 68)" : "none" }}>
+              <span className="text-[11px] tracking-[0.12em] uppercase font-medium"
+                style={{ color: i === 0 || i === 6 ? "oklch(65% 0.012 68)" : "oklch(45% 0.012 68)" }}>
+                {dia}
+              </span>
             </div>
           ))}
         </div>
 
         {/* Grid de dias */}
         <div className="grid grid-cols-7">
-          {calDays.map(({ date, day, isCurrentMonth }) => {
+          {calDays.map(({ date, day, isCurrentMonth }, idx) => {
             const ags = agendamentosPorDia[date] ?? [];
             const isToday = date === today;
+            const col = idx % 7;
+            const isWeekend = col === 0 || col === 6;
+
             return (
               <div
                 key={date}
-                className={`min-h-[100px] p-1.5 border-r border-b border-border cursor-pointer transition-colors
-                  ${!isCurrentMonth ? "bg-muted/20" : "bg-card hover:bg-muted/20"}
-                  ${isToday ? "bg-secondary/30" : ""}
-                `}
+                className="min-h-[96px] p-2 cursor-pointer transition-colors"
+                style={{
+                  borderRight: col < 6 ? "1px solid oklch(92% 0.012 68)" : "none",
+                  borderBottom: "1px solid oklch(92% 0.012 68)",
+                  background: isToday
+                    ? "oklch(92% 0.022 72 / 40%)"
+                    : !isCurrentMonth
+                    ? "oklch(97% 0.006 68)"
+                    : isWeekend
+                    ? "oklch(98.5% 0.006 68)"
+                    : "oklch(99% 0.004 68)",
+                }}
                 onClick={() => { setNovaAgendaData(date); setNovaAgendaOpen(true); }}
               >
-                <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                  ${isToday ? "bg-primary text-primary-foreground" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/50"}
-                `}>
-                  {day}
+                {/* Número do dia */}
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className="text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full transition-colors"
+                    style={{
+                      background: isToday ? "oklch(22% 0.018 52)" : "transparent",
+                      color: isToday
+                        ? "oklch(97% 0.006 68)"
+                        : !isCurrentMonth
+                        ? "oklch(72% 0.010 68)"
+                        : isWeekend
+                        ? "oklch(55% 0.012 68)"
+                        : "oklch(28% 0.018 52)",
+                    }}>
+                    {day}
+                  </span>
+                  {ags.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+                      {ags.length}
+                    </span>
+                  )}
                 </div>
+
+                {/* Eventos */}
                 <div className="space-y-0.5">
-                  {ags.slice(0, 3).map(ag => (
-                    <div
-                      key={ag.id}
-                      className={`text-xs px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80 transition-opacity`}
-                      style={{ backgroundColor: profMap[ag.profissionalId]?.cor ?? "#6366f1", color: "white" }}
-                      onClick={(e) => { e.stopPropagation(); setAgendamentoSelecionado(ag.id); }}
-                      title={`${ag.horaInicio.slice(0, 5)} - ${clienteMap[ag.clienteId] ?? "Cliente"}`}
-                    >
-                      {ag.horaInicio.slice(0, 5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
-                    </div>
-                  ))}
+                  {ags.slice(0, 3).map(ag => {
+                    const cor = profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                    return (
+                      <div
+                        key={ag.id}
+                        className="text-[11px] px-1.5 py-0.5 rounded-sm truncate font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: cor, color: "white", lineHeight: "1.4" }}
+                        onClick={e => { e.stopPropagation(); setAgendamentoSelecionado(ag.id); }}
+                        title={`${ag.horaInicio.slice(0, 5)} — ${clienteMap[ag.clienteId] ?? "Cliente"}`}
+                      >
+                        {ag.horaInicio.slice(0, 5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
+                      </div>
+                    );
+                  })}
                   {ags.length > 3 && (
-                    <div className="text-xs text-muted-foreground px-1.5">+{ags.length - 3} mais</div>
+                    <p className="text-[10px] text-muted-foreground/60 px-1.5">
+                      +{ags.length - 3} mais
+                    </p>
                   )}
                 </div>
               </div>

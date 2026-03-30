@@ -3,43 +3,36 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
 import {
   Calendar, Users, TrendingUp, DollarSign,
-  AlertCircle, ArrowUpRight, ArrowDownRight, Plus, ChevronRight, CheckCircle
+  ArrowUpRight, ArrowDownRight, Plus, ChevronRight,
+  Sparkles, Clock, CheckCircle2, AlertCircle, Zap
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 
-const statusLabel: Record<string, string> = {
-  pre_agendado: "Pré-agendado",
-  aguardando_reserva: "Aguard. Reserva",
-  agendado: "Agendado",
-  confirmado: "Confirmado",
-  em_andamento: "Em andamento",
-  concluido: "Concluído",
-  cancelado: "Cancelado",
-  faltou: "Faltou",
-};
-
-const statusColor: Record<string, string> = {
-  pre_agendado: "bg-purple-100 text-purple-700",
-  aguardando_reserva: "bg-orange-100 text-orange-700",
-  agendado: "bg-blue-100 text-blue-700",
-  confirmado: "bg-emerald-100 text-emerald-700",
-  em_andamento: "bg-cyan-100 text-cyan-700",
-  concluido: "bg-gray-100 text-gray-600",
-  cancelado: "bg-red-100 text-red-700",
-  faltou: "bg-amber-100 text-amber-700",
+const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  aguardando_reserva: { label: "Aguard. Reserva", bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
+  agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
+  em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
+  concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+  faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
 };
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+function saudacao(nome?: string) {
+  const h = new Date().getHours();
+  const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  return nome ? `${greeting}, ${nome.split(" ")[0]}! 👋` : `${greeting}! 👋`;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
-
   const today = new Date().toISOString().split("T")[0];
 
   const { data: empresa } = trpc.empresa.get.useQuery();
@@ -48,262 +41,347 @@ export default function Dashboard() {
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
-  const { data: notificacoes } = trpc.notificacoes.list.useQuery();
-
-  const naoLidas = notificacoes?.filter(n => !n.lida).length ?? 0;
 
   const profMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    profissionais?.forEach(p => { map[p.id] = p.nome; });
-    return map;
+    const m: Record<number, { nome: string; cor: string }> = {};
+    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(55% 0.22 264)" }; });
+    return m;
   }, [profissionais]);
 
   const clienteMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    clientes?.forEach(c => { map[c.id] = c.nome; });
-    return map;
+    const m: Record<number, string> = {};
+    clientes?.forEach(c => { m[c.id] = c.nome; });
+    return m;
   }, [clientes]);
 
   const servicoMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    servicos?.forEach(s => { map[s.id] = s.nome; });
-    return map;
+    const m: Record<number, string> = {};
+    servicos?.forEach(s => { m[s.id] = s.nome; });
+    return m;
   }, [servicos]);
 
-  const agendamentosOrdenados = useMemo(() => {
-    return [...(agendamentosHoje ?? [])].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-  }, [agendamentosHoje]);
+  const agendamentosOrdenados = useMemo(() =>
+    [...(agendamentosHoje ?? [])].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
+    [agendamentosHoje]
+  );
 
-  const variacaoReceita = metrics
-    ? metrics.receitaMesAnterior > 0
-      ? ((metrics.receitaMes - metrics.receitaMesAnterior) / metrics.receitaMesAnterior) * 100
-      : 0
+  const variacaoReceita = metrics && metrics.receitaMesAnterior > 0
+    ? ((metrics.receitaMes - metrics.receitaMesAnterior) / metrics.receitaMesAnterior) * 100
     : 0;
+
+  const dataFormatada = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long", day: "numeric", month: "long"
+  });
+
+  // Agendamentos pendentes de confirmação
+  const pendentes = agendamentosOrdenados.filter(a =>
+    a.status === "aguardando_reserva" || a.status === "pre_agendado"
+  ).length;
 
   if (!empresa) {
     return (
-      <div className="p-8 max-w-lg mx-auto text-center mt-16">
-        <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-screen p-8">
+        <div className="text-center max-w-sm space-y-5">
+          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto">
+            <Sparkles className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight mb-2">Configure sua empresa</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Para começar a usar o Agendei, configure as informações do seu estabelecimento.
+            </p>
+          </div>
+          <Link href="/admin/configuracoes">
+            <button className="btn-primary mx-auto">
+              Configurar agora <ChevronRight className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
-        <h2 className="text-xl font-semibold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-          Configure sua empresa
-        </h2>
-        <p className="text-muted-foreground text-sm mb-6">
-          Para começar a usar o Agendei, configure as informações da sua empresa.
-        </p>
-        <Link href="/admin/configuracoes">
-          <Button>Configurar agora</Button>
-        </Link>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="p-5 lg:p-7 max-w-7xl mx-auto space-y-6 animate-in-up">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Bom dia, {user?.name?.split(" ")[0]} 👋
+          <p className="text-xs text-muted-foreground font-medium capitalize mb-0.5">{dataFormatada}</p>
+          <h1 className="font-bold tracking-tight" style={{ fontSize: "1.6rem" }}>
+            {saudacao(user?.name ?? undefined)}
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">{empresa.nome}</p>
         </div>
-        <Button onClick={() => setNovaAgendaOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Agendamento
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {pendentes > 0 && (
+            <Link href="/admin/agendamentos">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                style={{ background: "oklch(72% 0.16 80 / 15%)", color: "oklch(40% 0.14 75)" }}>
+                <AlertCircle className="w-3.5 h-3.5" />
+                {pendentes} pendente{pendentes > 1 ? "s" : ""}
+              </div>
+            </Link>
+          )}
+          <button
+            onClick={() => setNovaAgendaOpen(true)}
+            className="btn-primary">
+            <Plus className="w-3.5 h-3.5" />
+            Novo Agendamento
+          </button>
+        </div>
       </div>
 
-      {/* Stats cards */}
+      {/* ── Stats ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: "Agendamentos hoje",
-            value: agendamentosHoje?.length ?? 0,
+            label: "Hoje",
+            value: String(agendamentosHoje?.length ?? 0),
+            sub: "agendamentos",
             icon: Calendar,
-            iconBg: "bg-blue-50",
-            iconColor: "text-blue-600",
-            sub: "Hoje",
+            iconBg: "oklch(55% 0.22 264 / 12%)",
+            iconColor: "oklch(45% 0.18 264)",
           },
           {
             label: "Receita do mês",
             value: formatCurrency(metrics?.receitaMes ?? 0),
-            icon: DollarSign,
-            iconBg: "bg-emerald-50",
-            iconColor: "text-emerald-600",
-            sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs mês ant.` : "Mês atual",
+            sub: variacaoReceita !== 0
+              ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs anterior`
+              : "Mês atual",
             trend: variacaoReceita,
+            icon: DollarSign,
+            iconBg: "oklch(62% 0.18 155 / 12%)",
+            iconColor: "oklch(38% 0.14 155)",
           },
           {
-            label: "Clientes ativos",
-            value: metrics?.totalClientes ?? 0,
+            label: "Clientes",
+            value: String(metrics?.totalClientes ?? 0),
+            sub: "cadastrados",
             icon: Users,
-            iconBg: "bg-purple-50",
-            iconColor: "text-purple-600",
-            sub: "Total cadastrado",
+            iconBg: "oklch(60% 0.20 300 / 12%)",
+            iconColor: "oklch(42% 0.16 300)",
           },
           {
-            label: "Taxa de conversão",
+            label: "Conversão",
             value: `${metrics?.taxaConversao ?? 0}%`,
+            sub: "concluídos / total",
             icon: TrendingUp,
-            iconBg: "bg-amber-50",
-            iconColor: "text-amber-600",
-            sub: "Concluídos/Total",
+            iconBg: "oklch(68% 0.18 80 / 12%)",
+            iconColor: "oklch(40% 0.14 80)",
           },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="border-border shadow-none">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-9 h-9 ${stat.iconBg} rounded-lg flex items-center justify-center`}>
-                    <Icon className={`w-4 h-4 ${stat.iconColor}`} />
-                  </div>
-                  {stat.trend !== undefined && (
-                    <div className="flex items-center gap-0.5">
-                      {stat.trend >= 0
-                        ? <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                        : <ArrowDownRight className="w-3 h-3 text-red-500" />}
-                      <span className={`text-xs font-medium ${stat.trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {Math.abs(stat.trend).toFixed(0)}%
-                      </span>
-                    </div>
-                  )}
+            <div key={stat.label} className="stat-card">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: stat.iconBg }}>
+                  <Icon className="w-4 h-4" style={{ color: stat.iconColor }} />
                 </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-              </CardContent>
-            </Card>
+                {stat.trend !== undefined && (
+                  <div className="flex items-center gap-0.5 text-xs font-semibold"
+                    style={{ color: stat.trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
+                    {stat.trend >= 0
+                      ? <ArrowUpRight className="w-3.5 h-3.5" />
+                      : <ArrowDownRight className="w-3.5 h-3.5" />}
+                    {Math.abs(stat.trend).toFixed(0)}%
+                  </div>
+                )}
+              </div>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                <span className="font-medium text-foreground/70">{stat.label}</span> · {stat.sub}
+              </p>
+            </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ── Main grid ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
         {/* Agenda do dia */}
-        <div className="lg:col-span-2">
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-semibold">Agenda de Hoje</CardTitle>
-              <Link href="/admin/calendario">
-                <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
-                  Ver calendário <ChevronRight className="w-3 h-3" />
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="p-0">
-              {agendamentosOrdenados.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-                  <Calendar className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhum agendamento para hoje</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setNovaAgendaOpen(true)}>
-                    Criar agendamento
-                  </Button>
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {agendamentosOrdenados.map((ag) => (
-                    <div key={ag.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors">
-                      <div className="text-center min-w-[48px]">
-                        <p className="text-sm font-semibold text-foreground">{ag.horaInicio.slice(0, 5)}</p>
-                        <p className="text-xs text-muted-foreground">{ag.horaFim.slice(0, 5)}</p>
-                      </div>
-                      <div className="w-px h-8 bg-border" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {clienteMap[ag.clienteId] ?? "Cliente"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {servicoMap[ag.servicoId] ?? "Serviço"} · {profMap[ag.profissionalId] ?? "Profissional"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {statusLabel[ag.status] ?? ag.status}
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {formatCurrency(parseFloat(String(ag.valorTotal)))}
-                        </span>
-                      </div>
+        <div className="lg:col-span-2 card-elegant overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
+                <Clock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm tracking-tight">Agenda de Hoje</h3>
+                <p className="text-xs text-muted-foreground">
+                  {agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            <Link href="/admin/calendario">
+              <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Ver calendário <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </Link>
+          </div>
+
+          {agendamentosOrdenados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
+                <Calendar className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento hoje</p>
+              <p className="text-xs text-muted-foreground mb-5">Que tal criar o primeiro?</p>
+              <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary text-xs py-1.5">
+                <Plus className="w-3.5 h-3.5" /> Criar agendamento
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+              {agendamentosOrdenados.map((ag) => {
+                const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
+                const prof = profMap[ag.profissionalId];
+                return (
+                  <div key={ag.id}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors">
+                    {/* Hora */}
+                    <div className="text-center flex-shrink-0 w-12">
+                      <p className="text-sm font-bold tracking-tight text-foreground">
+                        {ag.horaInicio.slice(0, 5)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {ag.horaFim.slice(0, 5)}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                    {/* Cor profissional */}
+                    <div className="w-1 h-10 rounded-full flex-shrink-0"
+                      style={{ background: prof?.cor ?? "oklch(55% 0.22 264)" }} />
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">
+                        {clienteMap[ag.clienteId] ?? "Cliente"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {servicoMap[ag.servicoId] ?? "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
+                      </p>
+                    </div>
+
+                    {/* Status */}
+                    <span className="badge text-[10px] flex-shrink-0"
+                      style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Painel lateral */}
         <div className="space-y-4">
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Resumo do Mês</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          {/* Ações rápidas */}
+          <div className="card-elegant p-4">
+            <h3 className="font-semibold text-sm mb-3 tracking-tight">Ações Rápidas</h3>
+            <div className="space-y-2">
               {[
-                { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0) },
-                { label: "Total de atend.", value: metrics?.agendamentosMes ?? 0 },
-                { label: "Comissões pend.", value: metrics?.comissoesPendentes ?? 0, highlight: "text-amber-600" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className={`text-sm font-semibold ${item.highlight ?? "text-foreground"}`}>{item.value}</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t border-border flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Receita total</span>
-                <span className="text-sm font-bold text-emerald-600">{formatCurrency(metrics?.receitaMes ?? 0)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {naoLidas > 0 && (
-            <Card className="border-amber-200 bg-amber-50 shadow-none">
-              <CardContent className="p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-800">
-                    {naoLidas} notificaç{naoLidas === 1 ? "ão" : "ões"} não lida{naoLidas !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <Link href="/admin/notificacoes">
-                  <Button variant="ghost" size="sm" className="h-7 text-amber-700 hover:bg-amber-100">Ver</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="border-border shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Atalhos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0.5 p-3">
-              {[
-                { href: "/admin/clientes", label: "Cadastrar cliente", icon: Users },
-                { href: "/admin/financeiro", label: "Ver comissões", icon: DollarSign },
-                { href: "/admin/automacoes", label: "Automações", icon: CheckCircle },
-                { href: "/admin/configuracoes", label: "Configurações", icon: TrendingUp },
+                { label: "Novo agendamento", icon: Plus, action: () => setNovaAgendaOpen(true), primary: true },
+                { label: "Ver calendário", icon: Calendar, href: "/admin/calendario" },
+                { label: "Adicionar cliente", icon: Users, href: "/admin/clientes" },
+                { label: "Ver automações", icon: Zap, href: "/admin/automacoes" },
               ].map((item) => {
                 const Icon = item.icon;
+                if (item.action) {
+                  return (
+                    <button key={item.label} onClick={item.action}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${item.primary ? "btn-primary justify-start" : "btn-ghost hover:bg-muted"}`}>
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      {item.label}
+                    </button>
+                  );
+                }
                 return (
-                  <Link key={item.href} href={item.href}>
-                    <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                      <Icon className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{item.label}</span>
-                      <ChevronRight className="w-3 h-3 text-muted-foreground ml-auto" />
-                    </div>
+                  <Link key={item.label} href={item.href!}>
+                    <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium btn-ghost hover:bg-muted transition-all">
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      {item.label}
+                    </button>
                   </Link>
                 );
               })}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Resumo financeiro */}
+          <div className="card-elegant p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm tracking-tight">Financeiro</h3>
+              <Link href="/admin/financeiro">
+                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  Ver tudo <ChevronRight className="w-3 h-3" />
+                </button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: "Receita bruta", value: formatCurrency(metrics?.receitaMes ?? 0), positive: true },
+                { label: "Comissões pendentes", value: formatCurrency(metrics?.comissoesPendentes ?? 0), positive: false },
+                { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), positive: true },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-xs font-bold"
+                    style={{ color: item.positive ? "oklch(35% 0.14 155)" : "oklch(40% 0.18 25)" }}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Profissionais ativos */}
+          {profissionais && profissionais.filter(p => p.ativo).length > 0 && (
+            <div className="card-elegant p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm tracking-tight">Equipe</h3>
+                <Link href="/admin/profissionais">
+                  <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                    Gerenciar <ChevronRight className="w-3 h-3" />
+                  </button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {profissionais.filter(p => p.ativo).slice(0, 4).map(p => {
+                  const agendamentosProf = agendamentosOrdenados.filter(a => a.profissionalId === p.id).length;
+                  return (
+                    <div key={p.id} className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-white"
+                        style={{ background: p.corCalendario ?? "oklch(55% 0.22 264)" }}>
+                        {p.nome.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{p.nome.split(" ")[0]}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" style={{ color: "oklch(55% 0.22 264)" }} />
+                        <span className="text-[11px] font-semibold text-muted-foreground">{agendamentosProf}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {novaAgendaOpen && (
-        <NovaAgendaModal open={novaAgendaOpen} onClose={() => setNovaAgendaOpen(false)} />
+        <NovaAgendaModal
+          open={novaAgendaOpen}
+          onClose={() => setNovaAgendaOpen(false)}
+        />
       )}
     </div>
   );

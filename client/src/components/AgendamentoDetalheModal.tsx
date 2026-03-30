@@ -1,30 +1,17 @@
 import { trpc } from "@/lib/trpc";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Clock, User, Scissors, DollarSign } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar } from "lucide-react";
 
-const statusLabel: Record<string, string> = {
-  pre_agendado: "Pré-agendado",
-  aguardando_reserva: "Aguardando Reserva",
-  agendado: "Agendado",
-  confirmado: "Confirmado",
-  em_andamento: "Em andamento",
-  concluido: "Concluído",
-  cancelado: "Cancelado",
-  faltou: "Faltou",
-};
-
-const statusColor: Record<string, string> = {
-  pre_agendado: "bg-purple-100 text-purple-700",
-  aguardando_reserva: "bg-orange-100 text-orange-700",
-  agendado: "bg-blue-100 text-blue-700",
-  confirmado: "bg-emerald-100 text-emerald-700",
-  em_andamento: "bg-cyan-100 text-cyan-700",
-  concluido: "bg-gray-100 text-gray-600",
-  cancelado: "bg-red-100 text-red-700",
-  faltou: "bg-amber-100 text-amber-700",
+const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  aguardando_reserva: { label: "Aguard. Reserva", bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
+  agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
+  em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
+  concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+  faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
 };
 
 interface Props {
@@ -46,7 +33,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       utils.agendamentos.list.invalidate();
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: { message: string }) => toast.error(err.message),
   });
 
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
@@ -54,107 +41,183 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const servico = servicos?.find(s => s.id === ag?.servicoId);
 
   const handleStatus = (status: string) => {
-    updateMutation.mutate({ id: agendamentoId, status: status as any } as any);
+    updateMutation.mutate({ id: agendamentoId, status: status as Parameters<typeof updateMutation.mutate>[0]["status"] } as Parameters<typeof updateMutation.mutate>[0]);
   };
 
   if (isLoading || !ag) return null;
 
+  const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
+  const dataFormatada = ag.data.split("-").reverse().join("/");
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>
-            Detalhes do Agendamento
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Status</span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
-              {statusLabel[ag.status] ?? ag.status}
-            </span>
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm tracking-tight">Detalhes do Agendamento</h2>
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
+                style={{ background: cfg.bg, color: cfg.color }}>
+                {cfg.label}
+              </span>
+            </div>
           </div>
+          <button onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+        {/* Corpo */}
+        <div className="p-5 space-y-4">
+          {/* Info block */}
+          <div className="rounded-xl p-4 space-y-3.5"
+            style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
             <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-muted-foreground" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
+                <User className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+              </div>
               <div>
-                <p className="text-sm font-medium">{cliente?.nome ?? "—"}</p>
+                <p className="text-sm font-semibold">{cliente?.nome ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">{cliente?.telefone ?? ""}</p>
               </div>
             </div>
+
             <div className="flex items-center gap-3">
-              <Scissors className="w-4 h-4 text-muted-foreground" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: profissional?.corCalendario ? `${profissional.corCalendario}20` : "oklch(60% 0.20 300 / 10%)" }}>
+                <Sparkles className="w-3.5 h-3.5" style={{ color: profissional?.corCalendario ?? "oklch(42% 0.16 300)" }} />
+              </div>
               <div>
-                <p className="text-sm font-medium">{servico?.nome ?? "—"}</p>
+                <p className="text-sm font-semibold">{servico?.nome ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
               </div>
             </div>
+
             <div className="flex items-center gap-3">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm font-medium">
-                {ag.data.split("-").reverse().join("/")} · {ag.horaInicio.slice(0, 5)} – {ag.horaFim.slice(0, 5)}
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "oklch(68% 0.18 80 / 10%)" }}>
+                <Clock className="w-3.5 h-3.5" style={{ color: "oklch(40% 0.14 80)" }} />
+              </div>
+              <p className="text-sm font-semibold">
+                {dataFormatada} · {ag.horaInicio.slice(0, 5)} – {ag.horaFim.slice(0, 5)}
               </p>
             </div>
+
             <div className="flex items-center gap-3">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm font-medium">
-                R$ {parseFloat(String(ag.valorTotal)).toFixed(2)}
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "oklch(62% 0.18 155 / 10%)" }}>
+                <DollarSign className="w-3.5 h-3.5" style={{ color: "oklch(35% 0.14 155)" }} />
+              </div>
+              <p className="text-sm font-semibold">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })
+                  .format(parseFloat(String(ag.valorTotal)))}
               </p>
             </div>
           </div>
 
           {ag.observacoes && (
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-1">Observações</p>
+            <div className="rounded-xl p-3.5"
+              style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Observações</p>
               <p className="text-sm">{ag.observacoes}</p>
             </div>
           )}
 
-          {/* Ações de status */}
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Alterar status</p>
+          {/* Ações */}
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
+              Alterar status
+            </p>
             <div className="flex flex-wrap gap-2">
               {ag.status === "aguardando_reserva" && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                  onClick={() => handleStatus("agendado")}>
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Confirmar reserva
-                </Button>
+                <ActionBtn
+                  label="Confirmar reserva"
+                  icon={CheckCircle2}
+                  bg="oklch(62% 0.18 155 / 10%)"
+                  color="oklch(35% 0.14 155)"
+                  border="oklch(62% 0.18 155 / 25%)"
+                  onClick={() => handleStatus("agendado")}
+                  loading={updateMutation.isPending}
+                />
               )}
               {["agendado", "pre_agendado"].includes(ag.status) && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                  onClick={() => handleStatus("confirmado")}>
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Confirmar
-                </Button>
+                <ActionBtn
+                  label="Confirmar"
+                  icon={CheckCircle2}
+                  bg="oklch(62% 0.18 155 / 10%)"
+                  color="oklch(35% 0.14 155)"
+                  border="oklch(62% 0.18 155 / 25%)"
+                  onClick={() => handleStatus("confirmado")}
+                  loading={updateMutation.isPending}
+                />
               )}
               {["agendado", "confirmado"].includes(ag.status) && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                  onClick={() => handleStatus("concluido")}>
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Concluído
-                </Button>
+                <ActionBtn
+                  label="Concluído"
+                  icon={CheckCircle2}
+                  bg="oklch(55% 0.04 260 / 8%)"
+                  color="oklch(40% 0.04 260)"
+                  border="oklch(55% 0.04 260 / 20%)"
+                  onClick={() => handleStatus("concluido")}
+                  loading={updateMutation.isPending}
+                />
               )}
               {["agendado", "confirmado"].includes(ag.status) && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50"
-                  onClick={() => handleStatus("faltou")}>
-                  <XCircle className="w-3.5 h-3.5" />
-                  Faltou
-                </Button>
+                <ActionBtn
+                  label="Faltou"
+                  icon={XCircle}
+                  bg="oklch(72% 0.16 80 / 10%)"
+                  color="oklch(42% 0.14 75)"
+                  border="oklch(72% 0.16 80 / 25%)"
+                  onClick={() => handleStatus("faltou")}
+                  loading={updateMutation.isPending}
+                />
               )}
               {!["cancelado", "concluido"].includes(ag.status) && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
-                  onClick={() => handleStatus("cancelado")}>
-                  <XCircle className="w-3.5 h-3.5" />
-                  Cancelar
-                </Button>
+                <ActionBtn
+                  label="Cancelar"
+                  icon={XCircle}
+                  bg="oklch(58% 0.22 25 / 10%)"
+                  color="oklch(40% 0.18 25)"
+                  border="oklch(58% 0.22 25 / 25%)"
+                  onClick={() => handleStatus("cancelado")}
+                  loading={updateMutation.isPending}
+                />
               )}
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ActionBtn({
+  label, icon: Icon, bg, color, border, onClick, loading
+}: {
+  label: string;
+  icon: React.ElementType;
+  bg: string;
+  color: string;
+  border: string;
+  onClick: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+      style={{ background: bg, color, border: `1.5px solid ${border}` }}>
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </button>
   );
 }

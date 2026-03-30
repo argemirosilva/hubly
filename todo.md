@@ -58,3 +58,17 @@
 ## Testes
 - [x] Testes de routers principais (12 testes passando)
 - [x] Validação de permissões
+
+## Redesign Visual (v1.1)
+- [x] Novo design system: paleta champagne/terracota/dourado, tipografia Cormorant Garamond + DM Sans
+- [x] Redesenhar AdminLayout com sidebar elegante e sofisticada
+- [x] Redesenhar Dashboard com novo visual
+- [x] Redesenhar Portal do Cliente com estética de luxo
+- [x] Rota padrão / redireciona para /admin
+
+## Redesign Visual v2 — Moderno e Jovem (solicitado pelo usuário)
+- [x] Novo design system: paleta moderna vibrante, fontes Plus Jakarta Sans, logo genérico
+- [x] AdminLayout moderno com sidebar compacta e jovem
+- [x] Dashboard moderno com cards e layout dinâmico
+- [x] Calendário moderno
+- [x] Portal do Cliente moderno e jovem
