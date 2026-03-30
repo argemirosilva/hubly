@@ -72,3 +72,6 @@
 - [x] Dashboard moderno com cards e layout dinâmico
 - [x] Calendário moderno
 - [x] Portal do Cliente moderno e jovem
+
+## Bugs
+- [x] Corrigir campo reservaHorasExpiracao: input retorna string mas router espera number

@@ -70,7 +70,11 @@ export default function Configuracoes() {
         </CardContent>
       </Card>
 
-      <Button onClick={() => updateMutation.mutate(form as any)} disabled={updateMutation.isPending} className="gap-2">
+      <Button onClick={() => updateMutation.mutate({
+          ...form,
+          reservaPercentual: parseFloat(form.reservaPercentual) || 30,
+          reservaHorasExpiracao: parseInt(form.reservaHorasExpiracao) || 24,
+        } as any)} disabled={updateMutation.isPending} className="gap-2">
         <Save className="w-4 h-4" />
         {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}
       </Button>
