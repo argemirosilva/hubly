@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, Settings,
-  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home
+  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -31,6 +31,7 @@ const navGroups = [
     items: [
       { href: "/admin/financeiro", label: "Financeiro", icon: CreditCard },
       { href: "/admin/automacoes", label: "Automações", icon: MessageSquare },
+      { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
       { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock },
     ],
   },
@@ -39,6 +40,7 @@ const navGroups = [
     items: [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
+      { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
     ],
   },

@@ -24,6 +24,8 @@ import {
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
 } from "./db";
 import { storagePut } from "./storage";
+import { zanduRouter } from "./routers/zandu";
+import { pipelineRouter } from "./routers/pipeline";
 import { nanoid } from "nanoid";
 
 // Helper para obter empresa do usuário logado
@@ -33,6 +35,8 @@ async function getEmpresaDoUsuario(userId: number) {
 
 export const appRouter = router({
   system: systemRouter,
+  zandu: zanduRouter,
+  pipeline: pipelineRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

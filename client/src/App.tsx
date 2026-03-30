@@ -19,6 +19,8 @@ import Bloqueios from "./pages/Bloqueios";
 import PortalCliente from "./pages/PortalCliente";
 import Setup from "./pages/Setup";
 import Usuarios from "./pages/Usuarios";
+import ImportacaoZandu from "./pages/ImportacaoZandu";
+import Pipeline from "./pages/Pipeline";
 import AdminLayout from "./components/AdminLayout";
 
 function AdminRoutes() {
@@ -38,6 +40,8 @@ function AdminRoutes() {
         <Route path="/admin/bloqueios" component={Bloqueios} />
         <Route path="/admin/configuracoes" component={Configuracoes} />
         <Route path="/admin/usuarios" component={Usuarios} />
+        <Route path="/admin/pipeline" component={Pipeline} />
+        <Route path="/admin/importacao" component={ImportacaoZandu} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

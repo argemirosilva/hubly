@@ -132,3 +132,34 @@
 - [x] Bloqueios: layout mobile-first com ações adaptáveis
 - [x] Serviços: header responsivo, modal com scroll
 - [x] Configurações: grids responsivos 1→2 colunas
+
+## Integração Zandu — Importação de Dados (v5)
+
+### Funcionalidades identificadas nas telas do Zandu que o Agendei ainda não possui:
+- [x] Importação via API Zandu: clientes (GET /persons)
+- [ ] Importação via API Zandu: agendamentos (GET /schedulers/appointments)
+- [x] Importação via API Zandu: serviços (GET /services)
+- [x] Importação via API Zandu: usuários/profissionais (GET /users)
+- [ ] Importação via API Zandu: vendas/financeiro (GET /invoices)
+- [x] Página de Importação Zandu com preview, mapeamento de campos e confirmação
+- [ ] Salvar token da API Zandu nas configurações do sistema
+- [x] Log de importação com status por registro (sucesso/erro/duplicado)
+
+## Pipeline Kanban (v5) — funcionalidade do Zandu não presente no Agendei
+- [x] Schema: tabelas pipelines, pipeline_colunas, pipeline_cartoes
+- [x] Backend: routers de pipeline (CRUD pipelines, colunas e cartões)
+- [x] Página Pipeline com board Kanban drag-and-drop
+- [x] Cartão com título, status (Em andamento/Congelado/Cancelado/Concluído), lembrete e pessoa vinculada
+- [x] Configuração de pipelines e colunas
+- [ ] Link de integração externa (POST externo cria cartão no pipeline)
+
+## Públicos de Automação (v5) — funcionalidade do Zandu não presente no Agendei
+- [ ] Schema: tabela publicosAutomacao com regras de filtro por evento
+- [ ] Backend: router de públicos (CRUD + contagem de pessoas)
+- [ ] Página de Públicos com editor de regras (evento + período relativo/fixo)
+- [ ] Integrar públicos como gatilho nas automações existentes
+
+## Melhorias de Automações (v5) — baseado nas telas do Zandu
+- [ ] Templates de mensagem com chaves dinâmicas ({nome}, {primeiropronome}, {dataevento}, {horaevento}, {agendaanteio})
+- [ ] Caixa de saída: log de mensagens enviadas por automação (nome, telefone, data, status)
+- [ ] Provedores de envio: configuração de WhatsApp com horário permitido, retentativas e limite diário

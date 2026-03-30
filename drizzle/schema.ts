@@ -432,3 +432,49 @@ export const systemUsers = mysqlTable("system_users", {
 });
 export type SystemUser = typeof systemUsers.$inferSelect;
 export type InsertSystemUser = typeof systemUsers.$inferInsert;
+
+// ─── PIPELINE KANBAN ──────────────────────────────────────────────────────────
+export const pipelines = mysqlTable("pipelines", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 120 }).notNull(),
+  ordem: int("ordem").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Pipeline = typeof pipelines.$inferSelect;
+export type InsertPipeline = typeof pipelines.$inferInsert;
+
+export const pipelineColunas = mysqlTable("pipeline_colunas", {
+  id: int("id").autoincrement().primaryKey(),
+  pipelineId: int("pipelineId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 120 }).notNull(),
+  ordem: int("ordem").default(0).notNull(),
+  cor: varchar("cor", { length: 7 }).default("#6366f1"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PipelineColuna = typeof pipelineColunas.$inferSelect;
+export type InsertPipelineColuna = typeof pipelineColunas.$inferInsert;
+
+export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
+  id: int("id").autoincrement().primaryKey(),
+  colunaId: int("colunaId").notNull(),
+  pipelineId: int("pipelineId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  status: mysqlEnum("status", ["em_andamento", "congelado", "cancelado", "concluido"]).default("em_andamento").notNull(),
+  clienteId: int("clienteId"),
+  clienteNome: varchar("clienteNome", { length: 120 }),
+  responsavelId: int("responsavelId"),
+  responsavelNome: varchar("responsavelNome", { length: 120 }),
+  lembrete: dateField("lembrete"),
+  valor: decimal("valor", { precision: 10, scale: 2 }),
+  ordem: int("ordem").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PipelineCartao = typeof pipelineCartoes.$inferSelect;
+export type InsertPipelineCartao = typeof pipelineCartoes.$inferInsert;

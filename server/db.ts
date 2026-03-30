@@ -620,3 +620,84 @@ export async function resetSystemUserPassword(id: number, novaSenha: string) {
   const passwordHash = await bcrypt.hash(novaSenha, 10);
   await db.update(systemUsers).set({ passwordHash }).where(eq(systemUsers.id, id));
 }
+
+// ─── PIPELINE KANBAN ──────────────────────────────────────────────────────────
+import { pipelines, pipelineColunas, pipelineCartoes, InsertPipeline, InsertPipelineColuna, InsertPipelineCartao } from "../drizzle/schema";
+
+export async function getPipelinesByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pipelines).where(eq(pipelines.empresaId, empresaId));
+}
+
+export async function createPipeline(data: InsertPipeline) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(pipelines).values(data);
+  return { id: (result as any).insertId };
+}
+
+export async function updatePipeline(id: number, data: { nome?: string; ordem?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(pipelines).set(data).where(eq(pipelines.id, id));
+}
+
+export async function deletePipeline(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(pipelineCartoes).where(eq(pipelineCartoes.pipelineId, id));
+  await db.delete(pipelineColunas).where(eq(pipelineColunas.pipelineId, id));
+  await db.delete(pipelines).where(eq(pipelines.id, id));
+}
+
+export async function getColunasByPipeline(pipelineId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pipelineColunas).where(eq(pipelineColunas.pipelineId, pipelineId));
+}
+
+export async function createColuna(data: InsertPipelineColuna) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(pipelineColunas).values(data);
+  return { id: (result as any).insertId };
+}
+
+export async function updateColuna(id: number, data: { nome?: string; cor?: string; ordem?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(pipelineColunas).set(data).where(eq(pipelineColunas.id, id));
+}
+
+export async function deleteColuna(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(pipelineCartoes).where(eq(pipelineCartoes.colunaId, id));
+  await db.delete(pipelineColunas).where(eq(pipelineColunas.id, id));
+}
+
+export async function getCartoesByPipeline(pipelineId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pipelineCartoes).where(eq(pipelineCartoes.pipelineId, pipelineId));
+}
+
+export async function createCartao(data: InsertPipelineCartao) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [result] = await db.insert(pipelineCartoes).values(data);
+  return { id: (result as any).insertId };
+}
+
+export async function updateCartao(id: number, data: Partial<InsertPipelineCartao>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(pipelineCartoes).set(data).where(eq(pipelineCartoes.id, id));
+}
+
+export async function deleteCartao(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(pipelineCartoes).where(eq(pipelineCartoes.id, id));
+}

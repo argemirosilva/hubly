@@ -36,6 +36,13 @@
       "when": 1774865042301,
       "tag": "0004_spotty_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1774890828901,
+      "tag": "0005_pink_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
