@@ -13,7 +13,7 @@ import {
   getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
-  getAutomacoesByEmpresa, createAutomacao, updateAutomacao,
+  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
@@ -569,6 +569,14 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         await updateAutomacao(id, data);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await deleteAutomacao(input.id);
         return { success: true };
       }),
   }),

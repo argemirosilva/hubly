@@ -289,6 +289,12 @@ export async function createAutomacao(data: typeof automacoes.$inferInsert) {
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
+export async function deleteAutomacao(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB indisponível");
+  await db.delete(automacoes).where(eq(automacoes.id, id));
+}
+
 export async function updateAutomacao(id: number, data: Partial<typeof automacoes.$inferInsert>) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");

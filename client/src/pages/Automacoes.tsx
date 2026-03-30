@@ -472,6 +472,11 @@ export default function Automacoes() {
   const updateMutation = trpc.automacoes.update.useMutation({
     onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); },
   });
+  const deleteMutation = trpc.automacoes.delete.useMutation({
+    onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const [view, setView] = useState<"list" | "editor">("list");
   const [currentFlow, setCurrentFlow] = useState<FlowAutomacao>({ nome: "Nova Automação", ativo: true, nodes: [] });
@@ -607,12 +612,36 @@ export default function Automacoes() {
                     <Button variant="ghost" size="sm" onClick={() => openEditor({ nome: a.nome, ativo: a.ativo, nodes: [] })}>
                       <Edit2 size={14} />
                     </Button>
+                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => setConfirmDeleteId(a.id)}>
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Diálogo de confirmação de exclusão */}
+        <Dialog open={confirmDeleteId !== null} onOpenChange={open => !open && setConfirmDeleteId(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 size={17} /> Excluir automação
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600 mt-1">Tem certeza que deseja excluir esta automação? Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDeleteId(null)}>Cancelar</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => { if (confirmDeleteId) { deleteMutation.mutate({ id: confirmDeleteId }); setConfirmDeleteId(null); } }}
+                disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
           <DialogContent className="max-w-2xl">

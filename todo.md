@@ -110,3 +110,6 @@
 - [x] Grupos com níveis de acesso detalhados (leitura, escrita, exclusão por módulo)
 - [x] Página de Usuários refatorada com cadastro direto
 - [x] Esteira visual de automações com fluxo de nós
+
+## Bugs / Melhorias (v2)
+- [x] Adicionar exclusão de automações (botão delete com confirmação)
