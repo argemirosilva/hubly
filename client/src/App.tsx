@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
@@ -45,7 +45,7 @@ function AdminRoutes() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={PortalCliente} />
+      <Route path="/">{() => <Redirect to="/admin" />}</Route>
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
       <Route path="/admin" component={AdminRoutes} />
