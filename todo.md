@@ -169,3 +169,6 @@
 
 ## Bugs (v5b)
 - [x] Importação Zandu: erro "empresa não encontrada" ao tentar importar dados via API
+
+## Bugs (v5c)
+- [x] Importação Zandu serviços: campo categoria enviado como [object Object] em vez do nome string

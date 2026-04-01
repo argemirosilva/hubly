@@ -40,6 +40,12 @@ interface ZanduPerson {
   createdAt?: string;
 }
 
+interface ZanduServiceCategory {
+  id?: string | number;
+  name?: string;
+  nome?: string;
+}
+
 interface ZanduService {
   serviceId?: string;
   id?: string;
@@ -47,7 +53,8 @@ interface ZanduService {
   description?: string;
   price?: number;
   duration?: number;
-  category?: string;
+  // A API Zandu retorna category como objeto { id, name } ou como string
+  category?: string | ZanduServiceCategory;
 }
 
 interface ZanduUser {
@@ -260,6 +267,17 @@ export const zanduRouter = router({
                 continue;
               }
 
+              // Extrair nome da categoria — pode ser string ou objeto { id, name/nome }
+              const categoriaRaw = s.category;
+              let categoriaNome: string | null = null;
+              if (typeof categoriaRaw === "string") {
+                categoriaNome = categoriaRaw || null;
+              } else if (categoriaRaw && typeof categoriaRaw === "object") {
+                categoriaNome = (categoriaRaw as ZanduServiceCategory).name ||
+                                (categoriaRaw as ZanduServiceCategory).nome ||
+                                null;
+              }
+
               try {
                 await createServico({
                   empresaId: empresa.id,
@@ -267,7 +285,7 @@ export const zanduRouter = router({
                   descricao: s.description || null,
                   valor: String(s.price ?? "0"),
                   duracaoMinutos: s.duration ?? 60,
-                  categoria: s.category || null,
+                  categoria: categoriaNome,
                   ativo: true,
                 });
                 entry.importados++;
