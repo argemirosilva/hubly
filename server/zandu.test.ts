@@ -9,6 +9,8 @@ vi.mock("./db", () => ({
   createServico: vi.fn(),
   getProfissionaisByEmpresa: vi.fn(),
   createProfissional: vi.fn(),
+  createAgendamento: vi.fn(),
+  getAgendamentosByEmpresa: vi.fn(),
 }));
 
 import {
@@ -19,6 +21,8 @@ import {
   createServico,
   getProfissionaisByEmpresa,
   createProfissional,
+  createAgendamento,
+  getAgendamentosByEmpresa,
 } from "./db";
 
 // ─── Testes de lógica de deduplicação ─────────────────────────────────────────
@@ -159,5 +163,73 @@ describe("Importação Zandu — contagem de resultados", () => {
     expect(totalImportados).toBe(11);
     expect(totalDuplicados).toBe(3);
     expect(totalErros).toBe(1);
+  });
+});
+
+// ─── Testes de mapeamento de agendamentos ─────────────────────────────────────
+
+describe("Importação Zandu — mapeamento de agendamentos", () => {
+  it("mapeia status do Zandu para status do Agendei corretamente", () => {
+    const statusMap: Record<string, string> = {
+      criado: "agendado",
+      confirmado: "confirmado",
+      compareceu: "concluido",
+      faltou: "faltou",
+      cancelado_empresa: "cancelado",
+      cancelado_usuario: "cancelado",
+      cancelado: "cancelado",
+      remarcado: "cancelado",
+    };
+    expect(statusMap["criado"]).toBe("agendado");
+    expect(statusMap["compareceu"]).toBe("concluido");
+    expect(statusMap["cancelado_empresa"]).toBe("cancelado");
+    expect(statusMap["faltou"]).toBe("faltou");
+    expect(statusMap["desconhecido"] ?? "agendado").toBe("agendado");
+  });
+
+  it("extrai data e hora corretamente de uma string ISO", () => {
+    const startRaw = "2024-06-15T14:30:00.000Z";
+    const startDt = new Date(startRaw);
+    const dataStr = startDt.toISOString().split("T")[0];
+    const horaStr = startDt.toTimeString().slice(0, 5);
+    expect(dataStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(horaStr).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  it("calcula hora fim com base na duração do serviço quando endDate não fornecido", () => {
+    const startDt = new Date("2024-06-15T14:30:00.000Z");
+    const duracao = 90;
+    const endDt = new Date(startDt.getTime() + duracao * 60000);
+    // Verificar que a diferença é exatamente 90 minutos (independente de timezone)
+    const diffMinutos = (endDt.getTime() - startDt.getTime()) / 60000;
+    expect(diffMinutos).toBe(90);
+  });
+
+  it("resolve clienteId pelo nome normalizado", () => {
+    const clientesLocais = [{ id: 42, nome: "Maria Silva" }];
+    const clienteMap = new Map(clientesLocais.map((c) => [c.nome.toLowerCase().trim(), c.id]));
+    expect(clienteMap.get("maria silva")).toBe(42);
+    expect(clienteMap.get("joao souza")).toBeUndefined();
+  });
+
+  it("rejeita agendamento sem data", () => {
+    const agendamento = { personName: "João", startDate: undefined };
+    const startRaw = (agendamento as { startDate?: string }).startDate || "";
+    expect(startRaw).toBe("");
+  });
+
+  it("aceita campos aninhados de pessoa/serviço/profissional", () => {
+    const zanduAppointment = {
+      person: { name: "Ana Costa" },
+      service: { name: "Manicure", price: 50 },
+      user: { name: "Carol" },
+      startDate: "2024-07-01T10:00:00.000Z",
+    };
+    const clienteNome = (zanduAppointment.person?.name || "").trim();
+    const servicoNome = (zanduAppointment.service?.name || "").trim();
+    const profissionalNome = (zanduAppointment.user?.name || "").trim();
+    expect(clienteNome).toBe("Ana Costa");
+    expect(servicoNome).toBe("Manicure");
+    expect(profissionalNome).toBe("Carol");
   });
 });

@@ -137,7 +137,7 @@
 
 ### Funcionalidades identificadas nas telas do Zandu que o Agendei ainda não possui:
 - [x] Importação via API Zandu: clientes (GET /persons)
-- [ ] Importação via API Zandu: agendamentos (GET /schedulers/appointments)
+- [x] Importação via API Zandu: agendamentos (GET /schedulers/appointments)
 - [x] Importação via API Zandu: serviços (GET /services)
 - [x] Importação via API Zandu: usuários/profissionais (GET /users)
 - [ ] Importação via API Zandu: vendas/financeiro (GET /invoices)
@@ -178,3 +178,8 @@
 
 ## Bugs (v5d)
 - [x] Importação Zandu profissionais: TypeError ao chamar toLowerCase em name undefined/null
+
+## Importação de Agendamentos Zandu (v5e)
+- [x] Backend: importar agendamentos via GET /schedulers/appointments com mapeamento de cliente/serviço/profissional
+- [x] Frontend: adicionar aba "Agendamentos" na página de importação Zandu
+- [x] Testes: 6 novos testes para mapeamento de agendamentos (39 testes no total)

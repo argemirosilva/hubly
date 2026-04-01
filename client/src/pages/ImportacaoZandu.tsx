@@ -19,12 +19,13 @@ import {
   Users,
   Scissors,
   UserCheck,
+  CalendarDays,
   ArrowRight,
   ExternalLink,
   Info,
 } from "lucide-react";
 
-type TipoImportacao = "clientes" | "servicos" | "profissionais";
+type TipoImportacao = "clientes" | "servicos" | "profissionais" | "agendamentos";
 
 interface LogEntry {
   tipo: string;
@@ -39,6 +40,7 @@ const TIPOS_CONFIG: Record<TipoImportacao, { label: string; icon: React.Componen
   clientes: { label: "Clientes", icon: Users, descricao: "Pessoas cadastradas no Zandu" },
   servicos: { label: "Serviços", icon: Scissors, descricao: "Serviços disponíveis no Zandu" },
   profissionais: { label: "Profissionais/Usuários", icon: UserCheck, descricao: "Usuários cadastrados no Zandu" },
+  agendamentos: { label: "Agendamentos", icon: CalendarDays, descricao: "Histórico de agendamentos do Zandu" },
 };
 
 type Etapa = "token" | "preview" | "importando" | "resultado";
@@ -46,7 +48,7 @@ type Etapa = "token" | "preview" | "importando" | "resultado";
 export default function ImportacaoZandu() {
   const [etapa, setEtapa] = useState<Etapa>("token");
   const [token, setToken] = useState("");
-  const [tiposSelecionados, setTiposSelecionados] = useState<TipoImportacao[]>(["clientes", "servicos"]);
+  const [tiposSelecionados, setTiposSelecionados] = useState<TipoImportacao[]>(["clientes", "servicos", "profissionais"]);
   const [ignorarDuplicados, setIgnorarDuplicados] = useState(true);
   const [previewData, setPreviewData] = useState<Record<string, { total: number; amostra: unknown[] }> | null>(null);
   const [resultadoLog, setResultadoLog] = useState<LogEntry[]>([]);
@@ -91,7 +93,7 @@ export default function ImportacaoZandu() {
     setEtapa("importando");
     importarMutation.mutate({
       token: token.trim(),
-      tipos: tiposSelecionados.filter((t) => t !== "profissionais" || tiposSelecionados.includes("profissionais")) as TipoImportacao[],
+      tipos: tiposSelecionados,
       ignorarDuplicados,
     });
   };
@@ -168,7 +170,7 @@ export default function ImportacaoZandu() {
 
             <div className="space-y-3">
               <Label>O que deseja importar?</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(Object.keys(TIPOS_CONFIG) as TipoImportacao[]).map((tipo) => {
                   const cfg = TIPOS_CONFIG[tipo];
                   const Icon = cfg.icon;
@@ -205,6 +207,11 @@ export default function ImportacaoZandu() {
               <Info className="h-4 w-4" />
               <AlertDescription className="text-xs">
                 A importação não sobrescreve dados existentes. Registros com mesmo telefone ou e-mail serão marcados como duplicados se a opção acima estiver ativa.
+                {tiposSelecionados.includes("agendamentos") && (
+                  <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
+                    ⚠ Para importar agendamentos, importe clientes, serviços e profissionais primeiro (ou selecione-os juntos acima).
+                  </span>
+                )}
               </AlertDescription>
             </Alert>
 

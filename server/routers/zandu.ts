@@ -8,6 +8,8 @@ import {
   getServicosByEmpresa,
   createProfissional,
   getProfissionaisByEmpresa,
+  createAgendamento,
+  getAgendamentosByEmpresa,
 } from "../db";
 
 const ZANDU_BASE_URL = "https://api.zandu.com.br";
@@ -68,17 +70,31 @@ interface ZanduUser {
 interface ZanduAppointment {
   appointmentId?: string;
   id?: string;
+  // Pessoa pode vir como objeto aninhado ou como campos planos
+  person?: { personId?: string; name?: string; phone?: string; email?: string };
   personId?: string;
   personName?: string;
+  // Serviço pode vir como objeto aninhado ou como campos planos
+  service?: { serviceId?: string; name?: string; duration?: number; price?: number };
   serviceId?: string;
   serviceName?: string;
+  // Profissional pode vir como objeto aninhado ou como campos planos
+  user?: { userId?: string; name?: string };
   userId?: string;
   userName?: string;
+  // Datas em diferentes formatos possíveis
   startDate?: string;
+  start?: string;
   endDate?: string;
+  end?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
   status?: string;
   price?: number;
+  value?: number;
   notes?: string;
+  comments?: string;
 }
 
 interface ZanduInvoice {
@@ -143,15 +159,15 @@ export const zanduRouter = router({
               })),
             };
           } else if (tipo === "agendamentos") {
-            const data = await zanduFetch("/schedulers/appointments?limit=1000", input.token) as ZanduAppointment[];
+            const data = await zanduFetch("/schedulers/appointments", input.token) as ZanduAppointment[];
             const arr = Array.isArray(data) ? data : [];
             resultado.agendamentos = {
               total: arr.length,
               amostra: arr.slice(0, 5).map((a) => ({
-                cliente: a.personName,
-                servico: a.serviceName,
-                profissional: a.userName,
-                data: a.startDate,
+                cliente: a.person?.name || a.personName || "(desconhecido)",
+                servico: a.service?.name || a.serviceName || "(desconhecido)",
+                profissional: a.user?.name || a.userName || "(desconhecido)",
+                data: a.startDate || a.start || a.date,
                 status: a.status,
               })),
             };
@@ -181,7 +197,7 @@ export const zanduRouter = router({
   importar: protectedProcedure
     .input(z.object({
       token: z.string().min(10),
-      tipos: z.array(z.enum(["clientes", "servicos", "profissionais"])),
+      tipos: z.array(z.enum(["clientes", "servicos", "profissionais", "agendamentos"])),
       ignorarDuplicados: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -345,6 +361,121 @@ export const zanduRouter = router({
               } catch (err) {
                 entry.erros++;
                 entry.detalhes.push({ nome: u.name, status: "erro", mensagem: String(err) });
+              }
+            }
+          } else if (tipo === "agendamentos") {
+            const data = await zanduFetch("/schedulers/appointments", input.token) as ZanduAppointment[];
+            const arr = Array.isArray(data) ? data : [];
+            entry.total = arr.length;
+
+            // Carregar dados locais para fazer o match por nome
+            const clientesLocais = await getClientesByEmpresa(empresa.id);
+            const servicosLocais = await getServicosByEmpresa(empresa.id);
+            const profissionaisLocais = await getProfissionaisByEmpresa(empresa.id);
+
+            // Mapas de busca por nome normalizado
+            const clienteMap = new Map(clientesLocais.map((c) => [c.nome.toLowerCase().trim(), c.id]));
+            const servicoMap = new Map(servicosLocais.map((s) => [s.nome.toLowerCase().trim(), s.id]));
+            const profissionalMap = new Map(profissionaisLocais.map((p) => [p.nome.toLowerCase().trim(), p.id]));
+
+            // Usar o primeiro profissional como fallback se não encontrar
+            const profissionalFallbackId = profissionaisLocais[0]?.id;
+            // Usar o primeiro serviço como fallback se não encontrar
+            const servicoFallbackId = servicosLocais[0]?.id;
+
+            for (const a of arr) {
+              const clienteNome = (a.person?.name || a.personName || "").trim();
+              const servicoNome = (a.service?.name || a.serviceName || "").trim();
+              const profissionalNome = (a.user?.name || a.userName || "").trim();
+              const startRaw = a.startDate || a.start || a.date || "";
+              const endRaw = a.endDate || a.end || "";
+
+              if (!startRaw) {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome || "(sem data)", status: "erro", mensagem: "Agendamento sem data" });
+                continue;
+              }
+
+              // Resolver IDs locais por nome
+              const clienteId = clienteNome ? clienteMap.get(clienteNome.toLowerCase()) : undefined;
+              const servicoId = servicoNome ? servicoMap.get(servicoNome.toLowerCase()) : servicoFallbackId;
+              const profissionalId = profissionalNome ? profissionalMap.get(profissionalNome.toLowerCase()) : profissionalFallbackId;
+
+              if (!clienteId) {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome || "(sem cliente)", status: "erro", mensagem: `Cliente "${clienteNome}" não encontrado localmente. Importe os clientes primeiro.` });
+                continue;
+              }
+              if (!servicoId) {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome, status: "erro", mensagem: `Serviço "${servicoNome}" não encontrado. Importe os serviços primeiro.` });
+                continue;
+              }
+              if (!profissionalId) {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome, status: "erro", mensagem: "Nenhum profissional encontrado. Importe os profissionais primeiro." });
+                continue;
+              }
+
+              // Parsear data e hora
+              let dataStr: string;
+              let horaInicioStr: string;
+              let horaFimStr: string;
+              try {
+                const startDt = new Date(startRaw);
+                dataStr = startDt.toISOString().split("T")[0]; // YYYY-MM-DD
+                horaInicioStr = startDt.toTimeString().slice(0, 5); // HH:MM
+
+                if (endRaw) {
+                  const endDt = new Date(endRaw);
+                  horaFimStr = endDt.toTimeString().slice(0, 5);
+                } else {
+                  // Calcular fim com base na duração do serviço (padrão 60 min)
+                  const servicoLocal = servicosLocais.find((s) => s.id === servicoId);
+                  const duracao = servicoLocal?.duracaoMinutos ?? 60;
+                  const endDt = new Date(startDt.getTime() + duracao * 60000);
+                  horaFimStr = endDt.toTimeString().slice(0, 5);
+                }
+              } catch {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome, status: "erro", mensagem: `Data inválida: ${startRaw}` });
+                continue;
+              }
+
+              // Mapear status do Zandu para o Agendei
+              const statusMap: Record<string, "agendado" | "confirmado" | "concluido" | "cancelado" | "faltou"> = {
+                criado: "agendado",
+                confirmado: "confirmado",
+                compareceu: "concluido",
+                faltou: "faltou",
+                cancelado_empresa: "cancelado",
+                cancelado_usuario: "cancelado",
+                cancelado: "cancelado",
+                remarcado: "cancelado",
+              };
+              const statusZandu = (a.status || "criado").toLowerCase();
+              const statusLocal = statusMap[statusZandu] ?? "agendado";
+
+              const valorTotal = String(a.service?.price ?? a.price ?? a.value ?? "0");
+
+              try {
+                await createAgendamento({
+                  empresaId: empresa.id,
+                  clienteId,
+                  profissionalId,
+                  servicoId,
+                  data: dataStr,
+                  horaInicio: horaInicioStr,
+                  horaFim: horaFimStr,
+                  status: statusLocal,
+                  valorTotal,
+                  observacoes: a.notes || a.comments || null,
+                });
+                entry.importados++;
+                entry.detalhes.push({ nome: `${clienteNome} (${dataStr})`, status: "importado" });
+              } catch (err) {
+                entry.erros++;
+                entry.detalhes.push({ nome: clienteNome, status: "erro", mensagem: String(err) });
               }
             }
           }
