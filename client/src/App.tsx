@@ -26,32 +26,13 @@ import IAClientes from "./pages/IAClientes";
 import Manual from "./pages/Manual";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
+import { ReactNode } from "react";
 
-function AdminRoutes() {
+function WithAdmin({ children }: { children: ReactNode }) {
   return (
     <AdminLayout>
       <SupportChat />
-      <Switch>
-        <Route path="/admin" component={Dashboard} />
-        <Route path="/admin/calendario" component={Calendario} />
-        <Route path="/admin/agendamentos" component={Agendamentos} />
-        <Route path="/admin/clientes" component={Clientes} />
-        <Route path="/admin/clientes/:id" component={ClienteDetalhe} />
-        <Route path="/admin/profissionais" component={Profissionais} />
-        <Route path="/admin/servicos" component={Servicos} />
-        <Route path="/admin/financeiro" component={Financeiro} />
-        <Route path="/admin/automacoes" component={Automacoes} />
-        <Route path="/admin/notificacoes" component={Notificacoes} />
-        <Route path="/admin/bloqueios" component={Bloqueios} />
-        <Route path="/admin/configuracoes" component={Configuracoes} />
-        <Route path="/admin/usuarios" component={Usuarios} />
-        <Route path="/admin/pipeline" component={Pipeline} />
-        <Route path="/admin/importacao" component={ImportacaoZandu} />
-        <Route path="/admin/ia-financeiro" component={IAFinanceiro} />
-        <Route path="/admin/ia-clientes" component={IAClientes} />
-        <Route path="/admin/manual" component={Manual} />
-        <Route component={NotFound} />
-      </Switch>
+      {children}
     </AdminLayout>
   );
 }
@@ -62,8 +43,27 @@ function Router() {
       <Route path="/">{() => <Redirect to="/admin" />}</Route>
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
-      <Route path="/admin" component={AdminRoutes} />
-      <Route path="/admin/:rest*" component={AdminRoutes} />
+
+      {/* Rotas admin — todas no mesmo Switch para garantir matching correto */}
+      <Route path="/admin/clientes/:id">{(p) => <WithAdmin><ClienteDetalhe id={Number(p.id)} /></WithAdmin>}</Route>
+      <Route path="/admin/calendario">{() => <WithAdmin><Calendario /></WithAdmin>}</Route>
+      <Route path="/admin/agendamentos">{() => <WithAdmin><Agendamentos /></WithAdmin>}</Route>
+      <Route path="/admin/clientes">{() => <WithAdmin><Clientes /></WithAdmin>}</Route>
+      <Route path="/admin/profissionais">{() => <WithAdmin><Profissionais /></WithAdmin>}</Route>
+      <Route path="/admin/servicos">{() => <WithAdmin><Servicos /></WithAdmin>}</Route>
+      <Route path="/admin/financeiro">{() => <WithAdmin><Financeiro /></WithAdmin>}</Route>
+      <Route path="/admin/automacoes">{() => <WithAdmin><Automacoes /></WithAdmin>}</Route>
+      <Route path="/admin/notificacoes">{() => <WithAdmin><Notificacoes /></WithAdmin>}</Route>
+      <Route path="/admin/bloqueios">{() => <WithAdmin><Bloqueios /></WithAdmin>}</Route>
+      <Route path="/admin/configuracoes">{() => <WithAdmin><Configuracoes /></WithAdmin>}</Route>
+      <Route path="/admin/usuarios">{() => <WithAdmin><Usuarios /></WithAdmin>}</Route>
+      <Route path="/admin/pipeline">{() => <WithAdmin><Pipeline /></WithAdmin>}</Route>
+      <Route path="/admin/importacao">{() => <WithAdmin><ImportacaoZandu /></WithAdmin>}</Route>
+      <Route path="/admin/ia-financeiro">{() => <WithAdmin><IAFinanceiro /></WithAdmin>}</Route>
+      <Route path="/admin/ia-clientes">{() => <WithAdmin><IAClientes /></WithAdmin>}</Route>
+      <Route path="/admin/manual">{() => <WithAdmin><Manual /></WithAdmin>}</Route>
+      <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
+
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

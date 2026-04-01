@@ -248,3 +248,40 @@
 - [x] Manual: seção IA Inteligente (score financeiro, análise de clientes)
 - [x] Manual: seção Importação Zandu (passo a passo)
 - [x] Navegação: item "Manual do Sistema" no menu lateral (grupo Sistema)
+
+## Bugs (v7)
+- [x] Erro 404 ao acessar página de detalhe do cliente (/admin/clientes/:id)
+
+## Bugs (v7) — Resolvidos
+- [x] Erro 404 ao acessar página de detalhe do cliente (/admin/clientes/:id) — corrigido reestruturando rotas no App.tsx (todas as rotas admin no Switch externo)
+
+## Portal de Agendamento Público com Branding (v8)
+
+### Schema / Banco de Dados
+- [x] Adicionar campos na tabela empresas: horaAbertura, horaFechamento, diasFuncionamento (JSON), intervaloMinutos, autoConfirmarPortal, portalAtivo, portalHeaderUrl, portalMensagemBemVindo, portalCorPrimaria, portalCorSecundaria
+
+### Backend
+- [x] Router portal: getEmpresaPublica (dados públicos da empresa por slug/id)
+- [x] Router portal: getServicosPublicos (lista de serviços ativos)
+- [x] Router portal: getProfissionaisPublicos (lista de profissionais ativos)
+- [x] Router portal: getHorariosDisponiveis (slots livres por data/profissional/serviço)
+- [x] Router portal: criarAgendamentoPublico (sem autenticação, cria cliente se não existir)
+- [x] Atualizar router empresa.update para aceitar campos de portal e horário
+
+### Frontend — Portal Público
+- [x] Página /agendar com branding personalizado (logo, cores, header image)
+- [x] Step 1: identificação do cliente (e-mail/telefone — retornando ou novo)
+- [x] Step 2: seleção de serviço
+- [x] Step 3: seleção de profissional (ou "qualquer um")
+- [x] Step 4: seleção de data e horário disponível
+- [x] Step 5: confirmação e resumo
+- [x] Tela de sucesso com número do agendamento
+- [x] Exibir agendamentos anteriores para clientes retornando
+
+### Frontend — Configurações Admin
+- [x] Seção "Portal de Agendamento" nas Configurações
+- [x] Upload de logo e imagem de cabeçalho (via URL)
+- [x] Configuração de horário de funcionamento (dias e horas)
+- [x] Opção de confirmação automática vs. pendente
+- [x] Intervalo mínimo entre slots (15, 30, 45, 60 min)
+- [x] Link do portal para copiar/compartilhar

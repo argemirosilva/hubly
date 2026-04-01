@@ -57,6 +57,13 @@
       "when": 1775070451339,
       "tag": "0007_shiny_brood",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1775075022931,
+      "tag": "0008_bitter_morgan_stark",
+      "breakpoints": true
     }
   ]
 }

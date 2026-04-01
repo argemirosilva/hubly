@@ -1,6 +1,10 @@
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
-import { Calendar, Clock, CheckCircle2, ChevronRight, ChevronLeft, User, Phone, Mail, Sparkles, ArrowRight } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Calendar, Clock, CheckCircle2, ChevronRight, ChevronLeft,
+  User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
+  AlertCircle, Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 function formatCurrency(v: number | string) {
@@ -8,417 +12,609 @@ function formatCurrency(v: number | string) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(isNaN(num) ? 0 : num);
 }
 
-function calcHoraFim(horaInicio: string, duracaoMinutos: number): string {
-  const [h, m] = horaInicio.split(":").map(Number);
-  const total = h * 60 + m + duracaoMinutos;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+function formatarData(data: string) {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  return new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR", {
+    weekday: "long", day: "numeric", month: "long",
+  });
 }
 
-const HORARIOS = [
-  "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
-  "13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00"
-];
+function diasDaSemanaStr(diasFuncionamento: number[]) {
+  const nomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  return diasFuncionamento.map(d => nomes[d]).join(", ");
+}
 
-const STEPS = ["servico", "data", "dados"] as const;
-type Step = typeof STEPS[number] | "confirmado";
-const STEP_LABELS = ["Serviço", "Data & Hora", "Seus dados"];
+function gerarDatasDisponiveis(diasFuncionamento: number[]): string[] {
+  const datas: string[] = [];
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 60 && datas.length < 30; i++) {
+    const d = new Date(hoje);
+    d.setDate(hoje.getDate() + i);
+    if (diasFuncionamento.includes(d.getDay())) {
+      datas.push(d.toISOString().split("T")[0]);
+    }
+  }
+  return datas;
+}
+
+function getEmpresaId(): number {
+  const params = new URLSearchParams(window.location.search);
+  return parseInt(params.get("e") ?? "1");
+}
+
+type Step = "identificacao" | "servico" | "profissional" | "data" | "confirmacao" | "sucesso";
+const STEPS: Step[] = ["identificacao", "servico", "profissional", "data", "confirmacao"];
+const STEP_LABELS = ["Identificação", "Serviço", "Profissional", "Data & Hora", "Confirmar"];
 
 export default function PortalCliente() {
-  const [step, setStep] = useState<Step>("servico");
+  const empresaId = useMemo(() => getEmpresaId(), []);
+  const [step, setStep] = useState<Step>("identificacao");
+
+  const [telefone, setTelefone] = useState("");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [clienteIdentificado, setClienteIdentificado] = useState(false);
+
   const [servicoId, setServicoId] = useState<number | null>(null);
-  const [profId, setProfId] = useState<number | null>(null);
+  const [profissionalId, setProfissionalId] = useState<number | null>(null);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [email, setEmail] = useState("");
+  const [observacoes, setObservacoes] = useState("");
 
-  const { data: empresa } = trpc.portal.getEmpresa.useQuery({ empresaId: 1 });
-  const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId: 1 });
-  const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId: 1 });
+  const { data: empresa, isLoading: loadingEmpresa, error: errorEmpresa } =
+    trpc.portal.getEmpresa.useQuery({ empresaId }, { retry: false });
+  const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId });
+  const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId });
+  const { data: meusAgendamentos } = trpc.portal.getMeusAgendamentos.useQuery(
+    { empresaId, telefone },
+    { enabled: clienteIdentificado && !!telefone },
+  );
+  const { data: slotsData, isLoading: loadingSlots } = trpc.portal.getHorariosDisponiveis.useQuery(
+    { empresaId, data, servicoId: servicoId!, profissionalId: profissionalId ?? undefined },
+    { enabled: !!data && !!servicoId },
+  );
 
   const agendarMutation = trpc.portal.criarAgendamento.useMutation({
-    onSuccess: () => { toast.success("Pré-agendamento realizado!"); setStep("confirmado"); },
-    onError: (err: { message: string }) => toast.error(err.message),
+    onSuccess: () => setStep("sucesso"),
+    onError: (err) => toast.error(err.message),
   });
 
   const servicoSelecionado = servicos?.find(s => s.id === servicoId);
-  const profSelecionado = profissionais?.find(p => p.id === profId);
-  const minDate = new Date().toISOString().split("T")[0];
-  const stepIdx = STEPS.indexOf(step as typeof STEPS[number]);
+  const profSelecionado = profissionais?.find(p => p.id === profissionalId);
+  const diasFuncionamento = (empresa?.diasFuncionamento as number[]) ?? [1, 2, 3, 4, 5];
+  const datasDisponiveis = useMemo(
+    () => gerarDatasDisponiveis(diasFuncionamento),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [diasFuncionamento.join(",")]
+  );
 
-  function resetar() {
-    setStep("servico"); setServicoId(null); setProfId(null);
-    setData(""); setHora(""); setNome(""); setTelefone(""); setEmail("");
-  }
-
-  function handleAgendar() {
-    if (!servicoId || !profId || !data || !hora || !nome || !telefone) {
-      toast.error("Preencha todos os campos obrigatórios.");
-      return;
+  const slots = useMemo(() => {
+    if (!slotsData) return [];
+    if (profissionalId) {
+      return slotsData.find(s => s.profissionalId === profissionalId)?.slots ?? [];
     }
-    agendarMutation.mutate({
-      empresaId: 1,
-      servicoId,
-      profissionalId: profId,
-      data,
-      horaInicio: hora,
-      horaFim: calcHoraFim(hora, servicoSelecionado?.duracaoMinutos ?? 60),
-      clienteNome: nome,
-      clienteWhatsapp: telefone,
-      clienteEmail: email || undefined,
-      valorTotal: servicoSelecionado?.valor ?? "0",
-    });
-  }
+    const all = new Set<string>();
+    slotsData.forEach(s => s.slots.forEach(h => all.add(h)));
+    return Array.from(all).sort();
+  }, [slotsData, profissionalId]);
 
-  /*  Confirmado  */
-  if (step === "confirmado") {
+  const profissionalParaHora = useMemo(() => {
+    if (profissionalId || !hora || !slotsData) return profissionalId;
+    const entry = slotsData.find(s => s.slots.includes(hora));
+    return entry?.profissionalId ?? null;
+  }, [profissionalId, hora, slotsData]);
+
+  const corPrimaria = empresa?.corPrimaria ?? "#4f46e5";
+  const corSecundaria = empresa?.corSecundaria ?? "#e0e7ff";
+
+  if (loadingEmpresa) {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: "oklch(98% 0.004 250)" }}>
-        <PortalHeader empresa={empresa} />
-        <div className="flex-1 flex items-center justify-center px-6 py-16">
-          <div className="text-center max-w-md animate-in-up space-y-6">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-              style={{ background: "oklch(62% 0.18 155 / 15%)" }}>
-              <CheckCircle2 className="w-8 h-8" style={{ color: "oklch(38% 0.14 155)" }} />
-            </div>
-            <div>
-              <h2 className="font-bold tracking-tight mb-2" style={{ fontSize: "1.6rem" }}>
-                Pré-agendamento realizado!
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Em breve você receberá uma mensagem no WhatsApp com as instruções para confirmar seu horário com o pagamento da reserva.
-              </p>
-            </div>
-
-            {servicoSelecionado && (
-              <div className="rounded-2xl p-4 text-left space-y-2"
-                style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 15%)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "oklch(45% 0.18 264)" }}>Resumo</p>
-                <p className="text-sm font-semibold">{servicoSelecionado.nome}</p>
-                <p className="text-xs text-muted-foreground">
-                  {profSelecionado?.nome} · {new Date(data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} às {hora}
-                </p>
-                <p className="text-sm font-bold" style={{ color: "oklch(45% 0.18 264)" }}>
-                  {formatCurrency(servicoSelecionado.valor)}
-                </p>
-              </div>
-            )}
-
-            <button onClick={resetar} className="btn-primary mx-auto">
-              Fazer outro agendamento <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: corPrimaria }} />
+          <p className="text-sm text-slate-500">Carregando portal...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col" style={{ background: "oklch(98% 0.004 250)" }}>
-      <PortalHeader empresa={empresa} />
-
-      <div className="flex-1 flex flex-col items-center px-4 py-8">
-        {/* Progress steps */}
-        <div className="w-full max-w-lg mb-8">
-          <div className="flex items-center justify-between relative">
-            <div className="absolute left-0 right-0 top-4 h-0.5 -z-0"
-              style={{ background: "oklch(90% 0.012 250)" }} />
-            <div className="absolute left-0 top-4 h-0.5 -z-0 transition-all duration-500"
-              style={{
-                background: "oklch(55% 0.22 264)",
-                width: stepIdx === 0 ? "0%" : stepIdx === 1 ? "50%" : "100%"
-              }} />
-            {STEP_LABELS.map((label, i) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 z-10">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
-                  style={{
-                    background: i < stepIdx ? "oklch(55% 0.22 264)" : i === stepIdx ? "oklch(55% 0.22 264)" : "white",
-                    color: i <= stepIdx ? "white" : "oklch(65% 0.012 260)",
-                    border: i > stepIdx ? "2px solid oklch(88% 0.012 250)" : "none",
-                    boxShadow: i === stepIdx ? "0 0 0 4px oklch(55% 0.22 264 / 20%)" : "none"
-                  }}>
-                  {i < stepIdx ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                </div>
-                <span className="text-[11px] font-medium"
-                  style={{ color: i === stepIdx ? "oklch(45% 0.18 264)" : "oklch(60% 0.012 260)" }}>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
+  if (errorEmpresa || !empresa) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="text-center max-w-sm space-y-4">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+          <h2 className="font-bold text-xl text-slate-800">Portal indisponível</h2>
+          <p className="text-sm text-slate-500">
+            {errorEmpresa?.message === "Portal de agendamento não está ativo"
+              ? "O portal de agendamento online ainda não foi ativado. Entre em contato diretamente com o estabelecimento."
+              : "Não foi possível carregar o portal. Tente novamente mais tarde."}
+          </p>
         </div>
+      </div>
+    );
+  }
 
-        {/* Card principal */}
-        <div className="w-full max-w-lg card-elegant overflow-hidden animate-in-up" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
-
-          {/* Step 1: Serviço */}
-          {step === "servico" && (
+  if (step === "sucesso") {
+    const profFinal = profissionais?.find(p => p.id === (profissionalParaHora ?? profissionalId));
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
+        <div className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="text-center max-w-md space-y-6">
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-lg"
+              style={{ background: corPrimaria }}>
+              <CheckCircle2 className="w-10 h-10 text-white" />
+            </div>
             <div>
-              <div className="px-6 py-5" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-                <h2 className="font-bold tracking-tight">Escolha o serviço</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Selecione o que você deseja agendar</p>
-              </div>
-              <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
-                {!servicos ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                  </div>
-                ) : servicos.length === 0 ? (
-                  <div className="text-center py-12 text-sm text-muted-foreground">
-                    Nenhum serviço disponível no momento.
-                  </div>
-                ) : servicos.map(s => (
-                  <button key={s.id} onClick={() => setServicoId(s.id)}
-                    className="w-full text-left p-4 rounded-xl transition-all duration-150"
-                    style={{
-                      background: servicoId === s.id ? "oklch(55% 0.22 264 / 8%)" : "oklch(98% 0.004 250)",
-                      border: `2px solid ${servicoId === s.id ? "oklch(55% 0.22 264)" : "oklch(90% 0.012 250)"}`,
-                    }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm">{s.nome}</p>
-                        {s.descricao && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{s.descricao}</p>}
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" /> {s.duracaoMinutos} min
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 text-right">
-              <p className="font-bold text-sm" style={{ color: "oklch(45% 0.18 264)" }}>
-                {formatCurrency(s.valor)}
+              <h2 className="font-bold text-2xl text-slate-800 mb-2">
+                {agendarMutation.data?.confirmadoAutomaticamente ? "Agendamento confirmado!" : "Pré-agendamento realizado!"}
+              </h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {agendarMutation.data?.confirmadoAutomaticamente
+                  ? "Seu horário está confirmado. Até lá!"
+                  : "Aguarde a confirmação do estabelecimento. Você será avisado em breve."}
               </p>
-                        {servicoId === s.id && (
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center mt-1 ml-auto"
-                            style={{ background: "oklch(55% 0.22 264)" }}>
-                            <CheckCircle2 className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Profissional */}
-              {servicoId && profissionais && profissionais.length > 0 && (
-                <div className="px-4 pb-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
-                    Profissional
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => setProfId(null)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                      style={{
-                        background: profId === null ? "oklch(55% 0.22 264 / 10%)" : "oklch(96% 0.008 250)",
-                        color: profId === null ? "oklch(45% 0.18 264)" : "oklch(52% 0.016 260)",
-                        border: `1.5px solid ${profId === null ? "oklch(55% 0.22 264 / 40%)" : "oklch(90% 0.012 250)"}`,
-                      }}>
-                      Sem preferência
-                    </button>
-                    {profissionais.map(p => (
-                      <button key={p.id} onClick={() => setProfId(p.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
-                        style={{
-                          background: profId === p.id ? "oklch(55% 0.22 264 / 10%)" : "oklch(96% 0.008 250)",
-                          color: profId === p.id ? "oklch(45% 0.18 264)" : "oklch(52% 0.016 260)",
-                          border: `1.5px solid ${profId === p.id ? "oklch(55% 0.22 264 / 40%)" : "oklch(90% 0.012 250)"}`,
-                        }}>
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
-                          style={{ background: p.corCalendario ?? "oklch(55% 0.22 264)" }}>
-                          {p.nome.charAt(0)}
-                        </div>
-                        {p.nome.split(" ")[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="px-4 pb-4">
-                <button onClick={() => setStep("data")} disabled={!servicoId}
-                  className="btn-primary w-full justify-center py-3">
-                  Continuar <ChevronRight className="w-4 h-4" />
-                </button>
+            </div>
+            <div className="rounded-2xl p-5 text-left space-y-3 border"
+              style={{ background: corSecundaria + "40", borderColor: corPrimaria + "30" }}>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: corPrimaria }}>Resumo</p>
+              <div className="space-y-1.5">
+                <p className="font-semibold text-slate-800">{servicoSelecionado?.nome}</p>
+                {profFinal && <p className="text-sm text-slate-600">com {profFinal.nome}</p>}
+                <p className="text-sm text-slate-600">{formatarData(data)} às {hora}</p>
+                <p className="font-bold text-base" style={{ color: corPrimaria }}>
+                  {formatCurrency(servicoSelecionado?.valor ?? "0")}
+                </p>
               </div>
             </div>
-          )}
+            <button
+              onClick={() => {
+                setStep("identificacao"); setServicoId(null); setProfissionalId(null);
+                setData(""); setHora(""); setObservacoes("");
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-md"
+              style={{ background: corPrimaria }}>
+              Fazer outro agendamento <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <footer className="text-center py-4 text-[11px] text-slate-400 flex items-center justify-center gap-1">
+          Powered by <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-tech-logo_93e7520c.png" alt="Orizon Tech" className="h-4 inline-block" />
+        </footer>
+      </div>
+    );
+  }
 
-          {/* Step 2: Data & Hora */}
-          {step === "data" && (
-            <div>
-              <div className="px-6 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-                <button onClick={() => setStep("servico")}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                </button>
-                <div>
-                  <h2 className="font-bold tracking-tight">Data & Horário</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {servicoSelecionado?.nome} · {formatCurrency(servicoSelecionado?.valor ?? "0")}
+  const stepIdx = STEPS.indexOf(step);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
+
+      {empresa.portalHeaderUrl && step === "identificacao" && (
+        <div className="w-full h-40 sm:h-56 overflow-hidden">
+          <img src={empresa.portalHeaderUrl} alt="Header" className="w-full h-full object-cover" />
+        </div>
+      )}
+
+      {step === "identificacao" && empresa.portalMensagemBemVindo && (
+        <div className="max-w-lg mx-auto w-full px-4 pt-6">
+          <p className="text-sm text-slate-600 text-center leading-relaxed italic">
+            "{empresa.portalMensagemBemVindo}"
+          </p>
+        </div>
+      )}
+
+      <div className="max-w-lg mx-auto w-full px-4 pt-6">
+        <div className="flex items-center gap-1 mb-1">
+          {STEPS.map((s, i) => (
+            <div key={s} className="flex-1 h-1.5 rounded-full transition-all"
+              style={{ background: i <= stepIdx ? corPrimaria : "#e2e8f0" }} />
+          ))}
+        </div>
+        <div className="flex justify-between">
+          {STEPS.map((s, i) => (
+            <span key={s} className="text-[10px] font-medium"
+              style={{ color: i <= stepIdx ? corPrimaria : "#94a3b8" }}>
+              {STEP_LABELS[i]}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto w-full px-4 py-6 flex-1">
+
+        {step === "identificacao" && (
+          <StepCard title="Quem é você?" subtitle="Informe seus dados para começar">
+            <div className="space-y-4">
+              {clienteIdentificado && meusAgendamentos && meusAgendamentos.length > 0 && (
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: corSecundaria + "50", border: `1px solid ${corPrimaria}25` }}>
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: corPrimaria }}>
+                    Seus agendamentos recentes
                   </p>
+                  {meusAgendamentos.slice(0, 3).map(ag => {
+                    const serv = servicos?.find(s => s.id === ag.servicoId);
+                    return (
+                      <div key={ag.id} className="flex items-center justify-between text-xs text-slate-600">
+                        <span>{serv?.nome ?? "Serviço"}</span>
+                        <span>{String(ag.data).substring(0, 10)} às {ag.horaInicio.substring(0, 5)}</span>
+                        <StatusBadge status={ag.status} corPrimaria={corPrimaria} />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <InputField label="WhatsApp / Telefone *" value={telefone} onChange={setTelefone}
+                icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} />
+              <InputField label="Nome completo *" value={nome} onChange={setNome}
+                icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
+              <InputField label="E-mail (opcional)" value={email} onChange={setEmail}
+                icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} />
+              <BtnPrimary disabled={!telefone || !nome}
+                onClick={() => { setClienteIdentificado(true); setStep("servico"); }}
+                cor={corPrimaria}>
+                Continuar <ChevronRight className="w-4 h-4" />
+              </BtnPrimary>
+              <p className="text-[11px] text-center text-slate-400">
+                Funcionamos {diasDaSemanaStr(diasFuncionamento)} · {empresa.horaAbertura} às {empresa.horaFechamento}
+              </p>
+            </div>
+          </StepCard>
+        )}
+
+        {step === "servico" && (
+          <StepCard title="Qual serviço?" subtitle="Escolha o serviço desejado">
+            <div className="space-y-2">
+              {servicos?.map(s => (
+                <button key={s.id} onClick={() => { setServicoId(s.id); setStep("profissional"); }}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                  style={{
+                    borderColor: servicoId === s.id ? corPrimaria : "#e2e8f0",
+                    background: servicoId === s.id ? corSecundaria + "50" : "white",
+                  }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: s.cor ?? corPrimaria }}>
+                    <Scissors className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-slate-800">{s.nome}</p>
+                    {s.descricao && <p className="text-xs text-slate-500 truncate">{s.descricao}</p>}
+                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {s.duracaoMinutos} min
+                    </p>
+                  </div>
+                  <p className="font-bold text-sm flex-shrink-0" style={{ color: corPrimaria }}>
+                    {formatCurrency(s.valor)}
+                  </p>
+                </button>
+              ))}
+            </div>
+            <BtnSecundario onClick={() => setStep("identificacao")} cor={corPrimaria}>
+              <ChevronLeft className="w-4 h-4" /> Voltar
+            </BtnSecundario>
+          </StepCard>
+        )}
+
+        {step === "profissional" && (
+          <StepCard title="Com quem?" subtitle="Escolha o profissional ou deixe em aberto">
+            <div className="space-y-2">
+              <button onClick={() => { setProfissionalId(null); setStep("data"); }}
+                className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                style={{
+                  borderColor: profissionalId === null ? corPrimaria : "#e2e8f0",
+                  background: profissionalId === null ? corSecundaria + "50" : "white",
+                }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: corPrimaria }}>
+                  <Star className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-slate-800">Qualquer profissional</p>
+                  <p className="text-xs text-slate-500">Primeiro horário disponível</p>
+                </div>
+              </button>
+              {profissionais?.map(p => (
+                <button key={p.id} onClick={() => { setProfissionalId(p.id); setStep("data"); }}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                  style={{
+                    borderColor: profissionalId === p.id ? corPrimaria : "#e2e8f0",
+                    background: profissionalId === p.id ? corSecundaria + "50" : "white",
+                  }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm overflow-hidden"
+                    style={{ background: corPrimaria }}>
+                    {p.avatarUrl
+                      ? <img src={p.avatarUrl} alt={p.nome} className="w-full h-full object-cover" />
+                      : p.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-slate-800">{p.nome}</p>
+                    {p.especialidade && <p className="text-xs text-slate-500">{p.especialidade}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <BtnSecundario onClick={() => setStep("servico")} cor={corPrimaria}>
+              <ChevronLeft className="w-4 h-4" /> Voltar
+            </BtnSecundario>
+          </StepCard>
+        )}
+
+        {step === "data" && (
+          <StepCard title="Quando?" subtitle="Escolha a data e horário">
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Data</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {datasDisponiveis.slice(0, 12).map(d => {
+                    const [ano, mes, dia] = d.split("-").map(Number);
+                    const dt = new Date(ano, mes - 1, dia);
+                    return (
+                      <button key={d} onClick={() => { setData(d); setHora(""); }}
+                        className="flex flex-col items-center p-2.5 rounded-xl border-2 transition-all text-sm"
+                        style={{
+                          borderColor: data === d ? corPrimaria : "#e2e8f0",
+                          background: data === d ? corSecundaria + "50" : "white",
+                          color: data === d ? corPrimaria : "#475569",
+                        }}>
+                        <span className="text-[10px] font-medium uppercase">
+                          {dt.toLocaleDateString("pt-BR", { weekday: "short" })}
+                        </span>
+                        <span className="font-bold text-base">{dt.getDate()}</span>
+                        <span className="text-[10px]">
+                          {dt.toLocaleDateString("pt-BR", { month: "short" })}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="p-5 space-y-5">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">
-                    Data
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type="date"
-                      value={data}
-                      min={minDate}
-                      onChange={e => { setData(e.target.value); setHora(""); }}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                      style={{
-                        border: "2px solid oklch(90% 0.012 250)",
-                        background: "oklch(98% 0.004 250)",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                </div>
 
-                {data && (
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">
-                      Horário disponível
-                    </label>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                      {HORARIOS.map(h => (
+              {data && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Horário</p>
+                  {loadingSlots ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Verificando disponibilidade...
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <p className="text-sm text-slate-500 py-4 text-center">
+                      Nenhum horário disponível nesta data. Escolha outro dia.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {slots.map(h => (
                         <button key={h} onClick={() => setHora(h)}
-                          className="py-2 rounded-xl text-xs font-semibold transition-all"
+                          className="py-2 rounded-xl text-sm font-semibold border-2 transition-all"
                           style={{
-                            background: hora === h ? "oklch(55% 0.22 264)" : "oklch(96% 0.008 250)",
-                            color: hora === h ? "white" : "oklch(40% 0.016 260)",
-                            border: `1.5px solid ${hora === h ? "oklch(55% 0.22 264)" : "oklch(90% 0.012 250)"}`,
+                            borderColor: hora === h ? corPrimaria : "#e2e8f0",
+                            background: hora === h ? corPrimaria : "white",
+                            color: hora === h ? "white" : "#475569",
                           }}>
                           {h}
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-              <div className="px-5 pb-5">
-                <button onClick={() => setStep("dados")} disabled={!data || !hora}
-                  className="btn-primary w-full justify-center py-3">
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <BtnSecundario onClick={() => setStep("profissional")} cor={corPrimaria}>
+                  <ChevronLeft className="w-4 h-4" /> Voltar
+                </BtnSecundario>
+                <BtnPrimary disabled={!data || !hora} onClick={() => setStep("confirmacao")} cor={corPrimaria}>
                   Continuar <ChevronRight className="w-4 h-4" />
-                </button>
+                </BtnPrimary>
               </div>
             </div>
-          )}
+          </StepCard>
+        )}
 
-          {/* Step 3: Dados pessoais */}
-          {step === "dados" && (
-            <div>
-              <div className="px-6 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-                <button onClick={() => setStep("data")}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                </button>
-                <div>
-                  <h2 className="font-bold tracking-tight">Seus dados</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })} às {hora}
+        {step === "confirmacao" && (
+          <StepCard title="Confirmar agendamento" subtitle="Revise os detalhes antes de confirmar">
+            <div className="space-y-4">
+              <div className="rounded-xl p-4 space-y-3 border"
+                style={{ background: corSecundaria + "30", borderColor: corPrimaria + "25" }}>
+                <ResumoItem icon={Scissors} label="Serviço" value={servicoSelecionado?.nome ?? ""} cor={corPrimaria} />
+                <ResumoItem icon={User} label="Profissional"
+                  value={profSelecionado?.nome ?? (profissionalId ? "—" : "Qualquer disponível")} cor={corPrimaria} />
+                <ResumoItem icon={Calendar} label="Data" value={formatarData(data)} cor={corPrimaria} />
+                <ResumoItem icon={Clock} label="Horário"
+                  value={`${hora} · ${servicoSelecionado?.duracaoMinutos ?? 60} min`} cor={corPrimaria} />
+                <ResumoItem icon={User} label="Cliente" value={`${nome} · ${telefone}`} cor={corPrimaria} />
+                <div className="pt-2 border-t" style={{ borderColor: corPrimaria + "20" }}>
+                  <p className="text-xs text-slate-500">Valor total</p>
+                  <p className="font-bold text-lg" style={{ color: corPrimaria }}>
+                    {formatCurrency(servicoSelecionado?.valor ?? "0")}
                   </p>
                 </div>
               </div>
 
-              {/* Resumo */}
-              <div className="mx-5 mt-5 p-4 rounded-xl space-y-1"
-                style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 15%)" }}>
-                <p className="text-xs font-semibold" style={{ color: "oklch(45% 0.18 264)" }}>
-                  {servicoSelecionado?.nome}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {profSelecionado ? profSelecionado.nome : "Qualquer profissional"} · {servicoSelecionado?.duracaoMinutos} min
-                </p>
-                <p className="text-sm font-bold" style={{ color: "oklch(45% 0.18 264)" }}>
-                  {formatCurrency(servicoSelecionado?.valor ?? "0")}
-                </p>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Observações (opcional)
+                </label>
+                <textarea
+                  value={observacoes}
+                  onChange={e => setObservacoes(e.target.value)}
+                  placeholder="Alguma informação adicional?"
+                  rows={2}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm resize-none border-2 outline-none transition-all bg-white text-slate-800"
+                  style={{ borderColor: "#e2e8f0" }}
+                  onFocus={e => { e.currentTarget.style.borderColor = corPrimaria; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                />
               </div>
 
-              <div className="p-5 space-y-4">
-                {[
-                  { label: "Nome completo *", value: nome, onChange: setNome, icon: User, placeholder: "Seu nome" },
-                  { label: "WhatsApp *", value: telefone, onChange: setTelefone, icon: Phone, placeholder: "(11) 99999-9999" },
-                  { label: "E-mail (opcional)", value: email, onChange: setEmail, icon: Mail, placeholder: "seu@email.com" },
-                ].map(field => {
-                  const Icon = field.icon;
-                  return (
-                    <div key={field.label}>
-                      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
-                        {field.label}
-                      </label>
-                      <div className="relative">
-                        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={e => field.onChange(e.target.value)}
-                          placeholder={field.placeholder}
-                          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm transition-all"
-                          style={{
-                            border: "2px solid oklch(90% 0.012 250)",
-                            background: "oklch(98% 0.004 250)",
-                            outline: "none",
-                          }}
-                          onFocus={e => { e.currentTarget.style.borderColor = "oklch(55% 0.22 264)"; }}
-                          onBlur={e => { e.currentTarget.style.borderColor = "oklch(90% 0.012 250)"; }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="px-5 pb-5">
-                <button
-                  onClick={handleAgendar}
-                  disabled={!nome || !telefone || agendarMutation.isPending}
-                  className="btn-primary w-full justify-center py-3">
-                  {agendarMutation.isPending ? (
-                    <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Aguarde...</>
-                  ) : (
-                    <>Confirmar pré-agendamento <CheckCircle2 className="w-4 h-4" /></>
-                  )}
-                </button>
-                <p className="text-[11px] text-center text-muted-foreground mt-3 leading-relaxed">
-                  Após confirmar, você receberá instruções no WhatsApp para pagar a reserva e garantir seu horário.
+              {!empresa.autoConfirmarPortal && (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+                  Este agendamento ficará pendente até ser confirmado pelo estabelecimento.
                 </p>
+              )}
+
+              <div className="flex gap-2">
+                <BtnSecundario onClick={() => setStep("data")} cor={corPrimaria}>
+                  <ChevronLeft className="w-4 h-4" /> Voltar
+                </BtnSecundario>
+                <BtnPrimary
+                  disabled={agendarMutation.isPending}
+                  onClick={() => {
+                    const profFinalId = profissionalParaHora ?? profissionalId;
+                    if (!profFinalId) {
+                      toast.error("Nenhum profissional disponível para este horário.");
+                      return;
+                    }
+                    agendarMutation.mutate({
+                      empresaId,
+                      servicoId: servicoId!,
+                      profissionalId: profFinalId,
+                      data,
+                      horaInicio: hora,
+                      clienteNome: nome,
+                      clienteTelefone: telefone,
+                      clienteEmail: email || undefined,
+                      observacoes: observacoes || undefined,
+                    });
+                  }}
+                  cor={corPrimaria}>
+                  {agendarMutation.isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Aguarde...</>
+                    : <><CheckCircle2 className="w-4 h-4" /> Confirmar agendamento</>}
+                </BtnPrimary>
               </div>
             </div>
+          </StepCard>
+        )}
+      </div>
+
+      <footer className="text-center py-4 text-[11px] text-slate-400 flex items-center justify-center gap-1">
+        Powered by <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-tech-logo_93e7520c.png" alt="Orizon Tech" className="h-4 inline-block" />
+      </footer>
+    </div>
+  );
+}
+
+function PortalHeader({ empresa, corPrimaria }: {
+  empresa: { nome: string; logoUrl?: string | null };
+  corPrimaria: string;
+}) {
+  return (
+    <header className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          {empresa.logoUrl ? (
+            <img src={empresa.logoUrl} alt={empresa.nome} className="h-8 w-auto object-contain" />
+          ) : (
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: corPrimaria }}>
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
           )}
+          <div>
+            <p className="font-bold text-sm tracking-tight text-slate-800">{empresa.nome}</p>
+            <p className="text-[10px] text-slate-400">Agendamento Online</p>
+          </div>
         </div>
+        <a href="/admin" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+          Área restrita →
+        </a>
+      </div>
+    </header>
+  );
+}
+
+function StepCard({ title, subtitle, children }: {
+  title: string; subtitle: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-bold text-xl text-slate-800">{title}</h2>
+        <p className="text-sm text-slate-500">{subtitle}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function InputField({ label, value, onChange, icon: Icon, placeholder, corPrimaria }: {
+  label: string; value: string; onChange: (v: string) => void;
+  icon: React.ElementType; placeholder: string; corPrimaria: string;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input type="text" value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm border-2 outline-none transition-all bg-white text-slate-800"
+          style={{ borderColor: "#e2e8f0" }}
+          onFocus={e => { e.currentTarget.style.borderColor = corPrimaria; }}
+          onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+        />
       </div>
     </div>
   );
 }
 
-function PortalHeader({ empresa }: { empresa?: { nome: string; logoUrl?: string | null } | null }) {
+function BtnPrimary({ children, onClick, disabled, cor }: {
+  children: React.ReactNode; onClick: () => void; disabled?: boolean; cor: string;
+}) {
   return (
-    <header className="sticky top-0 z-20"
-      style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-      <div className="max-w-lg mx-auto px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-sm tracking-tight leading-tight">
-              {empresa?.nome ?? "Agendamento Online"}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Powered by Agendei</p>
-          </div>
-        </div>
-        <a href="/admin" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-          Área restrita →
-        </a>
+    <button onClick={onClick} disabled={disabled}
+      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm shadow-md transition-opacity"
+      style={{ background: disabled ? "#cbd5e1" : cor, cursor: disabled ? "not-allowed" : "pointer" }}>
+      {children}
+    </button>
+  );
+}
+
+function BtnSecundario({ children, onClick, cor }: {
+  children: React.ReactNode; onClick: () => void; cor: string;
+}) {
+  return (
+    <button onClick={onClick}
+      className="flex items-center gap-1 px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-all bg-white"
+      style={{ borderColor: cor + "40", color: cor }}>
+      {children}
+    </button>
+  );
+}
+
+function ResumoItem({ icon: Icon, label, value, cor }: {
+  icon: React.ElementType; label: string; value: string; cor: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ background: cor + "15" }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: cor }} />
       </div>
-    </header>
+      <div>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="text-sm font-semibold text-slate-700">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status, corPrimaria }: { status: string; corPrimaria: string }) {
+  const map: Record<string, { label: string; color: string }> = {
+    pre_agendado: { label: "Pendente", color: "#f59e0b" },
+    agendado: { label: "Agendado", color: corPrimaria },
+    confirmado: { label: "Confirmado", color: "#10b981" },
+    concluido: { label: "Concluído", color: "#6b7280" },
+  };
+  const info = map[status] ?? { label: status, color: "#6b7280" };
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+      style={{ background: info.color + "20", color: info.color }}>
+      {info.label}
+    </span>
   );
 }

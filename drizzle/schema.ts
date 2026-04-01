@@ -47,6 +47,16 @@ export const empresas = mysqlTable("empresas", {
   percentualDona: decimal("percentualDona", { precision: 5, scale: 2 }).default("0.00"),
   reservaPercentual: decimal("reservaPercentual", { precision: 5, scale: 2 }).default("30.00"),
   reservaHorasExpiracao: int("reservaHorasExpiracao").default(24),
+  // Portal de agendamento público
+  portalAtivo: boolean("portalAtivo").default(false),
+  autoConfirmarPortal: boolean("autoConfirmarPortal").default(false),
+  portalHeaderUrl: text("portalHeaderUrl"),
+  portalMensagemBemVindo: text("portalMensagemBemVindo"),
+  // Horário de funcionamento
+  horaAbertura: varchar("horaAbertura", { length: 5 }).default("08:00"),
+  horaFechamento: varchar("horaFechamento", { length: 5 }).default("18:00"),
+  diasFuncionamento: json("diasFuncionamento").$type<number[]>().default([1,2,3,4,5]),
+  intervaloMinutos: int("intervaloMinutos").default(30),
   ownerId: int("ownerId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

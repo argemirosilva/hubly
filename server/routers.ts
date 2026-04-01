@@ -29,6 +29,7 @@ import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
+import { portalRouter } from "./routers/portal";
 import { nanoid } from "nanoid";
 
 // Helper para obter empresa do usuário logado
@@ -44,6 +45,7 @@ export const appRouter = router({
   iaFinanceiro: iaFinanceiroRouter,
   iaClientes: iaClientesRouter,
   suporte: suporteRouter,
+  portal: portalRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -87,6 +89,15 @@ export const appRouter = router({
         reservaHorasExpiracao: z.number().optional(),
         corPrimaria: z.string().optional(),
         corSecundaria: z.string().optional(),
+        logoUrl: z.string().optional(),
+        portalAtivo: z.boolean().optional(),
+        autoConfirmarPortal: z.boolean().optional(),
+        portalHeaderUrl: z.string().optional(),
+        portalMensagemBemVindo: z.string().optional(),
+        horaAbertura: z.string().optional(),
+        horaFechamento: z.string().optional(),
+        diasFuncionamento: z.array(z.number()).optional(),
+        intervaloMinutos: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaByOwnerId(ctx.user.id);
@@ -616,83 +627,6 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         await upsertCoresStatus(empresa.id, input);
         return { success: true };
-      }),
-  }),
-
-  // ─── PORTAL PÚBLICO ───────────────────────────────────────────────────────
-  portal: router({
-    getEmpresa: publicProcedure
-      .input(z.object({ empresaId: z.number() }))
-      .query(async ({ input }) => {
-        const { getDb } = await import("./db");
-        const db = await getDb();
-        if (!db) return null;
-        const { empresas: emp } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        const result = await db.select({
-          id: emp.id,
-          nome: emp.nome,
-          tipo: emp.tipo,
-          telefone: emp.telefone,
-          email: emp.email,
-          endereco: emp.endereco,
-          logoUrl: emp.logoUrl,
-          corPrimaria: emp.corPrimaria,
-          corSecundaria: emp.corSecundaria,
-        }).from(emp).where(eq(emp.id, input.empresaId)).limit(1);
-        return result[0] ?? null;
-      }),
-    getServicos: publicProcedure
-      .input(z.object({ empresaId: z.number() }))
-      .query(async ({ input }) => {
-        return getServicosByEmpresa(input.empresaId);
-      }),
-    getProfissionais: publicProcedure
-      .input(z.object({ empresaId: z.number() }))
-      .query(async ({ input }) => {
-        const profs = await getProfissionaisByEmpresa(input.empresaId);
-        return profs.filter(p => p.ativo).map(p => ({
-          id: p.id,
-          nome: p.nome,
-          especialidade: p.especialidade,
-          avatarUrl: p.avatarUrl,
-          corCalendario: p.corCalendario,
-        }));
-      }),
-    criarAgendamento: publicProcedure
-      .input(z.object({
-        empresaId: z.number(),
-        clienteNome: z.string().min(1),
-        clienteWhatsapp: z.string().min(1),
-        clienteEmail: z.string().email().optional(),
-        profissionalId: z.number(),
-        servicoId: z.number(),
-        data: z.string(),
-        horaInicio: z.string(),
-        horaFim: z.string(),
-        valorTotal: z.string(),
-        observacoes: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const { empresaId, clienteNome, clienteWhatsapp, clienteEmail, ...agendData } = input;
-        // Criar ou encontrar cliente
-        const clientesExistentes = await getClientesByEmpresa(empresaId);
-        let clienteId = clientesExistentes.find(c => c.whatsapp === clienteWhatsapp)?.id;
-        if (!clienteId) {
-          clienteId = await createCliente({
-            empresaId,
-            nome: clienteNome,
-            whatsapp: clienteWhatsapp,
-            email: clienteEmail,
-          });
-        }
-        const id = await createAgendamento({
-          ...agendData,
-          empresaId,
-          clienteId,
-          status: "pre_agendado",
-        } as any);
-        return { id, success: true };
       }),
   }),
 

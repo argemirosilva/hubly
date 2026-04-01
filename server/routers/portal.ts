@@ -1,0 +1,319 @@
+/**
+ * Portal de Agendamento Público
+ * Procedures sem autenticação para clientes externos agendarem online.
+ */
+import { publicProcedure, router } from "../_core/trpc";
+import { z } from "zod";
+import { getDb } from "../db";
+import {
+  empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda,
+} from "../../drizzle/schema";
+import { eq, and, sql } from "drizzle-orm";
+
+// ─── Helpers internos ────────────────────────────────────────────────────────
+
+/** Retorna a empresa pelo id (dados públicos) */
+async function getEmpresaPublicaById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({
+    id: empresas.id,
+    nome: empresas.nome,
+    tipo: empresas.tipo,
+    telefone: empresas.telefone,
+    email: empresas.email,
+    endereco: empresas.endereco,
+    logoUrl: empresas.logoUrl,
+    corPrimaria: empresas.corPrimaria,
+    corSecundaria: empresas.corSecundaria,
+    portalAtivo: empresas.portalAtivo,
+    portalHeaderUrl: empresas.portalHeaderUrl,
+    portalMensagemBemVindo: empresas.portalMensagemBemVindo,
+    horaAbertura: empresas.horaAbertura,
+    horaFechamento: empresas.horaFechamento,
+    diasFuncionamento: empresas.diasFuncionamento,
+    intervaloMinutos: empresas.intervaloMinutos,
+    autoConfirmarPortal: empresas.autoConfirmarPortal,
+  }).from(empresas).where(eq(empresas.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
+/** Gera slots de horário disponíveis para uma data/profissional/serviço */
+function gerarSlots(
+  horaAbertura: string,
+  horaFechamento: string,
+  intervaloMinutos: number,
+  duracaoMinutos: number,
+  ocupados: { horaInicio: string; horaFim: string }[],
+): string[] {
+  const slots: string[] = [];
+  const [abH, abM] = horaAbertura.split(":").map(Number);
+  const [feH, feM] = horaFechamento.split(":").map(Number);
+  const aberturaMin = abH * 60 + abM;
+  const fechamentoMin = feH * 60 + feM;
+
+  for (let min = aberturaMin; min + duracaoMinutos <= fechamentoMin; min += intervaloMinutos) {
+    const fimMin = min + duracaoMinutos;
+    const hInicio = `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+    const hFim = `${String(Math.floor(fimMin / 60)).padStart(2, "0")}:${String(fimMin % 60).padStart(2, "0")}`;
+
+    // Verificar conflito com agendamentos existentes
+    const conflito = ocupados.some(oc => {
+      const ocInicio = oc.horaInicio.substring(0, 5);
+      const ocFim = oc.horaFim.substring(0, 5);
+      return hInicio < ocFim && hFim > ocInicio;
+    });
+
+    if (!conflito) slots.push(hInicio);
+  }
+  return slots;
+}
+
+// ─── Router ──────────────────────────────────────────────────────────────────
+
+export const portalRouter = router({
+  /** Dados públicos da empresa para exibir no portal */
+  getEmpresa: publicProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .query(async ({ input }) => {
+      const empresa = await getEmpresaPublicaById(input.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
+      return empresa;
+    }),
+
+  /** Lista de serviços ativos para o portal */
+  getServicos: publicProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(servicos)
+        .where(and(eq(servicos.empresaId, input.empresaId), eq(servicos.ativo, true)))
+        .orderBy(servicos.nome);
+    }),
+
+  /** Lista de profissionais ativos para o portal */
+  getProfissionais: publicProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        id: profissionais.id,
+        nome: profissionais.nome,
+        especialidade: profissionais.especialidade,
+        avatarUrl: profissionais.avatarUrl,
+      }).from(profissionais)
+        .where(and(eq(profissionais.empresaId, input.empresaId), eq(profissionais.ativo, true)))
+        .orderBy(profissionais.nome);
+    }),
+
+  /** Slots de horário disponíveis para uma data específica */
+  getHorariosDisponiveis: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      data: z.string(), // YYYY-MM-DD
+      profissionalId: z.number().optional(), // se omitido, retorna por profissional
+      servicoId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+
+      const empresa = await getEmpresaPublicaById(input.empresaId);
+      if (!empresa) return [];
+
+      // Verificar se o dia da semana está habilitado (0=Dom, 1=Seg, ..., 6=Sab)
+      const [ano, mes, dia] = input.data.split("-").map(Number);
+      const diaSemana = new Date(ano, mes - 1, dia).getDay();
+      const diasFuncionamento = (empresa.diasFuncionamento as number[]) ?? [1, 2, 3, 4, 5];
+      if (!diasFuncionamento.includes(diaSemana)) return [];
+
+      // Buscar duração do serviço
+      const servicoResult = await db.select({ duracaoMinutos: servicos.duracaoMinutos })
+        .from(servicos).where(eq(servicos.id, input.servicoId)).limit(1);
+      const duracaoMinutos = servicoResult[0]?.duracaoMinutos ?? 60;
+
+      const horaAbertura = empresa.horaAbertura ?? "08:00";
+      const horaFechamento = empresa.horaFechamento ?? "18:00";
+      const intervalo = empresa.intervaloMinutos ?? 30;
+
+      if (input.profissionalId) {
+        // Slots para um profissional específico
+        const ocupados = await db.select({ horaInicio: agendamentos.horaInicio, horaFim: agendamentos.horaFim })
+          .from(agendamentos)
+          .where(and(
+            eq(agendamentos.empresaId, input.empresaId),
+            eq(agendamentos.profissionalId, input.profissionalId),
+            sql`${agendamentos.data} = ${input.data}`,
+            sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+          ));
+
+        // Verificar bloqueios
+        const bloqueios = await db.select({ horaInicio: bloqueiosAgenda.horaInicio, horaFim: bloqueiosAgenda.horaFim })
+          .from(bloqueiosAgenda)
+          .where(and(
+            eq(bloqueiosAgenda.profissionalId, input.profissionalId),
+            sql`${bloqueiosAgenda.dataInicio} <= ${input.data}`,
+            sql`${bloqueiosAgenda.dataFim} >= ${input.data}`,
+            sql`${bloqueiosAgenda.status} = 'aprovado'`,
+          ));
+
+        const todosOcupados = [...ocupados, ...bloqueios];
+        const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, todosOcupados);
+        return [{ profissionalId: input.profissionalId, slots }];
+      } else {
+        // Slots para todos os profissionais ativos
+        const profs = await db.select({ id: profissionais.id })
+          .from(profissionais)
+          .where(and(eq(profissionais.empresaId, input.empresaId), eq(profissionais.ativo, true)));
+
+        const resultado = await Promise.all(profs.map(async (prof) => {
+          const ocupados = await db.select({ horaInicio: agendamentos.horaInicio, horaFim: agendamentos.horaFim })
+            .from(agendamentos)
+            .where(and(
+              eq(agendamentos.empresaId, input.empresaId),
+              eq(agendamentos.profissionalId, prof.id),
+              sql`${agendamentos.data} = ${input.data}`,
+              sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+            ));
+          const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, ocupados);
+          return { profissionalId: prof.id, slots };
+        }));
+        return resultado;
+      }
+    }),
+
+  /** Criar agendamento público (sem autenticação) */
+  criarAgendamento: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      servicoId: z.number(),
+      profissionalId: z.number(),
+      data: z.string(), // YYYY-MM-DD
+      horaInicio: z.string(), // HH:MM
+      // Dados do cliente
+      clienteNome: z.string().min(2),
+      clienteTelefone: z.string().min(8),
+      clienteEmail: z.string().email().optional(),
+      observacoes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Serviço indisponível");
+
+      const empresa = await getEmpresaPublicaById(input.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
+
+      // Buscar serviço para calcular horaFim e valorTotal
+      const servicoResult = await db.select().from(servicos)
+        .where(and(eq(servicos.id, input.servicoId), eq(servicos.empresaId, input.empresaId))).limit(1);
+      const servico = servicoResult[0];
+      if (!servico) throw new Error("Serviço não encontrado");
+
+      // Calcular horaFim
+      const [h, m] = input.horaInicio.split(":").map(Number);
+      const fimMin = h * 60 + m + (servico.duracaoMinutos ?? 60);
+      const horaFim = `${String(Math.floor(fimMin / 60)).padStart(2, "0")}:${String(fimMin % 60).padStart(2, "0")}`;
+
+      // Verificar conflito de horário
+      const conflito = await db.select({ id: agendamentos.id })
+        .from(agendamentos)
+        .where(and(
+          eq(agendamentos.profissionalId, input.profissionalId),
+          sql`${agendamentos.data} = ${input.data}`,
+          sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+          sql`${agendamentos.horaInicio} < ${horaFim}`,
+          sql`${agendamentos.horaFim} > ${input.horaInicio}`,
+        )).limit(1);
+      if (conflito.length > 0) throw new Error("Horário não disponível. Por favor, escolha outro.");
+
+      // Buscar ou criar cliente pelo telefone
+      let clienteId: number;
+      const clienteExistente = await db.select({ id: clientes.id })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          eq(clientes.telefone, input.clienteTelefone),
+        )).limit(1);
+
+      if (clienteExistente.length > 0) {
+        clienteId = clienteExistente[0].id;
+      } else {
+        const novoCliente = await db.insert(clientes).values({
+          empresaId: input.empresaId,
+          nome: input.clienteNome,
+          telefone: input.clienteTelefone,
+          email: input.clienteEmail ?? null,
+          ativo: true,
+        });
+        clienteId = (novoCliente as any)[0]?.insertId ?? (novoCliente as any).insertId;
+      }
+
+      // Status: confirmado automaticamente ou pré-agendado
+      const status = empresa.autoConfirmarPortal ? "confirmado" : "pre_agendado";
+
+      // Criar agendamento
+      const novoAg = await db.insert(agendamentos).values({
+        empresaId: input.empresaId,
+        clienteId,
+        profissionalId: input.profissionalId,
+        servicoId: input.servicoId,
+        data: input.data as any,
+        horaInicio: input.horaInicio,
+        horaFim,
+        status,
+        valorTotal: String(servico.valor ?? "0"),
+        observacoes: input.observacoes ?? null,
+      });
+      const agendamentoId = (novoAg as any)[0]?.insertId ?? (novoAg as any).insertId;
+
+      return {
+        id: agendamentoId,
+        status,
+        confirmadoAutomaticamente: empresa.autoConfirmarPortal,
+        horaFim,
+        valorTotal: servico.valor,
+      };
+    }),
+
+  /** Buscar agendamentos de um cliente pelo telefone */
+  getMeusAgendamentos: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      telefone: z.string(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+
+      const clienteResult = await db.select({ id: clientes.id })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          eq(clientes.telefone, input.telefone),
+        )).limit(1);
+      if (!clienteResult.length) return [];
+
+      const clienteId = clienteResult[0].id;
+      return db.select({
+        id: agendamentos.id,
+        data: agendamentos.data,
+        horaInicio: agendamentos.horaInicio,
+        horaFim: agendamentos.horaFim,
+        status: agendamentos.status,
+        valorTotal: agendamentos.valorTotal,
+        servicoId: agendamentos.servicoId,
+        profissionalId: agendamentos.profissionalId,
+      }).from(agendamentos)
+        .where(and(
+          eq(agendamentos.empresaId, input.empresaId),
+          eq(agendamentos.clienteId, clienteId),
+          sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+        ))
+        .orderBy(sql`${agendamentos.data} DESC, ${agendamentos.horaInicio} DESC`)
+        .limit(10);
+    }),
+});

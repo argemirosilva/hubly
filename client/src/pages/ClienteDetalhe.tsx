@@ -1,5 +1,4 @@
 import { trpc } from "@/lib/trpc";
-import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,9 +18,8 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
-export default function ClienteDetalhe() {
-  const [, params] = useRoute("/admin/clientes/:id");
-  const id = parseInt(params?.id ?? "0");
+export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
+  const id = propId ?? parseInt(window.location.pathname.split("/").pop() ?? "0");
 
   const { data: cliente } = trpc.clientes.getById.useQuery({ id }, { enabled: !!id });
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({});
