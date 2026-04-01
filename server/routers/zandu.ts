@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
-  getEmpresaByOwnerId,
+  getEmpresaDoUsuario,
   createCliente,
   getClientesByEmpresa,
   createServico,
@@ -93,7 +93,7 @@ export const zanduRouter = router({
       tipos: z.array(z.enum(["clientes", "servicos", "profissionais", "agendamentos", "vendas"])),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaByOwnerId(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const resultado: Record<string, { total: number; amostra: unknown[] }> = {};
@@ -178,7 +178,7 @@ export const zanduRouter = router({
       ignorarDuplicados: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaByOwnerId(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const log: {

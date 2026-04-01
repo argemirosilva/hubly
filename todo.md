@@ -166,3 +166,6 @@
 - [ ] Templates de mensagem com chaves dinâmicas ({nome}, {primeiropronome}, {dataevento}, {horaevento}, {agendaanteio})
 - [ ] Caixa de saída: log de mensagens enviadas por automação (nome, telefone, data, status)
 - [ ] Provedores de envio: configuração de WhatsApp com horário permitido, retentativas e limite diário
+
+## Bugs (v5b)
+- [x] Importação Zandu: erro "empresa não encontrada" ao tentar importar dados via API

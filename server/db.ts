@@ -701,3 +701,29 @@ export async function deleteCartao(id: number) {
   if (!db) throw new Error("DB not available");
   await db.delete(pipelineCartoes).where(eq(pipelineCartoes.id, id));
 }
+
+// ─── HELPER: EMPRESA DO USUÁRIO (owner OU membro) ────────────────────────────
+// Usado pelos routers de sub-módulos (zandu, pipeline, etc.) para garantir que
+// tanto o dono quanto membros da empresa possam operar normalmente.
+export async function getEmpresaDoUsuario(userId: number) {
+  // 1. Tenta como owner direto
+  const comoOwner = await getEmpresaByOwnerId(userId);
+  if (comoOwner) return comoOwner;
+
+  // 2. Tenta como membro de grupo
+  const db = await getDb();
+  if (!db) return null;
+  const membro = await db
+    .select({ empresaId: membrosGrupo.empresaId })
+    .from(membrosGrupo)
+    .where(eq(membrosGrupo.userId, userId))
+    .limit(1);
+  if (membro.length === 0) return null;
+
+  const result = await db
+    .select()
+    .from(empresas)
+    .where(eq(empresas.id, membro[0]!.empresaId))
+    .limit(1);
+  return result[0] ?? null;
+}

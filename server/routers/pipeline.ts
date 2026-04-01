@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
-  getEmpresaByOwnerId,
+  getEmpresaDoUsuario,
   getPipelinesByEmpresa,
   createPipeline,
   updatePipeline,
@@ -17,7 +17,7 @@ import {
 } from "../db";
 
 async function getEmpresaId(userId: number) {
-  const empresa = await getEmpresaByOwnerId(userId);
+  const empresa = await getEmpresaDoUsuario(userId);
   if (!empresa) throw new Error("Empresa não encontrada");
   return empresa.id;
 }
