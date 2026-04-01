@@ -23,11 +23,14 @@ import ImportacaoZandu from "./pages/ImportacaoZandu";
 import Pipeline from "./pages/Pipeline";
 import IAFinanceiro from "./pages/IAFinanceiro";
 import IAClientes from "./pages/IAClientes";
+import Manual from "./pages/Manual";
+import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 
 function AdminRoutes() {
   return (
     <AdminLayout>
+      <SupportChat />
       <Switch>
         <Route path="/admin" component={Dashboard} />
         <Route path="/admin/calendario" component={Calendario} />
@@ -46,6 +49,7 @@ function AdminRoutes() {
         <Route path="/admin/importacao" component={ImportacaoZandu} />
         <Route path="/admin/ia-financeiro" component={IAFinanceiro} />
         <Route path="/admin/ia-clientes" component={IAClientes} />
+        <Route path="/admin/manual" component={Manual} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

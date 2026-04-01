@@ -232,3 +232,19 @@
 
 ## Bugs / Melhorias (v6)
 - [x] Remover todos os emojis das telas do frontend
+
+## Suporte com IA e Manual do Sistema (v7)
+- [x] Backend: router suporte com IA (chat contextual sobre o sistema)
+- [x] Frontend: componente SupportChat flutuante (botão em todas as telas)
+- [x] Frontend: página Manual do Sistema (/admin/manual) com navegação lateral elegante
+- [x] Manual: seção Primeiros Passos (configuração inicial, cadastro de empresa)
+- [x] Manual: seção Agendamentos (criar, confirmar, cancelar, pré-agendamento)
+- [x] Manual: seção Calendário (visualizações, filtros, bloqueios)
+- [x] Manual: seção Clientes (cadastro, histórico, prontuário)
+- [x] Manual: seção Profissionais (cadastro, permissões, comissões)
+- [x] Manual: seção Financeiro (receita, custos, relatórios)
+- [x] Manual: seção Automações (criar fluxo, templates, públicos)
+- [x] Manual: seção Pipeline (kanban, cartões, colunas)
+- [x] Manual: seção IA Inteligente (score financeiro, análise de clientes)
+- [x] Manual: seção Importação Zandu (passo a passo)
+- [x] Navegação: item "Manual do Sistema" no menu lateral (grupo Sistema)

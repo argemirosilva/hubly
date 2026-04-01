@@ -28,6 +28,7 @@ import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
+import { suporteRouter } from "./routers/suporte";
 import { nanoid } from "nanoid";
 
 // Helper para obter empresa do usuário logado
@@ -42,6 +43,7 @@ export const appRouter = router({
   pipeline: pipelineRouter,
   iaFinanceiro: iaFinanceiroRouter,
   iaClientes: iaClientesRouter,
+  suporte: suporteRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
