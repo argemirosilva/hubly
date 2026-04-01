@@ -8,6 +8,7 @@ vi.mock("./db", () => ({
   upsertUser: vi.fn(),
   getUserByOpenId: vi.fn(),
   getEmpresaByOwnerId: vi.fn().mockResolvedValue({ id: 1, nome: "Studio Test", tipo: "salao", telefone: null, email: null, endereco: null, logoUrl: null, corPrimaria: "#1a1a2e", corSecundaria: "#e8d5c4", whatsappNumero: null, whatsappApiKey: null, taxaMaquininha: "2.99", percentualDona: "0.00", reservaPercentual: "30.00", reservaHorasExpiracao: 24, ownerId: 1, createdAt: new Date(), updatedAt: new Date() }),
+  getEmpresaDoUsuario: vi.fn().mockResolvedValue({ id: 1, nome: "Studio Test", tipo: "salao", telefone: null, email: null, endereco: null, logoUrl: null, corPrimaria: "#1a1a2e", corSecundaria: "#e8d5c4", whatsappNumero: null, whatsappApiKey: null, taxaMaquininha: "2.99", percentualDona: "0.00", reservaPercentual: "30.00", reservaHorasExpiracao: 24, ownerId: 1, createdAt: new Date(), updatedAt: new Date() }),
   createEmpresa: vi.fn().mockResolvedValue(1),
   updateEmpresa: vi.fn().mockResolvedValue(undefined),
   getProfissionaisByEmpresa: vi.fn().mockResolvedValue([]),

@@ -710,20 +710,35 @@ export async function getEmpresaDoUsuario(userId: number) {
   const comoOwner = await getEmpresaByOwnerId(userId);
   if (comoOwner) return comoOwner;
 
-  // 2. Tenta como membro de grupo
   const db = await getDb();
   if (!db) return null;
+
+  // 2. Tenta como membro de grupo
   const membro = await db
     .select({ empresaId: membrosGrupo.empresaId })
     .from(membrosGrupo)
     .where(eq(membrosGrupo.userId, userId))
     .limit(1);
-  if (membro.length === 0) return null;
+  if (membro.length > 0) {
+    const result = await db
+      .select()
+      .from(empresas)
+      .where(eq(empresas.id, membro[0]!.empresaId))
+      .limit(1);
+    if (result[0]) return result[0];
+  }
 
-  const result = await db
-    .select()
-    .from(empresas)
-    .where(eq(empresas.id, membro[0]!.empresaId))
+  // 3. Fallback: se o usuário é admin do sistema, retorna a primeira empresa
+  //    (cobre o caso de login com conta diferente da que criou a empresa)
+  const userRow = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
     .limit(1);
-  return result[0] ?? null;
+  if (userRow[0]?.role === 'admin') {
+    const anyEmpresa = await db.select().from(empresas).limit(1);
+    return anyEmpresa[0] ?? null;
+  }
+
+  return null;
 }

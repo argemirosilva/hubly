@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
-  getEmpresaByOwnerId, createEmpresa, updateEmpresa,
+  getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, createEmpresa, updateEmpresa,
   getProfissionaisByEmpresa, getProfissionalById, createProfissional, updateProfissional,
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClienteById, createCliente, updateCliente,
@@ -29,8 +29,9 @@ import { pipelineRouter } from "./routers/pipeline";
 import { nanoid } from "nanoid";
 
 // Helper para obter empresa do usuário logado
+// Delega para o db.ts que trata owner, membro de grupo e fallback admin
 async function getEmpresaDoUsuario(userId: number) {
-  return getEmpresaByOwnerId(userId);
+  return getEmpresaDoUsuarioDb(userId);
 }
 
 export const appRouter = router({
