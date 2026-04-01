@@ -172,3 +172,9 @@
 
 ## Bugs (v5c)
 - [x] Importação Zandu serviços: campo categoria enviado como [object Object] em vez do nome string
+
+## Bugs (v5d)
+- [x] Importação Zandu profissionais: TypeError ao chamar toLowerCase em name undefined/null
+
+## Bugs (v5d)
+- [x] Importação Zandu profissionais: TypeError ao chamar toLowerCase em name undefined/null

@@ -219,6 +219,13 @@ export const zanduRouter = router({
             const emailsExistentes = new Set(existentes.map((c) => c.email?.toLowerCase()).filter(Boolean));
 
             for (const p of arr) {
+              // Ignorar registros sem nome
+              if (!p.name || typeof p.name !== "string") {
+                entry.erros++;
+                entry.detalhes.push({ nome: "(sem nome)", status: "erro", mensagem: "Registro sem nome ignorado" });
+                continue;
+              }
+
               const telefoneLimpo = p.phone?.replace(/\D/g, "");
               const emailLower = p.email?.toLowerCase();
               const isDuplicate =
@@ -260,6 +267,13 @@ export const zanduRouter = router({
             const nomesExistentes = new Set(existentes.map((s) => s.nome.toLowerCase().trim()));
 
             for (const s of arr) {
+              // Ignorar registros sem nome
+              if (!s.name || typeof s.name !== "string") {
+                entry.erros++;
+                entry.detalhes.push({ nome: "(sem nome)", status: "erro", mensagem: "Registro sem nome ignorado" });
+                continue;
+              }
+
               const nomeLower = s.name.toLowerCase().trim();
               if (nomesExistentes.has(nomeLower) && input.ignorarDuplicados) {
                 entry.duplicados++;
@@ -304,6 +318,13 @@ export const zanduRouter = router({
             const nomesExistentes = new Set(existentes.map((p) => p.nome.toLowerCase().trim()));
 
             for (const u of arr) {
+              // Ignorar registros sem nome
+              if (!u.name || typeof u.name !== "string") {
+                entry.erros++;
+                entry.detalhes.push({ nome: "(sem nome)", status: "erro", mensagem: "Registro sem nome ignorado" });
+                continue;
+              }
+
               const nomeLower = u.name.toLowerCase().trim();
               if (nomesExistentes.has(nomeLower) && input.ignorarDuplicados) {
                 entry.duplicados++;
@@ -314,7 +335,7 @@ export const zanduRouter = router({
               try {
                 await createProfissional({
                   empresaId: empresa.id,
-                  nome: u.name,
+                  nome: u.name.trim(),
                   email: u.email || null,
                   telefone: u.phone || null,
                   ativo: true,
