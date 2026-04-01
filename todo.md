@@ -183,3 +183,6 @@
 - [x] Backend: importar agendamentos via GET /schedulers/appointments com mapeamento de cliente/serviço/profissional
 - [x] Frontend: adicionar aba "Agendamentos" na página de importação Zandu
 - [x] Testes: 6 novos testes para mapeamento de agendamentos (39 testes no total)
+
+## Bugs (v5e)
+- [x] Importação Zandu agendamentos: erro 400 "Phone is required" ao chamar /schedulers/appointments — corrigido iterando por pessoa via GET /persons + GET /schedulers/appointments?phone={tel}

@@ -159,11 +159,27 @@ export const zanduRouter = router({
               })),
             };
           } else if (tipo === "agendamentos") {
-            const data = await zanduFetch("/schedulers/appointments", input.token) as ZanduAppointment[];
-            const arr = Array.isArray(data) ? data : [];
+            // O endpoint /schedulers/appointments exige phone por pessoa.
+            // Estratégia: buscar todos os clientes e iterar por telefone.
+            const pessoas = await zanduFetch("/persons?limit=1000", input.token) as ZanduPerson[];
+            const pessoasArr = Array.isArray(pessoas) ? pessoas : [];
+            const pessoasComTelefone = pessoasArr.filter((p) => p.phone);
+
+            const allAppointments: ZanduAppointment[] = [];
+            // Buscar até 20 pessoas para o preview (evitar timeout)
+            for (const pessoa of pessoasComTelefone.slice(0, 20)) {
+              try {
+                const phone = encodeURIComponent(pessoa.phone!);
+                const appts = await zanduFetch(`/schedulers/appointments?phone=${phone}`, input.token) as ZanduAppointment[];
+                if (Array.isArray(appts)) allAppointments.push(...appts);
+              } catch {
+                // ignorar erros individuais no preview
+              }
+            }
+
             resultado.agendamentos = {
-              total: arr.length,
-              amostra: arr.slice(0, 5).map((a) => ({
+              total: allAppointments.length,
+              amostra: allAppointments.slice(0, 5).map((a) => ({
                 cliente: a.person?.name || a.personName || "(desconhecido)",
                 servico: a.service?.name || a.serviceName || "(desconhecido)",
                 profissional: a.user?.name || a.userName || "(desconhecido)",
@@ -364,14 +380,28 @@ export const zanduRouter = router({
               }
             }
           } else if (tipo === "agendamentos") {
-            const data = await zanduFetch("/schedulers/appointments", input.token) as ZanduAppointment[];
-            const arr = Array.isArray(data) ? data : [];
-            entry.total = arr.length;
-
             // Carregar dados locais para fazer o match por nome
             const clientesLocais = await getClientesByEmpresa(empresa.id);
             const servicosLocais = await getServicosByEmpresa(empresa.id);
             const profissionaisLocais = await getProfissionaisByEmpresa(empresa.id);
+
+            // Buscar agendamentos por pessoa (endpoint exige phone)
+            const pessoas = await zanduFetch("/persons?limit=1000", input.token) as ZanduPerson[];
+            const pessoasArr = Array.isArray(pessoas) ? pessoas : [];
+            const pessoasComTelefone = pessoasArr.filter((p) => p.phone);
+
+            const arr: ZanduAppointment[] = [];
+            for (const pessoa of pessoasComTelefone) {
+              try {
+                const phone = encodeURIComponent(pessoa.phone!);
+                const appts = await zanduFetch(`/schedulers/appointments?phone=${phone}`, input.token) as ZanduAppointment[];
+                if (Array.isArray(appts)) arr.push(...appts);
+              } catch {
+                // ignorar erros individuais por pessoa
+              }
+            }
+
+            entry.total = arr.length;
 
             // Mapas de busca por nome normalizado
             const clienteMap = new Map(clientesLocais.map((c) => [c.nome.toLowerCase().trim(), c.id]));
