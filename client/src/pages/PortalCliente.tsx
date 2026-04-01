@@ -56,6 +56,15 @@ export default function PortalCliente() {
   const [email, setEmail] = useState("");
   const [clienteIdentificado, setClienteIdentificado] = useState(false);
 
+  // Fluxo de validação por CPF
+  const [cpf, setCpf] = useState("");
+  const [cpfErro, setCpfErro] = useState(false);
+  const [cpfValidado, setCpfValidado] = useState(false);
+  const [clienteEncontrado, setClienteEncontrado] = useState<boolean | null>(null);
+  const [temCpf, setTemCpf] = useState(false);
+  const [buscandoTelefone, setBuscandoTelefone] = useState(false);
+  const [validandoCpf, setValidandoCpf] = useState(false);
+
   const [servicoId, setServicoId] = useState<number | null>(null);
   const [profissionalId, setProfissionalId] = useState<number | null>(null);
   const [data, setData] = useState("");
@@ -70,6 +79,50 @@ export default function PortalCliente() {
     { empresaId, telefone },
     { enabled: clienteIdentificado && !!telefone },
   );
+
+  const utils = trpc.useUtils();
+
+  // Busca cliente ao digitar telefone (debounced via blur)
+  async function handleTelefoneBlur() {
+    const tel = telefone.replace(/\D/g, "");
+    if (tel.length < 8) return;
+    setBuscandoTelefone(true);
+    try {
+      const res = await utils.portal.buscarClientePorTelefone.fetch({ empresaId, telefone });
+      setClienteEncontrado(res.encontrado);
+      setTemCpf(res.temCpf);
+      if (!res.encontrado) {
+        // Novo cliente: limpar campos de CPF
+        setCpf(""); setCpfErro(false); setCpfValidado(false);
+      }
+    } catch {
+      setClienteEncontrado(false);
+    } finally {
+      setBuscandoTelefone(false);
+    }
+  }
+
+  async function handleValidarCpf() {
+    if (!cpf) return;
+    setValidandoCpf(true);
+    setCpfErro(false);
+    try {
+      const res = await utils.portal.validarCpfCliente.fetch({ empresaId, telefone, cpf });
+      if (res.valido) {
+        setCpfValidado(true);
+        setNome(res.nome);
+        setEmail(res.email);
+        setCpfErro(false);
+      } else {
+        setCpfErro(true);
+        setCpfValidado(false);
+      }
+    } catch {
+      setCpfErro(true);
+    } finally {
+      setValidandoCpf(false);
+    }
+  }
   const { data: slotsData, isLoading: loadingSlots } = trpc.portal.getHorariosDisponiveis.useQuery(
     { empresaId, data, servicoId: servicoId!, profissionalId: profissionalId ?? undefined },
     { enabled: !!data && !!servicoId },
@@ -226,8 +279,97 @@ export default function PortalCliente() {
       <div className="max-w-lg mx-auto w-full px-4 py-6 flex-1">
 
         {step === "identificacao" && (
-          <StepCard title="Quem é você?" subtitle="Informe seus dados para começar">
+          <StepCard title="Quem é você?" subtitle="Informe seu telefone para começar">
             <div className="space-y-4">
+
+              {/* Campo de telefone */}
+              <div className="relative">
+                <InputField label="WhatsApp / Telefone *" value={telefone}
+                  onChange={(v) => {
+                    setTelefone(v);
+                    // Reset ao mudar telefone
+                    setClienteEncontrado(null);
+                    setCpf(""); setCpfErro(false); setCpfValidado(false);
+                    setNome(""); setEmail("");
+                  }}
+                  onBlur={handleTelefoneBlur}
+                  icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} />
+                {buscandoTelefone && (
+                  <div className="absolute right-3 top-8 flex items-center gap-1 text-xs text-slate-400">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Buscando...
+                  </div>
+                )}
+              </div>
+
+              {/* Cliente encontrado: pedir CPF para validar */}
+              {clienteEncontrado === true && !cpfValidado && (
+                <div className="rounded-xl p-4 space-y-3"
+                  style={{ background: corSecundaria + "40", border: `1px solid ${corPrimaria}30` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: corPrimaria }}>
+                      <User className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">Bem-vindo de volta!</p>
+                      <p className="text-xs text-slate-500">
+                        {temCpf ? "Digite seu CPF para confirmar sua identidade" : "Confirme seu nome para continuar"}
+                      </p>
+                    </div>
+                  </div>
+                  {temCpf ? (
+                    <div className="space-y-2">
+                      <InputField
+                        label="CPF *"
+                        value={cpf}
+                        onChange={(v) => { setCpf(v); setCpfErro(false); }}
+                        icon={Star}
+                        placeholder="000.000.000-00"
+                        corPrimaria={corPrimaria}
+                      />
+                      {cpfErro && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> CPF incorreto. Tente novamente.
+                        </p>
+                      )}
+                      <button
+                        onClick={handleValidarCpf}
+                        disabled={!cpf || validandoCpf}
+                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-opacity"
+                        style={{ background: !cpf || validandoCpf ? "#cbd5e1" : corPrimaria }}>
+                        {validandoCpf ? <><Loader2 className="w-4 h-4 animate-spin" /> Validando...</> : "Confirmar identidade"}
+                      </button>
+                    </div>
+                  ) : (
+                    <InputField label="Nome completo *" value={nome} onChange={(v) => { setNome(v); setCpfValidado(true); }}
+                      icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
+                  )}
+                </div>
+              )}
+
+              {/* Cliente validado: mostrar dados pré-preenchidos */}
+              {cpfValidado && (
+                <div className="rounded-xl p-3 space-y-1"
+                  style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <p className="text-sm font-semibold text-green-800">Identidade confirmada</p>
+                  </div>
+                  <p className="text-xs text-green-700 pl-6">{nome}{email ? ` · ${email}` : ""}</p>
+                </div>
+              )}
+
+              {/* Novo cliente: mostrar campos de nome e email */}
+              {clienteEncontrado === false && (
+                <>
+                  <InputField label="Nome completo *" value={nome} onChange={setNome}
+                    icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
+                  <InputField label="E-mail (opcional)" value={email} onChange={setEmail}
+                    icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} />
+                </>
+              )}
+
+              {/* Agendamentos recentes (após identificação) */}
               {clienteIdentificado && meusAgendamentos && meusAgendamentos.length > 0 && (
                 <div className="rounded-xl p-4 space-y-2"
                   style={{ background: corSecundaria + "50", border: `1px solid ${corPrimaria}25` }}>
@@ -246,17 +388,15 @@ export default function PortalCliente() {
                   })}
                 </div>
               )}
-              <InputField label="WhatsApp / Telefone *" value={telefone} onChange={setTelefone}
-                icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} />
-              <InputField label="Nome completo *" value={nome} onChange={setNome}
-                icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
-              <InputField label="E-mail (opcional)" value={email} onChange={setEmail}
-                icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} />
-              <BtnPrimary disabled={!telefone || !nome}
+
+              {/* Botão Continuar */}
+              <BtnPrimary
+                disabled={!telefone || !nome || (clienteEncontrado === true && temCpf && !cpfValidado)}
                 onClick={() => { setClienteIdentificado(true); setStep("servico"); }}
                 cor={corPrimaria}>
                 Continuar <ChevronRight className="w-4 h-4" />
               </BtnPrimary>
+
               <p className="text-[11px] text-center text-slate-400">
                 Funcionamos {diasDaSemanaStr(diasFuncionamento)} · {empresa.horaAbertura} às {empresa.horaFechamento}
               </p>
@@ -539,8 +679,9 @@ function StepCard({ title, subtitle, children }: {
   );
 }
 
-function InputField({ label, value, onChange, icon: Icon, placeholder, corPrimaria }: {
+function InputField({ label, value, onChange, onBlur, icon: Icon, placeholder, corPrimaria }: {
   label: string; value: string; onChange: (v: string) => void;
+  onBlur?: () => void;
   icon: React.ElementType; placeholder: string; corPrimaria: string;
 }) {
   return (
@@ -555,7 +696,7 @@ function InputField({ label, value, onChange, icon: Icon, placeholder, corPrimar
           className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm border-2 outline-none transition-all bg-white text-slate-800"
           style={{ borderColor: "#e2e8f0" }}
           onFocus={e => { e.currentTarget.style.borderColor = corPrimaria; }}
-          onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; onBlur?.(); }}
         />
       </div>
     </div>
@@ -567,7 +708,7 @@ function BtnPrimary({ children, onClick, disabled, cor }: {
 }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm shadow-md transition-opacity"
+      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-md transition-opacity"
       style={{ background: disabled ? "#cbd5e1" : cor, cursor: disabled ? "not-allowed" : "pointer" }}>
       {children}
     </button>

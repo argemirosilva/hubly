@@ -279,6 +279,68 @@ export const portalRouter = router({
       };
     }),
 
+  /** Buscar se cliente existe pelo telefone (sem expor dados sensíveis) */
+  buscarClientePorTelefone: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      telefone: z.string().min(8),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { encontrado: false, temCpf: false };
+      // Normalizar telefone: usar os últimos 8 dígitos para busca flexível
+      const telNorm = input.telefone.replace(/[^0-9]/g, "");
+      const telSuffix = telNorm.slice(-8); // últimos 8 dígitos
+      const result = await db.select({
+        id: clientes.id,
+        temCpf: sql<number>`CASE WHEN ${clientes.cpf} IS NOT NULL AND ${clientes.cpf} != '' THEN 1 ELSE 0 END`,
+      })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+        )).limit(1);
+      if (!result.length) return { encontrado: false, temCpf: false };
+      return { encontrado: true, temCpf: result[0].temCpf === 1 };
+    }),
+
+  /** Valida CPF e retorna dados do cliente se correto */
+  validarCpfCliente: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      telefone: z.string().min(8),
+      cpf: z.string().min(3),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { valido: false, nome: "", email: "" };
+      const cpfNorm = input.cpf.replace(/[^0-9]/g, "");
+      const telNorm = input.telefone.replace(/[^0-9]/g, "");
+      const telSuffix = telNorm.slice(-8);
+      const result = await db.select({
+        id: clientes.id,
+        nome: clientes.nome,
+        email: clientes.email,
+        cpf: clientes.cpf,
+      })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+        )).limit(1);
+      if (!result.length) return { valido: false, nome: "", email: "" };
+      const cliente = result[0];
+      const cpfBanco = (cliente.cpf ?? "").replace(/[^0-9]/g, "");
+      if (!cpfBanco || cpfNorm !== cpfBanco) {
+        return { valido: false, nome: "", email: "" };
+      }
+      return {
+        valido: true,
+        nome: cliente.nome ?? "",
+        email: cliente.email ?? "",
+      };
+    }),
+
   /** Buscar agendamentos de um cliente pelo telefone */
   getMeusAgendamentos: publicProcedure
     .input(z.object({
