@@ -287,9 +287,14 @@
 - [x] Link do portal para copiar/compartilhar
 
 ## Portal — Validação por CPF (v9)
-- [ ] Backend: procedure buscarClientePorTelefone (retorna se existe, sem expor dados)
-- [ ] Backend: procedure validarCpfCliente (valida CPF e retorna dados do cliente)
-- [ ] Frontend: ao digitar telefone, buscar cliente automaticamente
-- [ ] Frontend: se cliente encontrado, exibir campo CPF para validação
-- [ ] Frontend: se CPF correto, pré-preencher nome e e-mail automaticamente
-- [ ] Frontend: se CPF errado, exibir erro e permitir tentar novamente
+- [x] Backend: procedure buscarClientePorTelefone (retorna se existe, sem expor dados)
+- [x] Backend: procedure validarCpfCliente (valida CPF e retorna dados do cliente)
+- [x] Frontend: ao digitar telefone, buscar cliente automaticamente
+- [x] Frontend: se cliente encontrado, exibir campo CPF para validação
+- [x] Frontend: se CPF correto, pré-preencher nome e e-mail automaticamente
+- [x] Frontend: se CPF errado, exibir erro e permitir tentar novamente
+
+## Portal — Correção fluxo CPF (v10)
+- [x] Ao encontrar cliente por telefone: pedir CPF (não nome) para validar identidade
+- [x] Exibir nome e dados pré-preenchidos somente após CPF validado com sucesso
+- [x] Cliente sem CPF cadastrado: pedir nome para confirmar (comportamento atual está correto para esse caso)
