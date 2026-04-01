@@ -346,3 +346,23 @@
 - [x] Gráfico de receita por mês (últimos 6 meses)
 - [x] Gráfico de status dos pacotes (pie chart)
 - [x] Gráfico de sessões consumidas vs. restantes por serviço
+
+## Perfil da Cliente — Aba Pacotes (v14)
+- [ ] Aba "Pacotes" na página /admin/clientes/:id
+- [ ] Listar pacotes ativos da cliente com nome, data de abertura e vencimento
+- [ ] Barra de progresso por item do pacote (sessões usadas / total)
+- [ ] Botão de consumo manual de sessão diretamente no perfil
+- [ ] Estado vazio quando não há pacotes ativos
+
+## UX — Ícones + Tooltips (v14)
+- [ ] Aba Pacotes no perfil da cliente com progresso por item e botão "Usar" iconético
+- [ ] Refatorar botões de ação nas tabelas/listas para ícones com tooltips (Editar, Excluir, Ver detalhes, etc.)
+- [ ] Refatorar botões de status de agendamento para ícones com tooltips
+
+## PWA — Progressive Web App (v15)
+- [x] manifest.json com nome, ícones, cores e display standalone
+- [x] Service worker para cache offline básico
+- [x] Meta tags PWA no index.html (theme-color, apple-mobile-web-app, viewport)
+- [x] Banner de instalação nativo (beforeinstallprompt) no sistema
+- [x] Instruções para iOS (Safari → Compartilhar → Adicionar à Tela Inicial)
+- [x] Ícones PWA em múltiplos tamanhos (192x192, 512x512)

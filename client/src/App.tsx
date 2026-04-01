@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { PWAInstallBanner } from "./components/PWAInstallBanner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect } from "wouter";
@@ -78,6 +79,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-right" />
+          <PWAInstallBanner />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
