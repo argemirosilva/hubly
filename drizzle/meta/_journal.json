@@ -71,6 +71,13 @@
       "when": 1775079980047,
       "tag": "0009_mixed_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1775082081363,
+      "tag": "0010_brown_sinister_six",
+      "breakpoints": true
     }
   ]
 }

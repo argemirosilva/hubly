@@ -366,3 +366,30 @@
 - [x] Banner de instalação nativo (beforeinstallprompt) no sistema
 - [x] Instruções para iOS (Safari → Compartilhar → Adicionar à Tela Inicial)
 - [x] Ícones PWA em múltiplos tamanhos (192x192, 512x512)
+
+## Notificações de Pacotes Prestes a Vencer (v16)
+
+### Backend
+- [ ] Tabela notificacoes_pacotes (empresaId, pacoteClienteId, clienteId, tipo, mensagem, enviadoEm, canal)
+- [ ] Procedure: varrerPacotesProximosVencimento (busca pacotes com sessões restantes e vencimento em X dias)
+- [ ] Procedure: dispararNotificacoes (cria registros e notifica admin via notifyOwner)
+- [ ] Procedure: listarNotificacoes (histórico paginado)
+- [ ] Configuração: diasAntesVencimento (padrão: 7 dias) na tabela empresas
+
+### Frontend
+- [ ] Seção "Notificações de Pacotes" na página /admin/pacotes (aba Notificações)
+- [ ] Card de configuração: dias antes do vencimento + botão "Disparar agora"
+- [ ] Tabela de histórico de notificações enviadas
+- [ ] Badge de alerta no menu quando há pacotes prestes a vencer
+
+## Sistema de Notificações de Pacotes (v13)
+- [x] Schema: tabela notificacoes_pacotes (tipo, mensagem, diasParaVencer, sessoesRestantes, canal, lida)
+- [x] Backend: procedure verificarPacotesVencendo (gera alertas para pacotes com vencimento em até 7 dias)
+- [x] Backend: procedure listarNotificacoes (lista notificações de pacotes com dados do cliente)
+- [x] Backend: procedure contarNaoLidas (contador para badge no header)
+- [x] Backend: procedure marcarLida / marcarTodasLidas
+- [x] Scheduler automático: verifica pacotes vencendo a cada 6h ao iniciar o servidor
+- [x] Frontend: página Notificações unificada (sistema + pacotes) com filtro por tipo
+- [x] Frontend: badge no sino do AdminLayout inclui notificações de pacotes não lidas
+- [x] Frontend: botão "Verificar pacotes" na página de notificações para disparo manual
+- [x] Frontend: link para perfil do cliente diretamente da notificação de pacote

@@ -74,7 +74,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     refetchInterval: 30000,
   });
 
-  const naoLidas = notificacoes?.filter(n => !n.lida).length ?? 0;
+  const { data: notifPacotesCount } = trpc.pacotes.contarNaoLidas.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+  });
+
+  const naoLidas = (notificacoes?.filter(n => !n.lida).length ?? 0) + (notifPacotesCount?.total ?? 0);
 
   useEffect(() => { setSidebarOpen(false); }, [location]);
 

@@ -9,9 +9,10 @@ import { getEmpresaDoUsuario } from "../db";
 import {
   pacotesModelos, pacotesModelosItens,
   pacotesClientes, pacotesClientesItens,
+  notificacoesPacotes,
   servicos, clientes,
 } from "../../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, lte, gt } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
 async function getEmpresaId(userId: number): Promise<number> {
@@ -420,5 +421,224 @@ export const pacotesRouter = router({
       await db.update(pacotesClientes).set({ status: "cancelado" })
         .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
       return { ok: true };
+    }),
+
+  // ── Listar notificações ───────────────────────────────────────────────────
+  listarNotificacoes: protectedProcedure
+    .input(z.object({
+      apenasNaoLidas: z.boolean().optional().default(false),
+      limite: z.number().optional().default(50),
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const empId = await getEmpresaId(ctx.user.id);
+      const conditions = [eq(notificacoesPacotes.empresaId, empId)];
+      if (input.apenasNaoLidas) {
+        conditions.push(eq(notificacoesPacotes.lida, false));
+      }
+      const rows = await db.select({
+        id: notificacoesPacotes.id,
+        pacoteClienteId: notificacoesPacotes.pacoteClienteId,
+        clienteId: notificacoesPacotes.clienteId,
+        clienteNome: clientes.nome,
+        clienteTelefone: clientes.telefone,
+        tipo: notificacoesPacotes.tipo,
+        mensagem: notificacoesPacotes.mensagem,
+        diasParaVencer: notificacoesPacotes.diasParaVencer,
+        sessoesRestantes: notificacoesPacotes.sessoesRestantes,
+        canal: notificacoesPacotes.canal,
+        lida: notificacoesPacotes.lida,
+        enviadoEm: notificacoesPacotes.enviadoEm,
+      })
+        .from(notificacoesPacotes)
+        .leftJoin(clientes, eq(notificacoesPacotes.clienteId, clientes.id))
+        .where(and(...conditions))
+        .orderBy(sql`${notificacoesPacotes.enviadoEm} DESC`)
+        .limit(input.limite);
+      return rows;
+    }),
+
+  // ── Contar não lidas ──────────────────────────────────────────────────────
+  contarNaoLidas: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { total: 0 };
+      const empId = await getEmpresaId(ctx.user.id);
+      const [row] = await db.select({ total: sql<number>`COUNT(*)` })
+        .from(notificacoesPacotes)
+        .where(and(
+          eq(notificacoesPacotes.empresaId, empId),
+          eq(notificacoesPacotes.lida, false),
+        ));
+      return { total: Number(row?.total ?? 0) };
+    }),
+
+  // ── Marcar como lida ──────────────────────────────────────────────────────
+  marcarLida: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id);
+      await db.update(notificacoesPacotes)
+        .set({ lida: true })
+        .where(and(
+          eq(notificacoesPacotes.id, input.id),
+          eq(notificacoesPacotes.empresaId, empId),
+        ));
+      return { ok: true };
+    }),
+
+  // ── Marcar todas como lidas ───────────────────────────────────────────────
+  marcarTodasLidas: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id);
+      await db.update(notificacoesPacotes)
+        .set({ lida: true })
+        .where(and(
+          eq(notificacoesPacotes.empresaId, empId),
+          eq(notificacoesPacotes.lida, false),
+        ));
+      return { ok: true };
+    }),
+
+  // ── Verificar e gerar notificações de pacotes vencendo ────────────────────
+  verificarPacotesVencendo: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id);
+
+      const agora = new Date();
+      const em7Dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const em3Dias = new Date(agora.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+      // Buscar pacotes ativos com vencimento próximo (até 7 dias)
+      const pacotesVencendo = await db.select({
+        id: pacotesClientes.id,
+        clienteId: pacotesClientes.clienteId,
+        dataVencimento: pacotesClientes.dataVencimento,
+        clienteNome: clientes.nome,
+        clienteTelefone: clientes.telefone,
+      })
+        .from(pacotesClientes)
+        .leftJoin(clientes, eq(pacotesClientes.clienteId, clientes.id))
+        .where(and(
+          eq(pacotesClientes.empresaId, empId),
+          eq(pacotesClientes.status, "ativo"),
+          lte(pacotesClientes.dataVencimento, em7Dias),
+          gt(pacotesClientes.dataVencimento, agora),
+        ));
+
+      let criadas = 0;
+
+      for (const pacote of pacotesVencendo) {
+        if (!pacote.dataVencimento) continue;
+        const venc = new Date(pacote.dataVencimento);
+        const diffMs = venc.getTime() - agora.getTime();
+        const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        // Verificar se já existe notificação recente (últimas 24h) para este pacote
+        const [existente] = await db.select({ id: notificacoesPacotes.id })
+          .from(notificacoesPacotes)
+          .where(and(
+            eq(notificacoesPacotes.pacoteClienteId, pacote.id),
+            eq(notificacoesPacotes.tipo, "vencimento_proximo"),
+            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+          ))
+          .limit(1);
+
+        if (existente) continue; // Já notificado recentemente
+
+        // Buscar sessões restantes do pacote
+        const itens = await db.select({
+          quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+          quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        })
+          .from(pacotesClientesItens)
+          .where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+
+        const totalSessoes = itens.reduce((s, i) => s + i.quantidadeTotal, 0);
+        const sessoesUsadas = itens.reduce((s, i) => s + i.quantidadeUsada, 0);
+        const sessoesRestantes = totalSessoes - sessoesUsadas;
+
+        if (sessoesRestantes <= 0) continue; // Sem sessões para usar, não notificar
+
+        const urgencia = diasRestantes <= 3 ? "URGENTE" : "";
+        const mensagem = `${urgencia ? urgencia + " - " : ""}Pacote de ${pacote.clienteNome ?? "cliente"} vence em ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""}. ${sessoesRestantes} sessão(ões) ainda disponível(is).`;
+
+        await db.insert(notificacoesPacotes).values({
+          empresaId: empId,
+          pacoteClienteId: pacote.id,
+          clienteId: pacote.clienteId,
+          tipo: "vencimento_proximo",
+          mensagem,
+          diasParaVencer: diasRestantes,
+          sessoesRestantes,
+          canal: "sistema",
+          lida: false,
+        });
+        criadas++;
+      }
+
+      // Verificar pacotes com poucas sessões restantes (1 ou 2 sessões)
+      const pacotesAtivos = await db.select({
+        id: pacotesClientes.id,
+        clienteId: pacotesClientes.clienteId,
+        clienteNome: clientes.nome,
+      })
+        .from(pacotesClientes)
+        .leftJoin(clientes, eq(pacotesClientes.clienteId, clientes.id))
+        .where(and(
+          eq(pacotesClientes.empresaId, empId),
+          eq(pacotesClientes.status, "ativo"),
+        ));
+
+      for (const pacote of pacotesAtivos) {
+        const itens = await db.select({
+          quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+          quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        })
+          .from(pacotesClientesItens)
+          .where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+
+        const totalSessoes = itens.reduce((s, i) => s + i.quantidadeTotal, 0);
+        const sessoesUsadas = itens.reduce((s, i) => s + i.quantidadeUsada, 0);
+        const sessoesRestantes = totalSessoes - sessoesUsadas;
+
+        if (sessoesRestantes > 2 || sessoesRestantes <= 0) continue;
+
+        // Verificar se já existe notificação de sessões restantes recente
+        const [existente] = await db.select({ id: notificacoesPacotes.id })
+          .from(notificacoesPacotes)
+          .where(and(
+            eq(notificacoesPacotes.pacoteClienteId, pacote.id),
+            eq(notificacoesPacotes.tipo, "sessoes_restantes"),
+            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 48 HOUR)`,
+          ))
+          .limit(1);
+
+        if (existente) continue;
+
+        const mensagem = `Atenção: ${pacote.clienteNome ?? "Cliente"} tem apenas ${sessoesRestantes} sessão(ões) restante(s) no pacote. Considere renovar.`;
+
+        await db.insert(notificacoesPacotes).values({
+          empresaId: empId,
+          pacoteClienteId: pacote.id,
+          clienteId: pacote.clienteId,
+          tipo: "sessoes_restantes",
+          mensagem,
+          diasParaVencer: null,
+          sessoesRestantes,
+          canal: "sistema",
+          lida: false,
+        });
+        criadas++;
+      }
+
+      return { criadas, verificados: pacotesVencendo.length + pacotesAtivos.length };
     }),
 });

@@ -623,3 +623,19 @@ export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
   quantidadeUsada: int("quantidadeUsada").notNull().default(0),
 });
 export type PacoteClienteItem = typeof pacotesClientesItens.$inferSelect;
+
+/** Notificações enviadas sobre pacotes prestes a vencer */
+export const notificacoesPacotes = mysqlTable("notificacoes_pacotes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  pacoteClienteId: int("pacoteClienteId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  tipo: mysqlEnum("tipo", ["vencimento_proximo", "sessoes_restantes", "pacote_vencido"]).notNull(),
+  mensagem: text("mensagem").notNull(),
+  diasParaVencer: int("diasParaVencer"), // quantos dias faltam para vencer quando a notif foi disparada
+  sessoesRestantes: int("sessoesRestantes"), // total de sessões restantes no pacote
+  canal: mysqlEnum("canal", ["sistema", "whatsapp", "email"]).default("sistema").notNull(),
+  lida: boolean("lida").default(false).notNull(),
+  enviadoEm: timestamp("enviadoEm").defaultNow().notNull(),
+});
+export type NotificacaoPacote = typeof notificacoesPacotes.$inferSelect;
