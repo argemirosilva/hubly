@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import {
   Calendar, Clock, CheckCircle2, ChevronRight, ChevronLeft,
   User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
-  AlertCircle, Loader2,
+  AlertCircle, Loader2, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +46,7 @@ function getEmpresaId(): number {
 type Step = "identificacao" | "servico" | "profissional" | "data" | "confirmacao" | "sucesso";
 const STEPS: Step[] = ["identificacao", "servico", "profissional", "data", "confirmacao"];
 const STEP_LABELS = ["Identificação", "Serviço", "Profissional", "Data & Hora", "Confirmar"];
+const STEP_ICONS = [User, Scissors, User, Calendar, CheckCircle2];
 
 export default function PortalCliente() {
   const empresaId = useMemo(() => getEmpresaId(), []);
@@ -58,7 +59,7 @@ export default function PortalCliente() {
 
   // Fluxo de validação por CPF
   const [cpf, setCpf] = useState("");
-  const [cpfErro, setCpfErro] = useState(false);
+  const [cpfErro, setCpfErro] = useState("");
   const [cpfValidado, setCpfValidado] = useState(false);
   const [clienteEncontrado, setClienteEncontrado] = useState<boolean | null>(null);
   const [temCpf, setTemCpf] = useState(false);
@@ -93,7 +94,7 @@ export default function PortalCliente() {
       setTemCpf(res.temCpf);
       if (!res.encontrado) {
         // Novo cliente: limpar campos de CPF
-        setCpf(""); setCpfErro(false); setCpfValidado(false);
+        setCpf(""); setCpfErro(""); setCpfValidado(false);
       }
     } catch {
       setClienteEncontrado(false);
@@ -102,23 +103,38 @@ export default function PortalCliente() {
     }
   }
 
+  const cadastrarCpfMutation = trpc.portal.cadastrarCpfCliente.useMutation();
+
   async function handleValidarCpf() {
     if (!cpf) return;
     setValidandoCpf(true);
-    setCpfErro(false);
+    setCpfErro("");
     try {
-      const res = await utils.portal.validarCpfCliente.fetch({ empresaId, telefone, cpf });
-      if (res.valido) {
-        setCpfValidado(true);
-        setNome(res.nome);
-        setEmail(res.email);
-        setCpfErro(false);
+      if (temCpf) {
+        // Cliente já tem CPF: validar
+        const res = await utils.portal.validarCpfCliente.fetch({ empresaId, telefone, cpf });
+        if (res.valido) {
+          setCpfValidado(true);
+          setNome(res.nome);
+          setEmail(res.email ?? "");
+        } else {
+          setCpfErro("CPF incorreto. Tente novamente.");
+          setCpfValidado(false);
+        }
       } else {
-        setCpfErro(true);
-        setCpfValidado(false);
+        // Cliente sem CPF: cadastrar
+        const res = await cadastrarCpfMutation.mutateAsync({ empresaId, telefone, cpf });
+        if (res.ok) {
+          setCpfValidado(true);
+          setNome(res.nome);
+          setEmail(res.email ?? "");
+          setTemCpf(true);
+        } else {
+          setCpfErro("Não foi possível cadastrar o CPF. Tente novamente.");
+        }
       }
     } catch {
-      setCpfErro(true);
+      setCpfErro("Erro ao validar CPF. Tente novamente.");
     } finally {
       setValidandoCpf(false);
     }
@@ -259,21 +275,44 @@ export default function PortalCliente() {
         </div>
       )}
 
-      <div className="max-w-lg mx-auto w-full px-4 pt-6">
-        <div className="flex items-center gap-1 mb-1">
-          {STEPS.map((s, i) => (
-            <div key={s} className="flex-1 h-1.5 rounded-full transition-all"
-              style={{ background: i <= stepIdx ? corPrimaria : "#e2e8f0" }} />
-          ))}
+      {/* Stepper visual redesenhado */}
+      <div className="max-w-lg mx-auto w-full px-4 pt-5 pb-2">
+        <div className="flex items-center">
+          {STEPS.map((s, i) => {
+            const Icon = STEP_ICONS[i];
+            const isActive = i === stepIdx;
+            const isDone = i < stepIdx;
+            return (
+              <div key={s} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm"
+                    style={{
+                      background: isDone ? corPrimaria : isActive ? corPrimaria : "#f1f5f9",
+                      border: isActive ? `2px solid ${corPrimaria}` : isDone ? "none" : "2px solid #e2e8f0",
+                      transform: isActive ? "scale(1.15)" : "scale(1)",
+                      boxShadow: isActive ? `0 0 0 4px ${corPrimaria}22` : "none",
+                    }}>
+                    {isDone
+                      ? <CheckCircle2 className="w-4 h-4 text-white" />
+                      : <Icon className="w-3.5 h-3.5" style={{ color: isActive ? "white" : "#94a3b8" }} />}
+                  </div>
+                  <span className="text-[9px] font-semibold whitespace-nowrap hidden sm:block"
+                    style={{ color: isActive ? corPrimaria : isDone ? corPrimaria : "#94a3b8" }}>
+                    {STEP_LABELS[i]}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className="flex-1 h-0.5 mx-1 rounded-full transition-all duration-300"
+                    style={{ background: i < stepIdx ? corPrimaria : "#e2e8f0" }} />
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div className="flex justify-between">
-          {STEPS.map((s, i) => (
-            <span key={s} className="text-[10px] font-medium"
-              style={{ color: i <= stepIdx ? corPrimaria : "#94a3b8" }}>
-              {STEP_LABELS[i]}
-            </span>
-          ))}
-        </div>
+        <p className="text-center text-xs font-semibold mt-2 sm:hidden" style={{ color: corPrimaria }}>
+          {STEP_LABELS[stepIdx]}
+        </p>
       </div>
 
       <div className="max-w-lg mx-auto w-full px-4 py-6 flex-1">
@@ -289,7 +328,7 @@ export default function PortalCliente() {
                     setTelefone(v);
                     // Reset ao mudar telefone
                     setClienteEncontrado(null);
-                    setCpf(""); setCpfErro(false); setCpfValidado(false);
+                    setCpf(""); setCpfErro(""); setCpfValidado(false);
                     setNome(""); setEmail("");
                   }}
                   onBlur={handleTelefoneBlur}
@@ -301,49 +340,47 @@ export default function PortalCliente() {
                 )}
               </div>
 
-              {/* Cliente encontrado: pedir CPF para validar */}
+              {/* Cliente encontrado: SEMPRE pedir CPF */}
               {clienteEncontrado === true && !cpfValidado && (
                 <div className="rounded-xl p-4 space-y-3"
                   style={{ background: corSecundaria + "40", border: `1px solid ${corPrimaria}30` }}>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
                       style={{ background: corPrimaria }}>
-                      <User className="w-3.5 h-3.5 text-white" />
+                      <ShieldCheck className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-slate-800">Bem-vindo de volta!</p>
                       <p className="text-xs text-slate-500">
-                        {temCpf ? "Digite seu CPF para confirmar sua identidade" : "Confirme seu nome para continuar"}
+                        {temCpf ? "Digite seu CPF para confirmar sua identidade" : "Cadastre seu CPF para continuar"}
                       </p>
                     </div>
                   </div>
-                  {temCpf ? (
-                    <div className="space-y-2">
-                      <InputField
-                        label="CPF *"
-                        value={cpf}
-                        onChange={(v) => { setCpf(v); setCpfErro(false); }}
-                        icon={Star}
-                        placeholder="000.000.000-00"
-                        corPrimaria={corPrimaria}
-                      />
-                      {cpfErro && (
-                        <p className="text-xs text-red-500 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" /> CPF incorreto. Tente novamente.
-                        </p>
-                      )}
-                      <button
-                        onClick={handleValidarCpf}
-                        disabled={!cpf || validandoCpf}
-                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-opacity"
-                        style={{ background: !cpf || validandoCpf ? "#cbd5e1" : corPrimaria }}>
-                        {validandoCpf ? <><Loader2 className="w-4 h-4 animate-spin" /> Validando...</> : "Confirmar identidade"}
-                      </button>
-                    </div>
-                  ) : (
-                    <InputField label="Nome completo *" value={nome} onChange={(v) => { setNome(v); setCpfValidado(true); }}
-                      icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
-                  )}
+                  <div className="space-y-2">
+                    <InputField
+                      label={temCpf ? "CPF *" : "Cadastre seu CPF *"}
+                      value={cpf}
+                      onChange={(v) => { setCpf(v); setCpfErro(""); }}
+                      icon={ShieldCheck}
+                      placeholder="000.000.000-00"
+                      corPrimaria={corPrimaria}
+                    />
+                    {cpfErro && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {cpfErro}
+                      </p>
+                    )}
+                    <button
+                      onClick={handleValidarCpf}
+                      disabled={!cpf || validandoCpf}
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all"
+                      style={{ background: !cpf || validandoCpf ? "#cbd5e1" : corPrimaria }}>
+                      {validandoCpf
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando...</>
+                        : <><ShieldCheck className="w-4 h-4" /> {temCpf ? "Confirmar identidade" : "Cadastrar e continuar"}</>
+                      }
+                    </button>
+                  </div>
                 </div>
               )}
 

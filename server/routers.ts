@@ -30,7 +30,11 @@ import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
 import { portalRouter } from "./routers/portal";
+import { pacotesRouter } from "./routers/pacotes";
 import { nanoid } from "nanoid";
+import { getDb } from "./db";
+import { pacotesClientes, pacotesClientesItens } from "../drizzle/schema";
+import { eq, and, sql as drizzleSql } from "drizzle-orm";
 
 // Helper para obter empresa do usuário logado
 // Delega para o db.ts que trata owner, membro de grupo e fallback admin
@@ -46,6 +50,7 @@ export const appRouter = router({
   iaClientes: iaClientesRouter,
   suporte: suporteRouter,
   portal: portalRouter,
+  pacotes: pacotesRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -403,6 +408,58 @@ export const appRouter = router({
         if (data.status === "concluido") updates.concluidoEm = new Date();
         if (data.reservaPaga) updates.reservaPagaEm = new Date();
         await updateAgendamento(id, updates);
+
+        // ── Abatimento automático de pacote ao concluir ──────────────────────
+        if (data.status === "concluido") {
+          try {
+            // Buscar o agendamento para obter clienteId e servicoId
+            const agendamento = await getAgendamentoById(id);
+            if (agendamento) {
+              const db = await getDb();
+              if (db) {
+                // Buscar pacote ativo do cliente com o serviço deste agendamento
+                const pacotesAtivos = await db.select({
+                  itemId: pacotesClientesItens.id,
+                  pacoteId: pacotesClientesItens.pacoteClienteId,
+                  quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+                  quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+                }).from(pacotesClientesItens)
+                  .innerJoin(pacotesClientes, eq(pacotesClientesItens.pacoteClienteId, pacotesClientes.id))
+                  .where(and(
+                    eq(pacotesClientes.clienteId, agendamento.clienteId),
+                    eq(pacotesClientes.status, "ativo"),
+                    eq(pacotesClientesItens.servicoId, agendamento.servicoId),
+                    drizzleSql`${pacotesClientesItens.quantidadeUsada} < ${pacotesClientesItens.quantidadeTotal}`,
+                  ))
+                  .limit(1);
+
+                if (pacotesAtivos.length > 0) {
+                  const item = pacotesAtivos[0];
+                  const novaQtd = item.quantidadeUsada + 1;
+                  await db.update(pacotesClientesItens)
+                    .set({ quantidadeUsada: novaQtd })
+                    .where(eq(pacotesClientesItens.id, item.itemId));
+
+                  // Verificar se o pacote inteiro foi concluído
+                  const todosItens = await db.select().from(pacotesClientesItens)
+                    .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteId));
+                  const pacoteConcluido = todosItens.every(i =>
+                    (i.id === item.itemId ? novaQtd : i.quantidadeUsada) >= i.quantidadeTotal
+                  );
+                  if (pacoteConcluido) {
+                    await db.update(pacotesClientes)
+                      .set({ status: "concluido" })
+                      .where(eq(pacotesClientes.id, item.pacoteId));
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Não bloquear o fluxo principal se o abatimento falhar
+            console.error("[Pacotes] Erro ao abater sessão:", e);
+          }
+        }
+
         return { success: true };
       }),
     confirmarReserva: protectedProcedure

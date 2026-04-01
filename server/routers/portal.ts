@@ -341,6 +341,48 @@ export const portalRouter = router({
       };
     }),
 
+  /** Cadastra CPF para cliente que ainda não tem (primeiro acesso) */
+  cadastrarCpfCliente: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      telefone: z.string().min(8),
+      cpf: z.string().min(3),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { ok: false, nome: "", email: "" };
+      const cpfNorm = input.cpf.replace(/[^0-9]/g, "");
+      const telNorm = input.telefone.replace(/[^0-9]/g, "");
+      const telSuffix = telNorm.slice(-8);
+      // Buscar cliente pelo telefone
+      const result = await db.select({
+        id: clientes.id,
+        nome: clientes.nome,
+        email: clientes.email,
+        cpf: clientes.cpf,
+      })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+        )).limit(1);
+      if (!result.length) return { ok: false, nome: "", email: "" };
+      const cliente = result[0];
+      // Se já tem CPF, não sobrescrever
+      if (cliente.cpf && cliente.cpf.replace(/[^0-9]/g, "")) {
+        return { ok: false, nome: "", email: "" };
+      }
+      // Cadastrar o CPF
+      await db.update(clientes)
+        .set({ cpf: cpfNorm })
+        .where(eq(clientes.id, cliente.id));
+      return {
+        ok: true,
+        nome: cliente.nome ?? "",
+        email: cliente.email ?? "",
+      };
+    }),
+
   /** Buscar agendamentos de um cliente pelo telefone */
   getMeusAgendamentos: publicProcedure
     .input(z.object({

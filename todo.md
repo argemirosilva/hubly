@@ -298,3 +298,42 @@
 - [x] Ao encontrar cliente por telefone: pedir CPF (não nome) para validar identidade
 - [x] Exibir nome e dados pré-preenchidos somente após CPF validado com sucesso
 - [x] Cliente sem CPF cadastrado: pedir nome para confirmar (comportamento atual está correto para esse caso)
+
+## Portal — Fluxo CPF unificado (v11)
+- [ ] Backend: procedure cadastrarCpfCliente (cadastra CPF no banco quando cliente não tem)
+- [ ] Frontend: sempre pedir CPF ao encontrar cliente por telefone
+- [ ] Frontend: se cliente sem CPF → cadastrar CPF digitado e avançar
+- [ ] Frontend: se cliente com CPF → validar CPF e avançar
+
+## Portal — Melhoria visual etapas + CPF unificado (v11)
+- [ ] Backend: procedure cadastrarCpfCliente (cadastra CPF no banco quando cliente não tem)
+- [ ] Frontend: redesenhar indicador de etapas (stepper visual mais interessante)
+- [ ] Frontend: fluxo CPF unificado — sempre pedir CPF ao encontrar cliente
+- [ ] Frontend: se sem CPF → cadastrar no banco e avançar
+
+## Módulo de Pacotes de Serviços (v12)
+
+### Schema / Banco de Dados
+- [x] Tabela pacotes_modelos (empresaId, nome, descricao, preco, validadeDias, ativo)
+- [x] Tabela pacotes_clientes (empresaId, clienteId, modeloId, valorPago, formaPagamento, status, dataAbertura, dataVencimento)
+- [x] Tabela pacotes_itens (pacoteClienteId, servicoId, quantidadeTotal, quantidadeUsada)
+- [x] Tabela pacotes_modelos_itens (modeloId, servicoId, quantidade)
+- [x] Executar migration
+
+### Backend
+- [x] Router pacotes: CRUD modelos (criar, listar, editar, desativar)
+- [x] Router pacotes: abrirPacoteCliente (criar pacote para cliente a partir de modelo)
+- [x] Router pacotes: listarPacotesCliente (pacotes ativos/histórico por cliente)
+- [x] Router pacotes: listarTodosPacotes (visão geral admin com filtros)
+- [x] Router pacotes: consumirSessao (abater 1 sessão manualmente)
+- [x] Integração agendamentos: ao confirmar agendamento, verificar e abater pacote ativo automaticamente
+- [x] Alerta: notificar admin quando pacote zerar (notifyOwner)
+
+### Frontend
+- [x] Página /admin/pacotes com abas: Modelos e Pacotes Ativos
+- [x] Modal criar/editar modelo de pacote (itens dinâmicos por serviço + quantidade)
+- [x] Modal abrir pacote para cliente (selecionar cliente + modelo + valor pago + forma pgto)
+- [x] Card de pacote ativo com barra de progresso por item
+- [x] Aba "Pacotes" no perfil da cliente (/admin/clientes/:id) — pendente implementação futura
+- [x] Badge "Pacote" no agendamento quando abatido de pacote
+- [x] Item "Pacotes" no menu da sidebar

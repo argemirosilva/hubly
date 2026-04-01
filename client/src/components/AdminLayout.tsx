@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, Settings,
-  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen
+  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -24,6 +24,7 @@ const navGroups = [
       { href: "/admin/clientes", label: "Clientes", icon: Users },
       { href: "/admin/profissionais", label: "Profissionais", icon: UserCog },
       { href: "/admin/servicos", label: "Serviços", icon: Sparkles },
+      { href: "/admin/pacotes", label: "Pacotes", icon: Package },
     ],
   },
   {

@@ -572,3 +572,54 @@ export const insightsClientes = mysqlTable("insights_clientes", {
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
 export type InsightCliente = typeof insightsClientes.$inferSelect;
+
+// ─── PACOTES DE SERVIÇOS ──────────────────────────────────────────────────────
+
+/** Modelos reutilizáveis de pacote (templates) */
+export const pacotesModelos = mysqlTable("pacotes_modelos", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 150 }).notNull(),
+  descricao: text("descricao"),
+  preco: decimal("preco", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  validadeDias: int("validadeDias"), // null = sem validade
+  ativo: boolean("ativo").default(true).notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type PacoteModelo = typeof pacotesModelos.$inferSelect;
+
+/** Itens de um modelo de pacote (serviço + quantidade) */
+export const pacotesModelosItens = mysqlTable("pacotes_modelos_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  modeloId: int("modeloId").notNull(),
+  servicoId: int("servicoId").notNull(),
+  quantidade: int("quantidade").notNull().default(1),
+});
+export type PacoteModeloItem = typeof pacotesModelosItens.$inferSelect;
+
+/** Pacote fechado por uma cliente específica */
+export const pacotesClientes = mysqlTable("pacotes_clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  modeloId: int("modeloId"), // null se pacote avulso
+  nome: varchar("nome", { length: 150 }).notNull(), // cópia do nome do modelo
+  valorPago: decimal("valorPago", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  formaPagamento: varchar("formaPagamento", { length: 60 }),
+  status: mysqlEnum("status", ["ativo", "concluido", "vencido", "cancelado"]).default("ativo").notNull(),
+  dataAbertura: timestamp("dataAbertura").defaultNow().notNull(),
+  dataVencimento: timestamp("dataVencimento"), // null = sem vencimento
+  observacoes: text("observacoes"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type PacoteCliente = typeof pacotesClientes.$inferSelect;
+
+/** Itens de um pacote de cliente (serviço + qtd total + qtd usada) */
+export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  pacoteClienteId: int("pacoteClienteId").notNull(),
+  servicoId: int("servicoId").notNull(),
+  quantidadeTotal: int("quantidadeTotal").notNull().default(1),
+  quantidadeUsada: int("quantidadeUsada").notNull().default(0),
+});
+export type PacoteClienteItem = typeof pacotesClientesItens.$inferSelect;
