@@ -10,7 +10,7 @@ interface ChatMsg { role: "user" | "assistant"; content: string; }
 function ScoreGauge({ score, status }: { score: number; status: string }) {
   const color = status === "saudavel" ? "oklch(55% 0.18 155)" : status === "atencao" ? "oklch(65% 0.20 75)" : "oklch(55% 0.22 25)";
   const bg = status === "saudavel" ? "oklch(55% 0.18 155 / 10%)" : status === "atencao" ? "oklch(65% 0.20 75 / 10%)" : "oklch(55% 0.22 25 / 10%)";
-  const label = status === "saudavel" ? "🟢 Saudável" : status === "atencao" ? "🟡 Atenção" : "🔴 Risco";
+  const label = status === "saudavel" ? " Saudável" : status === "atencao" ? " Atenção" : " Risco";
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -170,7 +170,7 @@ export default function IAFinanceiro() {
         {loadingAlertas ? (
           <div className="p-6 text-center text-sm text-muted-foreground">Carregando alertas...</div>
         ) : (alertas ?? []).length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Nenhum alerta no momento. Tudo tranquilo! 🎉</div>
+          <div className="p-6 text-center text-sm text-muted-foreground">Nenhum alerta no momento. Tudo tranquilo! </div>
         ) : (
           <ul className="divide-y divide-border">
             {(alertas ?? []).map(alerta => (
@@ -181,7 +181,7 @@ export default function IAFinanceiro() {
                   <p className="text-xs text-muted-foreground mt-0.5">{alerta.mensagem}</p>
                   {alerta.acao && (
                     <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.18 264)" }}>
-                      💡 {alerta.acao}
+                       {alerta.acao}
                     </p>
                   )}
                 </div>

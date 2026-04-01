@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
+//  Tipos
 
 type NodeType = "trigger" | "condition" | "action" | "delay" | "end";
 
@@ -38,7 +38,7 @@ interface FlowAutomacao {
   nodes: FlowNode[];
 }
 
-// ─── Opções ───────────────────────────────────────────────────────────────────
+//  Opções
 
 const TRIGGER_OPTIONS = [
   { value: "evento_agendamento_criado", label: "Agendamento criado", icon: Calendar, color: "#6366f1" },
@@ -77,7 +77,7 @@ const VARIAVEIS = [
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MESES_ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
-// ─── NodeCard ─────────────────────────────────────────────────────────────────
+//  NodeCard
 
 function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connecting }: {
   node: FlowNode; selected: boolean;
@@ -139,7 +139,7 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
   );
 }
 
-// ─── Painel de configuração ───────────────────────────────────────────────────
+//  Painel de configuração
 
 function NodeConfigPanel({ node, onUpdate, onClose }: {
   node: FlowNode;
@@ -299,7 +299,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
   );
 }
 
-// ─── Canvas ───────────────────────────────────────────────────────────────────
+//  Canvas
 
 function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect }: {
   nodes: FlowNode[];
@@ -419,21 +419,21 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect }: {
   );
 }
 
-// ─── Templates ────────────────────────────────────────────────────────────────
+//  Templates
 
 const TEMPLATES = [
   {
     nome: "Lembrete 24h antes", descricao: "Envia lembrete 1 dia antes do agendamento", icon: AlarmClock,
     nodes: [
       { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "1 dia antes", tipo: "dias_antes_agendamento", dias: 1, hora: "09:00" }, connections: ["a1"] },
-      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Lembrete WhatsApp", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Lembrando que você tem {{servico}} amanhã às {{hora}} com {{profissional}}. Confirma sua presença? 😊" }, connections: [] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Lembrete WhatsApp", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Lembrando que você tem {{servico}} amanhã às {{hora}} com {{profissional}}. Confirma sua presença? " }, connections: [] },
     ],
   },
   {
     nome: "Aniversariante do Mês", descricao: "Desconto no 1º dia do mês do aniversário", icon: Gift,
     nodes: [
       { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Aniversário do mês", tipo: "aniversario_mes" }, connections: ["a1"] },
-      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Mensagem de aniversário", tipo: "enviar_whatsapp", mensagem: "Feliz mês do seu aniversário, {{nome_cliente}}! 🎂🎉 Você tem desconto especial durante todo o mês. Agende agora! {{empresa}}" }, connections: [] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Mensagem de aniversário", tipo: "enviar_whatsapp", mensagem: "Feliz mês do seu aniversário, {{nome_cliente}}!  Você tem desconto especial durante todo o mês. Agende agora! {{empresa}}" }, connections: [] },
     ],
   },
   {
@@ -447,7 +447,7 @@ const TEMPLATES = [
     nome: "Natal / Datas comemorativas", descricao: "Mensagem em data específica do calendário", icon: Sparkles,
     nodes: [
       { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "25 de Dezembro", tipo: "data_fixa", dia: 25, mes: "12", hora: "09:00" }, connections: ["a1"] },
-      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Feliz Natal", tipo: "enviar_whatsapp", mensagem: "Feliz Natal, {{nome_cliente}}! 🎄✨ Que este dia seja repleto de alegria. Obrigada por fazer parte da nossa história! Com carinho, {{empresa}} 💙" }, connections: [] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Feliz Natal", tipo: "enviar_whatsapp", mensagem: "Feliz Natal, {{nome_cliente}}!  Que este dia seja repleto de alegria. Obrigada por fazer parte da nossa história! Com carinho, {{empresa}} " }, connections: [] },
     ],
   },
   {
@@ -455,12 +455,12 @@ const TEMPLATES = [
     nodes: [
       { id: "t1", type: "trigger" as NodeType, x: 300, y: 40, data: { label: "Agendamento criado", tipo: "evento_agendamento_criado" }, connections: ["d1"] },
       { id: "d1", type: "delay" as NodeType, x: 300, y: 190, data: { label: "Aguardar 2h", quantidade: 2, unidade: "horas" }, connections: ["a1"] },
-      { id: "a1", type: "action" as NodeType, x: 300, y: 340, data: { label: "Confirmação", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu agendamento de {{servico}} em {{data}} às {{hora}} com {{profissional}} está confirmado. Até lá! 💙" }, connections: [] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 340, data: { label: "Confirmação", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu agendamento de {{servico}} em {{data}} às {{hora}} com {{profissional}} está confirmado. Até lá! " }, connections: [] },
     ],
   },
 ];
 
-// ─── Página principal ─────────────────────────────────────────────────────────
+//  Página principal
 
 export default function Automacoes() {
   const utils = trpc.useUtils();
@@ -564,7 +564,7 @@ export default function Automacoes() {
     }
   };
 
-  // ── LISTA ──────────────────────────────────────────────────────────────────
+  //  LISTA
   if (view === "list") {
     return (
       <AdminLayout>
@@ -695,7 +695,7 @@ export default function Automacoes() {
     );
   }
 
-  // ── EDITOR ─────────────────────────────────────────────────────────────────
+  //  EDITOR
   return (
     <AdminLayout>
       <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>

@@ -71,7 +71,7 @@ export default function PortalCliente() {
     });
   }
 
-  /* ── Confirmado ─────────────────────────────────────────────────────── */
+  /*  Confirmado  */
   if (step === "confirmado") {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: "oklch(98% 0.004 250)" }}>
@@ -84,7 +84,7 @@ export default function PortalCliente() {
             </div>
             <div>
               <h2 className="font-bold tracking-tight mb-2" style={{ fontSize: "1.6rem" }}>
-                Pré-agendamento realizado! 🎉
+                Pré-agendamento realizado!
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Em breve você receberá uma mensagem no WhatsApp com as instruções para confirmar seu horário com o pagamento da reserva.

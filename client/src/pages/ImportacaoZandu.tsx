@@ -209,7 +209,7 @@ export default function ImportacaoZandu() {
                 A importação não sobrescreve dados existentes. Registros com mesmo telefone ou e-mail serão marcados como duplicados se a opção acima estiver ativa.
                 {tiposSelecionados.includes("agendamentos") && (
                   <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
-                    ⚠ Para importar agendamentos, importe clientes, serviços e profissionais primeiro (ou selecione-os juntos acima).
+                     Para importar agendamentos, importe clientes, serviços e profissionais primeiro (ou selecione-os juntos acima).
                   </span>
                 )}
               </AlertDescription>

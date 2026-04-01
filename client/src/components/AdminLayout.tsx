@@ -142,7 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="space-y-2 mb-8">
               <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
-                Bem-vindo de volta 👋
+                Bem-vindo de volta
               </h1>
               <p className="text-sm text-muted-foreground">
                 Acesse o painel para gerenciar seu negócio
@@ -176,7 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      {/*  Sidebar  */}
       <aside
         className={`
           fixed top-0 left-0 h-full z-50 w-64 flex flex-col
@@ -280,7 +280,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* ── Main ─────────────────────────────────────────────────────────── */}
+      {/*  Main  */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
@@ -314,7 +314,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
       </div>
 
-      {/* ── Bottom Navigation Bar (mobile only) ─────────────────────────── */}
+      {/*  Bottom Navigation Bar (mobile only)  */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center"
         style={{
           background: "white",

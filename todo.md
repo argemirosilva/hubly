@@ -229,3 +229,6 @@
 - [ ] Badge de alertas de clientes na sidebar (pendente)
 - [x] Grupo "IA Inteligente" na navegação lateral
 - [x] Testes: 18 testes de IA passando (57 testes no total)
+
+## Bugs / Melhorias (v6)
+- [x] Remover todos os emojis das telas do frontend

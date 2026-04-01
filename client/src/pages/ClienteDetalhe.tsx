@@ -131,14 +131,14 @@ export default function ClienteDetalhe() {
                     background: analiseIA.classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : analiseIA.classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : analiseIA.classificacao === 'inativo' ? 'oklch(60% 0.04 250 / 12%)' : analiseIA.classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(55% 0.22 264 / 12%)'
                   }}>
                     {{
-                      principal: '🟢 Principal',
-                      bom_pagador: '💎 Bom pagador',
-                      em_crescimento: '📈 Em crescimento',
-                      em_queda: '📉 Em queda',
-                      inativo: '💤 Inativo',
-                      atraso_frequente: '⚠️ Atraso frequente',
-                      risco: '🚨 Risco',
-                      novo: '🆕 Novo',
+                      principal: ' Principal',
+                      bom_pagador: ' Bom pagador',
+                      em_crescimento: ' Em crescimento',
+                      em_queda: ' Em queda',
+                      inativo: ' Inativo',
+                      atraso_frequente: ' Atraso frequente',
+                      risco: ' Risco',
+                      novo: ' Novo',
                     }[analiseIA.classificacao] ?? analiseIA.classificacao}
                   </span>
                 </div>

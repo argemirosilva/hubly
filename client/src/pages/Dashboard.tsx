@@ -27,7 +27,7 @@ function formatCurrency(value: number) {
 function saudacao(nome?: string) {
   const h = new Date().getHours();
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-  return nome ? `${greeting}, ${nome.split(" ")[0]}! 👋` : `${greeting}! 👋`;
+  return nome ? `${greeting}, ${nome.split(" ")[0]}! ` : `${greeting}! `;
 }
 
 export default function Dashboard() {
@@ -107,7 +107,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5 animate-in-up">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/*  Header  */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground font-medium capitalize mb-0.5 hidden sm:block">{dataFormatada}</p>
@@ -137,7 +137,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Stats ──────────────────────────────────────────────────────── */}
+      {/*  Stats  */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
@@ -203,7 +203,7 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* ── Main grid ──────────────────────────────────────────────────── */}
+      {/*  Main grid  */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Agenda do dia */}
@@ -382,7 +382,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
                   <span className="text-xs font-semibold" style={{ color: scoreIA.status === 'saudavel' ? 'oklch(38% 0.14 155)' : scoreIA.status === 'atencao' ? 'oklch(42% 0.14 75)' : 'oklch(40% 0.18 25)' }}>
-                    {scoreIA.status === 'saudavel' ? '🟢 Saudável' : scoreIA.status === 'atencao' ? '🟡 Atenção' : '🔴 Risco'}
+                    {scoreIA.status === 'saudavel' ? ' Saudável' : scoreIA.status === 'atencao' ? ' Atenção' : ' Risco'}
                   </span>
                 </div>
                 {alertasNaoLidos > 0 && (

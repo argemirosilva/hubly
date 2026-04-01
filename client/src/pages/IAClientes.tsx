@@ -8,14 +8,14 @@ import { Users, Brain, RefreshCw, Send, Bot, User, TrendingUp, TrendingDown, Ale
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 const CLASSIFICACAO_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
-  principal:        { label: "Principal",        icon: "🟢", color: "oklch(38% 0.14 155)", bg: "oklch(55% 0.18 155 / 10%)" },
-  bom_pagador:      { label: "Bom pagador",       icon: "💎", color: "oklch(45% 0.18 264)", bg: "oklch(55% 0.22 264 / 10%)" },
-  em_crescimento:   { label: "Em crescimento",    icon: "📈", color: "oklch(40% 0.16 300)", bg: "oklch(60% 0.20 300 / 10%)" },
-  em_queda:         { label: "Em queda",          icon: "📉", color: "oklch(45% 0.16 220)", bg: "oklch(55% 0.14 220 / 10%)" },
-  inativo:          { label: "Inativo",           icon: "💤", color: "oklch(45% 0.06 250)", bg: "oklch(60% 0.04 250 / 10%)" },
-  atraso_frequente: { label: "Atraso frequente",  icon: "⚠️",  color: "oklch(45% 0.18 75)",  bg: "oklch(65% 0.20 75 / 10%)"  },
-  risco:            { label: "Risco",             icon: "🚨", color: "oklch(45% 0.22 25)",  bg: "oklch(55% 0.22 25 / 10%)"  },
-  novo:             { label: "Novo",              icon: "🆕", color: "oklch(45% 0.14 200)", bg: "oklch(55% 0.12 200 / 10%)" },
+  principal:        { label: "Principal",        icon: "", color: "oklch(38% 0.14 155)", bg: "oklch(55% 0.18 155 / 10%)" },
+  bom_pagador:      { label: "Bom pagador",       icon: "", color: "oklch(45% 0.18 264)", bg: "oklch(55% 0.22 264 / 10%)" },
+  em_crescimento:   { label: "Em crescimento",    icon: "", color: "oklch(40% 0.16 300)", bg: "oklch(60% 0.20 300 / 10%)" },
+  em_queda:         { label: "Em queda",          icon: "", color: "oklch(45% 0.16 220)", bg: "oklch(55% 0.14 220 / 10%)" },
+  inativo:          { label: "Inativo",           icon: "", color: "oklch(45% 0.06 250)", bg: "oklch(60% 0.04 250 / 10%)" },
+  atraso_frequente: { label: "Atraso frequente",  icon: "",  color: "oklch(45% 0.18 75)",  bg: "oklch(65% 0.20 75 / 10%)"  },
+  risco:            { label: "Risco",             icon: "", color: "oklch(45% 0.22 25)",  bg: "oklch(55% 0.22 25 / 10%)"  },
+  novo:             { label: "Novo",              icon: "", color: "oklch(45% 0.14 200)", bg: "oklch(55% 0.12 200 / 10%)" },
 };
 
 export default function IAClientes() {
@@ -72,7 +72,7 @@ export default function IAClientes() {
   }
 
   const statusGeral = analise?.statusGeral;
-  const statusLabel = statusGeral === "saudavel" ? "🟢 Clientes saudáveis" : "⚠️ Atenção: há clientes com risco";
+  const statusLabel = statusGeral === "saudavel" ? " Clientes saudáveis" : " Atenção: há clientes com risco";
   const statusColor = statusGeral === "saudavel" ? "oklch(38% 0.14 155)" : "oklch(45% 0.18 75)";
 
   return (
@@ -198,7 +198,7 @@ export default function IAClientes() {
                     <p className="text-sm font-medium">{insight.titulo}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{insight.mensagem}</p>
                     {insight.acao && (
-                      <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.18 264)" }}>💡 {insight.acao}</p>
+                      <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.18 264)" }}> {insight.acao}</p>
                     )}
                   </div>
                   {!insight.lido && (

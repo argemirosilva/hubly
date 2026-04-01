@@ -85,7 +85,7 @@ export default function Setup() {
 
           <div className="mb-8">
             <h1 className="font-bold tracking-tight mb-1.5" style={{ fontSize: "1.6rem" }}>
-              Configurar empresa 🏢
+              Configurar empresa
             </h1>
             <p className="text-sm text-muted-foreground">
               Preencha os dados do seu estabelecimento para começar.
