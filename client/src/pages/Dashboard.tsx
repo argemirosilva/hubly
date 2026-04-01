@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import {
   Calendar, Users, TrendingUp, DollarSign,
   ArrowUpRight, ArrowDownRight, Plus, ChevronRight,
-  Sparkles, Clock, CheckCircle2, AlertCircle, Zap
+  Sparkles, Clock, CheckCircle2, AlertCircle, Zap, Brain
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
@@ -37,6 +37,9 @@ export default function Dashboard() {
 
   const { data: empresa } = trpc.empresa.get.useQuery();
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
+  const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
+  const { data: alertasIA } = trpc.iaFinanceiro.getAlertas.useQuery({ apenasNaoLidos: true });
+  const alertasNaoLidos = (alertasIA ?? []).length;
   const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery({ dataInicio: today, dataFim: today });
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
@@ -341,6 +344,55 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Card IA Financeira */}
+          <div className="card-elegant p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}>
+                  <Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                </div>
+                <h3 className="font-semibold text-sm tracking-tight">Score Financeiro</h3>
+              </div>
+              <Link href="/admin/ia-financeiro">
+                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  Detalhes <ChevronRight className="w-3 h-3" />
+                </button>
+              </Link>
+            </div>
+            {!scoreIA ? (
+              <div className="text-center py-3">
+                <p className="text-xs text-muted-foreground mb-2">Nenhuma análise ainda</p>
+                <Link href="/admin/ia-financeiro">
+                  <button className="text-xs font-medium" style={{ color: "oklch(45% 0.18 264)" }}>Calcular agora →</button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Score</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${scoreIA.score}%`, background: scoreIA.status === 'saudavel' ? 'oklch(55% 0.18 155)' : scoreIA.status === 'atencao' ? 'oklch(65% 0.20 75)' : 'oklch(55% 0.22 25)' }} />
+                    </div>
+                    <span className="text-xs font-bold">{scoreIA.score}/100</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Status</span>
+                  <span className="text-xs font-semibold" style={{ color: scoreIA.status === 'saudavel' ? 'oklch(38% 0.14 155)' : scoreIA.status === 'atencao' ? 'oklch(42% 0.14 75)' : 'oklch(40% 0.18 25)' }}>
+                    {scoreIA.status === 'saudavel' ? '🟢 Saudável' : scoreIA.status === 'atencao' ? '🟡 Atenção' : '🔴 Risco'}
+                  </span>
+                </div>
+                {alertasNaoLidos > 0 && (
+                  <div className="flex items-center gap-1.5 mt-1 px-2 py-1.5 rounded-lg" style={{ background: "oklch(55% 0.22 25 / 10%)" }}>
+                    <AlertCircle className="w-3 h-3" style={{ color: "oklch(45% 0.22 25)" }} />
+                    <span className="text-xs font-medium" style={{ color: "oklch(40% 0.18 25)" }}>{alertasNaoLidos} alerta{alertasNaoLidos > 1 ? 's' : ''} não lido{alertasNaoLidos > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Profissionais ativos */}

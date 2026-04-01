@@ -43,6 +43,20 @@
       "when": 1774890828901,
       "tag": "0005_pink_squirrel_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775070353462,
+      "tag": "0006_fresh_spacker_dave",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1775070451339,
+      "tag": "0007_shiny_brood",
+      "breakpoints": true
     }
   ]
 }

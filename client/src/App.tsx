@@ -21,6 +21,8 @@ import Setup from "./pages/Setup";
 import Usuarios from "./pages/Usuarios";
 import ImportacaoZandu from "./pages/ImportacaoZandu";
 import Pipeline from "./pages/Pipeline";
+import IAFinanceiro from "./pages/IAFinanceiro";
+import IAClientes from "./pages/IAClientes";
 import AdminLayout from "./components/AdminLayout";
 
 function AdminRoutes() {
@@ -42,6 +44,8 @@ function AdminRoutes() {
         <Route path="/admin/usuarios" component={Usuarios} />
         <Route path="/admin/pipeline" component={Pipeline} />
         <Route path="/admin/importacao" component={ImportacaoZandu} />
+        <Route path="/admin/ia-financeiro" component={IAFinanceiro} />
+        <Route path="/admin/ia-clientes" component={IAClientes} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

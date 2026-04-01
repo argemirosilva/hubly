@@ -478,3 +478,87 @@ export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
 });
 export type PipelineCartao = typeof pipelineCartoes.$inferSelect;
 export type InsertPipelineCartao = typeof pipelineCartoes.$inferInsert;
+
+// ─── IA FINANCEIRA — SCORE DE SAÚDE ──────────────────────────────────────────
+export const scoreFinanceiro = mysqlTable("score_financeiro", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  score: int("score").notNull(), // 0-100
+  status: mysqlEnum("status", ["saudavel", "atencao", "risco"]).notNull(),
+  explicacao: text("explicacao").notNull(), // Texto simples para o usuário
+  motivos: json("motivos").notNull(), // Array de strings com motivos da nota
+  dicas: json("dicas").notNull(), // Array de strings com dicas de melhoria
+  detalhes: json("detalhes"), // Objeto com pontuação por fator
+  calculadoEm: timestamp("calculadoEm").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ScoreFinanceiro = typeof scoreFinanceiro.$inferSelect;
+
+// ─── IA FINANCEIRA — ALERTAS PROATIVOS ───────────────────────────────────────
+export const alertasFinanceiros = mysqlTable("alertas_financeiros", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  tipo: mysqlEnum("tipo", [
+    "caixa_negativo",
+    "contas_vencendo",
+    "inadimplencia",
+    "gastos_altos",
+    "score_caiu",
+    "receita_baixa",
+    "concentracao_receita",
+    "fluxo_negativo",
+    "geral",
+  ]).notNull(),
+  prioridade: mysqlEnum("prioridade", ["alta", "media", "baixa"]).default("media").notNull(),
+  titulo: varchar("titulo", { length: 200 }).notNull(),
+  mensagem: text("mensagem").notNull(),
+  acao: varchar("acao", { length: 300 }), // Sugestão de ação
+  lido: boolean("lido").default(false).notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type AlertaFinanceiro = typeof alertasFinanceiros.$inferSelect;
+
+// ─── IA CLIENTES — ANÁLISE INTELIGENTE ───────────────────────────────────────
+export const analiseClientes = mysqlTable("analise_clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  classificacao: mysqlEnum("classificacao", [
+    "principal",     // 🟢 Maior gerador de receita
+    "bom_pagador",   // 💎 Paga em dia e é consistente
+    "em_crescimento",// 📈 Aumentando frequência/valor
+    "em_queda",      // 📉 Diminuindo frequência/valor
+    "inativo",       // 💤 Sumiu (sem movimentação recente)
+    "atraso_frequente", // ⚠️ Atrasa com frequência
+    "risco",         // 🚨 Pode dar problema
+    "novo",          // 🆕 Cliente novo, poucos dados
+  ]).notNull(),
+  scoreCliente: int("scoreCliente").notNull(), // 0-100
+  resumo: text("resumo").notNull(), // Texto simples para o usuário
+  detalhes: json("detalhes"), // Métricas brutas: totalReceita, qtdAgendamentos, etc.
+  calculadoEm: timestamp("calculadoEm").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AnaliseCliente = typeof analiseClientes.$inferSelect;
+
+// ─── IA CLIENTES — INSIGHTS ───────────────────────────────────────────────────
+export const insightsClientes = mysqlTable("insights_clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  tipo: mysqlEnum("tipo", [
+    "concentracao_receita",
+    "clientes_inativos",
+    "inadimplencia_frequente",
+    "cliente_em_queda",
+    "cliente_importante_atrasou",
+    "bons_clientes",
+    "geral",
+  ]).notNull(),
+  prioridade: mysqlEnum("prioridade", ["alta", "media", "baixa"]).default("media").notNull(),
+  titulo: varchar("titulo", { length: 200 }).notNull(),
+  mensagem: text("mensagem").notNull(),
+  acao: varchar("acao", { length: 300 }),
+  lido: boolean("lido").default(false).notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type InsightCliente = typeof insightsClientes.$inferSelect;

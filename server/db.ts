@@ -742,3 +742,123 @@ export async function getEmpresaDoUsuario(userId: number) {
 
   return null;
 }
+
+// ─── IA FINANCEIRA — SCORE & ALERTAS ─────────────────────────────────────────
+import { scoreFinanceiro, alertasFinanceiros, analiseClientes, insightsClientes } from "../drizzle/schema";
+
+export async function saveScoreFinanceiro(data: typeof scoreFinanceiro.$inferInsert) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(scoreFinanceiro).values(data);
+  return result;
+}
+
+export async function getScoreAtual(empresaId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(scoreFinanceiro)
+    .where(eq(scoreFinanceiro.empresaId, empresaId))
+    .orderBy(desc(scoreFinanceiro.calculadoEm))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function getHistoricoScore(empresaId: number, limit = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scoreFinanceiro)
+    .where(eq(scoreFinanceiro.empresaId, empresaId))
+    .orderBy(desc(scoreFinanceiro.calculadoEm))
+    .limit(limit);
+}
+
+export async function saveAlertaFinanceiro(data: typeof alertasFinanceiros.$inferInsert) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(alertasFinanceiros).values(data);
+}
+
+export async function getAlertasFinanceiros(empresaId: number, apenasNaoLidos = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(alertasFinanceiros.empresaId, empresaId)];
+  if (apenasNaoLidos) conditions.push(eq(alertasFinanceiros.lido, false));
+  return db.select().from(alertasFinanceiros)
+    .where(and(...conditions))
+    .orderBy(desc(alertasFinanceiros.criadoEm))
+    .limit(50);
+}
+
+export async function marcarAlertaFinanceiroLido(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(alertasFinanceiros).set({ lido: true }).where(eq(alertasFinanceiros.id, id));
+}
+
+export async function marcarTodosAlertasLidos(empresaId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(alertasFinanceiros).set({ lido: true }).where(eq(alertasFinanceiros.empresaId, empresaId));
+}
+
+// ─── IA CLIENTES — ANÁLISE & INSIGHTS ────────────────────────────────────────
+export async function saveAnaliseCliente(data: typeof analiseClientes.$inferInsert) {
+  const db = await getDb();
+  if (!db) return null;
+  // Upsert por empresaId + clienteId
+  return db.insert(analiseClientes).values(data)
+    .onDuplicateKeyUpdate({ set: {
+      classificacao: data.classificacao,
+      scoreCliente: data.scoreCliente,
+      resumo: data.resumo,
+      detalhes: data.detalhes,
+      calculadoEm: new Date(),
+    }});
+}
+
+export async function getAnaliseClientesByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(analiseClientes)
+    .where(eq(analiseClientes.empresaId, empresaId))
+    .orderBy(desc(analiseClientes.scoreCliente));
+}
+
+export async function getAnaliseByCliente(empresaId: number, clienteId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(analiseClientes)
+    .where(and(eq(analiseClientes.empresaId, empresaId), eq(analiseClientes.clienteId, clienteId)))
+    .orderBy(desc(analiseClientes.calculadoEm))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function saveInsightCliente(data: typeof insightsClientes.$inferInsert) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(insightsClientes).values(data);
+}
+
+export async function getInsightsClientes(empresaId: number, apenasNaoLidos = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(insightsClientes.empresaId, empresaId)];
+  if (apenasNaoLidos) conditions.push(eq(insightsClientes.lido, false));
+  return db.select().from(insightsClientes)
+    .where(and(...conditions))
+    .orderBy(desc(insightsClientes.criadoEm))
+    .limit(50);
+}
+
+export async function marcarInsightClienteLido(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(insightsClientes).set({ lido: true }).where(eq(insightsClientes.id, id));
+}
+
+export async function marcarTodosInsightsLidos(empresaId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(insightsClientes).set({ lido: true }).where(eq(insightsClientes.empresaId, empresaId));
+}

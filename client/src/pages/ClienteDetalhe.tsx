@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain } from "lucide-react";
 import { Link } from "wouter";
 import { useMemo } from "react";
 
@@ -26,6 +26,7 @@ export default function ClienteDetalhe() {
   const { data: cliente } = trpc.clientes.getById.useQuery({ id }, { enabled: !!id });
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({});
   const { data: servicos } = trpc.servicos.list.useQuery();
+  const { data: analiseIA } = trpc.iaClientes.getClienteAnalise.useQuery({ clienteId: id }, { enabled: !!id });
 
   const servicoMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -115,6 +116,37 @@ export default function ClienteDetalhe() {
               );
             })}
           </div>
+
+          {/* Análise IA do cliente */}
+          {analiseIA && (
+            <Card className="border-border shadow-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}>
+                    <Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                  </div>
+                  <h3 className="font-semibold text-sm">Análise IA</h3>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto" style={{
+                    color: analiseIA.classificacao === 'risco' ? 'oklch(40% 0.18 25)' : analiseIA.classificacao === 'atraso_frequente' ? 'oklch(42% 0.14 75)' : analiseIA.classificacao === 'inativo' ? 'oklch(40% 0.06 250)' : analiseIA.classificacao === 'principal' ? 'oklch(38% 0.14 155)' : 'oklch(45% 0.18 264)',
+                    background: analiseIA.classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : analiseIA.classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : analiseIA.classificacao === 'inativo' ? 'oklch(60% 0.04 250 / 12%)' : analiseIA.classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(55% 0.22 264 / 12%)'
+                  }}>
+                    {{
+                      principal: '🟢 Principal',
+                      bom_pagador: '💎 Bom pagador',
+                      em_crescimento: '📈 Em crescimento',
+                      em_queda: '📉 Em queda',
+                      inativo: '💤 Inativo',
+                      atraso_frequente: '⚠️ Atraso frequente',
+                      risco: '🚨 Risco',
+                      novo: '🆕 Novo',
+                    }[analiseIA.classificacao] ?? analiseIA.classificacao}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{analiseIA.resumo}</p>
+                <p className="text-xs text-muted-foreground mt-2">Score: <span className="font-bold text-foreground">{analiseIA.scoreCliente}/100</span> · Calculado em {new Date(analiseIA.calculadoEm).toLocaleDateString('pt-BR')}</p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="border-border shadow-none">
             <CardHeader className="pb-3">

@@ -186,3 +186,46 @@
 
 ## Bugs (v5e)
 - [x] Importação Zandu agendamentos: erro 400 "Phone is required" ao chamar /schedulers/appointments — corrigido iterando por pessoa via GET /persons + GET /schedulers/appointments?phone={tel}
+
+## IA Financeira — Score de Saúde e Alertas Proativos (v6)
+
+### Schema / Banco de Dados
+- [x] Tabela score_financeiro (empresaId, score 0-100, status, explicacao, motivos JSON, dicas JSON, calculadoEm)
+- [x] Tabela alertas_financeiros (empresaId, tipo, titulo, mensagem, acao, prioridade, lido, criadoEm)
+
+### Backend
+- [x] Router iaFinanceiro: calcularScore (lógica com 10 fatores ponderados)
+- [x] Router iaFinanceiro: getScore (buscar score atual da empresa)
+- [x] Router iaFinanceiro: getAlertas (listar alertas não lidos)
+- [x] Router iaFinanceiro: marcarAlertaLido
+- [x] Router iaFinanceiro: chatFinanceiro (chat com contexto de score e alertas)
+- [x] Agendamento diário às 22h para recalcular score e gerar alertas
+
+### Frontend
+- [x] Card de Score no Dashboard (nota, status colorido, explicação)
+- [x] Página dedicada de IA Financeira com score detalhado, histórico e chat
+- [x] Integração do chat com contexto de score e alertas
+- [ ] Badge de alertas não lidos na sidebar (pendente)
+
+## IA Clientes — Análise Inteligente de Clientes (v6)
+
+### Schema / Banco de Dados
+- [x] Tabela analise_clientes (empresaId, clienteId, classificacao, score, resumo, detalhes JSON, calculadoEm)
+- [x] Tabela insights_clientes (empresaId, tipo, titulo, mensagem, acao, prioridade, lido, criadoEm)
+
+### Backend
+- [x] Router iaClientes: analisar (calcular classificação e score de todos os clientes)
+- [x] Router iaClientes: getAnalise (buscar análise geral da empresa)
+- [x] Router iaClientes: getClienteAnalise (buscar análise de um cliente específico)
+- [x] Router iaClientes: getInsights (listar insights não lidos)
+- [x] Router iaClientes: marcarInsightLido
+- [x] Router iaClientes: chatClientes (chat com contexto de análise de clientes)
+- [x] Critérios mínimos: mínimo 3 clientes + 30 dias de histórico
+
+### Frontend
+- [x] Painel de Análise de Clientes (/admin/ia-clientes) com cards resumo, insights e ranking
+- [x] Perfil do cliente com seção de análise IA (classificação, resumo, histórico)
+- [x] Chat integrado com contexto de análise de clientes
+- [ ] Badge de alertas de clientes na sidebar (pendente)
+- [x] Grupo "IA Inteligente" na navegação lateral
+- [x] Testes: 18 testes de IA passando (57 testes no total)
