@@ -337,3 +337,12 @@
 - [x] Aba "Pacotes" no perfil da cliente (/admin/clientes/:id) — pendente implementação futura
 - [x] Badge "Pacote" no agendamento quando abatido de pacote
 - [x] Item "Pacotes" no menu da sidebar
+
+## Relatório Financeiro de Pacotes (v13)
+- [x] Backend: procedure relatorioFinanceiro (receita total, sessões consumidas, pacotes próximos do vencimento)
+- [x] Frontend: aba "Relatório" na página /admin/pacotes
+- [x] Cards de KPI: receita total, pacotes ativos, vencendo em 7 dias, cancelados
+- [x] Tabela de pacotes próximos do vencimento com alerta visual
+- [x] Gráfico de receita por mês (últimos 6 meses)
+- [x] Gráfico de status dos pacotes (pie chart)
+- [x] Gráfico de sessões consumidas vs. restantes por serviço

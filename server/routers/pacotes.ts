@@ -325,6 +325,91 @@ export const pacotesRouter = router({
       return { ok: true, pacoteConcluido };
     }),
 
+  // ── Relatório financeiro de pacotes ─────────────────────────────────────────
+  relatorioFinanceiro: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const empId = await getEmpresaId(ctx.user.id);
+
+      // KPIs gerais
+      const todosOsPacotes = await db.select({
+        id: pacotesClientes.id,
+        status: pacotesClientes.status,
+        valorPago: pacotesClientes.valorPago,
+        dataAbertura: pacotesClientes.dataAbertura,
+        dataVencimento: pacotesClientes.dataVencimento,
+        clienteNome: clientes.nome,
+        nome: pacotesClientes.nome,
+      }).from(pacotesClientes)
+        .leftJoin(clientes, eq(pacotesClientes.clienteId, clientes.id))
+        .where(eq(pacotesClientes.empresaId, empId))
+        .orderBy(sql`${pacotesClientes.criadoEm} DESC`);
+
+      const receitaTotal = todosOsPacotes.reduce((acc, p) => acc + parseFloat(p.valorPago ?? '0'), 0);
+      const pacotesAtivos = todosOsPacotes.filter(p => p.status === 'ativo').length;
+      const pacotesConcluidos = todosOsPacotes.filter(p => p.status === 'concluido').length;
+      const pacotesCancelados = todosOsPacotes.filter(p => p.status === 'cancelado').length;
+
+      // Pacotes vencendo em 7 dias
+      const agora = new Date();
+      const em7Dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const pacotesVencendo = todosOsPacotes.filter(p => {
+        if (p.status !== 'ativo' || !p.dataVencimento) return false;
+        const venc = new Date(p.dataVencimento);
+        return venc >= agora && venc <= em7Dias;
+      });
+
+      // Pacotes vencidos (status ativo mas data vencida)
+      const pacotesVencidos = todosOsPacotes.filter(p => {
+        if (p.status !== 'ativo' || !p.dataVencimento) return false;
+        return new Date(p.dataVencimento) < agora;
+      });
+
+      // Receita por mês (últimos 6 meses)
+      const receitaPorMes: Record<string, number> = {};
+      todosOsPacotes.forEach(p => {
+        if (!p.dataAbertura) return;
+        const d = new Date(p.dataAbertura);
+        const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        receitaPorMes[chave] = (receitaPorMes[chave] ?? 0) + parseFloat(p.valorPago ?? '0');
+      });
+
+      // Sessões por serviço (consumidas vs total)
+      const ids = todosOsPacotes.map(p => p.id);
+      let sessoesPorServico: { servicoNome: string | null; total: number; usadas: number }[] = [];
+      if (ids.length > 0) {
+        const itensRows = await db.select({
+          servicoNome: servicos.nome,
+          quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+          quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        }).from(pacotesClientesItens)
+          .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
+          .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(',')})`);
+
+        const agrupado: Record<string, { total: number; usadas: number }> = {};
+        itensRows.forEach(i => {
+          const nome = i.servicoNome ?? 'Desconhecido';
+          if (!agrupado[nome]) agrupado[nome] = { total: 0, usadas: 0 };
+          agrupado[nome].total += i.quantidadeTotal;
+          agrupado[nome].usadas += i.quantidadeUsada;
+        });
+        sessoesPorServico = Object.entries(agrupado).map(([servicoNome, v]) => ({ servicoNome, ...v }));
+      }
+
+      return {
+        receitaTotal,
+        pacotesAtivos,
+        pacotesConcluidos,
+        pacotesCancelados,
+        totalPacotes: todosOsPacotes.length,
+        pacotesVencendo,
+        pacotesVencidos,
+        receitaPorMes,
+        sessoesPorServico,
+      };
+    }),
+
   // ── Cancelar pacote ───────────────────────────────────────────────────────
   cancelarPacote: protectedProcedure
     .input(z.object({ id: z.number() }))

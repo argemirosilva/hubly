@@ -17,14 +17,185 @@ import { toast } from "sonner";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
-  Pencil, RotateCcw,
+  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock,
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(v: number | string) {
   const num = typeof v === "string" ? parseFloat(v) : v;
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(isNaN(num) ? 0 : num);
+}
+
+// ─── Componente Relatório Financeiro de Pacotes ───────────────────────────────────────────
+
+const COLORS_PIE = ["#7c3aed", "#10b981", "#f59e0b", "#ef4444"];
+
+function RelatorioPacotes() {
+  const { data, isLoading } = trpc.pacotes.relatorioFinanceiro.useQuery();
+
+  if (isLoading) return <div className="text-center py-16 text-slate-400">Carregando relatório...</div>;
+  if (!data) return <div className="text-center py-16 text-slate-400">Nenhum dado disponível.</div>;
+
+  // Receita por mês — últimos 6 meses
+  const mesesLabels: Record<string, string> = {
+    "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr",
+    "05": "Mai", "06": "Jun", "07": "Jul", "08": "Ago",
+    "09": "Set", "10": "Out", "11": "Nov", "12": "Dez",
+  };
+  const agora = new Date();
+  const meses6 = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - (5 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const receitaChart = meses6.map(m => ({
+    mes: mesesLabels[m.split("-")[1]] + "/" + m.split("-")[0].slice(2),
+    receita: data.receitaPorMes[m] ?? 0,
+  }));
+
+  // Pie chart de status
+  const statusChart = [
+    { name: "Ativos", value: data.pacotesAtivos },
+    { name: "Concluídos", value: data.pacotesConcluidos },
+    { name: "Cancelados", value: data.pacotesCancelados },
+  ].filter(s => s.value > 0);
+
+  // Sessões por serviço
+  const sessoesChart = data.sessoesPorServico.map(s => ({
+    nome: s.servicoNome ?? "Desconhecido",
+    usadas: s.usadas,
+    restantes: s.total - s.usadas,
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-violet-500" /> Receita Total</p>
+          <p className="text-2xl font-bold text-violet-700">{formatCurrency(data.receitaTotal)}</p>
+          <p className="text-xs text-slate-400">{data.totalPacotes} pacote{data.totalPacotes !== 1 ? "s" : ""} no total</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ativos</p>
+          <p className="text-2xl font-bold text-emerald-600">{data.pacotesAtivos}</p>
+          <p className="text-xs text-slate-400">{data.pacotesConcluidos} concluídos</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5 text-amber-500" /> Vencendo em 7 dias</p>
+          <p className={`text-2xl font-bold ${data.pacotesVencendo.length > 0 ? "text-amber-600" : "text-slate-400"}`}>{data.pacotesVencendo.length}</p>
+          <p className="text-xs text-slate-400">{data.pacotesVencidos.length} já vencidos</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-red-400" /> Cancelados</p>
+          <p className="text-2xl font-bold text-red-500">{data.pacotesCancelados}</p>
+          <p className="text-xs text-slate-400">de {data.totalPacotes} total</p>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        {/* Receita por mês */}
+        <div className="bg-white rounded-xl border shadow-sm p-4">
+          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-violet-500" /> Receita por Mês</p>
+          {receitaChart.every(r => r.receita === 0) ? (
+            <div className="text-center py-8 text-slate-400 text-sm">Nenhuma receita registrada ainda</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={receitaChart} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
+                <Tooltip formatter={(v: number) => [formatCurrency(v), "Receita"]} />
+                <Bar dataKey="receita" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Status dos pacotes */}
+        <div className="bg-white rounded-xl border shadow-sm p-4">
+          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><Package className="w-4 h-4 text-violet-500" /> Status dos Pacotes</p>
+          {statusChart.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-sm">Nenhum pacote cadastrado ainda</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={statusChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                  {statusChart.map((_, i) => <Cell key={i} fill={COLORS_PIE[i % COLORS_PIE.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Sessões por serviço */}
+      {sessoesChart.length > 0 && (
+        <div className="bg-white rounded-xl border shadow-sm p-4">
+          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-emerald-500" /> Sessões por Serviço</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={sessoesChart} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="nome" tick={{ fontSize: 11 }} width={100} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="usadas" name="Usadas" fill="#7c3aed" radius={[0, 4, 4, 0]} stackId="a" />
+              <Bar dataKey="restantes" name="Restantes" fill="#e9d5ff" radius={[0, 4, 4, 0]} stackId="a" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Tabela de pacotes vencendo */}
+      {(data.pacotesVencendo.length > 0 || data.pacotesVencidos.length > 0) && (
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b bg-amber-50 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-500" />
+            <p className="font-semibold text-amber-800 text-sm">Pacotes que precisam de atenção</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Cliente</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Pacote</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Vencimento</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {[...data.pacotesVencidos, ...data.pacotesVencendo].map(p => {
+                const venc = p.dataVencimento ? new Date(p.dataVencimento) : null;
+                const vencido = venc && venc < new Date();
+                return (
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2.5 font-medium text-slate-700">{p.clienteNome ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{p.nome}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{venc ? venc.toLocaleDateString("pt-BR") : "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                        vencido ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {vencido ? <XCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        {vencido ? "Vencido" : "Vence em breve"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ProgressBar({ used, total, color }: { used: number; total: number; color: string }) {
@@ -490,6 +661,9 @@ export default function Pacotes() {
             <TabsTrigger value="modelos" className="gap-2">
               <Package className="w-4 h-4" /> Modelos
             </TabsTrigger>
+            <TabsTrigger value="relatorio" className="gap-2">
+              <BarChart3 className="w-4 h-4" /> Relatório
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Aba Pacotes ── */}
@@ -535,6 +709,11 @@ export default function Pacotes() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* ── Aba Relatório ── */}
+          <TabsContent value="relatorio">
+            <RelatorioPacotes />
           </TabsContent>
 
           {/* ── Aba Modelos ── */}
