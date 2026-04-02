@@ -43,6 +43,10 @@ export const empresas = mysqlTable("empresas", {
   corSecundaria: varchar("corSecundaria", { length: 7 }).default("#e8d5c4"),
   whatsappNumero: varchar("whatsappNumero", { length: 20 }),
   whatsappApiKey: text("whatsappApiKey"),
+  // Templates de mensagem WhatsApp
+  waMsgConfirmacao: text("waMsgConfirmacao"),
+  waMsgCancelamento: text("waMsgCancelamento"),
+  waMsgLembrete: text("waMsgLembrete"),
   taxaMaquininha: decimal("taxaMaquininha", { precision: 5, scale: 2 }).default("2.99"),
   percentualDona: decimal("percentualDona", { precision: 5, scale: 2 }).default("0.00"),
   reservaPercentual: decimal("reservaPercentual", { precision: 5, scale: 2 }).default("30.00"),

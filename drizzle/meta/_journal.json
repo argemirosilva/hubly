@@ -78,6 +78,13 @@
       "when": 1775082081363,
       "tag": "0010_brown_sinister_six",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1775149082286,
+      "tag": "0011_mysterious_joystick",
+      "breakpoints": true
     }
   ]
 }

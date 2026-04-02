@@ -104,6 +104,9 @@ export const appRouter = router({
         horaFechamento: z.string().optional(),
         diasFuncionamento: z.array(z.number()).optional(),
         intervaloMinutos: z.number().optional(),
+        waMsgConfirmacao: z.string().optional(),
+        waMsgCancelamento: z.string().optional(),
+        waMsgLembrete: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaByOwnerId(ctx.user.id);
@@ -498,6 +501,62 @@ export const appRouter = router({
           } catch (e) {
             // Não bloquear o fluxo principal se o abatimento falhar
             console.error("[Pacotes] Erro ao abater sessão:", e);
+          }
+        }
+
+        // ── Envio automático de WhatsApp ao confirmar ou cancelar ────────────────
+        if (data.status === 'confirmado' || data.status === 'cancelado') {
+          try {
+            const { waManager } = await import('./whatsapp');
+            const waState = waManager.getState();
+            if (waState.status === 'connected') {
+              const agendamento = await getAgendamentoById(id);
+              if (agendamento) {
+                const [cliente, profissional, servico] = await Promise.all([
+                  getClienteById(agendamento.clienteId),
+                  getProfissionalById(agendamento.profissionalId),
+                  (async () => {
+                    const servicos = await getServicosByEmpresa(empresa.id);
+                    return servicos.find(s => s.id === agendamento.servicoId);
+                  })(),
+                ]);
+                const telefone = cliente?.whatsapp || cliente?.telefone;
+                if (telefone && cliente) {
+                  const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                  let mensagem: string;
+                  if (data.status === 'confirmado') {
+                    mensagem = [
+                      `✅ *Agendamento Confirmado!*`,
+                      ``,
+                      `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
+                      ``,
+                      `📅 *Data:* ${dataFormatada}`,
+                      `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                      ``,
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
+                  } else {
+                    mensagem = [
+                      `❌ *Agendamento Cancelado*`,
+                      ``,
+                      `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
+                      ``,
+                      `📅 *Data:* ${dataFormatada}`,
+                      `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      ``,
+                      `Entre em contato para reagendar.`,
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
+                  }
+                  await waManager.sendMessage(telefone, mensagem);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[WhatsApp] Erro ao enviar atualização de status:', e);
           }
         }
 

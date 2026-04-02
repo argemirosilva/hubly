@@ -403,3 +403,11 @@
 - [x] Envio automático ao criar agendamento (confirmação para o cliente)
 - [ ] Envio automático ao confirmar/cancelar agendamento (atualização de status)
 - [ ] Template de mensagem configurável nas Configurações
+
+## WhatsApp — Melhorias v22
+- [ ] Envio automático ao confirmar agendamento (status → confirmado)
+- [ ] Envio automático ao cancelar agendamento (status → cancelado)
+- [ ] Template configurável nas Configurações (confirmar, cancelar, lembrete)
+- [ ] Variáveis dinâmicas: {nome}, {data}, {horario}, {servico}, {profissional}, {valor}
+- [ ] Caixa de entrada de mensagens recebidas na página WhatsApp
+- [ ] Responder mensagens diretamente do painel
