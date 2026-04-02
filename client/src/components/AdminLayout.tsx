@@ -111,10 +111,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             style={{ background: "oklch(60% 0.20 300)" }} />
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
-              <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-                <Calendar className="w-4.5 h-4.5 text-white" />
-              </div>
-              <span className="text-white font-bold text-xl tracking-tight">Agendei</span>
+              <img 
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/nudos-logo_d26ab488.png" 
+                alt="Nudos" 
+                className="h-12 w-auto"
+              />
             </div>
             <div className="space-y-5">
               <p className="text-xs font-semibold tracking-[0.18em] uppercase"
@@ -148,7 +149,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
                 <Calendar className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-lg tracking-tight">Agendei</span>
+              <img 
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/nudos-logo_d26ab488.png" 
+                alt="Nudos" 
+                className="h-10 w-auto"
+              />
             </div>
             <div className="space-y-2 mb-8">
               <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
@@ -200,10 +205,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between px-4 py-4"
           style={{ borderBottom: "1px solid oklch(20% 0.018 260)" }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white tracking-tight">Agendei</span>
+            <img 
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/nudos-logo_d26ab488.png" 
+              alt="Nudos" 
+              className="h-8 w-auto"
+            />
           </div>
           <button onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"

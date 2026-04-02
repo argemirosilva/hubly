@@ -43,36 +43,36 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Paleta: Índigo vibrante · Slate frio · Branco limpo ───────────────────── */
+/* ─── Paleta: Nudos (Verde, Turquesa, Coral, Laranja) ─────────────────────────── */
 :root {
   --radius: 0.5rem;
 
   /* Backgrounds */
   --background:         oklch(98% 0.004 250);
-  --foreground:         oklch(13% 0.020 260);
+  --foreground:         oklch(20% 0.020 160);
 
   /* Cards */
   --card:               oklch(100% 0 0);
-  --card-foreground:    oklch(13% 0.020 260);
+  --card-foreground:    oklch(20% 0.020 160);
 
   --popover:            oklch(100% 0 0);
-  --popover-foreground: oklch(13% 0.020 260);
+  --popover-foreground: oklch(20% 0.020 160);
 
-  /* Primary — índigo vibrante */
-  --primary:            oklch(55% 0.22 264);
+  /* Primary — Verde escuro Nudos (#1B6B4F) */
+  --primary:            oklch(45% 0.15 160);
   --primary-foreground: oklch(100% 0 0);
 
-  /* Secondary — slate claro */
-  --secondary:          oklch(95% 0.010 250);
-  --secondary-foreground: oklch(25% 0.020 260);
+  /* Secondary — Turquesa vibrante (#4DB8A8) */
+  --secondary:          oklch(65% 0.18 170);
+  --secondary-foreground: oklch(100% 0 0);
 
   /* Muted */
   --muted:              oklch(96% 0.008 250);
   --muted-foreground:   oklch(52% 0.016 260);
 
-  /* Accent — violeta suave */
-  --accent:             oklch(93% 0.030 280);
-  --accent-foreground:  oklch(35% 0.12 270);
+  /* Accent — Coral/Laranja (#FF6B5B) */
+  --accent:             oklch(60% 0.20 30);
+  --accent-foreground:  oklch(100% 0 0);
 
   /* Destructive */
   --destructive:        oklch(58% 0.22 25);
@@ -81,24 +81,24 @@
   /* Borders & inputs */
   --border:             oklch(90% 0.012 250);
   --input:              oklch(90% 0.012 250);
-  --ring:               oklch(55% 0.22 264 / 30%);
+  --ring:               oklch(45% 0.15 160 / 30%);
 
   /* Charts */
-  --chart-1:            oklch(55% 0.22 264);
-  --chart-2:            oklch(62% 0.18 180);
-  --chart-3:            oklch(68% 0.18 80);
-  --chart-4:            oklch(60% 0.20 320);
+  --chart-1:            oklch(45% 0.15 160);
+  --chart-2:            oklch(65% 0.18 170);
+  --chart-3:            oklch(60% 0.20 30);
+  --chart-4:            oklch(70% 0.18 90);
   --chart-5:            oklch(58% 0.20 30);
 
-  /* Sidebar — slate escuro */
-  --sidebar:                      oklch(12% 0.020 260);
+  /* Sidebar — Verde escuro */
+  --sidebar:                      oklch(18% 0.015 160);
   --sidebar-foreground:           oklch(90% 0.010 250);
-  --sidebar-primary:              oklch(55% 0.22 264);
+  --sidebar-primary:              oklch(65% 0.18 170);
   --sidebar-primary-foreground:   oklch(100% 0 0);
-  --sidebar-accent:               oklch(20% 0.020 260);
-  --sidebar-accent-foreground:    oklch(92% 0.010 250);
-  --sidebar-border:               oklch(22% 0.016 260);
-  --sidebar-ring:                 oklch(55% 0.22 264);
+  --sidebar-accent:               oklch(60% 0.20 30);
+  --sidebar-accent-foreground:    oklch(100% 0 0);
+  --sidebar-border:               oklch(28% 0.012 160);
+  --sidebar-ring:                 oklch(65% 0.18 170);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
@@ -280,8 +280,8 @@
     animation: fadeIn 0.2s ease both;
   }
 
-  /* ── Gradient accent */
+  /* ── Gradient accent — Verde para Coral (Nudos) */
   .gradient-primary {
-    background: linear-gradient(135deg, oklch(55% 0.22 264), oklch(60% 0.20 300));
+    background: linear-gradient(135deg, oklch(45% 0.15 160), oklch(60% 0.20 30));
   }
 }
