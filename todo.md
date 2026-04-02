@@ -438,3 +438,11 @@
 - [x] Integrar com trpc.stripe.createCheckoutSession para botão de upgrade
 - [x] Adicionar rota /admin/planos no App.tsx
 - [x] Adicionar item "Planos & Assinatura" no menu lateral (grupo Sistema)
+
+## Dashboard — Indicador de Plano e Uso (v25)
+- [ ] Adicionar card de plano atual no painel lateral do dashboard
+- [ ] Mostrar barras de progresso de agendamentos e WhatsApp do mês
+- [ ] Botão de upgrade para /admin/planos quando limite próximo
+- [x] Adicionar card de plano atual no painel lateral do dashboard
+- [x] Mostrar barras de progresso de agendamentos e WhatsApp do mês
+- [x] Botão de upgrade para /admin/planos quando limite próximo

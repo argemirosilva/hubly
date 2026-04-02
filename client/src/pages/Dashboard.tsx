@@ -4,7 +4,8 @@ import { Link } from "wouter";
 import {
   Calendar, Users, TrendingUp, DollarSign,
   ArrowUpRight, ArrowDownRight, Plus, ChevronRight,
-  Sparkles, Clock, CheckCircle2, AlertCircle, Zap, Brain
+  Sparkles, Clock, CheckCircle2, AlertCircle, Zap, Brain,
+  Gem, MessageCircle, CalendarCheck, ArrowRight
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
@@ -30,6 +31,129 @@ function saudacao(nome?: string) {
   return nome ? `${greeting}, ${nome.split(" ")[0]}! ` : `${greeting}! `;
 }
 
+// ─── Componente de status do plano ──────────────────────────────────────────
+type PlanoStatus = {
+  plan: string;
+  planLabel: string;
+  usage: {
+    agendamentosCount: number;
+    agendamentosLimit: number;
+    agendamentosPercent: number;
+    notificacoesWhatsappCount: number;
+    notificacoesWhatsappLimit: number;
+  };
+} | null | undefined;
+
+const PLAN_COLORS: Record<string, { gradient: string; badge: string; badgeText: string }> = {
+  FREE:  { gradient: "oklch(55% 0.04 260)", badge: "oklch(94% 0.008 250)", badgeText: "oklch(35% 0.012 260)" },
+  SOLO:  { gradient: "oklch(55% 0.22 264)", badge: "oklch(55% 0.22 264 / 12%)", badgeText: "oklch(35% 0.18 264)" },
+  PLUS:  { gradient: "oklch(55% 0.22 290)", badge: "oklch(55% 0.22 290 / 12%)", badgeText: "oklch(35% 0.18 290)" },
+  PRO:   { gradient: "oklch(62% 0.20 60)",  badge: "oklch(62% 0.20 60 / 12%)",  badgeText: "oklch(38% 0.16 60)" },
+};
+
+function UsageBar({ label, icon: Icon, count, limit, percent }: {
+  label: string;
+  icon: React.ElementType;
+  count: number;
+  limit: number;
+  percent: number;
+}) {
+  const isUnlimited = limit === -1;
+  const isWarning = !isUnlimited && percent >= 80;
+  const isCritical = !isUnlimited && percent >= 95;
+  const barColor = isCritical
+    ? "oklch(55% 0.22 25)"
+    : isWarning
+    ? "oklch(65% 0.20 75)"
+    : "oklch(55% 0.22 264)";
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Icon className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{label}</span>
+        </div>
+        <span className="text-xs font-semibold" style={{ color: isCritical ? "oklch(40% 0.18 25)" : isWarning ? "oklch(42% 0.14 75)" : "oklch(35% 0.012 260)" }}>
+          {isUnlimited ? `${count} / ∞` : `${count} / ${limit}`}
+        </span>
+      </div>
+      <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: isUnlimited ? "0%" : `${Math.min(percent, 100)}%`, background: barColor }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PlanStatusCard({ statusPlano }: { statusPlano: PlanoStatus }) {
+  if (!statusPlano) return null;
+  const colors = PLAN_COLORS[statusPlano.plan] ?? PLAN_COLORS.FREE;
+  const isFree = statusPlano.plan === "FREE";
+  const { usage } = statusPlano;
+  const hasWarning = (usage.agendamentosPercent >= 80 && usage.agendamentosLimit !== -1)
+    || (usage.agendamentosLimit !== -1 && usage.agendamentosPercent >= 80);
+
+  return (
+    <div className="card-elegant p-4 space-y-3">
+      {/* Header do plano */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: colors.badge }}>
+            <Gem className="w-3.5 h-3.5" style={{ color: colors.badgeText }} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground leading-none mb-0.5">Plano atual</p>
+            <p className="text-sm font-bold tracking-tight" style={{ color: colors.badgeText }}>
+              {statusPlano.planLabel}
+            </p>
+          </div>
+        </div>
+        <Link href="/admin/planos">
+          <button className="text-xs font-medium flex items-center gap-0.5 hover:opacity-80 transition-opacity"
+            style={{ color: colors.badgeText }}>
+            {isFree ? "Fazer upgrade" : "Gerenciar"}
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </Link>
+      </div>
+
+      {/* Barras de uso */}
+      <div className="space-y-2.5 pt-1 border-t" style={{ borderColor: "oklch(92% 0.008 250)" }}>
+        <UsageBar
+          label="Agendamentos/mês"
+          icon={CalendarCheck}
+          count={usage.agendamentosCount}
+          limit={usage.agendamentosLimit}
+          percent={usage.agendamentosPercent}
+        />
+        <UsageBar
+          label="WhatsApp/mês"
+          icon={MessageCircle}
+          count={usage.notificacoesWhatsappCount}
+          limit={usage.notificacoesWhatsappLimit}
+          percent={usage.notificacoesWhatsappLimit > 0
+            ? Math.round((usage.notificacoesWhatsappCount / usage.notificacoesWhatsappLimit) * 100)
+            : 0}
+        />
+      </div>
+
+      {/* CTA de upgrade se perto do limite */}
+      {hasWarning && (
+        <Link href="/admin/planos">
+          <div className="mt-1 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 cursor-pointer"
+            style={{ background: "oklch(55% 0.22 25 / 10%)", color: "oklch(38% 0.18 25)" }}>
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            Limite próximo — faça upgrade
+          </div>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
@@ -44,6 +168,7 @@ export default function Dashboard() {
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+  const { data: statusPlano } = trpc.planos.getStatus.useQuery();
 
   const profMap = useMemo(() => {
     const m: Record<number, { nome: string; cor: string }> = {};
@@ -394,6 +519,9 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* Card de Plano e Uso */}
+          <PlanStatusCard statusPlano={statusPlano} />
 
           {/* Profissionais ativos */}
           {profissionais && profissionais.filter(p => p.ativo).length > 0 && (
