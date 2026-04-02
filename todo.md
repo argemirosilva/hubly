@@ -446,3 +446,23 @@
 - [x] Adicionar card de plano atual no painel lateral do dashboard
 - [x] Mostrar barras de progresso de agendamentos e WhatsApp do mês
 - [x] Botão de upgrade para /admin/planos quando limite próximo
+
+## Notificações por E-mail de Limite de Uso (v26)
+- [ ] Criar procedure checkAndNotifyUsageLimits no servidor
+- [ ] Enviar e-mail quando agendamentos atingirem 80% do limite
+- [ ] Enviar e-mail quando WhatsApp atingir 80% do limite
+- [ ] Evitar envio duplicado (cooldown de 24h por tipo de alerta)
+- [ ] Criar tabela usageAlerts para rastrear notificações enviadas
+
+## Notificações por E-mail de Limite de Uso (v26)
+- [ ] Criar procedure checkAndNotifyUsageLimits no servidor
+- [ ] Enviar e-mail quando agendamentos atingirem 80% do limite
+- [ ] Enviar e-mail quando WhatsApp atingir 80% do limite
+- [ ] Evitar envio duplicado (cooldown de 24h por tipo de alerta)
+- [ ] Criar tabela usageAlerts para rastrear notificações enviadas
+
+- [x] Criar procedure checkAndNotifyUsageLimits no servidor
+- [x] Enviar notificação quando agendamentos atingirem 80% do limite
+- [x] Enviar notificação quando WhatsApp atingir 80% do limite
+- [x] Evitar envio duplicado (cooldown de 24h por tipo de alerta)
+- [x] Criar tabela usageAlerts para rastrear notificações enviadas

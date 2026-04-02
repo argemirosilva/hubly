@@ -672,3 +672,14 @@ export const usageTracker = mysqlTable("usage_tracker", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type UsageTracker = typeof usageTracker.$inferSelect;
+
+// ─── USAGE ALERTS ─────────────────────────────────────────────────────────────────────────────
+// Rastreia notificações de limite enviadas para evitar duplicatas (cooldown 24h)
+export const usageAlerts = mysqlTable("usage_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  alertType: varchar("alertType", { length: 64 }).notNull(),
+  mesAno: varchar("mesAno", { length: 7 }).notNull(),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+});
+export type UsageAlert = typeof usageAlerts.$inferSelect;

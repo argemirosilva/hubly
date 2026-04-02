@@ -26,6 +26,7 @@ import {
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
+import { checkAndNotifyUsageLimits } from "./usage-alerts";
 import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
@@ -424,6 +425,8 @@ export const appRouter = router({
                 `_${empresa.nome}_`,
               ].filter(Boolean).join('\n');
               await waManager.sendMessage(telefone, mensagem);
+              // Incrementar contador de notificações WhatsApp
+              try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
             }
           }
         } catch (e) {
@@ -431,6 +434,24 @@ export const appRouter = router({
           console.error('[WhatsApp] Erro ao enviar confirmação:', e);
         }
 
+        // ── Verificar limites e enviar alerta se necessário ─────────────────────
+        try {
+          const [plan, usage] = await Promise.all([
+            getEmpresaPlan(empresa.id),
+            getOrCreateUsage(empresa.id),
+          ]);
+          if (plan && usage) {
+            await checkAndNotifyUsageLimits({
+              empresaId: empresa.id,
+              empresaNome: empresa.nome,
+              plan,
+              agendamentosCount: usage.agendamentosCount,
+              notificacoesWhatsappCount: usage.notificacoesWhatsappCount,
+            });
+          }
+        } catch (e) {
+          console.error('[UsageAlert] Erro ao verificar limites:', e);
+        }
         return { id, success: true };
       }),
     update: protectedProcedure
