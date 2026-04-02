@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem
+  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -270,6 +270,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           ))}
         </nav>
+
+        {/* Suporte */}
+        <div className="px-3 pb-2">
+          <button
+            onClick={() => {
+              const event = new CustomEvent('open-support-chat');
+              window.dispatchEvent(event);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150 text-left"
+            style={{ color: "oklch(52% 0.012 260)" }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = "oklch(20% 0.018 260)";
+              (e.currentTarget as HTMLElement).style.color = "oklch(80% 0.010 250)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color = "oklch(52% 0.012 260)";
+            }}
+          >
+            <Headphones className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm font-medium">Suporte</span>
+          </button>
+        </div>
 
         {/* User */}
         <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(20% 0.018 260)" }}>

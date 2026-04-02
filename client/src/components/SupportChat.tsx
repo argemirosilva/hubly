@@ -42,6 +42,12 @@ const QUICK_QUESTIONS = [
 
 export function SupportChat() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener('open-support-chat', handler);
+    return () => window.removeEventListener('open-support-chat', handler);
+  }, []);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -88,20 +94,6 @@ export function SupportChat() {
 
   return (
     <>
-      {/* Floating button */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-4 py-3 shadow-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-          style={{
-            background: "oklch(45% 0.18 264)",
-            color: "white",
-          }}
-        >
-          <MessageCircle size={18} />
-          <span>Precisa de ajuda?</span>
-        </button>
-      )}
 
       {/* Chat panel */}
       {open && (
