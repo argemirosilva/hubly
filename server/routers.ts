@@ -986,6 +986,100 @@ export const appRouter = router({
       return { success: true };
     }),
   }),
+
+  // ─── STRIPE ───────────────────────────────────────────────────────────────
+  stripe: router({
+    /** Cria uma sessão de checkout do Stripe para assinar um plano */
+    createCheckoutSession: protectedProcedure
+      .input(z.object({
+        planType: z.enum(["SOLO", "PLUS", "PRO"]),
+        billingCycle: z.enum(["monthly", "annual"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+
+        const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
+        const { PLANOS_STRIPE } = await import("./stripe-products");
+
+        // Obter ou criar o Customer do Stripe
+        const subscription = await getOrCreateSubscription(empresa.id);
+        const customerId = await getOrCreateStripeCustomer(
+          empresa.id,
+          empresa.email ?? "",
+          empresa.nome,
+          subscription.stripeCustomerId
+        );
+
+        // Atualizar o stripeCustomerId no banco se recém-criado
+        if (!subscription.stripeCustomerId) {
+          const db = await getDb();
+          if (db) {
+            const { subscriptions: subsTable } = await import("../drizzle/schema");
+            await db
+              .update(subsTable)
+              .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+              .where(eq(subsTable.empresaId, empresa.id));
+          }
+        }
+
+        const plano = PLANOS_STRIPE[input.planType];
+        const preco = input.billingCycle === "annual" ? plano.anual : plano.mensal;
+        const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+
+        const session = await stripeClient.checkout.sessions.create({
+          customer: customerId,
+          mode: "subscription",
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price_data: {
+                currency: "brl",
+                product_data: {
+                  name: plano.nome,
+                  description: plano.descricao,
+                },
+                unit_amount: preco.valorCentavos,
+                recurring: {
+                  interval: input.billingCycle === "annual" ? "year" : "month",
+                },
+              },
+              quantity: 1,
+            },
+          ],
+          success_url: `${origin}/admin/planos/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/admin/planos/cancelado`,
+          metadata: {
+            empresaId: String(empresa.id),
+            planType: input.planType,
+            billingCycle: input.billingCycle,
+          },
+          allow_promotion_codes: true,
+        });
+
+        return { url: session.url };
+      }),
+
+    /** Cria uma sessão do portal do cliente para gerenciar assinatura */
+    createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeCustomerId) {
+        throw new Error("Nenhuma assinatura ativa encontrada");
+      }
+
+      const { stripe: stripeClient } = await import("./stripe");
+      const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+      const session = await stripeClient.billingPortal.sessions.create({
+        customer: subscription.stripeCustomerId,
+        return_url: `${origin}/admin/planos`,
+      });
+
+      return { url: session.url };
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;
 import type { PlanType } from "./plans";

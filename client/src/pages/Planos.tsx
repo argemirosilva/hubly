@@ -145,14 +145,50 @@ function FeatureValue({ value }: { value: string | boolean }) {
 export default function Planos() {
   const { user } = useAuth();
   const [billing, setBilling] = useState<BillingCycle>("monthly");
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const { data: status } = trpc.planos.getStatus.useQuery(undefined, { enabled: !!user });
 
   const currentPlan = (status?.plan ?? "FREE") as PlanKey;
 
-  function handleSelectPlan(plan: PlanKey) {
+  const createCheckout = trpc.stripe.createCheckoutSession.useMutation();
+  const createPortal = trpc.stripe.createPortalSession.useMutation();
+
+  async function handleSelectPlan(plan: PlanKey) {
     if (plan === "FREE") return;
-    // Futuramente: redirecionar para Stripe checkout
-    alert(`Em breve: checkout para o plano ${PRICES[plan].label}. Integração com Stripe em desenvolvimento.`);
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    setCheckoutLoading(plan);
+    try {
+      const result = await createCheckout.mutateAsync({
+        planType: plan as "SOLO" | "PLUS" | "PRO",
+        billingCycle: billing,
+      });
+      if (result.url) {
+        window.open(result.url, "_blank");
+      }
+    } catch (err) {
+      console.error("Erro ao criar checkout:", err);
+      alert("Erro ao iniciar o checkout. Tente novamente.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
+
+  async function handleManageSubscription() {
+    setCheckoutLoading("portal");
+    try {
+      const result = await createPortal.mutateAsync();
+      if (result.url) {
+        window.open(result.url, "_blank");
+      }
+    } catch (err) {
+      console.error("Erro ao abrir portal:", err);
+      alert("Erro ao abrir o portal de assinatura. Tente novamente.");
+    } finally {
+      setCheckoutLoading(null);
+    }
   }
 
   const trialDaysLeft = status?.trialEnd
@@ -255,7 +291,16 @@ export default function Planos() {
                 </div>
 
                 {/* CTA */}
-                {isCurrentPlan ? (
+                {isCurrentPlan && plan !== "FREE" ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleManageSubscription}
+                    disabled={checkoutLoading === "portal"}
+                  >
+                    {checkoutLoading === "portal" ? "Abrindo..." : "Gerenciar assinatura"}
+                  </Button>
+                ) : isCurrentPlan ? (
                   <Button variant="outline" disabled className="w-full">
                     Plano atual
                   </Button>
@@ -268,9 +313,10 @@ export default function Planos() {
                     className={`w-full ${plan === "PRO" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
                     variant={isBestValue ? "default" : "outline"}
                     onClick={() => handleSelectPlan(plan)}
+                    disabled={checkoutLoading === plan}
                   >
-                    Assinar {price.label}
-                    <ArrowRight className="w-4 h-4 ml-1" />
+                    {checkoutLoading === plan ? "Redirecionando..." : `Assinar ${price.label}`}
+                    {checkoutLoading !== plan && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
                 )}
 

@@ -428,3 +428,15 @@
 - [x] Link "Planos & Assinatura" no menu lateral
 - [ ] Overlays de bloqueio nas funcionalidades de IA (cadeado + tag PRO) — pendente
 - [ ] Integração Stripe (webhooks de pagamento)
+
+## Integração Stripe para Cobrança Recorrente (v18)
+- [x] Configurar Stripe via webdev_add_feature stripe
+- [x] Criar produtos e preços no Stripe (Solo, Plus, Pro - mensal e anual via price_data dinâmico)
+- [x] Backend: procedure criarCheckoutSession (gera sessão de checkout do Stripe)
+- [x] Backend: procedure criarPortalSession (portal do cliente para gerenciar assinatura)
+- [x] Backend: webhook /api/stripe/webhook para sincronizar eventos (checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed)
+- [x] Frontend: botões de assinatura na página /admin/planos redirecionam para Stripe Checkout
+- [x] Frontend: páginas /admin/planos/sucesso e /admin/planos/cancelado
+- [x] Frontend: botão "Gerenciar assinatura" na página de Planos para assinantes ativos
+- [x] Sincronização: atualizar tabela subscriptions ao receber eventos do webhook
+- [x] 71 testes passando
