@@ -155,17 +155,11 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 export default defineConfig({
   plugins,
   resolve: {
-    dedupe: ["react", "react-dom", "react-dom/client"],
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-      "react": path.resolve(import.meta.dirname, "node_modules", "react"),
-      "react-dom": path.resolve(import.meta.dirname, "node_modules", "react-dom"),
     },
-  },
-  optimizeDeps: {
-    include: ["react", "react-dom", "react-dom/client"],
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
@@ -185,10 +179,6 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
-    hmr: {
-      clientPort: 443,
-      protocol: "wss",
-    },
     fs: {
       strict: true,
       deny: ["**/.*"],

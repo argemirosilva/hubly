@@ -394,64 +394,12 @@
 - [x] Frontend: botão "Verificar pacotes" na página de notificações para disparo manual
 - [x] Frontend: link para perfil do cliente diretamente da notificação de pacote
 
-## Renovação Rápida de Pacote via Notificação (v14)
-- [x] Botão "Renovar pacote" nos cards de notificação de pacote (vencimento_proximo, sessoes_restantes)
-- [x] Modal de renovação com cliente pré-selecionado e lista de pacotes disponíveis
-- [x] Após renovar, marcar a notificação como lida automaticamente
-
-## Botão de Instalação PWA (v15)
-- [x] Hook usePWAInstall para capturar evento beforeinstallprompt e detectar se já está instalado
-- [x] Botão "Instalar app" na tela de login (sempre visível quando não instalado)
-- [x] Botão "Instalar app" no header do AdminLayout (mobile e desktop)
-- [x] Verificar e atualizar manifest.json com ícones e configurações corretas
-
-## Upload de Imagens no Agendamento (v16)
-- [x] Coluna `imagens` (JSON array de URLs) na tabela `agendamentos`
-- [x] Procedure de upload de imagem para S3 no backend
-- [x] Componente ImageUpload com preview e remoção no formulário de agendamento
-- [x] Exibir imagens no detalhe/visualização do agendamento
-
-## Bug: Erro ao salvar profissional com e-mail vazio (v17)
-- [x] Corrigir validação Zod no backend: aceitar string vazia como e-mail opcional
-- [x] Corrigir frontend: não enviar string vazia para o campo email
-
-## Sistema de Planos e Assinaturas (v17)
-- [x] Tabela `subscriptions` (plan_type, billing_cycle, status, current_period_end, trial_end)
-- [x] Tabela `usage_tracker` (agendamentos_mes, profissionais, notificacoes_whatsapp)
-- [x] Constantes e helpers de limites por plano no backend
-- [x] Middleware de feature gating (verificar limite antes de criar agendamento)
-- [x] Procedures: getStatus, getPlans, initTrial
-- [x] Reverse Trial: 7 dias no Solo ao cadastrar, depois migra para Free
-- [x] Página de Planos com toggle mensal/anual e tabela comparativa
-- [x] Widget de progresso de uso no dashboard (barra de agendamentos)
-- [x] Modal de "Limite Atingido" com CTA de upgrade
-- [x] Link "Planos & Assinatura" no menu lateral
-- [ ] Overlays de bloqueio nas funcionalidades de IA (cadeado + tag PRO) — pendente
-- [ ] Integração Stripe (webhooks de pagamento)
-
-## Integração Stripe para Cobrança Recorrente (v18)
-- [x] Configurar Stripe via webdev_add_feature stripe
-- [x] Criar produtos e preços no Stripe (Solo, Plus, Pro - mensal e anual via price_data dinâmico)
-- [x] Backend: procedure criarCheckoutSession (gera sessão de checkout do Stripe)
-- [x] Backend: procedure criarPortalSession (portal do cliente para gerenciar assinatura)
-- [x] Backend: webhook /api/stripe/webhook para sincronizar eventos (checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed)
-- [x] Frontend: botões de assinatura na página /admin/planos redirecionam para Stripe Checkout
-- [x] Frontend: páginas /admin/planos/sucesso e /admin/planos/cancelado
-- [x] Frontend: botão "Gerenciar assinatura" na página de Planos para assinantes ativos
-- [x] Sincronização: atualizar tabela subscriptions ao receber eventos do webhook
-- [x] 71 testes passando
-
-## Página de Gerenciamento de Assinatura (v19)
-- [x] Backend: procedure stripe.getInvoices (lista faturas do Stripe)
-- [x] Backend: procedure stripe.getSubscriptionDetails (detalhes completos da assinatura)
-- [x] Página /admin/assinatura com: status do plano, barra de uso, próxima cobrança, método de pagamento
-- [x] Seção de faturas com data, valor, status e link para PDF
-- [x] Botões: Fazer upgrade, Gerenciar no Stripe, Cancelar assinatura
-- [x] Link "Minha Assinatura" no menu lateral
-- [x] Rota /admin/assinatura registrada no App.tsx
-
-## Fix: Forçar reload sem cache (v20)
-- [x] Headers HTTP no-cache no servidor para o HTML principal
-- [x] Meta tags no-cache no index.html
-- [x] Service Worker v4: invalida todos os caches antigos e usa Network First para assets do Vite
-- [x] vite.config.ts: dedupe React + optimizeDeps + HMR WSS
+## Integração WhatsApp via Baileys (v21)
+- [x] Instalar @whiskeysockets/baileys e dependências
+- [x] Módulo server/whatsapp.ts: conexão, QR Code, sessão persistente em disco
+- [x] Procedures tRPC: whatsapp.getStatus, whatsapp.getQR, whatsapp.disconnect, whatsapp.sendTest
+- [x] Página /admin/whatsapp com QR Code, status de conexão e botão de desconectar
+- [x] Link "WhatsApp" no menu lateral
+- [x] Envio automático ao criar agendamento (confirmação para o cliente)
+- [ ] Envio automático ao confirmar/cancelar agendamento (atualização de status)
+- [ ] Template de mensagem configurável nas Configurações

@@ -92,14 +92,14 @@ export function SupportChat() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          title="Precisa de ajuda?"
-          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-11 h-11 rounded-full shadow-lg text-sm font-bold transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-4 py-3 shadow-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
           style={{
             background: "oklch(45% 0.18 264)",
             color: "white",
           }}
         >
-          ?
+          <MessageCircle size={18} />
+          <span>Precisa de ajuda?</span>
         </button>
       )}
 

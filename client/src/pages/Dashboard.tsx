@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
-import { UsageWidget } from "@/components/UsageWidget";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
@@ -107,9 +106,6 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5 animate-in-up">
-
-      {/* Widget de uso do plano */}
-      <UsageWidget />
 
       {/*  Header  */}
       <div className="flex items-start justify-between gap-3">

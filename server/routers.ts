@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, createEmpresa, updateEmpresa,
@@ -24,8 +25,6 @@ import {
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
 } from "./db";
 import { storagePut } from "./storage";
-import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
-import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
@@ -139,7 +138,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
-        email: z.union([z.string().email(), z.literal("")]).optional(),
+        email: z.string().email().optional(),
         telefone: z.string().optional(),
         especialidade: z.string().optional(),
         corCalendario: z.string().optional(),
@@ -147,10 +146,6 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
         if (!empresa) throw new Error("Empresa não encontrada");
-        // ── Feature gating: verificar limite de profissionais ──────────────────
-        const profs = await getProfissionaisByEmpresa(empresa.id);
-        const profLimitError = await checkProfissionalLimit(empresa.id, profs.length);
-        if (profLimitError) throw new Error(profLimitError);
         const id = await createProfissional({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -374,9 +369,6 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
         if (!empresa) throw new Error("Empresa não encontrada");
-        // ── Feature gating: verificar limite de agendamentos ──────────────────
-        const limitError = await checkAgendamentoLimit(empresa.id);
-        if (limitError) throw new Error(limitError);
         const { comReserva, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
@@ -394,8 +386,46 @@ export const appRouter = router({
           valorReserva,
           reservaExpiracaoEm,
         } as any);
-        // Incrementar contador de uso
-        await incrementAgendamentosCount(empresa.id);
+
+        // ── Envio automático de confirmação via WhatsApp ────────────────────────────
+        try {
+          const { waManager } = await import('./whatsapp');
+          const waState = waManager.getState();
+          if (waState.status === 'connected') {
+            // Buscar dados do cliente e profissional para montar a mensagem
+            const [cliente, profissional, servico] = await Promise.all([
+              getClienteById(rest.clienteId),
+              getProfissionalById(rest.profissionalId),
+              (async () => {
+                const servicos = await getServicosByEmpresa(empresa.id);
+                return servicos.find(s => s.id === rest.servicoId);
+              })(),
+            ]);
+            const telefone = cliente?.whatsapp || cliente?.telefone;
+            if (telefone && cliente) {
+              const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+              const mensagem = [
+                `✅ *Agendamento Confirmado!*`,
+                ``,
+                `Olá, *${cliente.nome}*!`,
+                `Seu agendamento foi confirmado com sucesso.`,
+                ``,
+                `📅 *Data:* ${dataFormatada}`,
+                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                `💰 *Valor:* R$ ${parseFloat(rest.valorTotal).toFixed(2).replace('.', ',')}`,
+                ``,
+                `_${empresa.nome}_`,
+              ].filter(Boolean).join('\n');
+              await waManager.sendMessage(telefone, mensagem);
+            }
+          }
+        } catch (e) {
+          // Não bloquear o fluxo principal se o WhatsApp falhar
+          console.error('[WhatsApp] Erro ao enviar confirmação:', e);
+        }
+
         return { id, success: true };
       }),
     update: protectedProcedure
@@ -483,47 +513,6 @@ export const appRouter = router({
           reservaPaga: true,
           reservaPagaEm: new Date(),
         });
-        return { success: true };
-      }),
-    uploadImagem: protectedProcedure
-      .input(z.object({
-        agendamentoId: z.number(),
-        imagemBase64: z.string(),
-        mimeType: z.string(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
-        if (!empresa) throw new Error("Empresa não encontrada");
-        const agendamento = await getAgendamentoById(input.agendamentoId);
-        if (!agendamento || agendamento.empresaId !== empresa.id) {
-          throw new Error("Agendamento não encontrado");
-        }
-        // Upload para S3
-        const buffer = Buffer.from(input.imagemBase64, "base64");
-        const ext = input.mimeType.split("/")[1] || "jpg";
-        const key = `agendamentos/${empresa.id}/${input.agendamentoId}/${Date.now()}.${ext}`;
-        const { url } = await storagePut(key, buffer, input.mimeType);
-        // Adicionar URL ao array de imagens
-        const imagensAtuais = agendamento.imagens || [];
-        const novasImagens = [...imagensAtuais, url];
-        await updateAgendamento(input.agendamentoId, { imagens: novasImagens });
-        return { url, success: true };
-      }),
-    removerImagem: protectedProcedure
-      .input(z.object({
-        agendamentoId: z.number(),
-        imagemUrl: z.string(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
-        if (!empresa) throw new Error("Empresa não encontrada");
-        const agendamento = await getAgendamentoById(input.agendamentoId);
-        if (!agendamento || agendamento.empresaId !== empresa.id) {
-          throw new Error("Agendamento não encontrado");
-        }
-        const imagensAtuais = agendamento.imagens || [];
-        const novasImagens = imagensAtuais.filter(url => url !== input.imagemUrl);
-        await updateAgendamento(input.agendamentoId, { imagens: novasImagens });
         return { success: true };
       }),
   }),
@@ -932,258 +921,47 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── PLANOS E ASSINATURAS ──────────────────────────────────────────────────────────────────────────────
-  planos: router({
-    /** Retorna dados da subscription + uso atual da empresa */
-    getStatus: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
-      if (!empresa) return null;
-
-      const [plan, sub, usage] = await Promise.all([
-        getEmpresaPlan(empresa.id),
-        getSubscriptionData(empresa.id),
-        getOrCreateUsage(empresa.id),
-      ]);
-
-      const limits = PLAN_LIMITS[plan];
-      const prices = PLAN_PRICES[plan];
-      const agendamentosPercent = getAgendamentosUsagePercent(plan, usage?.agendamentosCount ?? 0);
-
+  // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────
+  whatsapp: router({
+    getStatus: protectedProcedure.query(async () => {
+      const { waManager } = await import('./whatsapp');
+      const state = waManager.getState();
       return {
-        plan,
-        planLabel: prices.label,
-        status: sub?.status ?? "active",
-        trialEnd: sub?.trialEnd ?? null,
-        currentPeriodEnd: sub?.currentPeriodEnd ?? null,
-        billingCycle: sub?.billingCycle ?? "monthly",
-        cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
-        usage: {
-          agendamentosCount: usage?.agendamentosCount ?? 0,
-          agendamentosLimit: limits.agendamentosMes,
-          agendamentosPercent,
-          notificacoesWhatsappCount: usage?.notificacoesWhatsappCount ?? 0,
-          notificacoesWhatsappLimit: limits.notificacoesWhatsappMes,
-        },
-        limits,
-        prices,
+        status: state.status,
+        phoneNumber: state.phoneNumber,
+        connectedAt: state.connectedAt,
+        qrDataUrl: state.qrDataUrl,
       };
     }),
-
-    /** Retorna todos os planos com preços para a página de planos */
-    getPlans: publicProcedure.query(() => {
-      return Object.entries(PLAN_PRICES).map(([key, price]) => ({
-        type: key as PlanType,
-        ...price,
-        limits: PLAN_LIMITS[key as PlanType],
-      }));
+    connect: protectedProcedure.mutation(async () => {
+      const { waManager } = await import('./whatsapp');
+      const state = waManager.getState();
+      if (state.status === 'connected') {
+        return { success: true, message: 'Já conectado' };
+      }
+      // Iniciar conexão em background (não aguarda)
+      waManager.connect().catch(console.error);
+      return { success: true, message: 'Conexão iniciada' };
     }),
-
-    /** Inicializa o trial para uma empresa recém-criada */
-    initTrial: protectedProcedure.mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
-      if (!empresa) throw new Error("Empresa não encontrada");
-      await getOrCreateSubscription(empresa.id);
+    disconnect: protectedProcedure.mutation(async () => {
+      const { waManager } = await import('./whatsapp');
+      await waManager.disconnect();
       return { success: true };
     }),
-  }),
-
-  // ─── STRIPE ───────────────────────────────────────────────────────────────
-  stripe: router({
-    /** Cria uma sessão de checkout do Stripe para assinar um plano */
-    createCheckoutSession: protectedProcedure
-      .input(z.object({
-        planType: z.enum(["SOLO", "PLUS", "PRO"]),
-        billingCycle: z.enum(["monthly", "annual"]),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
-        if (!empresa) throw new Error("Empresa não encontrada");
-
-        const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
-        const { PLANOS_STRIPE } = await import("./stripe-products");
-
-        // Obter ou criar o Customer do Stripe
-        const subscription = await getOrCreateSubscription(empresa.id);
-        const customerId = await getOrCreateStripeCustomer(
-          empresa.id,
-          empresa.email ?? "",
-          empresa.nome,
-          subscription.stripeCustomerId
-        );
-
-        // Atualizar o stripeCustomerId no banco se recém-criado
-        if (!subscription.stripeCustomerId) {
-          const db = await getDb();
-          if (db) {
-            const { subscriptions: subsTable } = await import("../drizzle/schema");
-            await db
-              .update(subsTable)
-              .set({ stripeCustomerId: customerId, updatedAt: new Date() })
-              .where(eq(subsTable.empresaId, empresa.id));
-          }
+    sendTest: protectedProcedure
+      .input(z.object({ telefone: z.string().min(10) }))
+      .mutation(async ({ input }) => {
+        const { waManager } = await import('./whatsapp');
+        const state = waManager.getState();
+        if (state.status !== 'connected') {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'WhatsApp não está conectado' });
         }
-
-        const plano = PLANOS_STRIPE[input.planType];
-        const preco = input.billingCycle === "annual" ? plano.anual : plano.mensal;
-        const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
-
-        const session = await stripeClient.checkout.sessions.create({
-          customer: customerId,
-          mode: "subscription",
-          payment_method_types: ["card"],
-          line_items: [
-            {
-              price_data: {
-                currency: "brl",
-                product_data: {
-                  name: plano.nome,
-                  description: plano.descricao,
-                },
-                unit_amount: preco.valorCentavos,
-                recurring: {
-                  interval: input.billingCycle === "annual" ? "year" : "month",
-                },
-              },
-              quantity: 1,
-            },
-          ],
-          success_url: `${origin}/admin/planos/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${origin}/admin/planos/cancelado`,
-          metadata: {
-            empresaId: String(empresa.id),
-            planType: input.planType,
-            billingCycle: input.billingCycle,
-          },
-          allow_promotion_codes: true,
-        });
-
-        return { url: session.url };
-      }),
-
-    /** Cria uma sessão do portal do cliente para gerenciar assinatura */
-    createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
-      if (!empresa) throw new Error("Empresa não encontrada");
-
-      const subscription = await getOrCreateSubscription(empresa.id);
-      if (!subscription.stripeCustomerId) {
-        throw new Error("Nenhuma assinatura ativa encontrada");
-      }
-
-      const { stripe: stripeClient } = await import("./stripe");
-      const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
-      const session = await stripeClient.billingPortal.sessions.create({
-        customer: subscription.stripeCustomerId,
-        return_url: `${origin}/admin/assinatura`,
-      });
-
-      return { url: session.url };
-    }),
-
-    /** Retorna as últimas faturas do cliente no Stripe */
-    getInvoices: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
-      if (!empresa) return [];
-
-      const subscription = await getOrCreateSubscription(empresa.id);
-      if (!subscription.stripeCustomerId) return [];
-
-      try {
-        const { stripe: stripeClient } = await import("./stripe");
-        const invoices = await stripeClient.invoices.list({
-          customer: subscription.stripeCustomerId,
-          limit: 12,
-        });
-
-        return invoices.data.map((inv) => {
-          const invAny = inv as unknown as {
-            id: string;
-            number: string | null;
-            status: string | null;
-            amount_paid: number;
-            amount_due: number;
-            currency: string;
-            created: number;
-            period_start: number;
-            period_end: number;
-            hosted_invoice_url: string | null;
-            invoice_pdf: string | null;
-            lines: { data: Array<{ description: string | null }> };
-          };
-          return {
-            id: invAny.id,
-            numero: invAny.number,
-            status: invAny.status,
-            valorPago: invAny.amount_paid / 100,
-            valorDevido: invAny.amount_due / 100,
-            moeda: invAny.currency.toUpperCase(),
-            criadoEm: new Date(invAny.created * 1000),
-            periodoInicio: new Date(invAny.period_start * 1000),
-            periodoFim: new Date(invAny.period_end * 1000),
-            urlFatura: invAny.hosted_invoice_url,
-            urlPdf: invAny.invoice_pdf,
-            descricao: invAny.lines.data[0]?.description ?? null,
-          };
-        });
-      } catch {
-        return [];
-      }
-    }),
-
-    /** Retorna detalhes completos da assinatura ativa no Stripe */
-    getSubscriptionDetails: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
-      if (!empresa) return null;
-
-      const subscription = await getOrCreateSubscription(empresa.id);
-      if (!subscription.stripeSubscriptionId) return null;
-
-      try {
-        const { stripe: stripeClient } = await import("./stripe");
-        const sub = await stripeClient.subscriptions.retrieve(
-          subscription.stripeSubscriptionId,
-          { expand: ["default_payment_method"] }
+        const ok = await waManager.sendMessage(
+          input.telefone,
+          '✅ *Teste Agendei*\n\nSeu WhatsApp está conectado e funcionando corretamente!'
         );
-
-        const subAny = sub as unknown as {
-          id: string;
-          status: string;
-          current_period_end: number;
-          current_period_start: number;
-          cancel_at_period_end: boolean;
-          cancel_at: number | null;
-          default_payment_method: {
-            type: string;
-            card?: { brand: string; last4: string; exp_month: number; exp_year: number };
-          } | null;
-          items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
-        };
-
-        const pm = subAny.default_payment_method;
-        return {
-          stripeSubId: subAny.id,
-          status: subAny.status,
-          proximaCobranca: new Date(subAny.current_period_end * 1000),
-          inicioPerioodo: new Date(subAny.current_period_start * 1000),
-          cancelarAoFinal: subAny.cancel_at_period_end,
-          cancelarEm: subAny.cancel_at ? new Date(subAny.cancel_at * 1000) : null,
-          metodoPagamento: pm ? {
-            tipo: pm.type,
-            bandeira: pm.card?.brand ?? null,
-            ultimos4: pm.card?.last4 ?? null,
-            expMes: pm.card?.exp_month ?? null,
-            expAno: pm.card?.exp_year ?? null,
-          } : null,
-          valorMensal: subAny.items.data[0]?.price?.unit_amount
-            ? subAny.items.data[0].price.unit_amount / 100
-            : null,
-          intervalo: subAny.items.data[0]?.price?.recurring?.interval ?? null,
-        };
-      } catch {
-        return null;
-      }
-    }),
+        return { success: ok };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;
-import type { PlanType } from "./plans";

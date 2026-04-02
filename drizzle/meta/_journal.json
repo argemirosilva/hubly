@@ -78,20 +78,6 @@
       "when": 1775082081363,
       "tag": "0010_brown_sinister_six",
       "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "5",
-      "when": 1775127904321,
-      "tag": "0011_sloppy_tarantula",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "5",
-      "when": 1775129420395,
-      "tag": "0012_careful_texas_twister",
-      "breakpoints": true
     }
   ]
 }

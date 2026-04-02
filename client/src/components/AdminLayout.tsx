@@ -2,13 +2,12 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import {
-  Bell, Calendar, CalendarCheck, CreditCard, Crown,
-  LayoutDashboard, LogOut, Menu, MessageSquare, Settings,
+  Bell, Calendar, CalendarCheck, CreditCard,
+  LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
   UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 const navGroups = [
   {
@@ -33,6 +32,7 @@ const navGroups = [
     items: [
       { href: "/admin/financeiro", label: "Financeiro", icon: CreditCard },
       { href: "/admin/automacoes", label: "Automações", icon: MessageSquare },
+      { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
       { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock },
     ],
@@ -47,8 +47,6 @@ const navGroups = [
   {
     label: "Sistema",
     items: [
-      { href: "/admin/planos", label: "Planos & Assinatura", icon: Crown },
-      { href: "/admin/assinatura", label: "Minha Assinatura", icon: CreditCard },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
       { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
@@ -164,9 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Entrar na plataforma
               <ChevronRight className="w-4 h-4" />
             </a>
-            {/* Botão instalar PWA — tela de login */}
-            <PWAInstallButton variant="login" />
-            <p className="mt-4 text-xs text-center text-muted-foreground">
+            <p className="mt-5 text-xs text-center text-muted-foreground">
               Acesso restrito a usuários autorizados
             </p>
           </div>
@@ -266,11 +262,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        {/* Botão instalar PWA — sidebar desktop */}
-        <div className="px-3 pb-2">
-          <PWAInstallButton variant="header" />
-        </div>
-
         {/* User */}
         <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(20% 0.018 260)" }}>
           <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl"
@@ -312,21 +303,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <span className="font-bold text-sm tracking-tight">Agendei</span>
           </div>
-          <div className="flex items-center gap-1.5 -mr-1">
-            {/* Botão instalar PWA — header mobile */}
-            <PWAInstallButton variant="header" />
-            <Link href="/admin/notificacoes">
-              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                <Bell className="w-5 h-5 text-foreground" />
-                {naoLidas > 0 && (
-                  <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                    style={{ background: "oklch(55% 0.22 264)" }}>
-                    {naoLidas > 9 ? "9+" : naoLidas}
-                  </span>
-                )}
-              </div>
-            </Link>
-          </div>
+          <Link href="/admin/notificacoes">
+            <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
+              <Bell className="w-5 h-5 text-foreground" />
+              {naoLidas > 0 && (
+                <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                  style={{ background: "oklch(55% 0.22 264)" }}>
+                  {naoLidas > 9 ? "9+" : naoLidas}
+                </span>
+              )}
+            </div>
+          </Link>
         </header>
 
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
