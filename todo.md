@@ -466,3 +466,7 @@
 - [x] Enviar notificação quando WhatsApp atingir 80% do limite
 - [x] Evitar envio duplicado (cooldown de 24h por tipo de alerta)
 - [x] Criar tabela usageAlerts para rastrear notificações enviadas
+- [ ] Corrigir duplo menu lateral na página Automações
+- [ ] Corrigir menu errado (genérico) na página Pacotes
+- [x] Corrigir duplo menu lateral na página Automações
+- [x] Corrigir menu errado (genérico) na página Pacotes

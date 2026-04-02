@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -641,8 +640,7 @@ export default function Pacotes() {
   });
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Pacotes de Serviços</h1>
@@ -793,7 +791,6 @@ export default function Pacotes() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Modais */}
       {modalModelo && (
@@ -813,6 +810,6 @@ export default function Pacotes() {
           servicos={servicosData}
         />
       )}
-    </DashboardLayout>
+    </div>
   );
 }

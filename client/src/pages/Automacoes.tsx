@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -567,8 +566,8 @@ export default function Automacoes() {
   //  LISTA
   if (view === "list") {
     return (
-      <AdminLayout>
-        <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+      <>
+      <div className="p-4 lg:p-6 max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-5 gap-3">
             <div>
               <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Automações</h1>
@@ -691,14 +690,13 @@ export default function Automacoes() {
             </div>
           </DialogContent>
         </Dialog>
-      </AdminLayout>
+      </>
     );
   }
 
   //  EDITOR
   return (
-    <AdminLayout>
-      <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
+    <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
         {/* Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-10 flex-shrink-0">
           <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setView("list")}>
@@ -763,7 +761,6 @@ export default function Automacoes() {
             </div>
           ) : null}
         </div>
-      </div>
-    </AdminLayout>
+    </div>
   );
 }
