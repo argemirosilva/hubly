@@ -398,3 +398,9 @@
 - [x] Botão "Renovar pacote" nos cards de notificação de pacote (vencimento_proximo, sessoes_restantes)
 - [x] Modal de renovação com cliente pré-selecionado e lista de pacotes disponíveis
 - [x] Após renovar, marcar a notificação como lida automaticamente
+
+## Botão de Instalação PWA (v15)
+- [x] Hook usePWAInstall para capturar evento beforeinstallprompt e detectar se já está instalado
+- [x] Botão "Instalar app" na tela de login (sempre visível quando não instalado)
+- [x] Botão "Instalar app" no header do AdminLayout (mobile e desktop)
+- [x] Verificar e atualizar manifest.json com ícones e configurações corretas

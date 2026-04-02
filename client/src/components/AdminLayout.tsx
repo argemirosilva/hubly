@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 const navGroups = [
   {
@@ -161,7 +162,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Entrar na plataforma
               <ChevronRight className="w-4 h-4" />
             </a>
-            <p className="mt-5 text-xs text-center text-muted-foreground">
+            {/* Botão instalar PWA — tela de login */}
+            <PWAInstallButton variant="login" />
+            <p className="mt-4 text-xs text-center text-muted-foreground">
               Acesso restrito a usuários autorizados
             </p>
           </div>
@@ -261,6 +264,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
+        {/* Botão instalar PWA — sidebar desktop */}
+        <div className="px-3 pb-2">
+          <PWAInstallButton variant="header" />
+        </div>
+
         {/* User */}
         <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(20% 0.018 260)" }}>
           <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl"
@@ -302,17 +310,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <span className="font-bold text-sm tracking-tight">Agendei</span>
           </div>
-          <Link href="/admin/notificacoes">
-            <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
-              <Bell className="w-5 h-5 text-foreground" />
-              {naoLidas > 0 && (
-                <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  style={{ background: "oklch(55% 0.22 264)" }}>
-                  {naoLidas > 9 ? "9+" : naoLidas}
-                </span>
-              )}
-            </div>
-          </Link>
+          <div className="flex items-center gap-1.5 -mr-1">
+            {/* Botão instalar PWA — header mobile */}
+            <PWAInstallButton variant="header" />
+            <Link href="/admin/notificacoes">
+              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                <Bell className="w-5 h-5 text-foreground" />
+                {naoLidas > 0 && (
+                  <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                    style={{ background: "oklch(55% 0.22 264)" }}>
+                    {naoLidas > 9 ? "9+" : naoLidas}
+                  </span>
+                )}
+              </div>
+            </Link>
+          </div>
         </header>
 
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
