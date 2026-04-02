@@ -139,6 +139,9 @@ export default function PortalCliente() {
       setValidandoCpf(false);
     }
   }
+  // ── Verificar limite de agendamentos do plano ──────────────────────────
+  const { data: statusLimite } = trpc.portal.getStatusLimite.useQuery({ empresaId });
+
   const { data: slotsData, isLoading: loadingSlots } = trpc.portal.getHorariosDisponiveis.useQuery(
     { empresaId, data, servicoId: servicoId!, profissionalId: profissionalId ?? undefined },
     { enabled: !!data && !!servicoId },
@@ -199,6 +202,41 @@ export default function PortalCliente() {
               ? "O portal de agendamento online ainda não foi ativado. Entre em contato diretamente com o estabelecimento."
               : "Não foi possível carregar o portal. Tente novamente mais tarde."}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Bloqueio por limite de plano ──────────────────────────────────────────
+  if (statusLimite?.bloqueado) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
+        <div className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="text-center max-w-sm space-y-6">
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-lg bg-amber-100">
+              <AlertCircle className="w-10 h-10 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="font-bold text-2xl text-slate-800 mb-3">Agenda temporariamente indisponível</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {statusLimite.mensagem ?? "Esta agenda atingiu o limite de agendamentos do mês. Por favor, entre em contato diretamente com o estabelecimento."}
+              </p>
+            </div>
+            <div className="rounded-2xl p-5 text-left space-y-3 border border-amber-200 bg-amber-50">
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-700">O que fazer?</p>
+              <ul className="text-sm text-slate-600 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>Entre em contato por telefone ou WhatsApp para agendar diretamente</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>A agenda online será reaberta no início do próximo mês</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     );

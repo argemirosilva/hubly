@@ -9,6 +9,8 @@ import {
   empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda,
 } from "../../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { checkAgendamentoLimit, incrementAgendamentosCount } from "../db-plans";
+import { checkAndNotifyUsageLimits } from "../usage-alerts";
 
 // ─── Helpers internos ────────────────────────────────────────────────────────
 
@@ -206,8 +208,12 @@ export const portalRouter = router({
       const empresa = await getEmpresaPublicaById(input.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
-
-      // Buscar serviço para calcular horaFim e valorTotal
+      // ── Verificar limite de agendamentos do plano ──────────────────────────
+      const limitError = await checkAgendamentoLimit(input.empresaId);
+      if (limitError) {
+        throw new Error("LIMITE_ATINGIDO: A agenda desta empresa atingiu o limite de agendamentos do mês. Por favor, entre em contato diretamente com o estabelecimento.");
+      }
+      // Buscar serviço para calcular horaFim e valorTotall
       const servicoResult = await db.select().from(servicos)
         .where(and(eq(servicos.id, input.servicoId), eq(servicos.empresaId, input.empresaId))).limit(1);
       const servico = servicoResult[0];
@@ -270,6 +276,27 @@ export const portalRouter = router({
       });
       const agendamentoId = (novoAg as any)[0]?.insertId ?? (novoAg as any).insertId;
 
+       // ── Incrementar contador de uso ────────────────────────────────────────
+      try {
+        await incrementAgendamentosCount(input.empresaId);
+        // Verificar e notificar limites de forma assíncrona (não bloqueia a resposta)
+        ;(async () => {
+          try {
+            const { getEmpresaPlan, getOrCreateUsage } = await import('../db-plans');
+            const plan = await getEmpresaPlan(input.empresaId);
+            const currentUsage = await getOrCreateUsage(input.empresaId);
+            await checkAndNotifyUsageLimits({
+              empresaId: input.empresaId,
+              empresaNome: empresa.nome,
+              plan,
+              agendamentosCount: currentUsage?.agendamentosCount ?? 0,
+              notificacoesWhatsappCount: currentUsage?.notificacoesWhatsappCount ?? 0,
+            });
+          } catch { /* silencioso */ }
+        })();
+      } catch {
+        // Não bloquear o agendamento por falha no contador
+      }
       return {
         id: agendamentoId,
         status,
@@ -278,7 +305,22 @@ export const portalRouter = router({
         valorTotal: servico.valor,
       };
     }),
-
+  /** Verifica se a empresa atingiu o limite de agendamentos (para o portal público) */
+  getStatusLimite: publicProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .query(async ({ input }) => {
+      try {
+        const limitError = await checkAgendamentoLimit(input.empresaId);
+        return {
+          bloqueado: !!limitError,
+          mensagem: limitError
+            ? "Esta agenda atingiu o limite de agendamentos do mês. Por favor, entre em contato diretamente com o estabelecimento."
+            : null,
+        };
+      } catch {
+        return { bloqueado: false, mensagem: null };
+      }
+    }),
   /** Buscar se cliente existe pelo telefone (sem expor dados sensíveis) */
   buscarClientePorTelefone: publicProcedure
     .input(z.object({

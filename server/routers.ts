@@ -375,6 +375,14 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // ── Verificar limite de agendamentos do plano ──────────────────────────
+        const limitError = await checkAgendamentoLimit(empresa.id);
+        if (limitError) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Limite de agendamentos do plano atingido. Faça upgrade para continuar agendando.',
+          });
+        }
         const { comReserva, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;

@@ -478,3 +478,14 @@
 - [x] Criar página /admin/planos/sucesso com confirmação visual da assinatura
 - [x] Criar procedure stripe.getCheckoutSession para buscar dados da sessão
 - [x] Registrar rota /admin/planos/sucesso no App.tsx
+
+## Bloqueio de Agendamentos por Limite de Plano
+- [ ] Adicionar procedure pública portal.getStatusLimite para verificar se empresa atingiu limite
+- [ ] Adicionar verificação de limite na mutation portal.criarAgendamento (backend)
+- [ ] Adicionar verificação de limite na mutation agendamentos.create (admin backend)
+- [ ] Implementar bloqueio visual no PortalCliente.tsx com mensagem amigável
+
+- [x] Adicionar procedure pública portal.getStatusLimite para verificar se empresa atingiu limite
+- [x] Adicionar verificação de limite na mutation portal.criarAgendamento (backend)
+- [x] Adicionar verificação de limite na mutation agendamentos.create (admin backend)
+- [x] Implementar bloqueio visual no PortalCliente.tsx com mensagem amigável
