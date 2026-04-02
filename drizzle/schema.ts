@@ -166,6 +166,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
   observacoes: text("observacoes"),
   observacoesInternas: text("observacoesInternas"),
+  imagens: json("imagens").$type<string[]>(),
   confirmadoEm: timestamp("confirmadoEm"),
   concluidoEm: timestamp("concluidoEm"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

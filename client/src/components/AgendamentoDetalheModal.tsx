@@ -1,7 +1,8 @@
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, ImageIcon } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
@@ -36,6 +37,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const uploadMutation = trpc.agendamentos.uploadImagem.useMutation({
+    onSuccess: () => {
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+    },
+    onError: (err: { message: string }) => { throw new Error(err.message); },
+  });
+
+  const removerMutation = trpc.agendamentos.removerImagem.useMutation({
+    onSuccess: () => {
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+    },
+    onError: (err: { message: string }) => { throw new Error(err.message); },
+  });
+
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
   const profissional = profissionais?.find(p => p.id === ag?.profissionalId);
   const servico = servicos?.find(s => s.id === ag?.servicoId);
@@ -44,10 +59,24 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     updateMutation.mutate({ id: agendamentoId, status: status as Parameters<typeof updateMutation.mutate>[0]["status"] } as Parameters<typeof updateMutation.mutate>[0]);
   };
 
+  async function handleUpload(file: File) {
+    const base64 = await fileToBase64(file);
+    await uploadMutation.mutateAsync({
+      agendamentoId,
+      imagemBase64: base64,
+      mimeType: file.type,
+    });
+  }
+
+  async function handleRemover(url: string) {
+    await removerMutation.mutateAsync({ agendamentoId, imagemUrl: url });
+  }
+
   if (isLoading || !ag) return null;
 
   const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
   const dataFormatada = ag.data.split("-").reverse().join("/");
+  const imagens: string[] = Array.isArray(ag.imagens) ? ag.imagens : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -130,6 +159,24 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             </div>
           )}
 
+          {/* ── Imagens ─────────────────────────────────────────────────────── */}
+          <div className="rounded-xl p-4"
+            style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <ImageIcon className="w-3.5 h-3.5" style={{ color: "oklch(55% 0.22 264)" }} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Imagens de referência
+              </p>
+            </div>
+            <ImageUpload
+              imagens={imagens}
+              onUpload={handleUpload}
+              onRemover={handleRemover}
+              maxImagens={5}
+              disabled={["cancelado", "concluido"].includes(ag.status)}
+            />
+          </div>
+
           {/* Ações */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
@@ -197,6 +244,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       </DialogContent>
     </Dialog>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remover o prefixo data:image/...;base64,
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function ActionBtn({

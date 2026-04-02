@@ -474,6 +474,47 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+    uploadImagem: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        imagemBase64: z.string(),
+        mimeType: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const agendamento = await getAgendamentoById(input.agendamentoId);
+        if (!agendamento || agendamento.empresaId !== empresa.id) {
+          throw new Error("Agendamento não encontrado");
+        }
+        // Upload para S3
+        const buffer = Buffer.from(input.imagemBase64, "base64");
+        const ext = input.mimeType.split("/")[1] || "jpg";
+        const key = `agendamentos/${empresa.id}/${input.agendamentoId}/${Date.now()}.${ext}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        // Adicionar URL ao array de imagens
+        const imagensAtuais = agendamento.imagens || [];
+        const novasImagens = [...imagensAtuais, url];
+        await updateAgendamento(input.agendamentoId, { imagens: novasImagens });
+        return { url, success: true };
+      }),
+    removerImagem: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        imagemUrl: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const agendamento = await getAgendamentoById(input.agendamentoId);
+        if (!agendamento || agendamento.empresaId !== empresa.id) {
+          throw new Error("Agendamento não encontrado");
+        }
+        const imagensAtuais = agendamento.imagens || [];
+        const novasImagens = imagensAtuais.filter(url => url !== input.imagemUrl);
+        await updateAgendamento(input.agendamentoId, { imagens: novasImagens });
+        return { success: true };
+      }),
   }),
 
   // ─── BLOQUEIOS ────────────────────────────────────────────────────────────

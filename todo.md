@@ -404,3 +404,9 @@
 - [x] Botão "Instalar app" na tela de login (sempre visível quando não instalado)
 - [x] Botão "Instalar app" no header do AdminLayout (mobile e desktop)
 - [x] Verificar e atualizar manifest.json com ícones e configurações corretas
+
+## Upload de Imagens no Agendamento (v16)
+- [x] Coluna `imagens` (JSON array de URLs) na tabela `agendamentos`
+- [x] Procedure de upload de imagem para S3 no backend
+- [x] Componente ImageUpload com preview e remoção no formulário de agendamento
+- [x] Exibir imagens no detalhe/visualização do agendamento
