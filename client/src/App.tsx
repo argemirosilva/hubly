@@ -26,6 +26,7 @@ import IAFinanceiro from "./pages/IAFinanceiro";
 import IAClientes from "./pages/IAClientes";
 import Manual from "./pages/Manual";
 import Pacotes from "./pages/Pacotes";
+import Planos from "./pages/Planos";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 import { ReactNode } from "react";
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/admin/ia-clientes">{() => <WithAdmin><IAClientes /></WithAdmin>}</Route>
       <Route path="/admin/manual">{() => <WithAdmin><Manual /></WithAdmin>}</Route>
       <Route path="/admin/pacotes">{() => <WithAdmin><Pacotes /></WithAdmin>}</Route>
+      <Route path="/admin/planos">{() => <WithAdmin><Planos /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/404" component={NotFound} />

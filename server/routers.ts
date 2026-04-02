@@ -24,6 +24,8 @@ import {
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
 } from "./db";
 import { storagePut } from "./storage";
+import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
+import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
@@ -137,7 +139,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
-        email: z.string().email().optional(),
+        email: z.union([z.string().email(), z.literal("")]).optional(),
         telefone: z.string().optional(),
         especialidade: z.string().optional(),
         corCalendario: z.string().optional(),
@@ -145,6 +147,10 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // ── Feature gating: verificar limite de profissionais ──────────────────
+        const profs = await getProfissionaisByEmpresa(empresa.id);
+        const profLimitError = await checkProfissionalLimit(empresa.id, profs.length);
+        if (profLimitError) throw new Error(profLimitError);
         const id = await createProfissional({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -368,6 +374,9 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // ── Feature gating: verificar limite de agendamentos ──────────────────
+        const limitError = await checkAgendamentoLimit(empresa.id);
+        if (limitError) throw new Error(limitError);
         const { comReserva, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
@@ -385,6 +394,8 @@ export const appRouter = router({
           valorReserva,
           reservaExpiracaoEm,
         } as any);
+        // Incrementar contador de uso
+        await incrementAgendamentosCount(empresa.id);
         return { id, success: true };
       }),
     update: protectedProcedure
@@ -920,5 +931,61 @@ export const appRouter = router({
         }),
     }),
   }),
+
+  // ─── PLANOS E ASSINATURAS ──────────────────────────────────────────────────────────────────────────────
+  planos: router({
+    /** Retorna dados da subscription + uso atual da empresa */
+    getStatus: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+
+      const [plan, sub, usage] = await Promise.all([
+        getEmpresaPlan(empresa.id),
+        getSubscriptionData(empresa.id),
+        getOrCreateUsage(empresa.id),
+      ]);
+
+      const limits = PLAN_LIMITS[plan];
+      const prices = PLAN_PRICES[plan];
+      const agendamentosPercent = getAgendamentosUsagePercent(plan, usage?.agendamentosCount ?? 0);
+
+      return {
+        plan,
+        planLabel: prices.label,
+        status: sub?.status ?? "active",
+        trialEnd: sub?.trialEnd ?? null,
+        currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+        billingCycle: sub?.billingCycle ?? "monthly",
+        cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
+        usage: {
+          agendamentosCount: usage?.agendamentosCount ?? 0,
+          agendamentosLimit: limits.agendamentosMes,
+          agendamentosPercent,
+          notificacoesWhatsappCount: usage?.notificacoesWhatsappCount ?? 0,
+          notificacoesWhatsappLimit: limits.notificacoesWhatsappMes,
+        },
+        limits,
+        prices,
+      };
+    }),
+
+    /** Retorna todos os planos com preços para a página de planos */
+    getPlans: publicProcedure.query(() => {
+      return Object.entries(PLAN_PRICES).map(([key, price]) => ({
+        type: key as PlanType,
+        ...price,
+        limits: PLAN_LIMITS[key as PlanType],
+      }));
+    }),
+
+    /** Inicializa o trial para uma empresa recém-criada */
+    initTrial: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      await getOrCreateSubscription(empresa.id);
+      return { success: true };
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;
+import type { PlanType } from "./plans";

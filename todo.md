@@ -410,3 +410,21 @@
 - [x] Procedure de upload de imagem para S3 no backend
 - [x] Componente ImageUpload com preview e remoção no formulário de agendamento
 - [x] Exibir imagens no detalhe/visualização do agendamento
+
+## Bug: Erro ao salvar profissional com e-mail vazio (v17)
+- [x] Corrigir validação Zod no backend: aceitar string vazia como e-mail opcional
+- [x] Corrigir frontend: não enviar string vazia para o campo email
+
+## Sistema de Planos e Assinaturas (v17)
+- [x] Tabela `subscriptions` (plan_type, billing_cycle, status, current_period_end, trial_end)
+- [x] Tabela `usage_tracker` (agendamentos_mes, profissionais, notificacoes_whatsapp)
+- [x] Constantes e helpers de limites por plano no backend
+- [x] Middleware de feature gating (verificar limite antes de criar agendamento)
+- [x] Procedures: getStatus, getPlans, initTrial
+- [x] Reverse Trial: 7 dias no Solo ao cadastrar, depois migra para Free
+- [x] Página de Planos com toggle mensal/anual e tabela comparativa
+- [x] Widget de progresso de uso no dashboard (barra de agendamentos)
+- [x] Modal de "Limite Atingido" com CTA de upgrade
+- [x] Link "Planos & Assinatura" no menu lateral
+- [ ] Overlays de bloqueio nas funcionalidades de IA (cadeado + tag PRO) — pendente
+- [ ] Integração Stripe (webhooks de pagamento)

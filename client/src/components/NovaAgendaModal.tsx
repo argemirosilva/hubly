@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   const [form, setForm] = useState({
     clienteId: "",
@@ -41,7 +44,13 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       utils.financeiro.dashboard.invalidate();
       onClose();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => {
+      if (err.message.includes("limite") || err.message.includes("Limite")) {
+        setUpgradeModalOpen(true);
+      } else {
+        toast.error(err.message);
+      }
+    },
   });
 
   const servicoSelecionado = servicos?.find(s => s.id === parseInt(form.servicoId));
@@ -79,6 +88,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -199,5 +209,14 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Modal de upgrade quando o limite for atingido */}
+    <UpgradeModal
+      open={upgradeModalOpen}
+      onClose={() => setUpgradeModalOpen(false)}
+      resource="agendamentos"
+      currentPlan="FREE"
+    />
+    </>
   );
 }

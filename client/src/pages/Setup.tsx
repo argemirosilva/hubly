@@ -8,8 +8,15 @@ export default function Setup() {
   const [, navigate] = useLocation();
   const [form, setForm] = useState({ nome: "", telefone: "", email: "", cidade: "", estado: "" });
 
+  const initTrial = trpc.planos.initTrial.useMutation();
+
   const criar = trpc.empresa.create.useMutation({
-    onSuccess: () => { toast.success("Empresa configurada!"); navigate("/admin"); },
+    onSuccess: () => {
+      // Iniciar o Reverse Trial de 7 dias no plano Solo
+      initTrial.mutate();
+      toast.success("Empresa configurada! Você tem 7 dias grátis no plano Solo.");
+      navigate("/admin");
+    },
     onError: (err: { message: string }) => toast.error(err.message),
   });
 

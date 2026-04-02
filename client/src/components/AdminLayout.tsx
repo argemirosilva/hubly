@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import {
-  Bell, Calendar, CalendarCheck, CreditCard,
+  Bell, Calendar, CalendarCheck, CreditCard, Crown,
   LayoutDashboard, LogOut, Menu, MessageSquare, Settings,
   UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package
 } from "lucide-react";
@@ -47,6 +47,7 @@ const navGroups = [
   {
     label: "Sistema",
     items: [
+      { href: "/admin/planos", label: "Planos & Assinatura", icon: Crown },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
       { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
