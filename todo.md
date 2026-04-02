@@ -425,3 +425,16 @@
 - [x] Adicionar tabelas subscriptions e usageTracker ao drizzle/schema.ts
 - [x] Migração SQL aplicada (tabelas já existiam no banco)
 - [x] Testes unitários para stripe-products.ts (4 testes passando)
+
+## Página de Planos /admin/planos (v24)
+- [ ] Criar client/src/pages/Planos.tsx com toggle mensal/anual e cards Solo/Plus/Pro
+- [ ] Integrar com trpc.planos.getStatus para mostrar plano atual
+- [ ] Integrar com trpc.stripe.createCheckoutSession para botão de upgrade
+- [ ] Adicionar rota /admin/planos no App.tsx
+- [ ] Adicionar item "Planos" no menu lateral (grupo Sistema)
+- [ ] Páginas de sucesso e cancelamento do checkout (/admin/planos/sucesso, /admin/planos/cancelado)
+- [x] Criar client/src/pages/Planos.tsx com toggle mensal/anual e cards Solo/Plus/Pro
+- [x] Integrar com trpc.planos.getStatus para mostrar plano atual
+- [x] Integrar com trpc.stripe.createCheckoutSession para botão de upgrade
+- [x] Adicionar rota /admin/planos no App.tsx
+- [x] Adicionar item "Planos & Assinatura" no menu lateral (grupo Sistema)
