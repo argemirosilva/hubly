@@ -449,3 +449,9 @@
 - [x] Botões: Fazer upgrade, Gerenciar no Stripe, Cancelar assinatura
 - [x] Link "Minha Assinatura" no menu lateral
 - [x] Rota /admin/assinatura registrada no App.tsx
+
+## Fix: Forçar reload sem cache (v20)
+- [x] Headers HTTP no-cache no servidor para o HTML principal
+- [x] Meta tags no-cache no index.html
+- [x] Service Worker v4: invalida todos os caches antigos e usa Network First para assets do Vite
+- [x] vite.config.ts: dedupe React + optimizeDeps + HMR WSS

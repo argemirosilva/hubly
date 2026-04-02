@@ -34,6 +34,15 @@ async function startServer() {
   const server = createServer(app);
   // Stripe webhook DEVE ser registrado antes do express.json() para verificação de assinatura
   registerStripeWebhook(app);
+  // Forçar no-cache para o HTML principal (evita browser usar bundle antigo)
+  app.use((req, res, next) => {
+    if (req.path === '/' || req.path.endsWith('.html') || !req.path.includes('.')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    next();
+  });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
