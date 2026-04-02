@@ -470,3 +470,7 @@
 - [ ] Corrigir menu errado (genérico) na página Pacotes
 - [x] Corrigir duplo menu lateral na página Automações
 - [x] Corrigir menu errado (genérico) na página Pacotes
+
+- [x] Criar página /admin/assinatura com status, próxima cobrança, método de pagamento e histórico de faturas
+- [x] Adicionar link "Minha Assinatura" na sidebar do AdminLayout
+- [x] Registrar rota /admin/assinatura no App.tsx
