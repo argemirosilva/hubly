@@ -7,6 +7,10 @@ import { subscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 
+// Webhook Secret LIVE injetado diretamente
+const STRIPE_WEBHOOK_LIVE = "whsec_SBQMnwGkruzwOcxHV8Tern6V3kPSpdsv";
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_") ? process.env.STRIPE_WEBHOOK_SECRET : STRIPE_WEBHOOK_LIVE;
+
 /**
  * Registra o endpoint do webhook do Stripe.
  * DEVE ser registrado ANTES do express.json() para que a verificação
@@ -25,7 +29,7 @@ export function registerStripeWebhook(app: Express) {
         event = stripe.webhooks.constructEvent(
           req.body,
           sig as string,
-          ENV.stripeWebhookSecret
+          webhookSecret
         );
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Webhook error";

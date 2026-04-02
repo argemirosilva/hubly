@@ -170,11 +170,7 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <img 
-                    src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/nudos-logo_d26ab488.png" 
-                    alt="Nudos" 
-                    className="h-6 w-auto"
-                  />
+                  <span className="font-bold text-white tracking-tight truncate">Agendei</span>
                 </div>
               ) : null}
             </div>
