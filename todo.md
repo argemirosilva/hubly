@@ -474,3 +474,7 @@
 - [x] Criar página /admin/assinatura com status, próxima cobrança, método de pagamento e histórico de faturas
 - [x] Adicionar link "Minha Assinatura" na sidebar do AdminLayout
 - [x] Registrar rota /admin/assinatura no App.tsx
+
+- [x] Criar página /admin/planos/sucesso com confirmação visual da assinatura
+- [x] Criar procedure stripe.getCheckoutSession para buscar dados da sessão
+- [x] Registrar rota /admin/planos/sucesso no App.tsx

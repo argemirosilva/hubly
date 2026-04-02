@@ -1212,6 +1212,56 @@ export const appRouter = router({
         return [];
       }
     }),
+    /** Busca dados de uma sessão de checkout pelo session_id (para página de sucesso) */
+    getCheckoutSession: protectedProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) return null;
+        try {
+          const { stripe: stripeClient } = await import("./stripe");
+          const session = await stripeClient.checkout.sessions.retrieve(
+            input.sessionId,
+            { expand: ["subscription"] }
+          );
+          const sessionAny = session as unknown as {
+            id: string;
+            status: string | null;
+            payment_status: string;
+            amount_total: number | null;
+            currency: string | null;
+            metadata: Record<string, string>;
+            subscription: {
+              id: string;
+              status: string;
+              current_period_end: number;
+              items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string } } }> };
+            } | null;
+          };
+          // Verificar que a sessão pertence à empresa
+          const empresaId = sessionAny.metadata?.empresaId;
+          if (empresaId && String(empresa.id) !== empresaId) return null;
+          const planType = (sessionAny.metadata?.planType ?? "SOLO") as "SOLO" | "PLUS" | "PRO";
+          const billingCycle = (sessionAny.metadata?.billingCycle ?? "monthly") as "monthly" | "annual";
+          const planInfo = PLAN_PRICES[planType];
+          return {
+            sessionId: sessionAny.id,
+            status: sessionAny.status,
+            paymentStatus: sessionAny.payment_status,
+            planType,
+            billingCycle,
+            planLabel: planInfo?.label ?? planType,
+            valorTotal: sessionAny.amount_total ? sessionAny.amount_total / 100 : null,
+            moeda: sessionAny.currency?.toUpperCase() ?? "BRL",
+            proximaCobranca: sessionAny.subscription
+              ? new Date(sessionAny.subscription.current_period_end * 1000)
+              : null,
+            limites: PLAN_LIMITS[planType],
+          };
+        } catch {
+          return null;
+        }
+      }),
     /** Retorna detalhes completos da assinatura ativa no Stripe */
     getSubscriptionDetails: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id);
