@@ -643,3 +643,32 @@ export const notificacoesPacotes = mysqlTable("notificacoes_pacotes", {
   enviadoEm: timestamp("enviadoEm").defaultNow().notNull(),
 });
 export type NotificacaoPacote = typeof notificacoesPacotes.$inferSelect;
+
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+export const subscriptions = mysqlTable("subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull().unique(),
+  planType: mysqlEnum("planType", ["FREE", "SOLO", "PLUS", "PRO"]).default("FREE").notNull(),
+  billingCycle: mysqlEnum("billingCycle", ["monthly", "annual"]).default("monthly").notNull(),
+  status: mysqlEnum("status", ["active", "trial", "past_due", "canceled", "paused"]).default("trial").notNull(),
+  trialEnd: timestamp("trialEnd"),
+  currentPeriodStart: timestamp("currentPeriodStart"),
+  currentPeriodEnd: timestamp("currentPeriodEnd"),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 128 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
+  cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Subscription = typeof subscriptions.$inferSelect;
+
+// ─── USAGE TRACKER ────────────────────────────────────────────────────────────
+export const usageTracker = mysqlTable("usage_tracker", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  mesAno: varchar("mesAno", { length: 7 }).notNull(),
+  agendamentosCount: int("agendamentosCount").default(0).notNull(),
+  notificacoesWhatsappCount: int("notificacoesWhatsappCount").default(0).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type UsageTracker = typeof usageTracker.$inferSelect;

@@ -411,3 +411,17 @@
 - [ ] Variáveis dinâmicas: {nome}, {data}, {horario}, {servico}, {profissional}, {valor}
 - [ ] Caixa de entrada de mensagens recebidas na página WhatsApp
 - [ ] Responder mensagens diretamente do painel
+
+## Stripe — Restauração e Atualização de Price IDs (v23)
+- [x] Restaurar server/stripe-products.ts com Price IDs reais do Stripe
+- [x] Restaurar server/stripe.ts (cliente Stripe)
+- [x] Restaurar server/stripe-webhook.ts (webhook com priceIdToPlanType)
+- [x] Restaurar server/plans.ts (PLAN_LIMITS, PLAN_PRICES)
+- [x] Restaurar server/db-plans.ts (helpers de subscription e usage)
+- [x] Adicionar stripeSecretKey e stripeWebhookSecret ao server/_core/env.ts
+- [x] Instalar pacote stripe (v21)
+- [x] Registrar webhook do Stripe no server/_core/index.ts
+- [x] Adicionar routers planos e stripe ao server/routers.ts
+- [x] Adicionar tabelas subscriptions e usageTracker ao drizzle/schema.ts
+- [x] Migração SQL aplicada (tabelas já existiam no banco)
+- [x] Testes unitários para stripe-products.ts (4 testes passando)

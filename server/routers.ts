@@ -25,6 +25,8 @@ import {
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
 } from "./db";
 import { storagePut } from "./storage";
+import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
+import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
@@ -1022,5 +1024,223 @@ export const appRouter = router({
         return { success: ok };
       }),
   }),
+  // ─── PLANOS E ASSINATURAS ────────────────────────────────────────────────────────────────────────────────────────────────────
+  planos: router({
+    /** Retorna dados da subscription + uso atual da empresa */
+    getStatus: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+      const [plan, sub, usage] = await Promise.all([
+        getEmpresaPlan(empresa.id),
+        getSubscriptionData(empresa.id),
+        getOrCreateUsage(empresa.id),
+      ]);
+      const limits = PLAN_LIMITS[plan];
+      const prices = PLAN_PRICES[plan];
+      const agendamentosPercent = getAgendamentosUsagePercent(plan, usage?.agendamentosCount ?? 0);
+      return {
+        plan,
+        planLabel: prices.label,
+        status: sub?.status ?? "active",
+        trialEnd: sub?.trialEnd ?? null,
+        currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+        billingCycle: sub?.billingCycle ?? "monthly",
+        cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
+        usage: {
+          agendamentosCount: usage?.agendamentosCount ?? 0,
+          agendamentosLimit: limits.agendamentosMes,
+          agendamentosPercent,
+          notificacoesWhatsappCount: usage?.notificacoesWhatsappCount ?? 0,
+          notificacoesWhatsappLimit: limits.notificacoesWhatsappMes,
+        },
+        limits,
+        prices,
+      };
+    }),
+    /** Retorna todos os planos com preços para a página de planos */
+    getPlans: publicProcedure.query(() => {
+      return Object.entries(PLAN_PRICES).map(([key, price]) => ({
+        type: key as PlanType,
+        ...price,
+        limits: PLAN_LIMITS[key as PlanType],
+      }));
+    }),
+    /** Inicializa o trial para uma empresa recém-criada */
+    initTrial: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      await getOrCreateSubscription(empresa.id);
+      return { success: true };
+    }),
+  }),
+  // ─── STRIPE ───────────────────────────────────────────────────────────────────────────────────────
+  stripe: router({
+    /** Cria uma sessão de checkout do Stripe para assinar um plano */
+    createCheckoutSession: protectedProcedure
+      .input(z.object({
+        planType: z.enum(["SOLO", "PLUS", "PRO"]),
+        billingCycle: z.enum(["monthly", "annual"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
+        const { PLANOS_STRIPE } = await import("./stripe-products");
+        // Obter ou criar o Customer do Stripe
+        const subscription = await getOrCreateSubscription(empresa.id);
+        const customerId = await getOrCreateStripeCustomer(
+          empresa.id,
+          empresa.email ?? "",
+          empresa.nome,
+          subscription.stripeCustomerId
+        );
+        // Atualizar o stripeCustomerId no banco se recém-criado
+        if (!subscription.stripeCustomerId) {
+          const db = await getDb();
+          if (db) {
+            const { subscriptions: subsTable } = await import("../drizzle/schema");
+            await db
+              .update(subsTable)
+              .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+              .where(eq(subsTable.empresaId, empresa.id));
+          }
+        }
+        const plano = PLANOS_STRIPE[input.planType];
+        const preco = input.billingCycle === "annual" ? plano.anual : plano.mensal;
+        const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+        const session = await stripeClient.checkout.sessions.create({
+          customer: customerId,
+          mode: "subscription",
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price: preco.priceId ?? undefined,
+              quantity: 1,
+            },
+          ],
+          success_url: `${origin}/admin/planos/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/admin/planos/cancelado`,
+          metadata: {
+            empresaId: String(empresa.id),
+            planType: input.planType,
+            billingCycle: input.billingCycle,
+          },
+          allow_promotion_codes: true,
+        });
+        return { url: session.url };
+      }),
+    /** Cria uma sessão do portal do cliente para gerenciar assinatura */
+    createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeCustomerId) {
+        throw new Error("Nenhuma assinatura ativa encontrada");
+      }
+      const { stripe: stripeClient } = await import("./stripe");
+      const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+      const session = await stripeClient.billingPortal.sessions.create({
+        customer: subscription.stripeCustomerId,
+        return_url: `${origin}/admin/assinatura`,
+      });
+      return { url: session.url };
+    }),
+    /** Retorna as últimas faturas do cliente no Stripe */
+    getInvoices: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeCustomerId) return [];
+      try {
+        const { stripe: stripeClient } = await import("./stripe");
+        const invoices = await stripeClient.invoices.list({
+          customer: subscription.stripeCustomerId,
+          limit: 12,
+        });
+        return invoices.data.map((inv) => {
+          const invAny = inv as unknown as {
+            id: string;
+            number: string | null;
+            status: string | null;
+            amount_paid: number;
+            amount_due: number;
+            currency: string;
+            created: number;
+            period_start: number;
+            period_end: number;
+            hosted_invoice_url: string | null;
+            invoice_pdf: string | null;
+            lines: { data: Array<{ description: string | null }> };
+          };
+          return {
+            id: invAny.id,
+            numero: invAny.number,
+            status: invAny.status,
+            valorPago: invAny.amount_paid / 100,
+            valorDevido: invAny.amount_due / 100,
+            moeda: invAny.currency.toUpperCase(),
+            criadoEm: new Date(invAny.created * 1000),
+            periodoInicio: new Date(invAny.period_start * 1000),
+            periodoFim: new Date(invAny.period_end * 1000),
+            urlFatura: invAny.hosted_invoice_url,
+            urlPdf: invAny.invoice_pdf,
+            descricao: invAny.lines.data[0]?.description ?? null,
+          };
+        });
+      } catch {
+        return [];
+      }
+    }),
+    /** Retorna detalhes completos da assinatura ativa no Stripe */
+    getSubscriptionDetails: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeSubscriptionId) return null;
+      try {
+        const { stripe: stripeClient } = await import("./stripe");
+        const sub = await stripeClient.subscriptions.retrieve(
+          subscription.stripeSubscriptionId,
+          { expand: ["default_payment_method"] }
+        );
+        const subAny = sub as unknown as {
+          id: string;
+          status: string;
+          current_period_end: number;
+          current_period_start: number;
+          cancel_at_period_end: boolean;
+          cancel_at: number | null;
+          default_payment_method: {
+            type: string;
+            card?: { brand: string; last4: string; exp_month: number; exp_year: number };
+          } | null;
+          items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
+        };
+        const pm = subAny.default_payment_method;
+        return {
+          stripeSubId: subAny.id,
+          status: subAny.status,
+          proximaCobranca: new Date(subAny.current_period_end * 1000),
+          inicioPerioodo: new Date(subAny.current_period_start * 1000),
+          cancelarAoFinal: subAny.cancel_at_period_end,
+          cancelarEm: subAny.cancel_at ? new Date(subAny.cancel_at * 1000) : null,
+          metodoPagamento: pm ? {
+            tipo: pm.type,
+            bandeira: pm.card?.brand ?? null,
+            ultimos4: pm.card?.last4 ?? null,
+            expMes: pm.card?.exp_month ?? null,
+            expAno: pm.card?.exp_year ?? null,
+          } : null,
+          valorMensal: subAny.items.data[0]?.price?.unit_amount
+            ? subAny.items.data[0].price.unit_amount / 100
+            : null,
+          intervalo: subAny.items.data[0]?.price?.recurring?.interval ?? null,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;
+import type { PlanType } from "./plans";
