@@ -440,3 +440,12 @@
 - [x] Frontend: botão "Gerenciar assinatura" na página de Planos para assinantes ativos
 - [x] Sincronização: atualizar tabela subscriptions ao receber eventos do webhook
 - [x] 71 testes passando
+
+## Página de Gerenciamento de Assinatura (v19)
+- [x] Backend: procedure stripe.getInvoices (lista faturas do Stripe)
+- [x] Backend: procedure stripe.getSubscriptionDetails (detalhes completos da assinatura)
+- [x] Página /admin/assinatura com: status do plano, barra de uso, próxima cobrança, método de pagamento
+- [x] Seção de faturas com data, valor, status e link para PDF
+- [x] Botões: Fazer upgrade, Gerenciar no Stripe, Cancelar assinatura
+- [x] Link "Minha Assinatura" no menu lateral
+- [x] Rota /admin/assinatura registrada no App.tsx

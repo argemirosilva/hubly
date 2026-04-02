@@ -29,6 +29,7 @@ import Pacotes from "./pages/Pacotes";
 import Planos from "./pages/Planos";
 import PlanosSucesso from "./pages/PlanosSucesso";
 import PlanosCancelado from "./pages/PlanosCancelado";
+import MinhaAssinatura from "./pages/MinhaAssinatura";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 import { ReactNode } from "react";
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/admin/planos/sucesso">{() => <PlanosSucesso />}</Route>
       <Route path="/admin/planos/cancelado">{() => <PlanosCancelado />}</Route>
       <Route path="/admin/planos">{() => <WithAdmin><Planos /></WithAdmin>}</Route>
+      <Route path="/admin/assinatura">{() => <WithAdmin><MinhaAssinatura /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/404" component={NotFound} />

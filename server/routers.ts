@@ -1074,10 +1074,114 @@ export const appRouter = router({
       const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
       const session = await stripeClient.billingPortal.sessions.create({
         customer: subscription.stripeCustomerId,
-        return_url: `${origin}/admin/planos`,
+        return_url: `${origin}/admin/assinatura`,
       });
 
       return { url: session.url };
+    }),
+
+    /** Retorna as últimas faturas do cliente no Stripe */
+    getInvoices: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return [];
+
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeCustomerId) return [];
+
+      try {
+        const { stripe: stripeClient } = await import("./stripe");
+        const invoices = await stripeClient.invoices.list({
+          customer: subscription.stripeCustomerId,
+          limit: 12,
+        });
+
+        return invoices.data.map((inv) => {
+          const invAny = inv as unknown as {
+            id: string;
+            number: string | null;
+            status: string | null;
+            amount_paid: number;
+            amount_due: number;
+            currency: string;
+            created: number;
+            period_start: number;
+            period_end: number;
+            hosted_invoice_url: string | null;
+            invoice_pdf: string | null;
+            lines: { data: Array<{ description: string | null }> };
+          };
+          return {
+            id: invAny.id,
+            numero: invAny.number,
+            status: invAny.status,
+            valorPago: invAny.amount_paid / 100,
+            valorDevido: invAny.amount_due / 100,
+            moeda: invAny.currency.toUpperCase(),
+            criadoEm: new Date(invAny.created * 1000),
+            periodoInicio: new Date(invAny.period_start * 1000),
+            periodoFim: new Date(invAny.period_end * 1000),
+            urlFatura: invAny.hosted_invoice_url,
+            urlPdf: invAny.invoice_pdf,
+            descricao: invAny.lines.data[0]?.description ?? null,
+          };
+        });
+      } catch {
+        return [];
+      }
+    }),
+
+    /** Retorna detalhes completos da assinatura ativa no Stripe */
+    getSubscriptionDetails: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return null;
+
+      const subscription = await getOrCreateSubscription(empresa.id);
+      if (!subscription.stripeSubscriptionId) return null;
+
+      try {
+        const { stripe: stripeClient } = await import("./stripe");
+        const sub = await stripeClient.subscriptions.retrieve(
+          subscription.stripeSubscriptionId,
+          { expand: ["default_payment_method"] }
+        );
+
+        const subAny = sub as unknown as {
+          id: string;
+          status: string;
+          current_period_end: number;
+          current_period_start: number;
+          cancel_at_period_end: boolean;
+          cancel_at: number | null;
+          default_payment_method: {
+            type: string;
+            card?: { brand: string; last4: string; exp_month: number; exp_year: number };
+          } | null;
+          items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
+        };
+
+        const pm = subAny.default_payment_method;
+        return {
+          stripeSubId: subAny.id,
+          status: subAny.status,
+          proximaCobranca: new Date(subAny.current_period_end * 1000),
+          inicioPerioodo: new Date(subAny.current_period_start * 1000),
+          cancelarAoFinal: subAny.cancel_at_period_end,
+          cancelarEm: subAny.cancel_at ? new Date(subAny.cancel_at * 1000) : null,
+          metodoPagamento: pm ? {
+            tipo: pm.type,
+            bandeira: pm.card?.brand ?? null,
+            ultimos4: pm.card?.last4 ?? null,
+            expMes: pm.card?.exp_month ?? null,
+            expAno: pm.card?.exp_year ?? null,
+          } : null,
+          valorMensal: subAny.items.data[0]?.price?.unit_amount
+            ? subAny.items.data[0].price.unit_amount / 100
+            : null,
+          intervalo: subAny.items.data[0]?.price?.recurring?.interval ?? null,
+        };
+      } catch {
+        return null;
+      }
     }),
   }),
 });

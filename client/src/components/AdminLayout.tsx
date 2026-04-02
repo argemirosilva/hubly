@@ -48,6 +48,7 @@ const navGroups = [
     label: "Sistema",
     items: [
       { href: "/admin/planos", label: "Planos & Assinatura", icon: Crown },
+      { href: "/admin/assinatura", label: "Minha Assinatura", icon: CreditCard },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
       { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
