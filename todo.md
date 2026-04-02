@@ -393,3 +393,8 @@
 - [x] Frontend: badge no sino do AdminLayout inclui notificações de pacotes não lidas
 - [x] Frontend: botão "Verificar pacotes" na página de notificações para disparo manual
 - [x] Frontend: link para perfil do cliente diretamente da notificação de pacote
+
+## Renovação Rápida de Pacote via Notificação (v14)
+- [x] Botão "Renovar pacote" nos cards de notificação de pacote (vencimento_proximo, sessoes_restantes)
+- [x] Modal de renovação com cliente pré-selecionado e lista de pacotes disponíveis
+- [x] Após renovar, marcar a notificação como lida automaticamente
