@@ -82,7 +82,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     refetchInterval: 60000,
   });
 
+  const { data: planStatus } = trpc.planos.getStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   const naoLidas = (notificacoes?.filter(n => !n.lida).length ?? 0) + (notifPacotesCount?.total ?? 0);
+
+  const getPlanColor = (plan?: string) => {
+    switch (plan) {
+      case "PRO": return "oklch(45% 0.15 160)"; // Verde
+      case "PLUS": return "oklch(60% 0.20 30)"; // Coral
+      case "SOLO": return "oklch(65% 0.18 170)"; // Turquesa
+      default: return "oklch(52% 0.016 260)"; // Cinza
+    }
+  };
 
   useEffect(() => { setSidebarOpen(false); }, [location]);
 
@@ -299,17 +312,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <span className="font-bold text-sm tracking-tight">Agendei</span>
           </div>
-          <Link href="/admin/notificacoes">
-            <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
-              <Bell className="w-5 h-5 text-foreground" />
-              {naoLidas > 0 && (
-                <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  style={{ background: "oklch(55% 0.22 264)" }}>
-                  {naoLidas > 9 ? "9+" : naoLidas}
-                </span>
-              )}
-            </div>
-          </Link>
+          <div className="flex items-center gap-3">
+            {planStatus && (
+              <Link href="/admin/assinatura">
+                <div className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ background: getPlanColor(planStatus.plan) }}>
+                  Plano {planStatus.plan}
+                </div>
+              </Link>
+            )}
+            <Link href="/admin/notificacoes">
+              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
+                <Bell className="w-5 h-5 text-foreground" />
+                {naoLidas > 0 && (
+                  <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                    style={{ background: "oklch(55% 0.22 264)" }}>
+                    {naoLidas > 9 ? "9+" : naoLidas}
+                  </span>
+                )}
+              </div>
+            </Link>
+          </div>
         </header>
 
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
