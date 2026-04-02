@@ -46,6 +46,8 @@ async function getEmpresaDoUsuario(userId: number) {
   return getEmpresaDoUsuarioDb(userId);
 }
 
+import { getUsageWithAlerts } from "./db-usage-alerts";
+
 export const appRouter = router({
   system: systemRouter,
   zandu: zanduRouter,
@@ -1100,6 +1102,15 @@ export const appRouter = router({
       if (!empresa) throw new Error("Empresa não encontrada");
       await getOrCreateSubscription(empresa.id);
       return { success: true };
+    }),
+    /** Verifica alertas de limite de plano */
+    checkAlerts: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) return { alertas: [], temAlerta: false };
+      const { getUsageWithAlerts } = await import("./db-usage-alerts");
+      const plan = await getEmpresaPlan(empresa.id);
+      const result = await getUsageWithAlerts(empresa.id, plan);
+      return result;
     }),
   }),
   // ─── STRIPE ───────────────────────────────────────────────────────────────────────────────────────

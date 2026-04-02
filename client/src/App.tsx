@@ -32,11 +32,13 @@ import PlanosSuccesso from "./pages/PlanosSuccesso";
 import Assinatura from "./pages/Assinatura";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
+import { PlanLimitAlert } from "./components/PlanLimitAlert";
 import { ReactNode } from "react";
 
 function WithAdmin({ children }: { children: ReactNode }) {
   return (
     <AdminLayout>
+      <PlanLimitAlert />
       <SupportChat />
       {children}
     </AdminLayout>
