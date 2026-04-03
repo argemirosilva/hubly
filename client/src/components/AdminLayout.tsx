@@ -192,7 +192,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex bg-background">
         {/* Painel esquerdo */}
         <div className="hidden lg:flex w-1/2 flex-col justify-between p-14 relative overflow-hidden"
-          style={{ background: "oklch(20% 0.10 255)" }}>
+          style={{ background: "oklch(16% 0.018 255)" }}>
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-15"
             style={{ background: "oklch(62% 0.16 225)" }} />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-10"
@@ -215,7 +215,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Gerencie seu negócio de forma inteligente
               </h2>
               <p className="text-sm leading-relaxed max-w-xs"
-                style={{ color: "oklch(55% 0.08 255)" }}>
+                style={{ color: "oklch(58% 0.025 255)" }}>
                 Agendamentos, clientes, profissionais e financeiro em um único lugar.
               </p>
             </div>
@@ -315,11 +315,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(20% 0.10 255)", borderRight: "1px solid oklch(28% 0.08 255)" }}
+        style={{ background: "oklch(16% 0.018 255)", borderRight: "1px solid oklch(22% 0.015 255)" }}
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4"
-          style={{ borderBottom: "1px solid oklch(28% 0.08 255)" }}>
+          style={{ borderBottom: "1px solid oklch(22% 0.015 255)" }}>
           <div className="flex items-center gap-2">
             <img
               src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
@@ -329,7 +329,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <button onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
-            style={{ color: "oklch(55% 0.08 255)" }}>
+            style={{ color: "oklch(58% 0.025 255)" }}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -339,7 +339,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {navGroups.map((group) => (
             <div key={group.label}>
               <p className="px-2 mb-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase"
-                style={{ color: "oklch(45% 0.08 255)" }}>
+                style={{ color: "oklch(48% 0.022 255)" }}>
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -359,19 +359,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
                           style={{
                             background: isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent",
-                            color: isParentActive ? "oklch(75% 0.16 225)" : "oklch(55% 0.08 255)",
+                            color: isParentActive ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
                             if (!isParentActive) {
-                              (e.currentTarget as HTMLElement).style.background = "oklch(28% 0.08 255)";
+                              (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
                               (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
                             }
                           }}
                           onMouseLeave={e => {
                             if (!isParentActive) {
                               (e.currentTarget as HTMLElement).style.background = isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent";
-                              (e.currentTarget as HTMLElement).style.color = isParentActive ? "oklch(75% 0.16 225)" : "oklch(55% 0.08 255)";
+                              (e.currentTarget as HTMLElement).style.color = isParentActive ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)";
                             }
                           }}
                         >
@@ -386,7 +386,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </div>
                         {/* Subitens */}
                         {isExpanded && (
-                          <div className="mt-0.5 ml-3 pl-3 space-y-0.5" style={{ borderLeft: "1px solid oklch(30% 0.08 255)" }}>
+                          <div className="mt-0.5 ml-3 pl-3 space-y-0.5" style={{ borderLeft: "1px solid oklch(26% 0.015 255)" }}>
                             {item.children!.map(child => {
                               const ChildIcon = child.icon;
                               const childActive = location === child.href || (child.href !== "/admin/financeiro" && location.startsWith(child.href));
@@ -396,18 +396,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150"
                                     style={{
                                       background: childActive ? "oklch(55% 0.22 264 / 15%)" : "transparent",
-                                      color: childActive ? "oklch(72% 0.16 225)" : "oklch(48% 0.08 255)",
+                                      color: childActive ? "oklch(72% 0.16 225)" : "oklch(50% 0.022 255)",
                                     }}
                                     onMouseEnter={e => {
                                       if (!childActive) {
-                                        (e.currentTarget as HTMLElement).style.background = "oklch(26% 0.09 255)";
+                                        (e.currentTarget as HTMLElement).style.background = "oklch(20% 0.016 255)";
                                         (e.currentTarget as HTMLElement).style.color = "oklch(80% 0.008 240)";
                                       }
                                     }}
                                     onMouseLeave={e => {
                                       if (!childActive) {
                                         (e.currentTarget as HTMLElement).style.background = "transparent";
-                                        (e.currentTarget as HTMLElement).style.color = "oklch(48% 0.08 255)";
+                                        (e.currentTarget as HTMLElement).style.color = "oklch(50% 0.022 255)";
                                       }
                                     }}
                                   >
@@ -431,18 +431,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
                         style={{
                           background: active ? "oklch(55% 0.22 264 / 18%)" : "transparent",
-                          color: active ? "oklch(75% 0.16 225)" : "oklch(55% 0.08 255)",
+                          color: active ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)",
                         }}
                         onMouseEnter={e => {
                           if (!active) {
-                            (e.currentTarget as HTMLElement).style.background = "oklch(28% 0.08 255)";
+                            (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
                             (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
                           }
                         }}
                         onMouseLeave={e => {
                           if (!active) {
                             (e.currentTarget as HTMLElement).style.background = "transparent";
-                            (e.currentTarget as HTMLElement).style.color = "oklch(55% 0.08 255)";
+                            (e.currentTarget as HTMLElement).style.color = "oklch(58% 0.025 255)";
                           }
                         }}
                       >
@@ -473,14 +473,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               window.dispatchEvent(event);
             }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150 text-left"
-            style={{ color: "oklch(55% 0.08 255)" }}
+            style={{ color: "oklch(58% 0.025 255)" }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = "oklch(28% 0.08 255)";
+              (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
               (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "oklch(55% 0.08 255)";
+              (e.currentTarget as HTMLElement).style.color = "oklch(58% 0.025 255)";
             }}
           >
             <Headphones className="w-4 h-4 flex-shrink-0" />
@@ -489,9 +489,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* User */}
-        <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(28% 0.08 255)" }}>
+        <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(22% 0.015 255)" }}>
           <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl"
-            style={{ background: "oklch(26% 0.09 255)" }}>
+            style={{ background: "oklch(20% 0.016 255)" }}>
             <Link href="/admin/perfil" className="flex-shrink-0">
               <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ background: avatarUrl ? 'transparent' : 'oklch(62% 0.16 225)' }}>
@@ -508,18 +508,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="text-[13px] font-semibold truncate" style={{ color: "oklch(90% 0.008 240)" }}>
                 {user?.name?.split(" ")[0] ?? "Usuário"}
               </p>
-              <p className="text-[11px] truncate" style={{ color: "oklch(45% 0.08 255)" }}>
+              <p className="text-[11px] truncate" style={{ color: "oklch(48% 0.022 255)" }}>
                 {user?.role === "admin" ? "Administrador" : "Profissional"}
               </p>
             </div>
             <Link href="/admin/perfil" title="Meu perfil"
               className="p-1.5 rounded-md transition-colors hover:bg-white/10"
-              style={{ color: "oklch(45% 0.08 255)" }}>
+              style={{ color: "oklch(48% 0.022 255)" }}>
               <UserCircle className="w-4 h-4" />
             </Link>
             <button onClick={logout} title="Sair"
               className="p-1.5 rounded-md transition-colors hover:bg-white/10"
-              style={{ color: "oklch(45% 0.08 255)" }}>
+              style={{ color: "oklch(48% 0.022 255)" }}>
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -589,7 +589,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="relative">
                   <Icon
                     className="w-5 h-5 transition-all"
-                    style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(55% 0.08 255)" }}
+                    style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}
                     strokeWidth={active ? 2.5 : 1.8}
                   />
                   {isNotif && naoLidas > 0 && (
@@ -601,7 +601,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <span
                   className="text-[10px] font-medium leading-none"
-                  style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(55% 0.08 255)" }}>
+                  style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}>
                   {item.label}
                 </span>
                 {active && (
