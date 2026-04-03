@@ -939,6 +939,32 @@ export async function getServicosByProfissional(profissionalId: number) {
     .where(eq(profissionalServicos.profissionalId, profissionalId));
 }
 
+export async function getEquipeByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: profissionais.id,
+    nome: profissionais.nome,
+    email: profissionais.email,
+    telefone: profissionais.telefone,
+    especialidade: profissionais.especialidade,
+    corCalendario: profissionais.corCalendario,
+    avatarUrl: profissionais.avatarUrl,
+    ativo: profissionais.ativo,
+    isProfissional: profissionais.isProfissional,
+    temAcesso: profissionais.temAcesso,
+    grupoId: profissionais.grupoId,
+    ultimoAcesso: profissionais.ultimoAcesso,
+    createdAt: profissionais.createdAt,
+    grupoNome: gruposPermissoes.nome,
+    grupoCor: gruposPermissoes.cor,
+  })
+    .from(profissionais)
+    .leftJoin(gruposPermissoes, eq(profissionais.grupoId, gruposPermissoes.id))
+    .where(eq(profissionais.empresaId, empresaId))
+    .orderBy(profissionais.nome);
+}
+
 export async function vincularServicoProfissional(profissionalId: number, servicoId: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");

@@ -10,6 +10,7 @@ import Calendario from "./pages/Calendario";
 import Clientes from "./pages/Clientes";
 import ClienteDetalhe from "./pages/ClienteDetalhe";
 import Profissionais from "./pages/Profissionais";
+import Equipe from "./pages/Equipe";
 import Servicos from "./pages/Servicos";
 import Agendamentos from "./pages/Agendamentos";
 import Financeiro from "./pages/Financeiro";
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/admin/agendamentos">{() => <WithAdmin><Agendamentos /></WithAdmin>}</Route>
       <Route path="/admin/clientes">{() => <WithAdmin><Clientes /></WithAdmin>}</Route>
       <Route path="/admin/profissionais">{() => <WithAdmin><Profissionais /></WithAdmin>}</Route>
+      <Route path="/admin/equipe">{() => <WithAdmin><Equipe /></WithAdmin>}</Route>
       <Route path="/admin/servicos">{() => <WithAdmin><Servicos /></WithAdmin>}</Route>
       <Route path="/admin/financeiro">{() => <WithAdmin><Financeiro /></WithAdmin>}</Route>
       <Route path="/admin/automacoes">{() => <WithAdmin><Automacoes /></WithAdmin>}</Route>

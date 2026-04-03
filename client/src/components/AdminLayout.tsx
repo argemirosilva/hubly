@@ -22,7 +22,7 @@ const navGroups = [
     label: "Gestão",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users },
-      { href: "/admin/profissionais", label: "Profissionais", icon: UserCog },
+      { href: "/admin/equipe", label: "Equipe", icon: UserCog },
       { href: "/admin/servicos", label: "Serviços", icon: Sparkles },
       { href: "/admin/pacotes", label: "Pacotes", icon: Package },
     ],
@@ -48,7 +48,6 @@ const navGroups = [
     label: "Sistema",
     items: [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
-      { href: "/admin/usuarios", label: "Usuários & Grupos", icon: Shield },
       { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
       { href: "/admin/planos", label: "Planos", icon: Gem },

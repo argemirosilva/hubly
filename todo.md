@@ -541,3 +541,29 @@
 - [x] Procedures tRPC: profissionalServicos.getByProfissional, set, vincular, desvincular
 - [x] Interface de vínculo profissional-serviço na tela de Profissionais (aba Serviços)
 - [x] Modal de gerenciamento unificado com abas Serviços e Permissões
+
+## Tela Unificada de Equipe (v11)
+- [ ] Backend: procedure equipe.list (todos os membros com grupoNome e grupoCor)
+- [ ] Backend: procedure equipe.criar (cria profissional com ou sem acesso ao sistema)
+- [ ] Backend: procedure equipe.atualizar (atualiza campos de profissional e acesso)
+- [ ] Backend: procedure equipe.excluir (remove ou desativa)
+- [ ] Frontend: página /admin/equipe com listagem unificada e filtros (Todos/Profissionais/Com acesso)
+- [ ] Frontend: modal unificado com campos condicionais (isProfissional → especialidade/cor/serviços; temAcesso → email/senha/grupo)
+- [ ] Frontend: modal de gerenciamento (serviços, permissões de grupo, reset de senha)
+- [ ] Atualizar AdminLayout: substituir "Profissionais" por "Equipe" na navegação
+- [ ] Atualizar App.tsx: adicionar rota /admin/equipe e manter compatibilidade com rotas antigas
+- [ ] Remover ou redirecionar /admin/profissionais e /admin/usuarios para /admin/equipe
+
+## Tela Unificada de Equipe (v11) — Concluído
+- [x] Backend: função getEquipeByEmpresa no db.ts (join com gruposPermissoes)
+- [x] Backend: procedure equipe.list (todos os membros com grupoNome e grupoCor)
+- [x] Backend: procedure equipe.criar (cria profissional com ou sem acesso ao sistema)
+- [x] Backend: procedure equipe.atualizar (atualiza campos de profissional e acesso)
+- [x] Backend: procedure equipe.excluir (desativa membro)
+- [x] Backend: procedure equipe.resetarSenha (redefine senha de usuário com acesso)
+- [x] Frontend: página /admin/equipe com listagem unificada e filtros (Todos/Profissionais/Com acesso)
+- [x] Frontend: modal unificado com campos condicionais (isProfissional → especialidade/cor; temAcesso → email/senha/grupo)
+- [x] Frontend: modal de reset de senha para usuários com acesso
+- [x] Frontend: cards com badges de papel (Profissional/Acesso) e ações (editar, desativar, reset senha)
+- [x] Atualizar AdminLayout: substituir "Profissionais" por "Equipe" na navegação
+- [x] Atualizar App.tsx: adicionar rota /admin/equipe (mantendo /admin/profissionais e /admin/usuarios)

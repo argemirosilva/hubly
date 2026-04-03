@@ -23,6 +23,7 @@ import {
   getMembrosGrupo, getMembrosEmpresa, addMembroGrupo, removeMembroGrupo, getPermissoesUsuario,
   getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
+  getEquipeByEmpresa,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1456,6 +1457,92 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { desvincularServicoProfissional } = await import('./db');
         await desvincularServicoProfissional(input.profissionalId, input.servicoId);
+        return { success: true };
+      }),
+  }),
+  // ─── EQUIPE (Tela Unificada: Profissionais + Usuários) ──────────────────────
+  equipe: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      return getEquipeByEmpresa(empresa.id);
+    }),
+    criar: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
+        telefone: z.string().optional(),
+        especialidade: z.string().optional(),
+        corCalendario: z.string().optional(),
+        isProfissional: z.boolean().default(true),
+        temAcesso: z.boolean().default(false),
+        senha: z.string().min(6).optional(),
+        grupoId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        let passwordHash: string | undefined;
+        if (input.temAcesso && input.senha) {
+          const bcryptLib = await import('bcryptjs');
+          passwordHash = await bcryptLib.default.hash(input.senha, 10);
+        }
+        const id = await createProfissional({
+          empresaId: empresa.id,
+          nome: input.nome,
+          email: input.email,
+          telefone: input.telefone,
+          especialidade: input.especialidade,
+          corCalendario: input.corCalendario ?? '#7c3aed',
+          isProfissional: input.isProfissional,
+          temAcesso: input.temAcesso,
+          passwordHash: passwordHash ?? null,
+          grupoId: input.grupoId ?? null,
+          criadoPorId: ctx.user.id,
+          ativo: true,
+        });
+        return { id, success: true };
+      }),
+    atualizar: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().min(1).optional(),
+        email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
+        telefone: z.string().optional(),
+        especialidade: z.string().optional(),
+        corCalendario: z.string().optional(),
+        isProfissional: z.boolean().optional(),
+        temAcesso: z.boolean().optional(),
+        ativo: z.boolean().optional(),
+        senha: z.string().min(6).optional(),
+        grupoId: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const { id, senha, ...data } = input;
+        const updateData: Record<string, unknown> = { ...data };
+        if (senha) {
+          const bcryptLib = await import('bcryptjs');
+          updateData.passwordHash = await bcryptLib.default.hash(senha, 10);
+        }
+        await updateProfissional(id, updateData as any);
+        return { success: true };
+      }),
+    excluir: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateProfissional(input.id, { ativo: false });
+        return { success: true };
+      }),
+    resetarSenha: protectedProcedure
+      .input(z.object({ id: z.number(), novaSenha: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        const bcryptLib = await import('bcryptjs');
+        const passwordHash = await bcryptLib.default.hash(input.novaSenha, 10);
+        await updateProfissional(input.id, { passwordHash });
         return { success: true };
       }),
   }),
