@@ -151,6 +151,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
+  // Controla quais itens com submenu estão expandidos (deve ficar antes dos returns condicionais)
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    navGroups.forEach(group => {
+      group.items.forEach(item => {
+        if (item.children && item.children.some(c => location.startsWith(c.href))) {
+          initial.add(item.href);
+        }
+      });
+    });
+    return initial;
+  });
+  const toggleExpanded = (href: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(href)) next.delete(href);
+      else next.add(href);
+      return next;
+    });
+  };
+
   useEffect(() => { setSidebarOpen(false); }, [location]);
 
   if (loading) {
@@ -271,29 +292,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return location === href;
     return location.startsWith(href);
-  };
-
-  // Controla quais itens com submenu estão expandidos
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
-    // Abrir automaticamente o grupo que contém a rota atual
-    const initial = new Set<string>();
-    navGroups.forEach(group => {
-      group.items.forEach(item => {
-        if (item.children && item.children.some(c => location.startsWith(c.href))) {
-          initial.add(item.href);
-        }
-      });
-    });
-    return initial;
-  });
-
-  const toggleExpanded = (href: string) => {
-    setExpandedItems(prev => {
-      const next = new Set(prev);
-      if (next.has(href)) next.delete(href);
-      else next.add(href);
-      return next;
-    });
   };
 
   return (
