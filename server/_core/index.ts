@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initScheduler } from "../scheduler";
 import { registerStripeWebhook } from "../stripe-webhook";
+import { waManager } from "../whatsapp";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -67,6 +68,8 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     initScheduler();
+    // Reconectar WhatsApp automaticamente se houver sessão salva no banco
+    waManager.init().catch(err => console.error('[WhatsApp] Erro na inicialização:', err));
   });
 }
 

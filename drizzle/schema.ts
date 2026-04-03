@@ -5,6 +5,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  longtext,
   timestamp,
   varchar,
   time,
@@ -758,3 +759,12 @@ export const contasPagar = mysqlTable("contas_pagar", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type ContaPagar = typeof contasPagar.$inferSelect;
+
+// ─── SESSÃO WHATSAPP (Baileys) ────────────────────────────────────────────────
+// Persiste credenciais no banco para sobreviver a reinicializações do servidor
+export const waSession = mysqlTable("wa_session", {
+  id: varchar("id", { length: 200 }).primaryKey(),  // ex: "creds", "app-state-sync-key-xxx"
+  data: longtext("data").notNull(),                  // JSON serializado do objeto Baileys
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type WaSession = typeof waSession.$inferSelect;
