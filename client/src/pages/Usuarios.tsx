@@ -558,8 +558,6 @@ export default function Usuarios() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {grupos.map((grupo: any) => {
-                const activePerms = grupo.permissoes ? Object.values(grupo.permissoes).filter(Boolean).length : 0;
-                const pct = Math.round((activePerms / TOTAL_PERMS) * 100);
                 const membrosCount = systemUsers.filter((u: any) => u.grupoId === grupo.id).length;
 
                 return (
@@ -585,16 +583,6 @@ export default function Usuarios() {
                           title="Excluir grupo">
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs text-muted-foreground">Permissões ativas</span>
-                        <span className="text-xs font-medium text-foreground">{activePerms}/{TOTAL_PERMS} ({pct}%)</span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: grupo.cor }} />
                       </div>
                     </div>
 
