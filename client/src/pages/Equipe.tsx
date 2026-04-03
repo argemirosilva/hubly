@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,15 @@ import {
   CheckCircle2,
   Tag,
   X,
+  Trash2,
+  Settings2,
+  ChevronRight,
+  Check,
+  BarChart3,
+  Zap,
+  DollarSign,
+  Users2,
+  Wrench,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -80,7 +89,111 @@ type Servico = {
   ativo: boolean | null;
 };
 
-type FiltroAba = "todos" | "profissionais" | "acesso";
+type FiltroAba = "todos" | "profissionais" | "acesso" | "grupos";
+
+// ─── Permissões ───────────────────────────────────────────────────────────────
+const PERMISSION_GROUPS = [
+  {
+    key: "atendimentos", label: "Atendimentos", icon: CheckCircle2, color: "oklch(55% 0.22 264)",
+    items: [
+      { key: "agendamentosVer", label: "Visualizar agendamentos" },
+      { key: "agendamentosCriar", label: "Criar agendamentos" },
+      { key: "agendamentosEditar", label: "Editar agendamentos" },
+      { key: "agendamentosConcluir", label: "Concluir atendimentos" },
+      { key: "agendamentosRemarcar", label: "Remarcar agendamentos" },
+      { key: "agendamentosCancelar", label: "Cancelar agendamentos" },
+    ],
+  },
+  {
+    key: "clientes", label: "Clientes", icon: Users2, color: "oklch(62% 0.18 155)",
+    items: [
+      { key: "clientesVer", label: "Visualizar clientes" },
+      { key: "clientesVerContato", label: "Ver telefone e e-mail dos clientes" },
+      { key: "clientesCriar", label: "Cadastrar novos clientes" },
+      { key: "clientesEditar", label: "Editar dados dos clientes" },
+      { key: "clientesVerHistorico", label: "Ver histórico de atendimentos" },
+      { key: "clientesVerProntuario", label: "Ver prontuários e documentos" },
+      { key: "clientesEditarProntuario", label: "Editar prontuários e documentos" },
+      { key: "clientesExcluir", label: "Excluir clientes" },
+    ],
+  },
+  {
+    key: "agenda", label: "Agenda e Bloqueios", icon: Lock, color: "oklch(72% 0.16 80)",
+    items: [
+      { key: "agendaSolicitarBloqueio", label: "Solicitar bloqueio de agenda" },
+      { key: "agendaAprovarBloqueio", label: "Aprovar/recusar bloqueios" },
+      { key: "agendaVerBloqueiosTodos", label: "Ver bloqueios de todos os profissionais" },
+    ],
+  },
+  {
+    key: "financeiro", label: "Financeiro", icon: DollarSign, color: "oklch(62% 0.18 140)",
+    items: [
+      { key: "financeiroVer", label: "Acessar módulo financeiro" },
+      { key: "financeiroVerComissoes", label: "Ver comissões" },
+      { key: "financeiroEditarComissoes", label: "Editar comissões" },
+      { key: "financeiroMarcarPago", label: "Marcar comissões como pagas" },
+      { key: "financeiroVerReceita", label: "Ver receita da empresa" },
+      { key: "financeiroVerCustos", label: "Ver custos e despesas" },
+      { key: "financeiroVerRelatorios", label: "Ver relatórios financeiros" },
+    ],
+  },
+  {
+    key: "profissionais", label: "Profissionais", icon: Users, color: "oklch(55% 0.22 300)",
+    items: [
+      { key: "profissionaisVer", label: "Visualizar profissionais" },
+      { key: "profissionaisCriar", label: "Cadastrar profissionais" },
+      { key: "profissionaisEditar", label: "Editar profissionais" },
+      { key: "profissionaisGerenciarPermissoes", label: "Gerenciar permissões de profissionais" },
+      { key: "profissionaisExcluir", label: "Excluir profissionais" },
+    ],
+  },
+  {
+    key: "servicos", label: "Serviços", icon: Wrench, color: "oklch(55% 0.22 30)",
+    items: [
+      { key: "servicosVer", label: "Visualizar serviços" },
+      { key: "servicosCriar", label: "Cadastrar serviços" },
+      { key: "servicosEditar", label: "Editar serviços" },
+      { key: "servicosExcluir", label: "Excluir serviços" },
+    ],
+  },
+  {
+    key: "automacoes", label: "Automações", icon: Zap, color: "oklch(72% 0.16 60)",
+    items: [
+      { key: "automacoesVer", label: "Visualizar automações" },
+      { key: "automacoesCriar", label: "Criar automações" },
+      { key: "automacoesEditar", label: "Editar automações" },
+      { key: "automacoesAtivar", label: "Ativar/desativar automações" },
+      { key: "automacoesExcluir", label: "Excluir automações" },
+    ],
+  },
+  {
+    key: "relatorios", label: "Relatórios e Dashboard", icon: BarChart3, color: "oklch(55% 0.22 220)",
+    items: [
+      { key: "dashboardVer", label: "Acessar dashboard" },
+      { key: "dashboardVerMetricas", label: "Ver métricas do dashboard" },
+      { key: "relatoriosVer", label: "Visualizar relatórios" },
+      { key: "relatoriosExportar", label: "Exportar relatórios" },
+    ],
+  },
+  {
+    key: "sistema", label: "Sistema e Usuários", icon: Settings2, color: "oklch(45% 0.12 260)",
+    items: [
+      { key: "notificacoesVer", label: "Receber notificações" },
+      { key: "configuracoesVer", label: "Ver configurações" },
+      { key: "configuracoesEditar", label: "Editar configurações da empresa" },
+      { key: "usuariosVer", label: "Ver usuários do sistema" },
+      { key: "usuariosConvidar", label: "Cadastrar novos usuários" },
+      { key: "usuariosEditar", label: "Editar usuários" },
+      { key: "usuariosRemover", label: "Remover usuários" },
+      { key: "gruposVer", label: "Ver grupos de permissões" },
+      { key: "gruposCriar", label: "Criar grupos" },
+      { key: "gruposEditar", label: "Editar grupos" },
+      { key: "gruposExcluir", label: "Excluir grupos" },
+    ],
+  },
+];
+const TOTAL_PERMS = PERMISSION_GROUPS.flatMap(g => g.items).length;
+const COR_PRESETS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899", "#64748b", "#0ea5e9"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getInitials(nome: string) {
@@ -99,14 +212,260 @@ function formatDuracao(minutos: number | null) {
   const m = minutos % 60;
   return m > 0 ? `${h}h${m}min` : `${h}h`;
 }
-
 function formatValor(valor: string) {
   return parseFloat(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// ─── Aba de Serviços ──────────────────────────────────────────────────────────
-function AbaServicos({
-  membroId,
+// ─── Editor de Permissões ───────────────────────────────────────────────────────────────
+function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
+  grupoId: number;
+  permissoesIniciais: Record<string, boolean>;
+  onClose: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const [local, setLocal] = useState<Record<string, boolean>>(permissoesIniciais);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const updateMutation = trpc.grupos.updatePermissoes.useMutation({
+    onSuccess: () => { toast.success("Permissões salvas!"); utils.grupos.list.invalidate(); onClose(); },
+    onError: (err) => toast.error(err.message),
+  });
+  const toggle = (key: string) => setLocal(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleGroup = (items: { key: string }[], value: boolean) => {
+    setLocal(prev => { const n = { ...prev }; items.forEach(i => { n[i.key] = value; }); return n; });
+  };
+  const isAllChecked = (items: { key: string }[]) => items.every(i => local[i.key]);
+  const isPartial = (items: { key: string }[]) => items.some(i => local[i.key]) && !isAllChecked(items);
+  const activeTotal = Object.values(local).filter(Boolean).length;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4 px-1">
+        <span className="text-xs text-muted-foreground">{activeTotal} de {TOTAL_PERMS} permissões ativas</span>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+            const all: Record<string, boolean> = {};
+            PERMISSION_GROUPS.flatMap(g => g.items).forEach(i => { all[i.key] = true; });
+            setLocal(all);
+          }}>Marcar todas</Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLocal({})}>Limpar todas</Button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+        {PERMISSION_GROUPS.map((group) => {
+          const Icon = group.icon;
+          const allChecked = isAllChecked(group.items);
+          const partial = isPartial(group.items);
+          const expanded = expandedGroups.has(group.key);
+          const activeCount = group.items.filter(i => local[i.key]).length;
+          return (
+            <div key={group.key} className="border border-border rounded-xl overflow-hidden">
+              <div
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-accent/20 transition-colors"
+                style={{ background: expanded ? `${group.color}08` : undefined }}
+                onClick={() => setExpandedGroups(prev => {
+                  const next = new Set(prev);
+                  next.has(group.key) ? next.delete(group.key) : next.add(group.key);
+                  return next;
+                })}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${group.color}20` }}>
+                  <Icon className="w-4 h-4" style={{ color: group.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{group.label}</p>
+                  <p className="text-xs text-muted-foreground">{activeCount}/{group.items.length} ativas</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    className="text-xs px-2 py-1 rounded-md border border-border hover:bg-accent transition-colors"
+                    onClick={(e) => { e.stopPropagation(); toggleGroup(group.items, !allChecked); }}
+                  >
+                    {allChecked ? "Remover todas" : "Marcar todas"}
+                  </button>
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border-2 transition-colors ${allChecked ? "bg-primary border-primary" : partial ? "border-primary/50" : "border-border"}`}>
+                    {(allChecked || partial) && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+                </div>
+              </div>
+              {expanded && (
+                <div className="divide-y divide-border/50" style={{ background: "oklch(98.5% 0.003 264)" }}>
+                  {group.items.map((item) => (
+                    <div key={item.key} className="flex items-center justify-between px-4 py-2.5 hover:bg-accent/20 transition-colors">
+                      <label htmlFor={item.key} className="text-sm text-foreground cursor-pointer flex-1 pr-4">{item.label}</label>
+                      <Switch id={item.key} checked={!!local[item.key]} onCheckedChange={() => toggle(item.key)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-3 pt-4 border-t border-border mt-4">
+        <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
+        <Button className="flex-1" onClick={() => updateMutation.mutate({ grupoId, permissoes: local })} disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? "Salvando..." : "Salvar permissões"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Aba de Grupos de Permissões ──────────────────────────────────────────────────────────
+function AbaGrupos() {
+  const utils = trpc.useUtils();
+  const { data: grupos = [], isLoading } = trpc.grupos.list.useQuery();
+  const [modalCriar, setModalCriar] = useState(false);
+  const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "", cor: "#6366f1" });
+  const [permissoesModal, setPermissoesModal] = useState<{ open: boolean; grupoId: number; nome: string; permissoes: Record<string, boolean> } | null>(null);
+
+  const createMutation = trpc.grupos.create.useMutation({
+    onSuccess: () => { toast.success("Grupo criado!"); utils.grupos.list.invalidate(); setModalCriar(false); setFormGrupo({ nome: "", descricao: "", cor: "#6366f1" }); },
+    onError: (err) => toast.error(err.message),
+  });
+  const deleteMutation = trpc.grupos.delete.useMutation({
+    onSuccess: () => { toast.success("Grupo excluído!"); utils.grupos.list.invalidate(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const membrosCount = (grupo: any) => {
+    return grupo.membros ?? 0;
+  };
+
+  if (isLoading) {
+    return <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Defina os níveis de acesso da sua equipe</p>
+        <Button size="sm" onClick={() => setModalCriar(true)} className="gap-1.5">
+          <Plus className="w-4 h-4" /> Novo grupo
+        </Button>
+      </div>
+
+      {grupos.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl">
+          <Shield className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Nenhum grupo criado</p>
+          <p className="text-sm mt-1">Crie grupos para definir o que cada usuário pode acessar</p>
+          <Button variant="outline" className="mt-4" onClick={() => setModalCriar(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Criar primeiro grupo
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {grupos.map((grupo: any) => (
+            <div key={grupo.id} className="border border-border rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${grupo.cor ?? "#6366f1"}20` }}>
+                  <Shield className="w-4 h-4" style={{ color: grupo.cor ?? "#6366f1" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm">{grupo.nome}</h3>
+                  {grupo.descricao && <p className="text-xs text-muted-foreground truncate">{grupo.descricao}</p>}
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
+                    onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}
+                    title="Editar permissões"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                    onClick={() => { if (confirm("Excluir este grupo? Os membros perderão o grupo vinculado.")) deleteMutation.mutate({ id: grupo.id }); }}
+                    title="Excluir grupo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {PERMISSION_GROUPS.filter(g => g.items.some(i => grupo.permissoes?.[i.key])).map(g => (
+                  <span key={g.key} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground">{g.label}</span>
+                ))}
+                {!PERMISSION_GROUPS.some(g => g.items.some(i => grupo.permissoes?.[i.key])) && (
+                  <span className="text-xs text-muted-foreground italic">Sem permissões definidas</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  {membrosCount(grupo)} {membrosCount(grupo) === 1 ? "membro" : "membros"}
+                </span>
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1"
+                  onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}>
+                  <Pencil className="w-3 h-3" /> Editar permissões
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal Criar Grupo */}
+      <Dialog open={modalCriar} onOpenChange={setModalCriar}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Novo Grupo de Permissões</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Nome do grupo *</Label>
+              <Input placeholder="Ex: Recepcionista, Profissional, Gerente..." value={formGrupo.nome} onChange={e => setFormGrupo(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Descrição</Label>
+              <Input placeholder="Descreva o perfil deste grupo..." value={formGrupo.descricao} onChange={e => setFormGrupo(f => ({ ...f, descricao: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Cor do grupo</Label>
+              <div className="flex gap-2 flex-wrap">
+                {COR_PRESETS.map(cor => (
+                  <button key={cor} className={`w-8 h-8 rounded-lg transition-transform hover:scale-110 ${formGrupo.cor === cor ? "ring-2 ring-offset-2 ring-primary scale-110" : ""}`}
+                    style={{ background: cor }} onClick={() => setFormGrupo(f => ({ ...f, cor }))} />
+                ))}
+              </div>
+            </div>
+            <div className="rounded-lg p-3 text-xs" style={{ background: "oklch(96% 0.01 264)", color: "oklch(40% 0.08 264)" }}>
+              Após criar o grupo, clique em "Editar permissões" para definir o que cada grupo pode acessar.
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setModalCriar(false)}>Cancelar</Button>
+              <Button className="flex-1" disabled={!formGrupo.nome || createMutation.isPending}
+                onClick={() => createMutation.mutate(formGrupo)}>
+                {createMutation.isPending ? "Criando..." : "Criar grupo"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Permissões */}
+      {permissoesModal && (
+        <Dialog open={permissoesModal.open} onOpenChange={(o) => !o && setPermissoesModal(null)}>
+          <DialogContent className="max-w-2xl p-0" style={{ maxHeight: "min(90vh, 700px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+              <DialogTitle className="text-lg font-semibold">Permissões: {permissoesModal.nome}</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">Defina o que os membros deste grupo podem acessar</p>
+            </div>
+            <div className="flex-1 overflow-hidden px-6 py-4">
+              <PermissoesEditor
+                grupoId={permissoesModal.grupoId}
+                permissoesIniciais={permissoesModal.permissoes}
+                onClose={() => setPermissoesModal(null)}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+// ─── Aba de Serviços ──────────────────────────────────────────────────────────────────
+function AbaServicos({ membroId,
   isProfissional,
 }: {
   membroId: number;
@@ -1010,11 +1369,13 @@ export default function Equipe() {
             Gerencie profissionais e usuários do sistema em um único lugar
           </p>
         </div>
-        <Button onClick={handleNovoMembro} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Novo membro</span>
-          <span className="sm:hidden">Novo</span>
-        </Button>
+        {filtroAba !== "grupos" && (
+          <Button onClick={handleNovoMembro} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Novo membro</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+        )}
       </div>
 
       {/* Estatísticas rápidas */}
@@ -1044,7 +1405,7 @@ export default function Equipe() {
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
-        <Tabs value={filtroAba} onValueChange={(v) => setFiltroAba(v as FiltroAba)}>
+        <Tabs value={filtroAba} onValueChange={(v) => { setFiltroAba(v as FiltroAba); setBusca(""); }}>
           <TabsList>
             <TabsTrigger value="todos" className="gap-1.5">
               <Users className="w-3.5 h-3.5" />
@@ -1058,37 +1419,46 @@ export default function Equipe() {
               <Shield className="w-3.5 h-3.5" />
               Com acesso
             </TabsTrigger>
+            <TabsTrigger value="grupos" className="gap-1.5">
+              <Settings2 className="w-3.5 h-3.5" />
+              Grupos
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* Lista */}
-      {membrosFiltrados.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Nenhum membro encontrado</p>
-          <p className="text-sm mt-1">
-            {busca ? "Tente outro termo de busca" : "Adicione o primeiro membro da equipe"}
-          </p>
-          {!busca && (
-            <Button variant="outline" className="mt-4" onClick={handleNovoMembro}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar membro
-            </Button>
-          )}
-        </div>
+      {/* Aba de Grupos */}
+      {filtroAba === "grupos" ? (
+        <AbaGrupos />
       ) : (
-        <div className="space-y-2">
-          {membrosFiltrados.map((m) => (
-            <CardMembro
-              key={m.id}
-              membro={m}
-              onEdit={handleEdit}
-              onResetSenha={handleResetSenha}
-              onToggleAtivo={handleToggleAtivo}
-            />
-          ))}
-        </div>
+        /* Lista de Membros */
+        membrosFiltrados.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhum membro encontrado</p>
+            <p className="text-sm mt-1">
+              {busca ? "Tente outro termo de busca" : "Adicione o primeiro membro da equipe"}
+            </p>
+            {!busca && (
+              <Button variant="outline" className="mt-4" onClick={handleNovoMembro}>
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar membro
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {membrosFiltrados.map((m) => (
+              <CardMembro
+                key={m.id}
+                membro={m}
+                onEdit={handleEdit}
+                onResetSenha={handleResetSenha}
+                onToggleAtivo={handleToggleAtivo}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Modais */}
