@@ -5,7 +5,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
-  getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, createEmpresa, updateEmpresa,
+  getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, getEmpresaDoContexto, createEmpresa, updateEmpresa,
   getProfissionaisByEmpresa, getProfissionalById, createProfissional, updateProfissional,
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClienteById, createCliente, updateCliente,
@@ -41,9 +41,9 @@ import { pacotesClientes, pacotesClientesItens } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
 
 // Helper para obter empresa do usuário logado
-// Delega para o db.ts que trata owner, membro de grupo e fallback admin
-async function getEmpresaDoUsuario(userId: number) {
-  return getEmpresaDoUsuarioDb(userId);
+// Suporta tanto usuários OAuth quanto system_users (ID negativo)
+async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number | null) {
+  return getEmpresaDoContexto(userId, systemUserEmpresaId);
 }
 
 import { getUsageWithAlerts } from "./db-usage-alerts";
@@ -70,7 +70,7 @@ export const appRouter = router({
   // ─── EMPRESA ──────────────────────────────────────────────────────────────
   empresa: router({
     get: protectedProcedure.query(async ({ ctx }) => {
-      return getEmpresaByOwnerId(ctx.user.id);
+      return getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     }),
     create: protectedProcedure
       .input(z.object({
@@ -81,7 +81,7 @@ export const appRouter = router({
         endereco: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const existing = await getEmpresaByOwnerId(ctx.user.id);
+        const existing = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
         if (existing) throw new Error("Empresa já cadastrada");
         await createEmpresa({ ...input, ownerId: ctx.user.id });
         return { success: true };
@@ -114,7 +114,7 @@ export const appRouter = router({
         waMsgLembrete: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaByOwnerId(ctx.user.id);
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateEmpresa(empresa.id, input as any);
         return { success: true };
@@ -124,7 +124,7 @@ export const appRouter = router({
   // ─── PROFISSIONAIS ────────────────────────────────────────────────────────
   profissionais: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       const profs = await getProfissionaisByEmpresa(empresa.id);
       const result = await Promise.all(profs.map(async (p) => {
@@ -136,7 +136,7 @@ export const appRouter = router({
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const prof = await getProfissionalById(input.id);
         if (!prof || prof.empresaId !== empresa.id) throw new Error("Profissional não encontrado");
@@ -152,7 +152,7 @@ export const appRouter = router({
         corCalendario: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createProfissional({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -168,7 +168,7 @@ export const appRouter = router({
         ativo: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         await updateProfissional(id, data);
@@ -186,7 +186,7 @@ export const appRouter = router({
         podeVerFinanceiro: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { profissionalId, ...perms } = input;
         await updatePermissoes(profissionalId, perms);
@@ -197,14 +197,14 @@ export const appRouter = router({
   // ─── CLIENTES ─────────────────────────────────────────────────────────────
   clientes: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getClientesByEmpresa(empresa.id);
     }),
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const cliente = await getClienteById(input.id);
         if (!cliente || cliente.empresaId !== empresa.id) throw new Error("Cliente não encontrado");
@@ -223,7 +223,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createCliente({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -244,7 +244,7 @@ export const appRouter = router({
         ativo: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         await updateCliente(id, data as any);
@@ -260,7 +260,7 @@ export const appRouter = router({
         tipo: z.enum(["anamnese", "evolucao", "foto", "documento", "contrato", "outro"]).default("evolucao"),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createProntuario({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -275,7 +275,7 @@ export const appRouter = router({
         arquivoTipo: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const buffer = Buffer.from(input.arquivoBase64, "base64");
         const key = `empresa-${empresa.id}/clientes/${input.clienteId}/${nanoid()}-${input.arquivoNome}`;
@@ -297,7 +297,7 @@ export const appRouter = router({
   // ─── SERVIÇOS ─────────────────────────────────────────────────────────────
   servicos: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getServicosByEmpresa(empresa.id);
     }),
@@ -316,7 +316,7 @@ export const appRouter = router({
         cor: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createServico({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -333,7 +333,7 @@ export const appRouter = router({
         ativo: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         await updateServico(id, data as any);
@@ -349,14 +349,14 @@ export const appRouter = router({
         dataFim: z.string().optional(),
       }).optional())
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim);
       }),
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         return getAgendamentoById(input.id);
       }),
@@ -375,7 +375,7 @@ export const appRouter = router({
         comReserva: z.boolean().default(false),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         // ── Verificar limite de agendamentos do plano ──────────────────────────
         const limitError = await checkAgendamentoLimit(empresa.id);
@@ -477,7 +477,7 @@ export const appRouter = router({
         reservaPaga: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         const updates: Record<string, any> = { ...data };
@@ -598,7 +598,7 @@ export const appRouter = router({
     confirmarReserva: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateAgendamento(input.id, {
           status: "agendado",
@@ -612,7 +612,7 @@ export const appRouter = router({
   // ─── BLOQUEIOS ────────────────────────────────────────────────────────────
   bloqueios: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getBloqueiosByEmpresa(empresa.id);
     }),
@@ -626,7 +626,7 @@ export const appRouter = router({
         motivo: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createBloqueio({ ...input, empresaId: empresa.id });
         // Notificar dona
@@ -643,7 +643,7 @@ export const appRouter = router({
     aprovar: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateBloqueio(input.id, { status: "aprovado", aprovadoPorId: ctx.user.id });
         return { success: true };
@@ -651,7 +651,7 @@ export const appRouter = router({
     recusar: protectedProcedure
       .input(z.object({ id: z.number(), motivoRecusa: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateBloqueio(input.id, { status: "recusado", motivoRecusa: input.motivoRecusa, aprovadoPorId: ctx.user.id });
         return { success: true };
@@ -663,7 +663,7 @@ export const appRouter = router({
     comissoes: protectedProcedure
       .input(z.object({ profissionalId: z.number().optional() }).optional())
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         return getComissoesByEmpresa(empresa.id, input?.profissionalId);
       }),
@@ -677,7 +677,7 @@ export const appRouter = router({
         custoReposicao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const valorServico = parseFloat(input.valorServico);
         const percentualComissao = parseFloat(input.percentualComissao);
@@ -705,13 +705,13 @@ export const appRouter = router({
     marcarPaga: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateComissao(input.id, { paga: true, pagaEm: new Date() });
         return { success: true };
       }),
     dashboard: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       return getDashboardMetrics(empresa.id);
     }),
@@ -720,7 +720,7 @@ export const appRouter = router({
   // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────
   notificacoes: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getNotificacoesByDestinatario(ctx.user.id, empresa.id);
     }),
@@ -731,7 +731,7 @@ export const appRouter = router({
         return { success: true };
       }),
     marcarTodasLidas: protectedProcedure.mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       await marcarTodasNotificacoesLidas(ctx.user.id, empresa.id);
       return { success: true };
@@ -741,7 +741,7 @@ export const appRouter = router({
   // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────
   automacoes: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getAutomacoesByEmpresa(empresa.id);
     }),
@@ -765,7 +765,7 @@ export const appRouter = router({
         flowJson: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createAutomacao({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -779,7 +779,7 @@ export const appRouter = router({
         flowJson: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
         await updateAutomacao(id, data);
@@ -788,7 +788,7 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await deleteAutomacao(input.id);
         return { success: true };
@@ -798,7 +798,7 @@ export const appRouter = router({
   // ─── CORES / CONFIGURAÇÕES ────────────────────────────────────────────────
   configuracoes: router({
     getCores: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       return getCoresStatus(empresa.id);
     }),
@@ -813,7 +813,7 @@ export const appRouter = router({
         corAguardandoReserva: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await upsertCoresStatus(empresa.id, input);
         return { success: true };
@@ -823,7 +823,7 @@ export const appRouter = router({
   // ─── GRUPOS DE PERMISSÕES ──────────────────────────────────────────────────
   grupos: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       const grupos = await getGruposByEmpresa(empresa.id);
       // Para cada grupo, buscar contagem de membros e permissões
@@ -853,7 +853,7 @@ export const appRouter = router({
         isDefault: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createGrupo({ ...input, empresaId: empresa.id });
         return { id };
@@ -893,7 +893,7 @@ export const appRouter = router({
     addMembro: protectedProcedure
       .input(z.object({ grupoId: z.number(), userId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await addMembroGrupo(input.grupoId, input.userId, empresa.id, ctx.user.id);
         return { id };
@@ -910,13 +910,13 @@ export const appRouter = router({
   // ─── USUÁRIOS DA EMPRESA ───────────────────────────────────────────────────
   usuarios: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getUsersByEmpresa(empresa.id);
     }),
 
     minhasPermissoes: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       // Owner tem todas as permissões
       if (empresa.ownerId === ctx.user.id) return { isOwner: true };
@@ -925,7 +925,7 @@ export const appRouter = router({
 
     convites: router({
       list: protectedProcedure.query(async ({ ctx }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         return getConvitesByEmpresa(empresa.id);
       }),
@@ -936,7 +936,7 @@ export const appRouter = router({
           grupoId: z.number().optional(),
         }))
         .mutation(async ({ ctx, input }) => {
-          const empresa = await getEmpresaDoUsuario(ctx.user.id);
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
           if (!empresa) throw new Error("Empresa não encontrada");
           const token = nanoid(32);
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
@@ -961,7 +961,7 @@ export const appRouter = router({
     // ─── Usuários do Sistema (cadastro por admin com senha) ───
     systemUsers: router({
       list: protectedProcedure.query(async ({ ctx }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         return getSystemUsersByEmpresa(empresa.id);
       }),
@@ -973,7 +973,7 @@ export const appRouter = router({
           grupoId: z.number().optional(),
         }))
         .mutation(async ({ ctx, input }) => {
-          const empresa = await getEmpresaDoUsuario(ctx.user.id);
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
           if (!empresa) throw new Error("Empresa não encontrada");
           return createSystemUser({
             empresaId: empresa.id,
@@ -1059,7 +1059,7 @@ export const appRouter = router({
   planos: router({
     /** Retorna dados da subscription + uso atual da empresa */
     getStatus: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       const [plan, sub, usage] = await Promise.all([
         getEmpresaPlan(empresa.id),
@@ -1098,14 +1098,14 @@ export const appRouter = router({
     }),
     /** Inicializa o trial para uma empresa recém-criada */
     initTrial: protectedProcedure.mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       await getOrCreateSubscription(empresa.id);
       return { success: true };
     }),
     /** Verifica alertas de limite de plano */
     checkAlerts: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return { alertas: [], temAlerta: false };
       const { getUsageWithAlerts } = await import("./db-usage-alerts");
       const plan = await getEmpresaPlan(empresa.id);
@@ -1122,7 +1122,7 @@ export const appRouter = router({
         billingCycle: z.enum(["monthly", "annual"]),
       }))
       .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
         const { PLANOS_STRIPE } = await import("./stripe-products");
@@ -1171,7 +1171,7 @@ export const appRouter = router({
       }),
     /** Cria uma sessão do portal do cliente para gerenciar assinatura */
     createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       const subscription = await getOrCreateSubscription(empresa.id);
       if (!subscription.stripeCustomerId) {
@@ -1187,7 +1187,7 @@ export const appRouter = router({
     }),
     /** Retorna as últimas faturas do cliente no Stripe */
     getInvoices: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       const subscription = await getOrCreateSubscription(empresa.id);
       if (!subscription.stripeCustomerId) return [];
@@ -1235,7 +1235,7 @@ export const appRouter = router({
     getCheckoutSession: protectedProcedure
       .input(z.object({ sessionId: z.string() }))
       .query(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id);
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return null;
         try {
           const { stripe: stripeClient } = await import("./stripe");
@@ -1283,7 +1283,7 @@ export const appRouter = router({
       }),
     /** Retorna detalhes completos da assinatura ativa no Stripe */
     getSubscriptionDetails: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       const subscription = await getOrCreateSubscription(empresa.id);
       if (!subscription.stripeSubscriptionId) return null;

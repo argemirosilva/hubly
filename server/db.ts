@@ -743,6 +743,24 @@ export async function getEmpresaDoUsuario(userId: number) {
   return null;
 }
 
+// ─── HELPER PARA OBTER EMPRESA DO CONTEXTO (OAuth ou system_user) ──────────────
+// Usa o empresaId diretamente quando disponível (system_users), evitando
+// a busca por ownerId que falha para usuários com ID negativo.
+export async function getEmpresaDoContexto(
+  userId: number,
+  systemUserEmpresaId?: number | null
+) {
+  // Se é um system_user (ID negativo), usa o empresaId diretamente
+  if (userId < 0 && systemUserEmpresaId) {
+    const db = await getDb();
+    if (!db) return null;
+    const result = await db.select().from(empresas).where(eq(empresas.id, systemUserEmpresaId)).limit(1);
+    return result[0] ?? null;
+  }
+  // Para usuários OAuth, usa a lógica existente
+  return getEmpresaDoUsuario(userId);
+}
+
 // ─── IA FINANCEIRA — SCORE & ALERTAS ─────────────────────────────────────────
 import { scoreFinanceiro, alertasFinanceiros, analiseClientes, insightsClientes } from "../drizzle/schema";
 

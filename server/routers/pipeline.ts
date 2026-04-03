@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
-  getEmpresaDoUsuario,
+  getEmpresaDoUsuario, getEmpresaDoContexto,
   getPipelinesByEmpresa,
   createPipeline,
   updatePipeline,
@@ -16,8 +16,8 @@ import {
   deleteCartao,
 } from "../db";
 
-async function getEmpresaId(userId: number) {
-  const empresa = await getEmpresaDoUsuario(userId);
+async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null) {
+  const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
   if (!empresa) throw new Error("Empresa não encontrada");
   return empresa.id;
 }
@@ -25,7 +25,7 @@ async function getEmpresaId(userId: number) {
 export const pipelineRouter = router({
   // ── Pipelines ─────────────────────────────────────────────────────────────
   listar: protectedProcedure.query(async ({ ctx }) => {
-    const empresaId = await getEmpresaId(ctx.user.id);
+    const empresaId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
     const pipelinesData = await getPipelinesByEmpresa(empresaId);
     // Para cada pipeline, buscar colunas e cartões
     const result = await Promise.all(
@@ -49,7 +49,7 @@ export const pipelineRouter = router({
   criar: protectedProcedure
     .input(z.object({ nome: z.string().min(1).max(120) }))
     .mutation(async ({ ctx, input }) => {
-      const empresaId = await getEmpresaId(ctx.user.id);
+      const empresaId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const pipelines = await getPipelinesByEmpresa(empresaId);
       const result = await createPipeline({ empresaId, nome: input.nome, ordem: pipelines.length });
       // Criar colunas padrão
@@ -86,7 +86,7 @@ export const pipelineRouter = router({
       cor: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresaId = await getEmpresaId(ctx.user.id);
+      const empresaId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const colunas = await getColunasByPipeline(input.pipelineId);
       return createColuna({
         pipelineId: input.pipelineId,
@@ -133,7 +133,7 @@ export const pipelineRouter = router({
       valor: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresaId = await getEmpresaId(ctx.user.id);
+      const empresaId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const cartoes = await getCartoesByPipeline(input.pipelineId);
       const cartoesColuna = cartoes.filter((c) => c.colunaId === input.colunaId);
       return createCartao({

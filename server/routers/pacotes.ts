@@ -5,7 +5,7 @@
 import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { getEmpresaDoUsuario } from "../db";
+import { getEmpresaDoContexto } from "../db";
 import {
   pacotesModelos, pacotesModelosItens,
   pacotesClientes, pacotesClientesItens,
@@ -15,8 +15,8 @@ import {
 import { eq, and, sql, lte, gt } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
-async function getEmpresaId(userId: number): Promise<number> {
-  const empresa = await getEmpresaDoUsuario(userId);
+async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
+  const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
   if (!empresa) throw new Error("Empresa não encontrada");
   return empresa.id;
 }
@@ -35,7 +35,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const modelos = await db.select().from(pacotesModelos)
         .where(eq(pacotesModelos.empresaId, empId))
         .orderBy(sql`${pacotesModelos.criadoEm} DESC`);
@@ -69,7 +69,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const [result] = await db.insert(pacotesModelos).values({
         empresaId: empId,
         nome: input.nome,
@@ -97,7 +97,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesModelos).set({
         nome: input.nome,
         descricao: input.descricao,
@@ -118,7 +118,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesModelos).set({ ativo: false })
         .where(and(eq(pacotesModelos.id, input.id), eq(pacotesModelos.empresaId, empId)));
       return { ok: true };
@@ -134,7 +134,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const rows = await db.select({
         id: pacotesClientes.id,
         nome: pacotesClientes.nome,
@@ -180,7 +180,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const rows = await db.select().from(pacotesClientes)
         .where(and(
           eq(pacotesClientes.empresaId, empId),
@@ -232,7 +232,7 @@ export const pacotesRouter = router({
         dataVencimento.setDate(dataVencimento.getDate() + input.validadeDias);
       }
 
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const [result] = await db.insert(pacotesClientes).values({
         empresaId: empId,
         clienteId: input.clienteId,
@@ -331,7 +331,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
 
       // KPIs gerais
       const todosOsPacotes = await db.select({
@@ -417,7 +417,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesClientes).set({ status: "cancelado" })
         .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
       return { ok: true };
@@ -432,7 +432,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const conditions = [eq(notificacoesPacotes.empresaId, empId)];
       if (input.apenasNaoLidas) {
         conditions.push(eq(notificacoesPacotes.lida, false));
@@ -464,7 +464,7 @@ export const pacotesRouter = router({
     .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return { total: 0 };
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const [row] = await db.select({ total: sql<number>`COUNT(*)` })
         .from(notificacoesPacotes)
         .where(and(
@@ -480,7 +480,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(notificacoesPacotes)
         .set({ lida: true })
         .where(and(
@@ -495,7 +495,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(notificacoesPacotes)
         .set({ lida: true })
         .where(and(
@@ -510,7 +510,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id);
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
 
       const agora = new Date();
       const em7Dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);

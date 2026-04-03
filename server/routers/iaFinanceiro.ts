@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 import {
-  getEmpresaDoUsuario,
+  getEmpresaDoUsuario, getEmpresaDoContexto,
   getAgendamentosByEmpresa,
   getClientesByEmpresa,
   saveScoreFinanceiro,
@@ -239,7 +239,7 @@ async function gerarAlertasFinanceiros(empresaId: number, scoreAtual: number, sc
 export const iaFinanceiroRouter = router({
   // Calcular e salvar score
   calcularScore: protectedProcedure.mutation(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) throw new Error("Empresa não encontrada");
 
     const scoreAnteriorObj = await getScoreAtual(empresa.id);
@@ -264,14 +264,14 @@ export const iaFinanceiroRouter = router({
 
   // Buscar score atual
   getScore: protectedProcedure.query(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) return null;
     return getScoreAtual(empresa.id);
   }),
 
   // Histórico de scores
   getHistorico: protectedProcedure.query(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) return [];
     return getHistoricoScore(empresa.id, 30);
   }),
@@ -280,7 +280,7 @@ export const iaFinanceiroRouter = router({
   getAlertas: protectedProcedure
     .input(z.object({ apenasNaoLidos: z.boolean().default(false) }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getAlertasFinanceiros(empresa.id, input.apenasNaoLidos);
     }),
@@ -293,7 +293,7 @@ export const iaFinanceiroRouter = router({
     }),
 
   marcarTodosLidos: protectedProcedure.mutation(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) return;
     await marcarTodosAlertasLidos(empresa.id);
     return { ok: true };
@@ -303,7 +303,7 @@ export const iaFinanceiroRouter = router({
   chat: protectedProcedure
     .input(z.object({ mensagem: z.string().min(1).max(1000) }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const score = await getScoreAtual(empresa.id);

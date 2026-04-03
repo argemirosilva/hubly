@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 import {
-  getEmpresaDoUsuario,
+  getEmpresaDoUsuario, getEmpresaDoContexto,
   getClientesByEmpresa,
   saveAnaliseCliente,
   getAnaliseClientesByEmpresa,
@@ -238,7 +238,7 @@ async function gerarInsightsClientes(empresaId: number, metricas: MetricasClient
 export const iaClientesRouter = router({
   // Rodar análise completa
   analisar: protectedProcedure.mutation(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) throw new Error("Empresa não encontrada");
 
     const { metricas, diasHistorico } = await calcularMetricasClientes(empresa.id);
@@ -285,7 +285,7 @@ export const iaClientesRouter = router({
 
   // Buscar análise geral
   getAnalise: protectedProcedure.query(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) return null;
 
     const analises = await getAnaliseClientesByEmpresa(empresa.id);
@@ -330,7 +330,7 @@ export const iaClientesRouter = router({
   getClienteAnalise: protectedProcedure
     .input(z.object({ clienteId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       return getAnaliseByCliente(empresa.id, input.clienteId);
     }),
@@ -339,7 +339,7 @@ export const iaClientesRouter = router({
   getInsights: protectedProcedure
     .input(z.object({ apenasNaoLidos: z.boolean().default(false) }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       return getInsightsClientes(empresa.id, input.apenasNaoLidos);
     }),
@@ -352,7 +352,7 @@ export const iaClientesRouter = router({
     }),
 
   marcarTodosLidos: protectedProcedure.mutation(async ({ ctx }) => {
-    const empresa = await getEmpresaDoUsuario(ctx.user.id);
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) return;
     await marcarTodosInsightsLidos(empresa.id);
     return { ok: true };
@@ -362,7 +362,7 @@ export const iaClientesRouter = router({
   chat: protectedProcedure
     .input(z.object({ mensagem: z.string().min(1).max(1000) }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const analises = await getAnaliseClientesByEmpresa(empresa.id);
