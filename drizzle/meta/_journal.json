@@ -183,6 +183,13 @@
       "when": 1775246962782,
       "tag": "0025_massive_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1775248737368,
+      "tag": "0026_yellow_firebrand",
+      "breakpoints": true
     }
   ]
 }

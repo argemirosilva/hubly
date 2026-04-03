@@ -740,3 +740,18 @@
 - [x] Procedure checkSlugDisponivel no backend (verifica se slug já está em uso por outra empresa)
 - [x] Validação em tempo real no campo de slug (debounce + feedback visual)
 - [x] Bloquear salvamento se slug já estiver em uso
+
+## Histórico de Envios de Automações (Apr 03 2026)
+
+- [x] Schema: tabela historico_envios_automacao (empresaId, automacaoId, clienteId, telefone, mensagem, status, criadoEm)
+- [x] Migração SQL aplicada
+- [x] Backend: registrar envio no histórico ao disparar mensagem de automação
+- [x] Backend: procedure getHistoricoEnvios com filtros e paginação
+- [x] Frontend: aba "Histórico" na página de Automações com tabela de envios
+
+## Página de Sucesso Pós-Pagamento (Apr 03 2026)
+
+- [x] Rota /admin/planos/sucesso no App.tsx
+- [x] Página com identidade Hubly: confirmação do plano, próximos passos e CTA
+- [x] Integrar success_url do Stripe para redirecionar para /admin/planos/sucesso
+- [x] Buscar detalhes da sessão Stripe para exibir o plano contratado

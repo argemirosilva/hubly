@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb } from "./db";
+import { getDb, registrarEnvioAutomacao } from "./db";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -273,6 +273,18 @@ async function enviarLembretesAgendamentos() {
       }
 
       const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+      // Registrar no histórico de envios
+      await registrarEnvioAutomacao({
+        empresaId: ag.empresaId,
+        automacaoNome: 'Lembrete Automático',
+        clienteId: ag.clienteId ?? undefined,
+        clienteNome: ag.clienteNome ?? undefined,
+        telefone: ag.clienteTelefone,
+        canal: 'lembrete',
+        mensagem,
+        status: enviado ? 'enviado' : 'falhou',
+        erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+      }).catch(() => {});
       if (enviado) enviados++;
     }
 

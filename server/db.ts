@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1348,4 +1348,63 @@ export async function importarAgendamentosParaContasReceber(empresaId: number) {
     });
   }
   return novos.length;
+}
+
+// ─── HISTÓRICO DE ENVIOS DE AUTOMAÇÕES ────────────────────────────────────────
+
+export async function registrarEnvioAutomacao(data: {
+  empresaId: number;
+  automacaoId?: number;
+  automacaoNome?: string;
+  clienteId?: number;
+  clienteNome?: string;
+  telefone?: string;
+  canal?: "whatsapp" | "email" | "sms" | "lembrete";
+  mensagem?: string;
+  status?: "enviado" | "falhou" | "pendente";
+  erroDetalhe?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(historicoEnviosAutomacao).values({
+    empresaId: data.empresaId,
+    automacaoId: data.automacaoId ?? null,
+    automacaoNome: data.automacaoNome ?? null,
+    clienteId: data.clienteId ?? null,
+    clienteNome: data.clienteNome ?? null,
+    telefone: data.telefone ?? null,
+    canal: data.canal ?? "whatsapp",
+    mensagem: data.mensagem ?? null,
+    status: data.status ?? "enviado",
+    erroDetalhe: data.erroDetalhe ?? null,
+  });
+}
+
+export async function getHistoricoEnvios(empresaId: number, opts?: {
+  limit?: number;
+  offset?: number;
+  canal?: string;
+  status?: string;
+}) {
+  const db = await getDb();
+  if (!db) return { rows: [], total: 0 };
+  const limit = opts?.limit ?? 50;
+  const offset = opts?.offset ?? 0;
+
+  const conditions = [eq(historicoEnviosAutomacao.empresaId, empresaId)];
+  if (opts?.canal) conditions.push(eq(historicoEnviosAutomacao.canal, opts.canal as any));
+  if (opts?.status) conditions.push(eq(historicoEnviosAutomacao.status, opts.status as any));
+
+  const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+  const [rows, countResult] = await Promise.all([
+    db.select().from(historicoEnviosAutomacao)
+      .where(where)
+      .orderBy(desc(historicoEnviosAutomacao.criadoEm))
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(historicoEnviosAutomacao).where(where),
+  ]);
+
+  return { rows, total: Number(countResult[0]?.count ?? 0) };
 }

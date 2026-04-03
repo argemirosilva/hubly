@@ -6,6 +6,7 @@ import {
   Plus, Trash2, Play, Pause, Settings, ChevronRight,
   ArrowRight, X, Save, Sparkles, Filter,
   AlarmClock, Users, Tag, Check, Edit2, Eye,
+  History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -654,6 +655,18 @@ export default function Automacoes() {
     onError: (e: any) => toast.error(e.message),
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"automacoes" | "historico">("automacoes");
+  const [historicoPage, setHistoricoPage] = useState(0);
+  const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
+  const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
+  const HISTORICO_LIMIT = 20;
+
+  const { data: historicoData, isLoading: historicoLoading, refetch: historicoRefetch } = trpc.automacoes.getHistorico.useQuery({
+    limit: HISTORICO_LIMIT,
+    offset: historicoPage * HISTORICO_LIMIT,
+    canal: historicoFiltroCanal || undefined,
+    status: historicoFiltroStatus || undefined,
+  }, { enabled: activeTab === "historico" });
 
   const [view, setView] = useState<"list" | "editor">("list");
   const [currentFlow, setCurrentFlow] = useState<FlowAutomacao>({ nome: "Nova Automação", ativo: true, nodes: [] });
@@ -751,79 +764,242 @@ export default function Automacoes() {
               <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Automações</h1>
               <p className="text-xs text-muted-foreground mt-0.5">Fluxos automáticos de mensagens e ações</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
-                <Sparkles size={14} className="mr-1" />
-                <span className="hidden sm:inline">Templates</span>
+            {activeTab === "automacoes" && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
+                  <Sparkles size={14} className="mr-1" />
+                  <span className="hidden sm:inline">Templates</span>
+                </Button>
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
+                  <Plus size={14} className="mr-1" />
+                  <span className="hidden sm:inline">Nova automação</span>
+                  <span className="sm:hidden">Nova</span>
+                </Button>
+              </div>
+            )}
+            {activeTab === "historico" && (
+              <Button variant="outline" size="sm" onClick={() => historicoRefetch()}>
+                <RefreshCw size={13} className="mr-1" />Atualizar
               </Button>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
-                <Plus size={14} className="mr-1" />
-                <span className="hidden sm:inline">Nova automação</span>
-                <span className="sm:hidden">Nova</span>
-              </Button>
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            {[
-              { label: "Total", value: automacoesSalvas.length, color: "text-gray-900" },
-              { label: "Ativas", value: (automacoesSalvas as any[]).filter(a => a.ativo).length, color: "text-emerald-600" },
-              { label: "Pausadas", value: (automacoesSalvas as any[]).filter(a => !a.ativo).length, color: "text-gray-400" },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                <p className="text-xs text-gray-500">{s.label}</p>
-                <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-              </div>
-            ))}
+          {/* Abas de navegação */}
+          <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab("automacoes")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "automacoes"
+                  ? "bg-white shadow-sm text-gray-900"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Zap size={13} />Automações
+            </button>
+            <button
+              onClick={() => setActiveTab("historico")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "historico"
+                  ? "bg-white shadow-sm text-gray-900"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <History size={13} />Histórico de Envios
+            </button>
           </div>
 
-          {isLoading ? (
-            <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
-          ) : (automacoesSalvas as any[]).length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
-              <Zap size={40} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500 font-medium">Nenhuma automação criada</p>
-              <p className="text-sm text-gray-400 mt-1 mb-4">Use templates prontos ou crie do zero com a esteira visual</p>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}><Sparkles size={14} className="mr-1.5" />Ver templates</Button>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}><Plus size={14} className="mr-1.5" />Criar do zero</Button>
+          {/* ABA HISTÓRICO */}
+          {activeTab === "historico" && (
+            <div>
+              {/* Filtros */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <select
+                  value={historicoFiltroCanal}
+                  onChange={e => { setHistoricoFiltroCanal(e.target.value); setHistoricoPage(0); }}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                >
+                  <option value="">Todos os canais</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="lembrete">Lembrete</option>
+                  <option value="email">E-mail</option>
+                  <option value="sms">SMS</option>
+                </select>
+                <select
+                  value={historicoFiltroStatus}
+                  onChange={e => { setHistoricoFiltroStatus(e.target.value); setHistoricoPage(0); }}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                >
+                  <option value="">Todos os status</option>
+                  <option value="enviado">Enviado</option>
+                  <option value="falhou">Falhou</option>
+                  <option value="pendente">Pendente</option>
+                </select>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(automacoesSalvas as any[]).map(a => (
-                <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
-                    <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
+
+              {/* Tabela */}
+              {historicoLoading ? (
+                <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+              ) : !historicoData?.rows.length ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <History size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500 font-medium">Nenhum envio registrado</p>
+                  <p className="text-sm text-gray-400 mt-1">Os envios de WhatsApp e lembretes aparecerão aqui</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data/Hora</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Automação</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Canal</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mensagem</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {historicoData.rows.map((row: any) => (
+                          <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                              {new Date(row.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-medium text-gray-900 text-sm">{row.clienteNome || '—'}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-gray-600 text-xs flex items-center gap-1">
+                                <Phone size={10} />{row.telefone || '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-gray-600 text-xs">{row.automacaoNome || '—'}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                row.canal === 'whatsapp' ? 'bg-green-100 text-green-700' :
+                                row.canal === 'lembrete' ? 'bg-blue-100 text-blue-700' :
+                                row.canal === 'email' ? 'bg-purple-100 text-purple-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {row.canal === 'whatsapp' ? <><MessageSquare size={9} />WhatsApp</> :
+                                 row.canal === 'lembrete' ? <><Bell size={9} />Lembrete</> :
+                                 row.canal === 'email' ? <><Mail size={9} />E-mail</> :
+                                 <><Send size={9} />{row.canal}</>}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                row.status === 'enviado' ? 'bg-emerald-100 text-emerald-700' :
+                                row.status === 'falhou' ? 'bg-red-100 text-red-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {row.status === 'enviado' ? <><Check size={9} />Enviado</> :
+                                 row.status === 'falhou' ? <><AlertCircle size={9} />Falhou</> :
+                                 <><Clock size={9} />Pendente</>}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 max-w-xs">
+                              <p className="text-xs text-gray-500 truncate" title={row.mensagem || ''}>
+                                {row.mensagem ? row.mensagem.slice(0, 60) + (row.mensagem.length > 60 ? '...' : '') : '—'}
+                              </p>
+                              {row.erroDetalhe && (
+                                <p className="text-xs text-red-500 mt-0.5 truncate" title={row.erroDetalhe}>{row.erroDetalhe}</p>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-gray-900 text-sm truncate">{a.nome}</p>
-                      <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
-                        {a.ativo ? "Ativa" : "Pausada"}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-gray-500 flex items-center gap-1 truncate"><Zap size={9} />{getTriggerLabel(a)}</span>
-                      <span className="hidden sm:flex text-xs text-gray-400">·</span>
-                      <span className="hidden sm:flex text-xs text-gray-500 items-center gap-1">
-                        <MessageSquare size={9} />{a.canalEnvio === "whatsapp" ? "WhatsApp" : a.canalEnvio === "email" ? "E-mail" : "SMS"}
+                  {/* Paginação */}
+                  {historicoData.total > HISTORICO_LIMIT && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-500">
+                        Mostrando {historicoPage * HISTORICO_LIMIT + 1}–{Math.min((historicoPage + 1) * HISTORICO_LIMIT, historicoData.total)} de {historicoData.total}
                       </span>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled={historicoPage === 0} onClick={() => setHistoricoPage(p => p - 1)}>
+                          <ChevronLeft size={13} />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={(historicoPage + 1) * HISTORICO_LIMIT >= historicoData.total} onClick={() => setHistoricoPage(p => p + 1)}>
+                          <ChevronRight size={13} />
+                        </Button>
+                      </div>
                     </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ABA AUTOMAÇÕES */}
+          {activeTab === "automacoes" && (
+            <>
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                {[
+                  { label: "Total", value: automacoesSalvas.length, color: "text-gray-900" },
+                  { label: "Ativas", value: (automacoesSalvas as any[]).filter(a => a.ativo).length, color: "text-emerald-600" },
+                  { label: "Pausadas", value: (automacoesSalvas as any[]).filter(a => !a.ativo).length, color: "text-gray-400" },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                    <p className="text-xs text-gray-500">{s.label}</p>
+                    <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
-                      <Edit2 size={13} />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => setConfirmDeleteId(a.id)}>
-                      <Trash2 size={13} />
-                    </Button>
+                ))}
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+              ) : (automacoesSalvas as any[]).length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <Zap size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-500 font-medium">Nenhuma automação criada</p>
+                  <p className="text-sm text-gray-400 mt-1 mb-4">Use templates prontos ou crie do zero com a esteira visual</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}><Sparkles size={14} className="mr-1.5" />Ver templates</Button>
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}><Plus size={14} className="mr-1.5" />Criar do zero</Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="space-y-3">
+                  {(automacoesSalvas as any[]).map(a => (
+                    <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
+                        <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{a.nome}</p>
+                          <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
+                            {a.ativo ? "Ativa" : "Pausada"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-xs text-gray-500 flex items-center gap-1 truncate"><Zap size={9} />{getTriggerLabel(a)}</span>
+                          <span className="hidden sm:flex text-xs text-gray-400">·</span>
+                          <span className="hidden sm:flex text-xs text-gray-500 items-center gap-1">
+                            <MessageSquare size={9} />{a.canalEnvio === "whatsapp" ? "WhatsApp" : a.canalEnvio === "email" ? "E-mail" : "SMS"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
+                          <Edit2 size={13} />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setConfirmDeleteId(a.id)}>
+                          <Trash2 size={13} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

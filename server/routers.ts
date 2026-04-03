@@ -29,6 +29,7 @@ import {
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
   getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
+  registrarEnvioAutomacao, getHistoricoEnvios,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -616,6 +617,17 @@ export const appRouter = router({
                     `_${empresa.nome}_`,
                   ].filter(Boolean).join('\n');
               await waManager.sendMessage(telefone, mensagem);
+              // Registrar no histórico de envios
+              registrarEnvioAutomacao({
+                empresaId: empresa.id,
+                automacaoNome: 'Confirmação de Agendamento',
+                clienteId: cliente.id,
+                clienteNome: cliente.nome,
+                telefone,
+                canal: 'whatsapp',
+                mensagem,
+                status: 'enviado',
+              }).catch(() => {});
               // Incrementar contador de notificações WhatsApp
               try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
             }
@@ -1032,6 +1044,23 @@ export const appRouter = router({
         const key = `empresa-${empresa.id}/automacoes/${nanoid()}.${ext}`;
         const { url } = await storagePut(key, buffer, input.arquivoTipo);
         return { url, key, success: true };
+      }),
+    getHistorico: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+        canal: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { rows: [], total: 0 };
+        return getHistoricoEnvios(empresa.id, {
+          limit: input.limit,
+          offset: input.offset,
+          canal: input.canal,
+          status: input.status,
+        });
       }),
   }),
 

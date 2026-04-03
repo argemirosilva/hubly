@@ -297,6 +297,22 @@ export const automacoes = mysqlTable("automacoes", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+// ─── HISTÓRICO DE ENVIOS DE AUTOMAÇÕES ──────────────────────────────────────
+export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  automacaoId: int("automacaoId"),
+  automacaoNome: varchar("automacaoNome", { length: 255 }),
+  clienteId: int("clienteId"),
+  clienteNome: varchar("clienteNome", { length: 255 }),
+  telefone: varchar("telefone", { length: 30 }),
+  canal: mysqlEnum("canal", ["whatsapp", "email", "sms", "lembrete"]).default("whatsapp").notNull(),
+  mensagem: text("mensagem"),
+  status: mysqlEnum("status", ["enviado", "falhou", "pendente"]).default("enviado").notNull(),
+  erroDetalhe: text("erroDetalhe"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
 // ─── PRONTUÁRIOSS ──────────────────────────────────────────────────────────────
 export const prontuarios = mysqlTable("prontuarios", {
   id: int("id").autoincrement().primaryKey(),
