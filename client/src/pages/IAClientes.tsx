@@ -77,8 +77,8 @@ export default function IAClientes() {
   const statusLabel = statusGeral === "saudavel" ? " Clientes saudáveis" : " Atenção: há clientes com risco";
   const statusColor = statusGeral === "saudavel" ? "oklch(38% 0.14 155)" : "oklch(45% 0.18 75)";
 
-  // Guarda de permissão: apenas quem tem clientesVer pode acessar IA Clientes
-  if (!pode("clientesVer")) {
+  // Guarda de permissão: apenas administradores podem acessar IA Clientes
+  if (!pode("__admin__")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
         <Users className="w-12 h-12 text-muted-foreground/30" />

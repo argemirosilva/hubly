@@ -161,7 +161,7 @@ export default function Dashboard() {
   const today = new Date().toISOString().split("T")[0];
 
   // Permissões centralizadas
-  const { pode, isOwner, isAdmin, profissionalId: profissionalIdVinculado } = usePermissoes();
+  const { pode, isOwner, isAdmin, hasFullAccess, profissionalId: profissionalIdVinculado } = usePermissoes();
   const isProfissional = !!profissionalIdVinculado;
   // Pode ver financeiro = owner ou permissão financeiroVer
   const podeVerFinanceiro = pode("financeiroVer");
@@ -520,8 +520,8 @@ export default function Dashboard() {
               {[
                 { label: "Novo agendamento", icon: Plus, action: () => setNovaAgendaOpen(true), primary: true },
                 { label: "Ver calendário", icon: Calendar, href: "/admin/calendario" },
-                { label: "Adicionar cliente", icon: Users, href: "/admin/clientes" },
-                { label: "Ver automações", icon: Zap, href: "/admin/automacoes" },
+                ...(pode("clientesVer") ? [{ label: "Adicionar cliente", icon: Users, href: "/admin/clientes" }] : []),
+                ...(pode("automacoesVer") ? [{ label: "Ver automações", icon: Zap, href: "/admin/automacoes" }] : []),
               ].map((item) => {
                 const Icon = item.icon;
                 if (item.action) {
@@ -574,7 +574,8 @@ export default function Dashboard() {
           </div>
           )}
 
-          {/* Card IA Financeira */}
+          {/* Card IA Financeira — apenas para quem tem permissão financeiroVer */}
+          {podeVerFinanceiro && (
           <div className="card-elegant p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -622,12 +623,13 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          )}
 
-          {/* Card de Plano e Uso */}
-          <PlanStatusCard statusPlano={statusPlano} />
+          {/* Card de Plano e Uso — apenas para admin/owner */}
+          {hasFullAccess && <PlanStatusCard statusPlano={statusPlano} />}
 
-          {/* Profissionais ativos — oculto para profissionais vinculados (veem apenas seus dados) */}
-          {!isProfissional && profissionais && profissionais.filter(p => p.ativo).length > 0 && (
+          {/* Profissionais ativos — apenas para quem tem permissão profissionaisVer */}
+          {pode("profissionaisVer") && profissionais && profissionais.filter(p => p.ativo).length > 0 && (
             <div className="card-elegant p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm tracking-tight">Equipe</h3>

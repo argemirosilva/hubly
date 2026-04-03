@@ -82,8 +82,8 @@ export default function IAFinanceiro() {
   const prioridadeCor = (p: string) =>
     p === "alta" ? "oklch(55% 0.22 25)" : p === "media" ? "oklch(65% 0.20 75)" : "oklch(55% 0.18 155)";
 
-  // Guarda de permissão: apenas quem tem financeiroVer pode acessar IA Financeira
-  if (!pode("financeiroVer")) {
+  // Guarda de permissão: apenas administradores podem acessar IA Financeira
+  if (!pode("__admin__")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
         <Brain className="w-12 h-12 text-muted-foreground/30" />

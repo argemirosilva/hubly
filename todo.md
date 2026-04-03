@@ -808,3 +808,8 @@
 - [x] Busca inteligente de clientes com autocomplete (debounce, case-insensitive, sem acento)
 - [x] Padronizar ícones por categoria de serviço usando Lucide
 - [x] Proteger /assinatura e /planos apenas para admins (backend + frontend)
+
+## Correções Dashboard (03/04/2026 - Lote 3)
+- [x] Ocultar atalhos do Dashboard que o usuário não tem permissão de acessar
+- [x] Menu de IA no sidebar deve ser visível apenas para administradores
+- [x] Atalhos do Dashboard filtrados por permissão (clientes, automações, financeiro, equipe, plano)

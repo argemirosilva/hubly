@@ -66,8 +66,8 @@ const navGroups: NavGroup[] = [
   {
     label: "IA Inteligente",
     items: [
-      { href: "/admin/ia-financeiro", label: "IA Financeira", icon: Brain, permissao: "financeiroVer" },
-      { href: "/admin/ia-clientes", label: "IA Clientes", icon: Users, permissao: "clientesVer" },
+      { href: "/admin/ia-financeiro", label: "IA Financeira", icon: Brain, permissao: "__admin__" },
+      { href: "/admin/ia-clientes", label: "IA Clientes", icon: Users, permissao: "__admin__" },
     ],
   },
   {
