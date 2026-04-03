@@ -356,11 +356,15 @@ export const appRouter = router({
       .input(z.object({
         dataInicio: z.string().optional(),
         dataFim: z.string().optional(),
+        // Filtro opcional por profissional — usado pelo Dashboard e páginas de profissional
+        profissionalId: z.number().nullable().optional(),
       }).optional())
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
-        return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim);
+        // Prioridade: filtro explícito do input > profissional vinculado ao system_user
+        const profId = input?.profissionalId ?? ctx.systemUser?.profissionalId ?? null;
+        return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim, profId);
       }),
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -719,11 +723,15 @@ export const appRouter = router({
         await updateComissao(input.id, { paga: true, pagaEm: new Date() });
         return { success: true };
       }),
-    dashboard: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-      if (!empresa) return null;
-      return getDashboardMetrics(empresa.id);
-    }),
+    dashboard: protectedProcedure
+      .input(z.object({ profissionalId: z.number().nullable().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return null;
+        // Se o usuário é um system_user vinculado a um profissional, filtrar automaticamente
+        const profId = input?.profissionalId ?? ctx.systemUser?.profissionalId ?? null;
+        return getDashboardMetrics(empresa.id, profId);
+      }),
   }),
 
   // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────

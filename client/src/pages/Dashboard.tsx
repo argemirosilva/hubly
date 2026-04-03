@@ -159,12 +159,26 @@ export default function Dashboard() {
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
+  // Detectar se o usuário logado é um profissional vinculado
+  // auth.me retorna profissionalId quando é um system_user com vínculo
+  const { data: meData } = trpc.auth.me.useQuery();
+  const profissionalIdVinculado = (meData as any)?.profissionalId ?? null;
+  const isProfissional = !!profissionalIdVinculado;
+
   const { data: empresa } = trpc.empresa.get.useQuery();
-  const { data: metrics } = trpc.financeiro.dashboard.useQuery();
+  // Passa profissionalId automaticamente — backend filtra se vinculado, admin recebe null e vê tudo
+  const { data: metrics } = trpc.financeiro.dashboard.useQuery(
+    isProfissional ? { profissionalId: profissionalIdVinculado } : undefined
+  );
   const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
   const { data: alertasIA } = trpc.iaFinanceiro.getAlertas.useQuery({ apenasNaoLidos: true });
   const alertasNaoLidos = (alertasIA ?? []).length;
-  const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery({ dataInicio: today, dataFim: today });
+  // Agenda do dia: filtrar por profissional se vinculado
+  const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery(
+    isProfissional
+      ? { dataInicio: today, dataFim: today, profissionalId: profissionalIdVinculado }
+      : { dataInicio: today, dataFim: today }
+  );
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
@@ -239,7 +253,16 @@ export default function Dashboard() {
           <h1 className="font-bold tracking-tight text-xl lg:text-2xl truncate">
             {saudacao(user?.name ?? undefined)}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">{empresa.nome}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{empresa.nome}</p>
+            {isProfissional && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                Minha agenda
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {pendentes > 0 && (
@@ -523,8 +546,8 @@ export default function Dashboard() {
           {/* Card de Plano e Uso */}
           <PlanStatusCard statusPlano={statusPlano} />
 
-          {/* Profissionais ativos */}
-          {profissionais && profissionais.filter(p => p.ativo).length > 0 && (
+          {/* Profissionais ativos — oculto para profissionais vinculados (veem apenas seus dados) */}
+          {!isProfissional && profissionais && profissionais.filter(p => p.ativo).length > 0 && (
             <div className="card-elegant p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm tracking-tight">Equipe</h3>

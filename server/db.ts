@@ -164,12 +164,14 @@ export async function updateServico(id: number, data: Partial<typeof servicos.$i
 }
 
 // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
-export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: string, dataFim?: string) {
+export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: string, dataFim?: string, profissionalId?: number | null) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(agendamentos.empresaId, empresaId)];
   if (dataInicio) conditions.push(sql`${agendamentos.data} >= ${dataInicio}`);
   if (dataFim) conditions.push(sql`${agendamentos.data} <= ${dataFim}`);
+  // Filtro por profissional — apenas quando vinculado (não aplica para administradores)
+  if (profissionalId) conditions.push(eq(agendamentos.profissionalId, profissionalId));
   return db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
 }
 
@@ -331,7 +333,7 @@ export async function upsertCoresStatus(empresaId: number, data: Partial<typeof 
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-export async function getDashboardMetrics(empresaId: number) {
+export async function getDashboardMetrics(empresaId: number, profissionalId?: number | null) {
   const db = await getDb();
   if (!db) return null;
 
@@ -342,12 +344,27 @@ export async function getDashboardMetrics(empresaId: number) {
   const fimMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth(), 0).toISOString().split('T')[0];
   const hojeStr = hoje.toISOString().split('T')[0];
 
+  // Filtros base — quando profissionalId fornecido, restringe ao profissional
+  const filtroHoje = profissionalId
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} = ${hojeStr}`)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} = ${hojeStr}`);
+  const filtroMes = profissionalId
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`);
+  const filtroMesAnterior = profissionalId
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`);
+  const filtroComissoes = profissionalId
+    ? and(eq(comissoes.empresaId, empresaId), eq(comissoes.profissionalId, profissionalId), gte(comissoes.createdAt, new Date(inicioMes)))
+    : and(eq(comissoes.empresaId, empresaId), gte(comissoes.createdAt, new Date(inicioMes)));
+
   const [agendamentosHoje, agendamentosMes, agendamentosMesAnterior, totalClientes, comissoesMes] = await Promise.all([
-    db.select().from(agendamentos).where(and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} = ${hojeStr}`)),
-    db.select().from(agendamentos).where(and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`)),
-    db.select().from(agendamentos).where(and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`)),
+    db.select().from(agendamentos).where(filtroHoje),
+    db.select().from(agendamentos).where(filtroMes),
+    db.select().from(agendamentos).where(filtroMesAnterior),
+    // Total de clientes sempre da empresa (não filtra por profissional)
     db.select({ count: sql<number>`count(*)` }).from(clientes).where(and(eq(clientes.empresaId, empresaId), eq(clientes.ativo, true))),
-    db.select().from(comissoes).where(and(eq(comissoes.empresaId, empresaId), gte(comissoes.createdAt, new Date(inicioMes)))),
+    db.select().from(comissoes).where(filtroComissoes),
   ]);
 
   const receitaMes = agendamentosMes.filter(a => a.status === 'concluido').reduce((sum, a) => sum + parseFloat(String(a.valorTotal)), 0);
@@ -365,6 +382,8 @@ export async function getDashboardMetrics(empresaId: number) {
     comissoesPendentes: comissoesMes.filter(c => !c.paga).length,
     taxaConversao: agendamentosMes.length > 0
       ? Math.round((agendamentosMes.filter(a => a.status === 'concluido').length / agendamentosMes.length) * 100) : 0,
+    // Indica se os dados estão filtrados por profissional
+    filtradoPorProfissional: !!profissionalId,
   };
 }
 
