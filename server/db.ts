@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -997,6 +997,60 @@ export async function setServicosProfissional(profissionalId: number, servicoIds
   if (servicoIds.length > 0) {
     await db.insert(profissionalServicos).values(
       servicoIds.map(servicoId => ({ profissionalId, servicoId }))
+    );
+  }
+}
+
+// ─── TIPOS DE PROFISSIONAL ────────────────────────────────────────────────────
+export async function getTiposProfissionalByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tiposProfissional)
+    .where(and(eq(tiposProfissional.empresaId, empresaId), eq(tiposProfissional.ativo, true)))
+    .orderBy(tiposProfissional.nome);
+}
+
+export async function createTipoProfissional(empresaId: number, nome: string, cor?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(tiposProfissional).values({ empresaId, nome, cor: cor ?? "#7c3aed" });
+  const id = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id, empresaId, nome, cor: cor ?? "#7c3aed", ativo: true };
+}
+
+export async function updateTipoProfissional(id: number, data: { nome?: string; cor?: string; ativo?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(tiposProfissional).set(data).where(eq(tiposProfissional.id, id));
+}
+
+export async function deleteTipoProfissional(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(profissionalTipos).where(eq(profissionalTipos.tipoProfissionalId, id));
+  await db.delete(tiposProfissional).where(eq(tiposProfissional.id, id));
+}
+
+export async function getTiposByProfissional(profissionalId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: tiposProfissional.id,
+    nome: tiposProfissional.nome,
+    cor: tiposProfissional.cor,
+  })
+    .from(profissionalTipos)
+    .innerJoin(tiposProfissional, eq(profissionalTipos.tipoProfissionalId, tiposProfissional.id))
+    .where(eq(profissionalTipos.profissionalId, profissionalId));
+}
+
+export async function setTiposProfissional(profissionalId: number, tipoIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(profissionalTipos).where(eq(profissionalTipos.profissionalId, profissionalId));
+  if (tipoIds.length > 0) {
+    await db.insert(profissionalTipos).values(
+      tipoIds.map(tipoProfissionalId => ({ profissionalId, tipoProfissionalId }))
     );
   }
 }

@@ -24,6 +24,8 @@ import {
   getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
   getEquipeByEmpresa,
+  getTiposProfissionalByEmpresa, createTipoProfissional, updateTipoProfissional, deleteTipoProfissional,
+  getTiposByProfissional, setTiposProfissional,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1543,6 +1545,44 @@ export const appRouter = router({
         const bcryptLib = await import('bcryptjs');
         const passwordHash = await bcryptLib.default.hash(input.novaSenha, 10);
         await updateProfissional(input.id, { passwordHash });
+        return { success: true };
+      }),
+  }),
+  tiposProfissional: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      return getTiposProfissionalByEmpresa(empresa.id);
+    }),
+    criar: protectedProcedure
+      .input(z.object({ nome: z.string().min(1), cor: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa n\u00e3o encontrada' });
+        return createTipoProfissional(empresa.id, input.nome, input.cor);
+      }),
+    atualizar: protectedProcedure
+      .input(z.object({ id: z.number(), nome: z.string().min(1).optional(), cor: z.string().optional(), ativo: z.boolean().optional() }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateTipoProfissional(id, data);
+        return { success: true };
+      }),
+    excluir: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteTipoProfissional(input.id);
+        return { success: true };
+      }),
+    getByProfissional: protectedProcedure
+      .input(z.object({ profissionalId: z.number() }))
+      .query(async ({ input }) => {
+        return getTiposByProfissional(input.profissionalId);
+      }),
+    setProfissional: protectedProcedure
+      .input(z.object({ profissionalId: z.number(), tipoIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        await setTiposProfissional(input.profissionalId, input.tipoIds);
         return { success: true };
       }),
   }),

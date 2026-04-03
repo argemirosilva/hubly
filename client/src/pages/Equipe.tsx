@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Plus,
@@ -42,6 +44,11 @@ import {
   UserCheck,
   Briefcase,
   Lock,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  Tag,
+  X,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -63,6 +70,16 @@ type MembroEquipe = {
   grupoCor: string | null;
 };
 
+type Servico = {
+  id: number;
+  nome: string;
+  valor: string;
+  duracaoMinutos: number | null;
+  cor: string | null;
+  categoria: string | null;
+  ativo: boolean | null;
+};
+
 type FiltroAba = "todos" | "profissionais" | "acesso";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -73,6 +90,298 @@ function getInitials(nome: string) {
     .map((n) => n[0])
     .join("")
     .toUpperCase();
+}
+
+function formatDuracao(minutos: number | null) {
+  if (!minutos) return "";
+  if (minutos < 60) return `${minutos}min`;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m > 0 ? `${h}h${m}min` : `${h}h`;
+}
+
+function formatValor(valor: string) {
+  return parseFloat(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// ─── Aba de Serviços ──────────────────────────────────────────────────────────
+function AbaServicos({
+  membroId,
+  isProfissional,
+}: {
+  membroId: number;
+  isProfissional: boolean;
+}) {
+  const { data: todosServicos = [], isLoading: loadingServicos } =
+    trpc.servicos.list.useQuery();
+
+  const { data: servicosVinculados = [], isLoading: loadingVinculados, refetch } =
+    trpc.profissionalServicos.getByProfissional.useQuery({ profissionalId: membroId });
+
+  const setServicos = trpc.profissionalServicos.set.useMutation({
+    onSuccess: () => {
+      toast.success("Serviços atualizados!");
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const vinculadosIds = useMemo(
+    () => new Set(servicosVinculados.map((s) => s.servicoId)),
+    [servicosVinculados]
+  );
+
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
+
+  // Sincroniza selecionados quando os dados chegam
+  useEffect(() => {
+    setSelecionados(new Set<number>(servicosVinculados.map((s) => s.servicoId)));
+  }, [servicosVinculados]);
+
+  const handleToggle = (servicoId: number) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(servicoId)) {
+        next.delete(servicoId);
+      } else {
+        next.add(servicoId);
+      }
+      return next;
+    });
+  };
+
+  const handleSalvar = () => {
+    setServicos.mutate({
+      profissionalId: membroId,
+      servicoIds: Array.from(selecionados.values()),
+    });
+  };
+
+  const houveMudanca = useMemo(() => {
+    if (selecionados.size !== vinculadosIds.size) return true;
+    const arr = Array.from(selecionados.values());
+    return arr.some((id) => !vinculadosIds.has(id));
+  }, [selecionados, vinculadosIds]);
+
+  const servicosAtivos = (todosServicos as Servico[]).filter((s) => s.ativo);
+
+  // Agrupar por categoria
+  const porCategoria = useMemo(() => {
+    const mapa = new Map<string, Servico[]>();
+    for (const s of servicosAtivos) {
+      const cat = s.categoria ?? "Sem categoria";
+      if (!mapa.has(cat)) mapa.set(cat, []);
+      mapa.get(cat)!.push(s);
+    }
+    return mapa;
+  }, [servicosAtivos]);
+
+  if (!isProfissional) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium">Membro não é profissional</p>
+        <p className="text-xs mt-1">Ative "Aparece na agenda" para vincular serviços</p>
+      </div>
+    );
+  }
+
+  if (loadingServicos || loadingVinculados) {
+    return (
+      <div className="space-y-2 py-2">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  if (servicosAtivos.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium">Nenhum serviço cadastrado</p>
+        <p className="text-xs mt-1">Cadastre serviços em Gestão → Serviços</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Resumo */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">{selecionados.size}</span> de{" "}
+          {servicosAtivos.length} serviços selecionados
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => setSelecionados(new Set(servicosAtivos.map((s) => s.id)))}
+          >
+            Todos
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => setSelecionados(new Set())}
+          >
+            Nenhum
+          </Button>
+        </div>
+      </div>
+
+      {/* Lista agrupada por categoria */}
+      <div className="space-y-4 max-h-64 overflow-y-auto pr-1">
+        {Array.from(porCategoria.entries()).map(([categoria, lista]) => (
+          <div key={categoria}>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              {categoria}
+            </p>
+            <div className="space-y-1">
+              {lista.map((servico) => {
+                const checked = selecionados.has(servico.id);
+                return (
+                  <label
+                    key={servico.id}
+                    className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      checked
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-transparent hover:bg-muted/50"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => handleToggle(servico.id)}
+                      className="shrink-0"
+                    />
+                    {/* Cor do serviço */}
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: servico.cor ?? "#7c3aed" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{servico.nome}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {servico.duracaoMinutos && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <Clock className="w-3 h-3" />
+                            {formatDuracao(servico.duracaoMinutos)}
+                          </span>
+                        )}
+                        <span className="text-xs font-medium text-primary">
+                          {formatValor(servico.valor)}
+                        </span>
+                      </div>
+                    </div>
+                    {checked && (
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Botão salvar */}
+      <Button
+        className="w-full"
+        onClick={handleSalvar}
+        disabled={!houveMudanca || setServicos.isPending}
+      >
+        {setServicos.isPending ? "Salvando..." : "Salvar serviços"}
+      </Button>
+    </div>
+  );
+}
+
+// ─── Aba de Tipos de Profissional ───────────────────────────────────────────────
+function AbaTipos({
+  tiposIds,
+  setTiposIds,
+  todosTipos,
+}: {
+  tiposIds: number[];
+  setTiposIds: (ids: number[]) => void;
+  todosTipos: { id: number; nome: string; cor: string | null }[];
+}) {
+  const toggleTipo = (id: number) => {
+    if (tiposIds.includes(id)) {
+      setTiposIds(tiposIds.filter((t) => t !== id));
+    } else {
+      setTiposIds([...tiposIds, id]);
+    }
+  };
+
+  if (todosTipos.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium">Nenhum tipo cadastrado</p>
+        <p className="text-xs mt-1">Cadastre tipos em Gestão → Serviços → Tipos de Profissional</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Selecione os tipos de profissional que este membro realiza. Usado para agrupar serviços.
+      </p>
+      <div className="space-y-2">
+        {todosTipos.map((tipo) => {
+          const selecionado = tiposIds.includes(tipo.id);
+          return (
+            <label
+              key={tipo.id}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                selecionado ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/50"
+              }`}
+            >
+              <Checkbox
+                checked={selecionado}
+                onCheckedChange={() => toggleTipo(tipo.id)}
+                className="shrink-0"
+              />
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: tipo.cor ?? "#7c3aed" }}
+              />
+              <span className="text-sm font-medium flex-1">{tipo.nome}</span>
+              {selecionado && (
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+              )}
+            </label>
+          );
+        })}
+      </div>
+      {tiposIds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {tiposIds.map((id) => {
+            const tipo = todosTipos.find((t) => t.id === id);
+            if (!tipo) return null;
+            return (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full text-white"
+                style={{ backgroundColor: tipo.cor ?? "#7c3aed" }}
+              >
+                {tipo.nome}
+                <button onClick={() => toggleTipo(id)} className="hover:opacity-70">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Modal de Criação / Edição ────────────────────────────────────────────────
@@ -90,17 +399,70 @@ function ModalMembro({
   onSaved: () => void;
 }) {
   const isEdit = !!membro;
+  const [abaModal, setAbaModal] = useState("dados");
 
-  const [nome, setNome] = useState(membro?.nome ?? "");
-  const [email, setEmail] = useState(membro?.email ?? "");
-  const [telefone, setTelefone] = useState(membro?.telefone ?? "");
-  const [especialidade, setEspecialidade] = useState(membro?.especialidade ?? "");
-  const [corCalendario, setCorCalendario] = useState(membro?.corCalendario ?? "#7c3aed");
-  const [isProfissional, setIsProfissional] = useState(membro?.isProfissional ?? true);
-  const [temAcesso, setTemAcesso] = useState(membro?.temAcesso ?? false);
-  const [grupoId, setGrupoId] = useState<string>(membro?.grupoId?.toString() ?? "");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [especialidade, setEspecialidade] = useState("");
+  const [corCalendario, setCorCalendario] = useState("#7c3aed");
+  const [isProfissional, setIsProfissional] = useState(true);
+  const [temAcesso, setTemAcesso] = useState(false);
+  const [grupoId, setGrupoId] = useState("");
   const [senha, setSenha] = useState("");
-  const [ativo, setAtivo] = useState(membro?.ativo ?? true);
+  const [ativo, setAtivo] = useState(true);
+  const [tiposIds, setTiposIds] = useState<number[]>([]);
+
+  // Buscar tipos vinculados ao profissional (apenas na edição)
+  const { data: tiposVinculados } = trpc.tiposProfissional.getByProfissional.useQuery(
+    { profissionalId: membro?.id ?? 0 },
+    { enabled: isEdit && open }
+  );
+  const { data: todosTipos = [] } = trpc.tiposProfissional.list.useQuery();
+
+  // Reset ao abrir/fechar — agora inicializa TODOS os campos a partir de `membro`
+  useEffect(() => {
+    if (open) {
+      setAbaModal("dados");
+      setNome(membro?.nome ?? "");
+      setEmail(membro?.email ?? "");
+      setTelefone(membro?.telefone ?? "");
+      setEspecialidade(membro?.especialidade ?? "");
+      setCorCalendario(membro?.corCalendario ?? "#7c3aed");
+      setIsProfissional(membro?.isProfissional ?? true);
+      setTemAcesso(membro?.temAcesso ?? false);
+      setGrupoId(membro?.grupoId?.toString() ?? "");
+      setSenha("");
+      setAtivo(membro?.ativo ?? true);
+      setTiposIds([]);
+    }
+  }, [open, membro]);
+
+  // Sincroniza tipos vinculados quando chegam do servidor
+  useEffect(() => {
+    if (tiposVinculados) {
+      setTiposIds(tiposVinculados.map((t) => t.id));
+    }
+  }, [tiposVinculados]);
+
+  const setTiposMutation = trpc.tiposProfissional.setProfissional.useMutation();
+
+  // Reset ao abrir/fechar
+  useEffect(() => {
+    if (open) {
+      setAbaModal("dados");
+      setNome(membro?.nome ?? "");
+      setEmail(membro?.email ?? "");
+      setTelefone(membro?.telefone ?? "");
+      setEspecialidade(membro?.especialidade ?? "");
+      setCorCalendario(membro?.corCalendario ?? "#7c3aed");
+      setIsProfissional(membro?.isProfissional ?? true);
+      setTemAcesso(membro?.temAcesso ?? false);
+      setGrupoId(membro?.grupoId?.toString() ?? "");
+      setSenha("");
+      setAtivo(membro?.ativo ?? true);
+    }
+  }, [open, membro]);
 
   const criar = trpc.equipe.criar.useMutation({
     onSuccess: () => {
@@ -142,149 +504,274 @@ function ModalMembro({
       corCalendario,
       isProfissional,
       temAcesso,
-      grupoId: grupoId ? parseInt(grupoId) : undefined,
+      grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined,
       senha: senha || undefined,
     };
 
     if (isEdit) {
-      atualizar.mutate({ id: membro.id, ...payload, ativo });
+      atualizar.mutate({ id: membro.id, ...payload, ativo }, {
+        onSuccess: () => {
+          // Salvar tipos de profissional após atualizar o membro
+          if (isProfissional) {
+            setTiposMutation.mutate({ profissionalId: membro.id, tipoIds: tiposIds });
+          }
+        }
+      });
     } else {
-      criar.mutate(payload);
+      criar.mutate(payload, {
+        onSuccess: (data: any) => {
+          // Salvar tipos de profissional após criar o membro
+          if (isProfissional && data?.id && tiposIds.length > 0) {
+            setTiposMutation.mutate({ profissionalId: data.id, tipoIds: tiposIds });
+          }
+        }
+      });
     }
   };
-
   const isPending = criar.isPending || atualizar.isPending;
+  // Mostrar aba de serviços apenas na edição de profissionais
+  const mostrarAbaServicos = isEdit && isProfissional;;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Membro" : "Novo Membro da Equipe"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Nome */}
-          <div className="space-y-1">
-            <Label>Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
-          </div>
+        {mostrarAbaServicos ? (
+          <Tabs value={abaModal} onValueChange={setAbaModal} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="w-full shrink-0">
+              <TabsTrigger value="dados" className="flex-1 gap-1.5">
+                <UserCog className="w-3.5 h-3.5" />
+                Dados
+              </TabsTrigger>
+              <TabsTrigger value="tipos" className="flex-1 gap-1.5">
+                <Tag className="w-3.5 h-3.5" />
+                Tipos
+              </TabsTrigger>
+              <TabsTrigger value="servicos" className="flex-1 gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Serviços
+              </TabsTrigger>
+            </TabsList>
 
-          {/* E-mail */}
-          <div className="space-y-1">
-            <Label>E-mail</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" type="email" />
-          </div>
+            <div className="flex-1 overflow-y-auto">
+              <TabsContent value="dados" className="mt-0 space-y-4 py-2">
+                <FormDados
+                  nome={nome} setNome={setNome}
+                  email={email} setEmail={setEmail}
+                  telefone={telefone} setTelefone={setTelefone}
+                  especialidade={especialidade} setEspecialidade={setEspecialidade}
+                  corCalendario={corCalendario} setCorCalendario={setCorCalendario}
+                  isProfissional={isProfissional} setIsProfissional={setIsProfissional}
+                  temAcesso={temAcesso} setTemAcesso={setTemAcesso}
+                  grupoId={grupoId} setGrupoId={setGrupoId}
+                  senha={senha} setSenha={setSenha}
+                  ativo={ativo} setAtivo={setAtivo}
+                  isEdit={isEdit}
+                  grupos={grupos}
+                />
+              </TabsContent>
 
-          {/* Telefone */}
-          <div className="space-y-1">
-            <Label>Telefone</Label>
-            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-9999" />
-          </div>
+              <TabsContent value="tipos" className="mt-0 py-2">
+                <AbaTipos
+                  tiposIds={tiposIds}
+                  setTiposIds={setTiposIds}
+                  todosTipos={todosTipos as { id: number; nome: string; cor: string | null }[]}
+                />
+              </TabsContent>
 
-          {/* Flags de papel */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Papel na equipe</p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-violet-500" />
-                  Aparece na agenda
-                </p>
-                <p className="text-xs text-muted-foreground">Pode ser selecionado em agendamentos</p>
-              </div>
-              <Switch checked={isProfissional} onCheckedChange={setIsProfissional} />
+              <TabsContent value="servicos" className="mt-0 py-2">
+                <AbaServicos membroId={membro!.id} isProfissional={isProfissional} />
+              </TabsContent>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-blue-500" />
-                  Acesso ao sistema
-                </p>
-                <p className="text-xs text-muted-foreground">Pode fazer login no painel</p>
-              </div>
-              <Switch checked={temAcesso} onCheckedChange={setTemAcesso} />
-            </div>
-          </div>
 
-          {/* Campos condicionais: profissional */}
-          {isProfissional && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Especialidade</Label>
-                <Input value={especialidade} onChange={(e) => setEspecialidade(e.target.value)} placeholder="Ex: Cabeleireiro, Manicure..." />
-              </div>
-              <div className="space-y-1">
-                <Label>Cor no calendário</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={corCalendario}
-                    onChange={(e) => setCorCalendario(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer border border-border"
-                  />
-                  <span className="text-sm text-muted-foreground">{corCalendario}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Campos condicionais: acesso */}
-          {temAcesso && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Grupo de permissões</Label>
-                <Select value={grupoId} onValueChange={setGrupoId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar grupo..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem grupo</SelectItem>
-                    {grupos.map((g) => (
-                      <SelectItem key={g.id} value={g.id.toString()}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="w-3 h-3 rounded-full inline-block"
-                            style={{ backgroundColor: g.cor ?? "#6366f1" }}
-                          />
-                          {g.nome}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>{isEdit ? "Nova senha (deixe em branco para manter)" : "Senha *"}</Label>
-                <Input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder={isEdit ? "••••••••" : "Mínimo 6 caracteres"}
+            {(abaModal === "dados" || abaModal === "tipos") && (
+              <DialogFooter className="shrink-0 pt-2">
+                <Button variant="outline" onClick={onClose} disabled={isPending}>Cancelar</Button>
+                <Button onClick={handleSubmit} disabled={isPending}>
+                  {isPending ? "Salvando..." : "Salvar alterações"}
+                </Button>
+              </DialogFooter>
+            )}
+          </Tabs>
+        ) : (
+          <>
+            <div className="overflow-y-auto flex-1">
+              <div className="space-y-4 py-2">
+                <FormDados
+                  nome={nome} setNome={setNome}
+                  email={email} setEmail={setEmail}
+                  telefone={telefone} setTelefone={setTelefone}
+                  especialidade={especialidade} setEspecialidade={setEspecialidade}
+                  corCalendario={corCalendario} setCorCalendario={setCorCalendario}
+                  isProfissional={isProfissional} setIsProfissional={setIsProfissional}
+                  temAcesso={temAcesso} setTemAcesso={setTemAcesso}
+                  grupoId={grupoId} setGrupoId={setGrupoId}
+                  senha={senha} setSenha={setSenha}
+                  ativo={ativo} setAtivo={setAtivo}
+                  isEdit={isEdit}
+                  grupos={grupos}
                 />
               </div>
             </div>
-          )}
-
-          {/* Status (apenas edição) */}
-          {isEdit && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">Status</p>
-                <p className="text-xs text-muted-foreground">Ativo ou inativo na equipe</p>
-              </div>
-              <Switch checked={ativo} onCheckedChange={setAtivo} />
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isPending}>
-            {isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar membro"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter className="shrink-0 pt-2">
+              <Button variant="outline" onClick={onClose} disabled={isPending}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={isPending}>
+                {isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar membro"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Formulário de Dados (extraído para reutilização) ─────────────────────────
+function FormDados({
+  nome, setNome,
+  email, setEmail,
+  telefone, setTelefone,
+  especialidade, setEspecialidade,
+  corCalendario, setCorCalendario,
+  isProfissional, setIsProfissional,
+  temAcesso, setTemAcesso,
+  grupoId, setGrupoId,
+  senha, setSenha,
+  ativo, setAtivo,
+  isEdit,
+  grupos,
+}: {
+  nome: string; setNome: (v: string) => void;
+  email: string; setEmail: (v: string) => void;
+  telefone: string; setTelefone: (v: string) => void;
+  especialidade: string; setEspecialidade: (v: string) => void;
+  corCalendario: string; setCorCalendario: (v: string) => void;
+  isProfissional: boolean; setIsProfissional: (v: boolean) => void;
+  temAcesso: boolean; setTemAcesso: (v: boolean) => void;
+  grupoId: string; setGrupoId: (v: string) => void;
+  senha: string; setSenha: (v: string) => void;
+  ativo: boolean; setAtivo: (v: boolean) => void;
+  isEdit: boolean;
+  grupos: { id: number; nome: string; cor: string | null }[];
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Nome */}
+      <div className="space-y-1">
+        <Label>Nome *</Label>
+        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
+      </div>
+
+      {/* E-mail */}
+      <div className="space-y-1">
+        <Label>E-mail</Label>
+        <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" type="email" />
+      </div>
+
+      {/* Telefone */}
+      <div className="space-y-1">
+        <Label>Telefone</Label>
+        <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-9999" />
+      </div>
+
+      {/* Flags de papel */}
+      <div className="rounded-lg border p-4 space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">Papel na equipe</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-violet-500" />
+              Aparece na agenda
+            </p>
+            <p className="text-xs text-muted-foreground">Pode ser selecionado em agendamentos</p>
+          </div>
+          <Switch checked={isProfissional} onCheckedChange={setIsProfissional} />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium flex items-center gap-2">
+              <Lock className="w-4 h-4 text-blue-500" />
+              Acesso ao sistema
+            </p>
+            <p className="text-xs text-muted-foreground">Pode fazer login no painel</p>
+          </div>
+          <Switch checked={temAcesso} onCheckedChange={setTemAcesso} />
+        </div>
+      </div>
+
+      {/* Campos condicionais: profissional */}
+      {isProfissional && (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Especialidade</Label>
+            <Input value={especialidade} onChange={(e) => setEspecialidade(e.target.value)} placeholder="Ex: Cabeleireiro, Manicure..." />
+          </div>
+          <div className="space-y-1">
+            <Label>Cor no calendário</Label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={corCalendario}
+                onChange={(e) => setCorCalendario(e.target.value)}
+                className="w-10 h-10 rounded cursor-pointer border border-border"
+              />
+              <span className="text-sm text-muted-foreground">{corCalendario}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campos condicionais: acesso */}
+      {temAcesso && (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Grupo de permissões</Label>
+            <Select value={grupoId} onValueChange={setGrupoId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar grupo..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem grupo</SelectItem>
+                {grupos.map((g) => (
+                  <SelectItem key={g.id} value={g.id.toString()}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="w-3 h-3 rounded-full inline-block"
+                        style={{ backgroundColor: g.cor ?? "#6366f1" }}
+                      />
+                      {g.nome}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>{isEdit ? "Nova senha (deixe em branco para manter)" : "Senha *"}</Label>
+            <Input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder={isEdit ? "••••••••" : "Mínimo 6 caracteres"}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Status (apenas edição) */}
+      {isEdit && (
+        <div className="flex items-center justify-between rounded-lg border p-3">
+          <div>
+            <p className="text-sm font-medium">Status</p>
+            <p className="text-xs text-muted-foreground">Ativo ou inativo na equipe</p>
+          </div>
+          <Switch checked={ativo} onCheckedChange={setAtivo} />
+        </div>
+      )}
+    </div>
   );
 }
 

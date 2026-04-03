@@ -567,3 +567,12 @@
 - [x] Frontend: cards com badges de papel (Profissional/Acesso) e ações (editar, desativar, reset senha)
 - [x] Atualizar AdminLayout: substituir "Profissionais" por "Equipe" na navegação
 - [x] Atualizar App.tsx: adicionar rota /admin/equipe (mantendo /admin/profissionais e /admin/usuarios)
+
+## Tela Unificada de Equipe + Tipos de Profissional (v7)
+- [x] Tela unificada de Equipe (fusão de Profissionais + Usuários)
+- [x] Aba de Serviços no modal de edição de membro da equipe
+- [x] Tipos de Profissional como entidade própria (Manicure, Cabeleireiro, etc.)
+- [x] Seleção múltipla de tipos por membro da equipe (aba Tipos no modal)
+- [x] Agrupamento de serviços por tipo de profissional na tela de Serviços
+- [x] Correção do carregamento de dados no modal de edição
+- [x] Botão "Tipos de Profissional" na tela de Serviços para gerenciar tipos

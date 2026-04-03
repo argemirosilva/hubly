@@ -134,6 +134,13 @@
       "when": 1775223842531,
       "tag": "0018_complete_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1775228136616,
+      "tag": "0019_slow_sleepwalker",
+      "breakpoints": true
     }
   ]
 }

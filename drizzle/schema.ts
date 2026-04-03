@@ -703,3 +703,25 @@ export const usageAlerts = mysqlTable("usage_alerts", {
   sentAt: timestamp("sentAt").defaultNow().notNull(),
 });
 export type UsageAlert = typeof usageAlerts.$inferSelect;
+
+// ─── TIPOS DE PROFISSIONAL ────────────────────────────────────────────────────
+// Categorias como "Manicure", "Cabeleireiro", "Maquiadora", etc.
+// Vinculadas à empresa e usadas para agrupar serviços.
+export const tiposProfissional = mysqlTable("tipos_profissional", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  cor: varchar("cor", { length: 7 }).default("#7c3aed"),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TipoProfissional = typeof tiposProfissional.$inferSelect;
+
+// Vínculo N:N entre profissional e tipos de profissional
+export const profissionalTipos = mysqlTable("profissional_tipos", {
+  id: int("id").autoincrement().primaryKey(),
+  profissionalId: int("profissionalId").notNull(),
+  tipoProfissionalId: int("tipoProfissionalId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProfissionalTipo = typeof profissionalTipos.$inferSelect;
