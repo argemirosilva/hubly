@@ -517,3 +517,27 @@
 ## Correções de UI (v9)
 - [x] Corrigir barra de rolagem no modal de permissões — DialogContent com overflow explícito via style inline
 - [ ] Implementar vínculo profissional-serviço (tabela criada, UI e backend pendentes)
+
+## Perfil do Usuário e Vínculo Profissional-Serviço (v9)
+- [ ] Schema: adicionar campo avatarUrl na tabela system_users
+- [ ] Backend: procedure perfil.getMe (dados do usuário logado)
+- [ ] Backend: procedure perfil.update (nome, email, avatarUrl)
+- [ ] Backend: procedure perfil.changePassword (verificar senha atual, salvar nova)
+- [ ] Backend: procedure perfil.uploadAvatar (upload S3)
+- [ ] Frontend: página /perfil com formulário de nome/email, upload de foto e alteração de senha
+- [ ] Frontend: exibir foto do perfil na sidebar, header e tela de agendamento público
+- [ ] Backend: procedures profissionalServicos (listar, vincular, desvincular)
+- [ ] Frontend: interface de vínculo profissional-serviço na tela de Profissionais
+- [ ] Frontend: filtrar serviços por profissional no modal de novo agendamento
+
+## Perfil do Usuário e Vínculo Profissional-Serviço (v10)
+- [x] Página de perfil do usuário (/admin/perfil) com foto, nome, e-mail e senha
+- [x] Upload de foto de perfil via S3 (base64 → storagePut)
+- [x] Foto de perfil exibida na sidebar do AdminLayout
+- [x] Link para perfil no footer da sidebar (ícone UserCircle)
+- [x] Campo avatarUrl adicionado na tabela system_users
+- [x] Procedures tRPC: perfil.getMe, perfil.update, perfil.uploadAvatar, perfil.changePassword
+- [x] Tabela profissionalServicos criada no banco
+- [x] Procedures tRPC: profissionalServicos.getByProfissional, set, vincular, desvincular
+- [x] Interface de vínculo profissional-serviço na tela de Profissionais (aba Serviços)
+- [x] Modal de gerenciamento unificado com abas Serviços e Permissões

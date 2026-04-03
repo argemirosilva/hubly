@@ -30,6 +30,7 @@ import WhatsAppPage from "./pages/WhatsApp";
 import Planos from "./pages/Planos";
 import PlanosSuccesso from "./pages/PlanosSuccesso";
 import Assinatura from "./pages/Assinatura";
+import Perfil from "./pages/Perfil";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
@@ -75,6 +76,7 @@ function Router() {
       <Route path="/admin/planos">{() => <WithAdmin><Planos /></WithAdmin>}</Route>
       <Route path="/admin/planos/sucesso">{() => <WithAdmin><PlanosSuccesso /></WithAdmin>}</Route>
       <Route path="/admin/assinatura">{() => <WithAdmin><Assinatura /></WithAdmin>}</Route>
+      <Route path="/admin/perfil">{() => <WithAdmin><Perfil /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/404" component={NotFound} />

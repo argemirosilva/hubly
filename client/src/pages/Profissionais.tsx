@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Scissors, Settings, Percent } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Scissors, Settings, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const CORES = ["#6366f1","#ec4899","#10b981","#f59e0b","#3b82f6","#8b5cf6","#ef4444","#06b6d4"];
@@ -21,10 +23,92 @@ const permFields = [
   { key: "podeVerFinanceiro", label: "Ver financeiro completo" },
 ];
 
+function ServicosTab({ profissionalId }: { profissionalId: number }) {
+  const utils = trpc.useUtils();
+  const { data: servicos } = trpc.servicos.list.useQuery();
+  const { data: vinculados } = trpc.profissionalServicos.getByProfissional.useQuery({ profissionalId });
+
+  const setMutation = trpc.profissionalServicos.set.useMutation({
+    onSuccess: () => {
+      utils.profissionalServicos.getByProfissional.invalidate({ profissionalId });
+      toast.success("Serviços atualizados!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const vinculadosIds = new Set((vinculados ?? []).map(v => v.servicoId));
+
+  const handleToggle = (servicoId: number) => {
+    const novosIds = new Set(vinculadosIds);
+    if (novosIds.has(servicoId)) {
+      novosIds.delete(servicoId);
+    } else {
+      novosIds.add(servicoId);
+    }
+    setMutation.mutate({ profissionalId, servicoIds: Array.from(novosIds) });
+  };
+
+  if (!servicos || servicos.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-sm text-muted-foreground">Nenhum serviço cadastrado ainda.</p>
+        <p className="text-xs text-muted-foreground mt-1">Cadastre serviços na tela de Serviços primeiro.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 py-2">
+      <p className="text-xs text-muted-foreground mb-3">
+        Selecione os serviços que este profissional presta. Apenas esses serviços aparecerão disponíveis ao agendar com ele.
+      </p>
+      {servicos.map(s => {
+        const ativo = vinculadosIds.has(s.id);
+        return (
+          <button
+            key={s.id}
+            onClick={() => handleToggle(s.id)}
+            disabled={setMutation.isPending}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors text-left ${
+              ativo
+                ? "border-primary/40 bg-primary/5"
+                : "border-border hover:bg-muted/50"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors ${
+                  ativo ? "bg-primary" : "border border-border bg-background"
+                }`}
+              >
+                {ativo && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+              </div>
+              <span className="text-sm font-medium">{s.nome}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {s.duracaoMinutos && (
+                <span className="text-xs text-muted-foreground">{s.duracaoMinutos} min</span>
+              )}
+              {s.valor && (
+                <Badge variant="secondary" className="text-xs">
+                  R$ {parseFloat(String(s.valor)).toFixed(2)}
+                </Badge>
+              )}
+            </div>
+          </button>
+        );
+      })}
+      <div className="pt-2 text-xs text-muted-foreground">
+        {vinculadosIds.size} de {servicos.length} serviços selecionados
+      </div>
+    </div>
+  );
+}
+
 export default function Profissionais() {
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
-  const [permModalOpen, setPermModalOpen] = useState(false);
+  const [gerenModalOpen, setGerenModalOpen] = useState(false);
   const [profSelecionado, setProfSelecionado] = useState<{ id: number; nome: string; permissoes?: any } | null>(null);
   const [form, setForm] = useState({ nome: "", telefone: "", email: "", especialidade: "", corCalendario: "#6366f1" });
 
@@ -46,6 +130,11 @@ export default function Profissionais() {
     const updated = { ...perms, [key]: value };
     setProfSelecionado(p => p ? { ...p, permissoes: updated } : p);
     updatePermMutation.mutate({ profissionalId: profSelecionado.id, [key]: value } as any);
+  };
+
+  const abrirGerenciar = (p: any) => {
+    setProfSelecionado(p);
+    setGerenModalOpen(true);
   };
 
   return (
@@ -81,10 +170,10 @@ export default function Profissionais() {
                 variant="outline"
                 size="sm"
                 className="w-full gap-2"
-                onClick={() => { setProfSelecionado(p as any); setPermModalOpen(true); }}
+                onClick={() => abrirGerenciar(p)}
               >
                 <Settings className="w-3.5 h-3.5" />
-                Gerenciar Permissões
+                Gerenciar
               </Button>
             </CardContent>
           </Card>
@@ -142,27 +231,53 @@ export default function Profissionais() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal permissões */}
-      <Dialog open={permModalOpen} onOpenChange={setPermModalOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-bold tracking-tight">
-              Permissões — {profSelecionado?.nome}
+      {/* Modal gerenciar (permissões + serviços) */}
+      <Dialog open={gerenModalOpen} onOpenChange={setGerenModalOpen}>
+        <DialogContent
+          className="max-w-lg"
+          style={{ display: "flex", flexDirection: "column", maxHeight: "90vh", overflow: "hidden" }}
+        >
+          <DialogHeader className="flex-shrink-0 pb-2">
+            <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: (profissionais ?? []).find(p => p.id === profSelecionado?.id)?.corCalendario ?? "#6366f1" }}
+              >
+                {profSelecionado?.nome?.charAt(0).toUpperCase()}
+              </div>
+              {profSelecionado?.nome}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-1 py-2">
-            {permFields.map(field => (
-              <div key={field.key} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
-                <span className="text-sm text-foreground">{field.label}</span>
-                <Switch
-                  checked={!!(profSelecionado?.permissoes?.[field.key])}
-                  onCheckedChange={v => handlePermChange(field.key, v)}
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setPermModalOpen(false)}>Fechar</Button>
+
+          <Tabs defaultValue="servicos" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="flex-shrink-0 w-full">
+              <TabsTrigger value="servicos" className="flex-1">Serviços</TabsTrigger>
+              <TabsTrigger value="permissoes" className="flex-1">Permissões</TabsTrigger>
+            </TabsList>
+
+            <div className="flex-1 overflow-y-auto mt-2">
+              <TabsContent value="servicos" className="mt-0">
+                {profSelecionado && <ServicosTab profissionalId={profSelecionado.id} />}
+              </TabsContent>
+
+              <TabsContent value="permissoes" className="mt-0">
+                <div className="space-y-1 py-2">
+                  {permFields.map(field => (
+                    <div key={field.key} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                      <span className="text-sm text-foreground">{field.label}</span>
+                      <Switch
+                        checked={!!(profSelecionado?.permissoes?.[field.key])}
+                        onCheckedChange={v => handlePermChange(field.key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+
+          <DialogFooter className="flex-shrink-0 pt-3 border-t border-border mt-2">
+            <Button onClick={() => setGerenModalOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

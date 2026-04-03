@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff
+  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -81,6 +81,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAuthenticated = oauthAuth || systemAuth;
   const loading = oauthLoading || systemLoading;
   const user = oauthUser || (systemUser ? { id: systemUser.id, name: systemUser.nome, email: systemUser.email, role: "user" as const, openId: `system_${systemUser.id}`, loginMethod: "email", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } : null);
+
+  // Buscar avatarUrl do perfil (apenas para system users)
+  const { data: perfilData } = trpc.perfil.getMe.useQuery(undefined, {
+    enabled: systemAuth && isAuthenticated,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+  const avatarUrl = perfilData?.avatarUrl ?? null;
 
   const logout = async () => {
     if (systemAuth) await systemLogout();
@@ -355,11 +362,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(20% 0.018 260)" }}>
           <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl"
             style={{ background: "oklch(18% 0.018 260)" }}>
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-[12px] font-bold text-white">
-                {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-              </span>
-            </div>
+            <Link href="/admin/perfil" className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ background: avatarUrl ? 'transparent' : 'oklch(55% 0.22 264)' }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[12px] font-bold text-white">
+                    {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                  </span>
+                )}
+              </div>
+            </Link>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold truncate" style={{ color: "oklch(88% 0.010 250)" }}>
                 {user?.name?.split(" ")[0] ?? "Usuário"}
@@ -368,6 +382,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {user?.role === "admin" ? "Administrador" : "Profissional"}
               </p>
             </div>
+            <Link href="/admin/perfil" title="Meu perfil"
+              className="p-1.5 rounded-md transition-colors hover:bg-white/10"
+              style={{ color: "oklch(40% 0.010 260)" }}>
+              <UserCircle className="w-4 h-4" />
+            </Link>
             <button onClick={logout} title="Sair"
               className="p-1.5 rounded-md transition-colors hover:bg-white/10"
               style={{ color: "oklch(40% 0.010 260)" }}>

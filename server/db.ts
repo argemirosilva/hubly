@@ -885,3 +885,51 @@ export async function marcarTodosInsightsLidos(empresaId: number) {
   if (!db) return;
   await db.update(insightsClientes).set({ lido: true }).where(eq(insightsClientes.empresaId, empresaId));
 }
+
+// ─── VÍNCULO PROFISSIONAL-SERVIÇO ─────────────────────────────────────────────
+import { profissionalServicos } from "../drizzle/schema";
+
+export async function getServicosByProfissional(profissionalId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({ id: profissionalServicos.id, servicoId: profissionalServicos.servicoId })
+    .from(profissionalServicos)
+    .where(eq(profissionalServicos.profissionalId, profissionalId));
+}
+
+export async function vincularServicoProfissional(profissionalId: number, servicoId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const existing = await db
+    .select({ id: profissionalServicos.id })
+    .from(profissionalServicos)
+    .where(and(
+      eq(profissionalServicos.profissionalId, profissionalId),
+      eq(profissionalServicos.servicoId, servicoId)
+    ))
+    .limit(1);
+  if (existing.length > 0) return { id: existing[0].id, alreadyExists: true };
+  const [result] = await db.insert(profissionalServicos).values({ profissionalId, servicoId });
+  return { id: (result as any).insertId, alreadyExists: false };
+}
+
+export async function desvincularServicoProfissional(profissionalId: number, servicoId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(profissionalServicos).where(and(
+    eq(profissionalServicos.profissionalId, profissionalId),
+    eq(profissionalServicos.servicoId, servicoId)
+  ));
+}
+
+export async function setServicosProfissional(profissionalId: number, servicoIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(profissionalServicos).where(eq(profissionalServicos.profissionalId, profissionalId));
+  if (servicoIds.length > 0) {
+    await db.insert(profissionalServicos).values(
+      servicoIds.map(servicoId => ({ profissionalId, servicoId }))
+    );
+  }
+}

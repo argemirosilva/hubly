@@ -449,6 +449,7 @@ export const systemUsers = mysqlTable("system_users", {
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   grupoId: int("grupoId"),
   profissionalId: int("profissionalId"), // vínculo com profissional da empresa
+  avatarUrl: text("avatarUrl"), // foto de perfil do usuário
   ativo: boolean("ativo").default(true).notNull(),
   ultimoAcesso: timestamp("ultimoAcesso"),
   criadoPorId: int("criadoPorId"),

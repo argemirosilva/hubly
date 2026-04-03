@@ -1025,7 +1025,67 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────
+  // ─── PERFIL DO USUÁRIO ──────────────────────────────────────────────────────────────────────────────────────
+  perfil: router({
+    getMe: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.systemUser) {
+        const db = await getDb();
+        if (!db) return null;
+        const { systemUsers: suTable } = await import('../drizzle/schema');
+        const [su] = await db.select().from(suTable).where(eq(suTable.id, ctx.systemUser.id)).limit(1);
+        return su ? { id: su.id, nome: su.nome, email: su.email, avatarUrl: su.avatarUrl ?? null, isSystemUser: true } : null;
+      }
+      return { id: ctx.user.id, nome: ctx.user.name ?? '', email: ctx.user.email ?? '', avatarUrl: null, isSystemUser: false };
+    }),
+    update: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(2).optional(),
+        email: z.string().email().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.systemUser) throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas usuários do sistema podem atualizar o perfil aqui' });
+        await updateSystemUser(ctx.systemUser.id, { nome: input.nome, email: input.email });
+        return { success: true };
+      }),
+    uploadAvatar: protectedProcedure
+      .input(z.object({
+        imagemBase64: z.string(),
+        mimeType: z.string().default('image/jpeg'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.systemUser) throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas usuários do sistema podem alterar o avatar' });
+        const buffer = Buffer.from(input.imagemBase64, 'base64');
+        const ext = input.mimeType.includes('png') ? 'png' : 'jpg';
+        const key = `avatars/system-user-${ctx.systemUser.id}-${nanoid(8)}.${ext}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        const db = await getDb();
+        if (!db) throw new Error('DB not available');
+        const { systemUsers: suTable } = await import('../drizzle/schema');
+        await db.update(suTable).set({ avatarUrl: url }).where(eq(suTable.id, ctx.systemUser.id));
+        return { success: true, url };
+      }),
+    changePassword: protectedProcedure
+      .input(z.object({
+        senhaAtual: z.string().min(1),
+        novaSenha: z.string().min(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.systemUser) throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas usuários do sistema podem alterar a senha' });
+        const bcrypt = await import('bcryptjs');
+        const db = await getDb();
+        if (!db) throw new Error('DB not available');
+        const { systemUsers: suTable } = await import('../drizzle/schema');
+        const [su] = await db.select().from(suTable).where(eq(suTable.id, ctx.systemUser.id)).limit(1);
+        if (!su) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+        const ok = await bcrypt.compare(input.senhaAtual, su.passwordHash);
+        if (!ok) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Senha atual incorreta' });
+        const hash = await bcrypt.hash(input.novaSenha, 10);
+        await db.update(suTable).set({ passwordHash: hash }).where(eq(suTable.id, ctx.systemUser.id));
+        return { success: true };
+      }),
+  }),
+
+  // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────────────────
   whatsapp: router({
     getStatus: protectedProcedure.query(async () => {
       const { waManager } = await import('./whatsapp');
@@ -1342,6 +1402,38 @@ export const appRouter = router({
         return null;
       }
     }),
+  }),
+  // ─── VÍNCULO PROFISSIONAL-SERVIÇO ──────────────────────────────────────────
+  profissionalServicos: router({
+    getByProfissional: protectedProcedure
+      .input(z.object({ profissionalId: z.number() }))
+      .query(async ({ input }) => {
+        const { getServicosByProfissional } = await import('./db');
+        return getServicosByProfissional(input.profissionalId);
+      }),
+    set: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        servicoIds: z.array(z.number()),
+      }))
+      .mutation(async ({ input }) => {
+        const { setServicosProfissional } = await import('./db');
+        await setServicosProfissional(input.profissionalId, input.servicoIds);
+        return { success: true };
+      }),
+    vincular: protectedProcedure
+      .input(z.object({ profissionalId: z.number(), servicoId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { vincularServicoProfissional } = await import('./db');
+        return vincularServicoProfissional(input.profissionalId, input.servicoId);
+      }),
+    desvincular: protectedProcedure
+      .input(z.object({ profissionalId: z.number(), servicoId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { desvincularServicoProfissional } = await import('./db');
+        await desvincularServicoProfissional(input.profissionalId, input.servicoId);
+        return { success: true };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;
