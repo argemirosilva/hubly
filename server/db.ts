@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, systemUsers } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -74,10 +74,26 @@ export async function updateEmpresa(id: number, data: Partial<typeof empresas.$i
 }
 
 // ─── PROFISSIONAIS ────────────────────────────────────────────────────────────
-export async function getProfissionaisByEmpresa(empresaId: number) {
+// Retorna todos os profissionais da empresa (inclui os com temAcesso mas sem isProfissional)
+export async function getProfissionaisByEmpresa(empresaId: number, apenasAtivos = false) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(profissionais).where(eq(profissionais.empresaId, empresaId));
+  const conditions = [eq(profissionais.empresaId, empresaId)];
+  if (apenasAtivos) conditions.push(eq(profissionais.ativo, true));
+  return db.select().from(profissionais).where(and(...conditions));
+}
+
+// Retorna apenas profissionais marcados como isProfissional=true (para seletores de agendamento)
+export async function getProfissionaisParaAgendamento(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(profissionais).where(
+    and(
+      eq(profissionais.empresaId, empresaId),
+      eq(profissionais.isProfissional, true),
+      eq(profissionais.ativo, true)
+    )
+  );
 }
 
 export async function getProfissionalById(id: number) {
@@ -560,32 +576,35 @@ export async function getUsersByEmpresa(empresaId: number) {
   return membros;
 }
 
-// ─── SYSTEM USERS (cadastro por admin com senha) ──────────────────────────────
+// ─── SYSTEM USERS / PESSOAS COM ACESSO (tabela unificada: profissionais) ────────
 import bcrypt from "bcryptjs";
 
+// Cria um registro na tabela profissionais com temAcesso=true
 export async function createSystemUser(data: {
   empresaId: number;
   nome: string;
   email: string;
   senha: string;
   grupoId?: number;
-  profissionalId?: number;
+  isProfissional?: boolean;
   criadoPorId?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const existing = await db.select({ id: systemUsers.id }).from(systemUsers)
-    .where(and(eq(systemUsers.email, data.email), eq(systemUsers.empresaId, data.empresaId))).limit(1);
+  const existing = await db.select({ id: profissionais.id }).from(profissionais)
+    .where(and(eq(profissionais.email, data.email), eq(profissionais.empresaId, data.empresaId))).limit(1);
   if (existing.length > 0) throw new Error("E-mail já cadastrado nesta empresa");
   const passwordHash = await bcrypt.hash(data.senha, 10);
-  const [result] = await db.insert(systemUsers).values({
+  const [result] = await db.insert(profissionais).values({
     empresaId: data.empresaId,
     nome: data.nome,
     email: data.email,
     passwordHash,
     grupoId: data.grupoId ?? null,
-    profissionalId: data.profissionalId ?? null,
+    isProfissional: data.isProfissional ?? false,
+    temAcesso: true,
     criadoPorId: data.criadoPorId ?? null,
+    corCalendario: "#6b7280",
     ativo: true,
   });
   return { id: (result as any).insertId };
@@ -595,21 +614,24 @@ export async function getSystemUsersByEmpresa(empresaId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select({
-    id: systemUsers.id,
-    nome: systemUsers.nome,
-    email: systemUsers.email,
-    grupoId: systemUsers.grupoId,
-    profissionalId: systemUsers.profissionalId,
-    ativo: systemUsers.ativo,
-    ultimoAcesso: systemUsers.ultimoAcesso,
-    createdAt: systemUsers.createdAt,
+    id: profissionais.id,
+    nome: profissionais.nome,
+    email: profissionais.email,
+    grupoId: profissionais.grupoId,
+    profissionalId: profissionais.id,
+    isProfissional: profissionais.isProfissional,
+    temAcesso: profissionais.temAcesso,
+    avatarUrl: profissionais.avatarUrl,
+    ativo: profissionais.ativo,
+    ultimoAcesso: profissionais.ultimoAcesso,
+    createdAt: profissionais.createdAt,
     grupoNome: gruposPermissoes.nome,
     grupoCor: gruposPermissoes.cor,
   })
-    .from(systemUsers)
-    .leftJoin(gruposPermissoes, eq(systemUsers.grupoId, gruposPermissoes.id))
-    .where(eq(systemUsers.empresaId, empresaId))
-    .orderBy(systemUsers.nome);
+    .from(profissionais)
+    .leftJoin(gruposPermissoes, eq(profissionais.grupoId, gruposPermissoes.id))
+    .where(and(eq(profissionais.empresaId, empresaId), eq(profissionais.temAcesso, true)))
+    .orderBy(profissionais.nome);
 }
 
 export async function updateSystemUser(id: number, data: {
@@ -617,7 +639,7 @@ export async function updateSystemUser(id: number, data: {
   email?: string;
   senha?: string;
   grupoId?: number | null;
-  profissionalId?: number | null;
+  isProfissional?: boolean;
   ativo?: boolean;
 }) {
   const db = await getDb();
@@ -626,23 +648,23 @@ export async function updateSystemUser(id: number, data: {
   if (data.nome !== undefined) updateData.nome = data.nome;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.grupoId !== undefined) updateData.grupoId = data.grupoId;
-  if (data.profissionalId !== undefined) updateData.profissionalId = data.profissionalId;
+  if (data.isProfissional !== undefined) updateData.isProfissional = data.isProfissional;
   if (data.ativo !== undefined) updateData.ativo = data.ativo;
   if (data.senha) updateData.passwordHash = await bcrypt.hash(data.senha, 10);
-  await db.update(systemUsers).set(updateData).where(eq(systemUsers.id, id));
+  await db.update(profissionais).set(updateData).where(eq(profissionais.id, id));
 }
 
 export async function deleteSystemUser(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.delete(systemUsers).where(eq(systemUsers.id, id));
+  await db.update(profissionais).set({ temAcesso: false, passwordHash: null }).where(eq(profissionais.id, id));
 }
 
 export async function resetSystemUserPassword(id: number, novaSenha: string) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const passwordHash = await bcrypt.hash(novaSenha, 10);
-  await db.update(systemUsers).set({ passwordHash }).where(eq(systemUsers.id, id));
+  await db.update(profissionais).set({ passwordHash }).where(eq(profissionais.id, id));
 }
 
 // ─── PIPELINE KANBAN ──────────────────────────────────────────────────────────

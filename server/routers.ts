@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, getEmpresaDoContexto, createEmpresa, updateEmpresa,
-  getProfissionaisByEmpresa, getProfissionalById, createProfissional, updateProfissional,
+  getProfissionaisByEmpresa, getProfissionaisParaAgendamento, getProfissionalById, createProfissional, updateProfissional,
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClienteById, createCliente, updateCliente,
   getServicosByEmpresa, createServico, updateServico,
@@ -61,9 +61,11 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => {
       if (!opts.ctx.user) return null;
+      // No modelo unificado, o systemUser É o profissional (profissionalId = systemUser.id)
       return {
         ...opts.ctx.user,
-        profissionalId: opts.ctx.systemUser?.profissionalId ?? null,
+        profissionalId: opts.ctx.systemUser ? opts.ctx.systemUser.id : null,
+        isProfissional: opts.ctx.systemUser?.isProfissional ?? false,
         isSystemUser: !!opts.ctx.systemUser,
       };
     }),
@@ -182,6 +184,12 @@ export const appRouter = router({
         await updateProfissional(id, data);
         return { success: true };
       }),
+    // Lista apenas profissionais com isProfissional=true e ativo=true (para seletores de agendamento)
+    listParaAgendamento: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      return getProfissionaisParaAgendamento(empresa.id);
+    }),
     updatePermissoes: protectedProcedure
       .input(z.object({
         profissionalId: z.number(),
@@ -994,7 +1002,7 @@ export const appRouter = router({
           email: z.string().email(),
           senha: z.string().min(6),
           grupoId: z.number().optional(),
-          profissionalId: z.number().optional(),
+          isProfissional: z.boolean().optional(),
         }))
         .mutation(async ({ ctx, input }) => {
           const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -1005,7 +1013,7 @@ export const appRouter = router({
             email: input.email,
             senha: input.senha,
             grupoId: input.grupoId,
-            profissionalId: input.profissionalId,
+            isProfissional: input.isProfissional,
             criadoPorId: ctx.user.id,
           });
         }),
@@ -1016,7 +1024,7 @@ export const appRouter = router({
           email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
           senha: z.string().min(6).optional(),
           grupoId: z.number().nullable().optional(),
-          profissionalId: z.number().nullable().optional(),
+          isProfissional: z.boolean().optional(),
           ativo: z.boolean().optional(),
         }))
         .mutation(async ({ input }) => {
@@ -1041,15 +1049,16 @@ export const appRouter = router({
 
   // ─── PERFIL DO USUÁRIO ──────────────────────────────────────────────────────────────────────────────────────
   perfil: router({
+    // No modelo unificado, o systemUser é um registro da tabela profissionais
     getMe: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.systemUser) {
         const db = await getDb();
         if (!db) return null;
-        const { systemUsers: suTable } = await import('../drizzle/schema');
-        const [su] = await db.select().from(suTable).where(eq(suTable.id, ctx.systemUser.id)).limit(1);
-        return su ? { id: su.id, nome: su.nome, email: su.email, avatarUrl: su.avatarUrl ?? null, isSystemUser: true } : null;
+        const { profissionais: profTable } = await import('../drizzle/schema');
+        const [su] = await db.select().from(profTable).where(eq(profTable.id, ctx.systemUser.id)).limit(1);
+        return su ? { id: su.id, nome: su.nome, email: su.email ?? '', avatarUrl: su.avatarUrl ?? null, isSystemUser: true, isProfissional: su.isProfissional ?? false } : null;
       }
-      return { id: ctx.user.id, nome: ctx.user.name ?? '', email: ctx.user.email ?? '', avatarUrl: null, isSystemUser: false };
+      return { id: ctx.user.id, nome: ctx.user.name ?? '', email: ctx.user.email ?? '', avatarUrl: null, isSystemUser: false, isProfissional: false };
     }),
     update: protectedProcedure
       .input(z.object({
@@ -1070,12 +1079,12 @@ export const appRouter = router({
         if (!ctx.systemUser) throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas usuários do sistema podem alterar o avatar' });
         const buffer = Buffer.from(input.imagemBase64, 'base64');
         const ext = input.mimeType.includes('png') ? 'png' : 'jpg';
-        const key = `avatars/system-user-${ctx.systemUser.id}-${nanoid(8)}.${ext}`;
+        const key = `avatars/prof-${ctx.systemUser.id}-${nanoid(8)}.${ext}`;
         const { url } = await storagePut(key, buffer, input.mimeType);
         const db = await getDb();
         if (!db) throw new Error('DB not available');
-        const { systemUsers: suTable } = await import('../drizzle/schema');
-        await db.update(suTable).set({ avatarUrl: url }).where(eq(suTable.id, ctx.systemUser.id));
+        const { profissionais: profTable } = await import('../drizzle/schema');
+        await db.update(profTable).set({ avatarUrl: url }).where(eq(profTable.id, ctx.systemUser.id));
         return { success: true, url };
       }),
     changePassword: protectedProcedure
@@ -1088,13 +1097,14 @@ export const appRouter = router({
         const bcrypt = await import('bcryptjs');
         const db = await getDb();
         if (!db) throw new Error('DB not available');
-        const { systemUsers: suTable } = await import('../drizzle/schema');
-        const [su] = await db.select().from(suTable).where(eq(suTable.id, ctx.systemUser.id)).limit(1);
+        const { profissionais: profTable } = await import('../drizzle/schema');
+        const [su] = await db.select().from(profTable).where(eq(profTable.id, ctx.systemUser.id)).limit(1);
         if (!su) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+        if (!su.passwordHash) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este usuário não tem senha definida' });
         const ok = await bcrypt.compare(input.senhaAtual, su.passwordHash);
         if (!ok) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Senha atual incorreta' });
         const hash = await bcrypt.hash(input.novaSenha, 10);
-        await db.update(suTable).set({ passwordHash: hash }).where(eq(suTable.id, ctx.systemUser.id));
+        await db.update(profTable).set({ passwordHash: hash }).where(eq(profTable.id, ctx.systemUser.id));
         return { success: true };
       }),
   }),

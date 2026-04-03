@@ -127,6 +127,13 @@
       "when": 1775219308096,
       "tag": "0017_damp_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1775223842531,
+      "tag": "0018_complete_the_hood",
+      "breakpoints": true
     }
   ]
 }

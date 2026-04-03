@@ -4,14 +4,23 @@ import { sdk } from "./sdk";
 import { verifySystemSession, SYSTEM_COOKIE_NAME } from "./system-auth";
 import { parse as parseCookies } from "cookie";
 import { getDb } from "../db";
-import { systemUsers, empresas } from "../../drizzle/schema";
+import { profissionais, empresas } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
-  systemUser?: { id: number; nome: string; email: string; empresaId: number; profissionalId?: number | null } | null;
+  // No modelo unificado, systemUser é um registro da tabela profissionais com temAcesso=true
+  systemUser?: {
+    id: number;
+    nome: string;
+    email: string;
+    empresaId: number;
+    isProfissional: boolean;
+    // profissionalId = id do próprio registro (o usuário É o profissional)
+    profissionalId: number | null;
+  } | null;
 };
 
 export async function createContext(
@@ -25,17 +34,17 @@ export async function createContext(
     const systemToken = cookies[SYSTEM_COOKIE_NAME];
     const systemSession = await verifySystemSession(systemToken);
     if (systemSession) {
-      // Buscar dados atualizados do system_user
+      // Buscar dados atualizados do profissional (modelo unificado)
       const db = await getDb();
       if (db) {
         const [su] = await db.select({
-          id: systemUsers.id,
-          nome: systemUsers.nome,
-          email: systemUsers.email,
-          empresaId: systemUsers.empresaId,
-          profissionalId: systemUsers.profissionalId,
-          ativo: systemUsers.ativo,
-        }).from(systemUsers).where(eq(systemUsers.id, systemSession.systemUserId)).limit(1);
+          id: profissionais.id,
+          nome: profissionais.nome,
+          email: profissionais.email,
+          empresaId: profissionais.empresaId,
+          isProfissional: profissionais.isProfissional,
+          ativo: profissionais.ativo,
+        }).from(profissionais).where(eq(profissionais.id, systemSession.systemUserId)).limit(1);
 
         if (su && su.ativo) {
           // Buscar o owner da empresa para retornar como User
@@ -48,7 +57,7 @@ export async function createContext(
               id: -su.id, // ID negativo para diferenciar de usuários OAuth
               openId: `system_user_${su.id}`,
               name: su.nome,
-              email: su.email,
+              email: su.email ?? "",
               loginMethod: "email",
               role: "user" as const,
               createdAt: new Date(),
@@ -59,7 +68,15 @@ export async function createContext(
               req: opts.req,
               res: opts.res,
               user,
-              systemUser: { id: su.id, nome: su.nome, email: su.email, empresaId: su.empresaId, profissionalId: su.profissionalId ?? null },
+              systemUser: {
+                id: su.id,
+                nome: su.nome,
+                email: su.email ?? "",
+                empresaId: su.empresaId,
+                isProfissional: su.isProfissional ?? false,
+                // No modelo unificado: profissionalId = id do próprio registro se isProfissional=true
+                profissionalId: su.isProfissional ? su.id : null,
+              },
             };
           }
         }

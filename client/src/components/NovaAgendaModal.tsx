@@ -19,7 +19,7 @@ interface Props {
 export default function NovaAgendaModal({ open, onClose, dataInicial, profissionalIdInicial }: Props) {
   const utils = trpc.useUtils();
   const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
 
   const [form, setForm] = useState({

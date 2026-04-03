@@ -51,7 +51,7 @@ export default function Agendamentos() {
 
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
   const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
 
   const clienteMap = useMemo(() => {

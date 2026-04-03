@@ -239,10 +239,9 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
   const [email, setEmail] = useState(user?.email ?? "");
   const [senha, setSenha] = useState("");
   const [grupoId, setGrupoId] = useState<string>(user?.grupoId?.toString() ?? "");
-  const [profissionalId, setProfissionalId] = useState<string>(user?.profissionalId?.toString() ?? "");
+  // No modelo unificado: isProfissional=true significa que aparece na agenda
+  const [isProfissional, setIsProfissional] = useState<boolean>(user?.isProfissional ?? false);
   const [showSenha, setShowSenha] = useState(false);
-
-  const { data: profissionais = [] } = trpc.profissionais.list.useQuery();
 
   const criarMutation = trpc.usuarios.systemUsers.criar.useMutation({
     onSuccess: () => { toast.success("Usuário cadastrado!"); onSave(); onClose(); },
@@ -258,11 +257,10 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
     if (!email.trim()) return toast.error("E-mail é obrigatório");
     if (isNew && senha.length < 6) return toast.error("Senha deve ter pelo menos 6 caracteres");
     const gId = grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined;
-    const pId = profissionalId && profissionalId !== "none" ? parseInt(profissionalId) : undefined;
     if (isNew) {
-      criarMutation.mutate({ nome, email, senha, grupoId: gId, profissionalId: pId });
+      criarMutation.mutate({ nome, email, senha, grupoId: gId, isProfissional });
     } else {
-      atualizarMutation.mutate({ id: user.id, nome, email, grupoId: gId ?? null, profissionalId: pId ?? null, ...(senha ? { senha } : {}) });
+      atualizarMutation.mutate({ id: user.id, nome, email, grupoId: gId ?? null, isProfissional, ...(senha ? { senha } : {}) });
     }
   };
 
@@ -300,19 +298,22 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
               </button>
             </div>
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional vinculado</Label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={profissionalId}
-              onChange={e => setProfissionalId(e.target.value)}
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">Profissional (aparece na agenda)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Ativando, este usuário aparecerá como profissional nos agendamentos e verá apenas sua própria agenda e comissões.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsProfissional(v => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                isProfissional ? 'bg-primary' : 'bg-muted'
+              }`}
             >
-              <option value="none">Nenhum (usuário administrativo)</option>
-              {(profissionais as any[]).map((p: any) => (
-                <option key={p.id} value={p.id}>{p.nome}</option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground mt-1">Vinculando a um profissional, o usuário verá apenas a própria agenda e comissões por padrão.</p>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                isProfissional ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Grupo de permissões</Label>
@@ -492,7 +493,7 @@ export default function Usuarios() {
                           <div>
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-medium text-foreground">{u.nome}</p>
-                              {u.profissionalId && (
+                              {u.isProfissional && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "oklch(55% 0.22 155 / 12%)", color: "oklch(35% 0.14 155)" }}>Profissional</span>
                               )}
                             </div>

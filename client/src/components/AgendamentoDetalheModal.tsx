@@ -29,7 +29,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const utils = trpc.useUtils();
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
   const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
 
   const [comissaoModal, setComissaoModal] = useState(false);

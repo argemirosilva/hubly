@@ -19,7 +19,7 @@ export default function Bloqueios() {
   const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "" });
 
   const { data: bloqueios } = trpc.bloqueios.list.useQuery();
-  const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const criarMutation = trpc.bloqueios.create.useMutation({
     onSuccess: () => { toast.success("Solicitação enviada!"); utils.bloqueios.list.invalidate(); setModalOpen(false); },

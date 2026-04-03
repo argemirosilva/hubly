@@ -2,8 +2,8 @@ import type { Application } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { getDb } from "../db";
-import { systemUsers } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { profissionais } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { ENV } from "./env";
 import { getSessionCookieOptions } from "./cookies";
 
@@ -62,19 +62,23 @@ export function registerSystemAuthRoutes(app: Application) {
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
 
-      // Buscar usuário pelo email
+      // Buscar na tabela unificada profissionais (temAcesso=true)
       const [user] = await db
         .select()
-        .from(systemUsers)
-        .where(eq(systemUsers.email, email.toLowerCase().trim()))
+        .from(profissionais)
+        .where(eq(profissionais.email, email.toLowerCase().trim()))
         .limit(1);
 
-      if (!user) {
+      if (!user || !user.temAcesso) {
         return res.status(401).json({ error: "Email ou senha incorretos" });
       }
 
       if (!user.ativo) {
         return res.status(403).json({ error: "Usuário inativo. Contate o administrador." });
+      }
+
+      if (!user.passwordHash) {
+        return res.status(401).json({ error: "Email ou senha incorretos" });
       }
 
       // Verificar senha
@@ -84,14 +88,14 @@ export function registerSystemAuthRoutes(app: Application) {
       }
 
       // Atualizar último acesso
-      await db.update(systemUsers).set({ ultimoAcesso: new Date() }).where(eq(systemUsers.id, user.id));
+      await db.update(profissionais).set({ ultimoAcesso: new Date() }).where(eq(profissionais.id, user.id));
 
       // Criar token de sessão
       const token = await createSystemSessionToken({
         systemUserId: user.id,
         empresaId: user.empresaId,
         nome: user.nome,
-        email: user.email,
+        email: user.email!,
       });
 
       // Definir cookie

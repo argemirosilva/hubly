@@ -46,7 +46,7 @@ export default function Calendario() {
   }, [agendamentosRaw, profissionalVinculadoId]);
 
   const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const clienteMap = useMemo(() => {
     const m: Record<number, string> = {};

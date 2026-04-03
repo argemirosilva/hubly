@@ -80,6 +80,14 @@ export const profissionais = mysqlTable("profissionais", {
   corCalendario: varchar("corCalendario", { length: 7 }).default("#7c3aed"),
   avatarUrl: text("avatarUrl"),
   ativo: boolean("ativo").default(true),
+  // ─── Campos de acesso ao sistema (fusão com system_users) ─────────────────
+  isProfissional: boolean("isProfissional").default(true).notNull(),  // aparece na agenda
+  temAcesso: boolean("temAcesso").default(false).notNull(),           // pode fazer login
+  passwordHash: varchar("passwordHash", { length: 255 }),             // null = sem acesso
+  grupoId: int("grupoId"),                                            // grupo de permissões
+  ultimoAcesso: timestamp("ultimoAcesso"),
+  criadoPorId: int("criadoPorId"),
+  // ─────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
