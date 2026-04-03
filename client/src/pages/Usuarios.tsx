@@ -647,18 +647,17 @@ export default function Usuarios() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* ─── MODAL PERMISSÕES ─────────────────────────────────────────────── */}
+      {/* ─── MODAL PERMISSÕES ─────────────────────────────────────────────────────── */}
       <Dialog open={permissoesModal.open} onOpenChange={(o) => setPermissoesModal({ open: o })}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              Permissões — {permissoesModal.nome}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl p-0" style={{ maxHeight: "min(90vh, 700px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Header fixo */}
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-border flex-shrink-0">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="text-lg font-semibold">Permissões — {permissoesModal.nome}</span>
+          </div>
+          {/* Conteúdo com scroll */}
           {permissoesModal.grupoId && (
-            <div className="flex-1 overflow-hidden">
+            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "16px 24px" }}>
               <PermissoesEditor
                 grupoId={permissoesModal.grupoId}
                 permissoes={permissoesModal.permissoes}
@@ -667,9 +666,7 @@ export default function Usuarios() {
             </div>
           )}
         </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL USUÁRIO ────────────────────────────────────────────────── */}
+      </Dialog> {/* ─── MODAL USUÁRIO ────────────────────────────────────────────────── */}
       {usuarioModal.open && (
         <UsuarioModal
           user={usuarioModal.user}

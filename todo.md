@@ -513,3 +513,7 @@
 - [x] Seletor de profissional oculto para usuários vinculados no Financeiro
 - [x] Exibir badge "Profissional" na tabela de usuários para usuários vinculados
 - [x] Modal de permissões já possui scrollbar (overflow-y-auto)
+
+## Correções de UI (v9)
+- [x] Corrigir barra de rolagem no modal de permissões — DialogContent com overflow explícito via style inline
+- [ ] Implementar vínculo profissional-serviço (tabela criada, UI e backend pendentes)

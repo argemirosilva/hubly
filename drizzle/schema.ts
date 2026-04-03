@@ -143,6 +143,15 @@ export const servicos = mysqlTable("servicos", {
 
 export type Servico = typeof servicos.$inferSelect;
 
+// ─── PROFISSIONAL-SERVIÇO (vínculo N:N) ──────────────────────────────────────
+export const profissionalServicos = mysqlTable("profissionalServicos", {
+  id: int("id").autoincrement().primaryKey(),
+  profissionalId: int("profissionalId").notNull(),
+  servicoId: int("servicoId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProfissionalServico = typeof profissionalServicos.$inferSelect;
+
 // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
 export const agendamentos = mysqlTable("agendamentos", {
   id: int("id").autoincrement().primaryKey(),
