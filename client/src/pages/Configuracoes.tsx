@@ -334,7 +334,7 @@ export default function Configuracoes() {
               <Label className="text-xs text-muted-foreground mb-1.5 block">% de reserva antecipada</Label>
               <Input type="number" min="0" max="100" value={form.reservaPercentual}
                 onChange={e => setForm(f => ({ ...f, reservaPercentual: e.target.value }))} />
-              <p className="text-xs text-muted-foreground mt-1">% do valor total cobrado como reserva</p>
+              <p className="text-xs text-muted-foreground mt-1">% do valor cobrado como reserva. Usado na variável <code className="bg-muted px-1 rounded text-xs font-mono">{'{{'+'valor_reserva'+'}}'}</code> das automações.</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Expiração do pré-agendamento (h)</Label>

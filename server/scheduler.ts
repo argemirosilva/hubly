@@ -9,8 +9,13 @@ import {
   notificacoesPacotes,
   clientes,
   empresas,
+  agendamentos,
+  profissionais,
+  servicos,
 } from "../drizzle/schema";
-import { eq, and, lte, gt, sql } from "drizzle-orm";
+import { eq, and, lte, gt, sql, gte, lt } from "drizzle-orm";
+import { gerarTokenConfirmacao } from "./confirmacao";
+import { waManager } from "./whatsapp";
 
 // ── Verificar pacotes vencendo para todas as empresas ─────────────────────────
 async function verificarPacotesVencendoGlobal() {
@@ -158,6 +163,133 @@ async function verificarPacotesVencendoGlobal() {
   }
 }
 
+// ── Enviar lembretes de agendamentos do dia seguinte ─────────────────────────
+async function enviarLembretesAgendamentos() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  // Calcular início e fim de amanhã
+  const amanha = new Date(agora);
+  amanha.setDate(amanha.getDate() + 1);
+  amanha.setHours(0, 0, 0, 0);
+  const depoisDeAmanha = new Date(amanha);
+  depoisDeAmanha.setDate(depoisDeAmanha.getDate() + 1);
+
+  try {
+    // Buscar agendamentos de amanhã com status agendado ou confirmado
+    const agendamentosAmanha = await db
+      .select({
+        id: agendamentos.id,
+        empresaId: agendamentos.empresaId,
+        clienteId: agendamentos.clienteId,
+        profissionalId: agendamentos.profissionalId,
+        servicoId: agendamentos.servicoId,
+        data: agendamentos.data,
+        horaInicio: agendamentos.horaInicio,
+        valorTotal: agendamentos.valorTotal,
+        status: agendamentos.status,
+        clienteNome: clientes.nome,
+        clienteTelefone: clientes.telefone,
+        profissionalNome: profissionais.nome,
+        servicoNome: servicos.nome,
+        empresaNome: empresas.nome,
+        waMsgLembrete: empresas.waMsgLembrete,
+        reservaPercentual: empresas.reservaPercentual,
+      })
+      .from(agendamentos)
+      .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+      .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+      .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+      .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+      .where(
+        and(
+          sql`${agendamentos.data} >= ${amanha.toISOString().slice(0, 10)}`,
+          sql`${agendamentos.data} < ${depoisDeAmanha.toISOString().slice(0, 10)}`,
+          sql`${agendamentos.status} IN ('agendado', 'confirmado')`,
+        )
+      );
+
+    let enviados = 0;
+
+    for (const ag of agendamentosAmanha) {
+      if (!ag.clienteTelefone) continue;
+
+      // Gerar token de confirmação
+      const origin = process.env.VITE_FRONTEND_FORGE_API_URL
+        ? (process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space')
+        : 'https://agendei-app-bkct9rps.manus.space';
+
+      let linkConfirmacao = '';
+      try {
+        const token = await gerarTokenConfirmacao(ag.id, ag.empresaId);
+        linkConfirmacao = `${origin}/confirmar/${token}`;
+      } catch (e) {
+        console.error(`[Scheduler] Erro ao gerar token para agendamento ${ag.id}:`, e);
+      }
+
+      // Calcular valor_reserva
+      const percentual = parseFloat(String(ag.reservaPercentual ?? '0'));
+      const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+      const valorReserva = percentual > 0 ? (valorTotal * percentual / 100).toFixed(2) : '0.00';
+
+      // Formatar data e hora
+      const dataFormatada = ag.data
+        ? new Date(ag.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : '';
+      const horaFormatada = ag.horaInicio ?? '';
+
+      // Montar mensagem usando template da empresa ou mensagem padrão
+      let mensagem: string;
+      if (ag.waMsgLembrete) {
+        // Substituir variáveis no template
+        mensagem = ag.waMsgLembrete
+          .replace(/\{\{nome_cliente\}\}/g, ag.clienteNome ?? '')
+          .replace(/\{\{servico\}\}/g, ag.servicoNome ?? '')
+          .replace(/\{\{data\}\}/g, dataFormatada)
+          .replace(/\{\{hora\}\}/g, horaFormatada)
+          .replace(/\{\{profissional\}\}/g, ag.profissionalNome ?? '')
+          .replace(/\{\{empresa\}\}/g, ag.empresaNome ?? '')
+          .replace(/\{\{valor\}\}/g, `R$ ${valorTotal.toFixed(2).replace('.', ',')}`)
+          .replace(/\{\{valor_reserva\}\}/g, `R$ ${valorReserva.replace('.', ',')}`)
+          .replace(/\{\{link_confirmacao\}\}/g, linkConfirmacao);
+      } else {
+        // Mensagem padrão
+        const confirmacaoTexto = linkConfirmacao
+          ? `\n\n✅ *Confirme seu agendamento:*\n${linkConfirmacao}`
+          : '';
+        mensagem =
+          `🔔 *Lembrete de Agendamento*\n\n` +
+          `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
+          `Você tem um agendamento amanhã:\n\n` +
+          `📋 *Detalhes:*\n` +
+          `• Serviço: ${ag.servicoNome ?? ''}\n` +
+          `• Profissional: ${ag.profissionalNome ?? ''}\n` +
+          `• Data: ${dataFormatada}\n` +
+          `• Horário: ${horaFormatada}\n` +
+          (valorReserva !== '0.00' ? `• Reserva: R$ ${valorReserva.replace('.', ',')}\n` : '') +
+          `\n📍 *${ag.empresaNome ?? ''}*` +
+          confirmacaoTexto;
+      }
+
+      const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+      if (enviado) enviados++;
+    }
+
+    if (agendamentosAmanha.length > 0) {
+      console.log(`[Scheduler] Lembretes: ${enviados}/${agendamentosAmanha.length} enviados para agendamentos de amanhã.`);
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao enviar lembretes:', err);
+  }
+}
+
+// ── Verificar se é hora de executar tarefa (baseado em hora local) ────────────
+function deveExecutarNaHora(horaAlvo: number): boolean {
+  const agora = new Date();
+  return agora.getHours() === horaAlvo && agora.getMinutes() < 5; // janela de 5 minutos
+}
+
 // ── Inicializar agendamento ───────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
@@ -171,5 +303,14 @@ export function initScheduler() {
     verificarPacotesVencendoGlobal();
   }, INTERVAL_MS);
 
+  // Verificar a cada 5 minutos se é hora de enviar lembretes (às 9h)
+  const LEMBRETE_CHECK_MS = 5 * 60 * 1000;
+  setInterval(() => {
+    if (deveExecutarNaHora(9)) {
+      enviarLembretesAgendamentos();
+    }
+  }, LEMBRETE_CHECK_MS);
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
+  console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
 }

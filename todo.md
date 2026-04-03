@@ -665,3 +665,9 @@
 - [x] Backend: procedure automacoes.uploadMidia para upload de imagem/PDF para S3
 - [x] Backend: função sendMediaMessage no WhatsApp para envio de imagem/PDF via Baileys
 - [x] Frontend: seção de anexo de mídia no editor de nó de automação (imagem ou PDF, máx 16MB, preview)
+
+## Reserva, Lembrete Automático e Preview (Apr 03 2026)
+
+- [x] Campo reservaPercentual nas Configurações → Agendamentos (já existia)
+- [x] Job scheduler: lembrete automático às 9h do dia anterior com {{link_confirmacao}}
+- [x] Preview em tempo real do template de mensagem nas Automações

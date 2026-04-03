@@ -5,7 +5,7 @@ import {
   Zap, Calendar, Clock, Gift, MessageSquare, Bell, Mail,
   Plus, Trash2, Play, Pause, Settings, ChevronRight,
   ArrowRight, X, Save, Sparkles, Filter,
-  AlarmClock, Users, Tag, Check, Edit2,
+  AlarmClock, Users, Tag, Check, Edit2, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -141,6 +141,95 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
   );
 }
 
+// Dados de exemplo para preview
+const PREVIEW_VARS: Record<string, string> = {
+  "{{nome_cliente}}": "Ana Silva",
+  "{{servico}}": "Escova Progressiva",
+  "{{profissional}}": "Maria Oliveira",
+  "{{data}}": "segunda-feira, 07 de abril",
+  "{{hora}}": "14:00 – 15:30",
+  "{{valor}}": "R$ 150,00",
+  "{{empresa}}": "Studio Beleza",
+  "{{link_confirmacao}}": "https://agendei.manus.space/confirmar/abc123xyz",
+  "{{valor_reserva}}": "R$ 45,00",
+};
+
+function previewMensagem(template: string): string {
+  let msg = template;
+  for (const [key, val] of Object.entries(PREVIEW_VARS)) {
+    msg = msg.replaceAll(key, val);
+  }
+  return msg;
+}
+
+// Modal de pré-visualização da mensagem
+function PreviewMensagemModal({ open, onClose, mensagem, midiaUrl }: {
+  open: boolean;
+  onClose: () => void;
+  mensagem: string;
+  midiaUrl?: string;
+}) {
+  const preview = previewMensagem(mensagem);
+  const isImage = midiaUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(midiaUrl);
+  const isPdf = midiaUrl && /\.pdf$/i.test(midiaUrl);
+
+  return (
+    <Dialog open={open} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+            <Eye size={16} /> Pré-visualização da mensagem
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-gray-400 -mt-1">Variáveis substituídas por dados de exemplo.</p>
+
+        {/* Balão estilo WhatsApp */}
+        <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm mt-2 space-y-2">
+          {/* Mídia */}
+          {midiaUrl && (
+            <div className="mb-2">
+              {isImage ? (
+                <img src={midiaUrl} alt="mídia" className="rounded-xl w-full max-h-48 object-cover" />
+              ) : isPdf ? (
+                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
+                  <span className="text-2xl">📄</span>
+                  <span className="text-xs text-gray-600 truncate">{midiaUrl.split("/").pop()}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
+                  <span className="text-2xl">📎</span>
+                  <span className="text-xs text-gray-600 truncate">{midiaUrl.split("/").pop()}</span>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Texto */}
+          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{preview || <span className="text-gray-400 italic">Nenhuma mensagem configurada.</span>}</p>
+          <p className="text-right text-[10px] text-gray-400 mt-1">14:32 ✓✓</p>
+        </div>
+
+        <div className="mt-2 bg-gray-50 rounded-lg px-3 py-2">
+          <p className="text-xs text-gray-500 font-medium mb-1">Variáveis usadas:</p>
+          <div className="flex flex-wrap gap-1">
+            {Object.entries(PREVIEW_VARS)
+              .filter(([key]) => mensagem.includes(key))
+              .map(([key, val]) => (
+                <span key={key} className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1.5 py-0.5 font-mono">
+                  {key} → {val}
+                </span>
+              ))}
+          </div>
+          {!Object.keys(PREVIEW_VARS).some(k => mensagem.includes(k)) && (
+            <p className="text-xs text-gray-400 italic">Nenhuma variável detectada na mensagem.</p>
+          )}
+        </div>
+
+        <Button size="sm" variant="outline" className="w-full mt-1" onClick={onClose}>Fechar</Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 //  Painel de configuração
 
 function NodeConfigPanel({ node, onUpdate, onClose }: {
@@ -150,6 +239,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
 }) {
   const [data, setData] = useState({ ...node.data });
   const [uploadingMidia, setUploadingMidia] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
   const save = () => { onUpdate(node.id, data); toast.success("Nó atualizado!"); };
   const insertVar = (v: string) => set("mensagem", (data.mensagem || "") + v);
@@ -275,7 +365,16 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label className="text-xs text-gray-500">Mensagem</Label>
-                    <span className="text-xs text-gray-400">{(data.mensagem || "").length} chars</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">{(data.mensagem || "").length} chars</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPreview(true)}
+                        className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-medium transition-colors"
+                        title="Pré-visualizar mensagem com dados de exemplo">
+                        <Eye size={11} /> Pré-ver
+                      </button>
+                    </div>
                   </div>
                   <Textarea value={data.mensagem || ""} onChange={e => set("mensagem", e.target.value)}
                     placeholder="Olá {{nome_cliente}}, seu agendamento de {{servico}} está confirmado para {{data}} às {{hora}}."
@@ -365,6 +464,14 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
           <Save size={13} className="mr-1.5" />Salvar configuração
         </Button>
       </div>
+
+      {/* Modal de pré-visualização */}
+      <PreviewMensagemModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        mensagem={data.mensagem || ""}
+        midiaUrl={data.midiaUrl}
+      />
     </div>
   );
 }
