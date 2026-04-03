@@ -489,3 +489,9 @@
 - [x] Adicionar verificação de limite na mutation portal.criarAgendamento (backend)
 - [x] Adicionar verificação de limite na mutation agendamentos.create (admin backend)
 - [x] Implementar bloqueio visual no PortalCliente.tsx com mensagem amigável
+
+## Comissão Automática por Serviço (v15)
+- [ ] Adicionar campo percentualComissao na tabela servicos (migração SQL)
+- [ ] Atualizar cadastro de serviços no frontend para incluir percentual de comissão
+- [ ] Implementar preenchimento automático de comissão ao concluir agendamento
+- [ ] Usar percentual do serviço como prioridade, fallback para percentual do profissional

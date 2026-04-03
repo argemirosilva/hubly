@@ -314,6 +314,7 @@ export const appRouter = router({
         duracaoMinutos: z.number().default(60),
         categoria: z.string().optional(),
         cor: z.string().optional(),
+        percentualComissao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -331,6 +332,7 @@ export const appRouter = router({
         categoria: z.string().optional(),
         cor: z.string().optional(),
         ativo: z.boolean().optional(),
+        percentualComissao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

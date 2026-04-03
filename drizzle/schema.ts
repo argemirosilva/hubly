@@ -136,6 +136,7 @@ export const servicos = mysqlTable("servicos", {
   categoria: varchar("categoria", { length: 100 }),
   cor: varchar("cor", { length: 7 }).default("#7c3aed"),
   ativo: boolean("ativo").default(true),
+  percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

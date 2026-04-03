@@ -1,7 +1,12 @@
 import { trpc } from "@/lib/trpc";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
@@ -27,6 +32,13 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
 
+  const [comissaoModal, setComissaoModal] = useState(false);
+  const [comissaoForm, setComissaoForm] = useState({
+    percentualComissao: "",
+    tipoPagamento: "dinheiro" as "dinheiro" | "pix" | "cartao_debito" | "cartao_credito" | "outro",
+    custoReposicao: "",
+  });
+
   const updateMutation = trpc.agendamentos.update.useMutation({
     onSuccess: () => {
       toast.success("Status atualizado!");
@@ -36,13 +48,49 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const criarComissaoMutation = trpc.financeiro.criarComissao.useMutation({
+    onSuccess: () => {
+      toast.success("Comissão registrada automaticamente!");
+      utils.financeiro.comissoes.invalidate();
+      setComissaoModal(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
   const profissional = profissionais?.find(p => p.id === ag?.profissionalId);
   const servico = servicos?.find(s => s.id === ag?.servicoId);
 
   const handleStatus = (status: string) => {
+    if (status === "concluido") {
+      // Pré-preencher percentual: prioridade serviço > profissional
+      const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
+      const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
+      const pct = pctServico > 0 ? pctServico : pctProfissional;
+      setComissaoForm(f => ({ ...f, percentualComissao: pct > 0 ? String(pct) : "" }));
+      // Primeiro atualiza status
+      updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
+        onSuccess: () => {
+          // Depois abre modal de comissão se tiver profissional
+          if (ag?.profissionalId) setComissaoModal(true);
+        }
+      });
+      return;
+    }
     updateMutation.mutate({ id: agendamentoId, status: status as Parameters<typeof updateMutation.mutate>[0]["status"] } as Parameters<typeof updateMutation.mutate>[0]);
   };
+
+  function salvarComissao() {
+    if (!ag || !ag.profissionalId) return;
+    criarComissaoMutation.mutate({
+      profissionalId: ag.profissionalId,
+      agendamentoId: ag.id,
+      valorServico: String(ag.valorTotal),
+      percentualComissao: comissaoForm.percentualComissao || "0",
+      tipoPagamento: comissaoForm.tipoPagamento,
+      custoReposicao: comissaoForm.custoReposicao || undefined,
+    });
+  }
 
   if (isLoading || !ag) return null;
 
@@ -50,6 +98,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const dataFormatada = ag.data.split("-").reverse().join("/");
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
         {/* Header */}
@@ -196,6 +245,73 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Modal de Comissão Automática */}
+    <Dialog open={comissaoModal} onOpenChange={setComissaoModal}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+            <Percent className="w-4 h-4 text-primary" />
+            Registrar Comissão
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="rounded-lg bg-secondary/50 p-3 text-xs text-muted-foreground">
+            <p><strong>{servico?.nome}</strong> · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(String(ag?.valorTotal ?? 0)))}</p>
+            <p className="mt-0.5">Profissional: <strong>{profissional?.nome}</strong></p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">% Comissão</Label>
+              <Input
+                type="number" min="0" max="100" step="0.5"
+                value={comissaoForm.percentualComissao}
+                onChange={e => setComissaoForm(f => ({ ...f, percentualComissao: e.target.value }))}
+                placeholder="Ex: 40"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Tipo de Pagamento</Label>
+              <Select value={comissaoForm.tipoPagamento} onValueChange={(v: any) => setComissaoForm(f => ({ ...f, tipoPagamento: v }))}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Custo de Reposição (R$) <span className="text-muted-foreground/60">opcional</span></Label>
+            <Input
+              type="number" min="0" step="0.01"
+              value={comissaoForm.custoReposicao}
+              onChange={e => setComissaoForm(f => ({ ...f, custoReposicao: e.target.value }))}
+              placeholder="0,00"
+            />
+          </div>
+          {comissaoForm.percentualComissao && parseFloat(comissaoForm.percentualComissao) > 0 && ag && (
+            <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs space-y-1">
+              <p className="font-semibold text-primary">Prévia do cálculo</p>
+              <p>Valor do serviço: <strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(String(ag.valorTotal)))}</strong></p>
+              <p>Comissão ({parseFloat(comissaoForm.percentualComissao).toFixed(1)}%): <strong className="text-primary">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(String(ag.valorTotal)) * parseFloat(comissaoForm.percentualComissao) / 100)}</strong></p>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setComissaoModal(false)}>Pular</Button>
+          <Button onClick={salvarComissao} disabled={criarComissaoMutation.isPending}>
+            {criarComissaoMutation.isPending ? "Salvando..." : "Registrar Comissão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
