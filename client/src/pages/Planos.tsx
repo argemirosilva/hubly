@@ -13,7 +13,7 @@ import {
 const PLANOS = [
   {
     key: "SOLO" as const,
-    label: "Solo",
+    label: "Hubly Solo",
     icon: Star,
     color: "from-blue-500 to-blue-600",
     colorLight: "bg-blue-50 text-blue-700 border-blue-200",
@@ -37,7 +37,7 @@ const PLANOS = [
   },
   {
     key: "PLUS" as const,
-    label: "Plus",
+    label: "Hubly Plus",
     icon: Zap,
     color: "from-violet-500 to-violet-600",
     colorLight: "bg-violet-50 text-violet-700 border-violet-200",
@@ -62,7 +62,7 @@ const PLANOS = [
   },
   {
     key: "PRO" as const,
-    label: "Pro",
+    label: "Hubly Pro",
     icon: Crown,
     color: "from-amber-500 to-orange-500",
     colorLight: "bg-amber-50 text-amber-700 border-amber-200",

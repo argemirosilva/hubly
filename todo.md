@@ -702,3 +702,9 @@
 - [x] Fazer upload da imagem OG para CDN
 - [x] Adicionar meta tags og:title, og:description, og:image, og:type, og:url no index.html
 - [x] Adicionar Twitter Card meta tags
+
+## Renomear Planos para Hubly (Apr 03 2026)
+
+- [x] Atualizar nomes dos planos no stripe-products.ts e plans.ts
+- [x] Atualizar nomes na página /admin/planos (frontend)
+- [x] Criar produtos e preços no Stripe com nomes Hubly Solo/Plus/Pro via API

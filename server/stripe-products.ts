@@ -1,41 +1,39 @@
 /**
  * Definição centralizada dos produtos e preços do Stripe para os planos do Hubly.
  * Preços em centavos (BRL).
+ * Gerado automaticamente em 2026-04-03T19:44:13.397Z
  */
 export interface PlanoStripe {
   nome: string;
   descricao: string;
   mensal: {
-    priceId: string | null; // null = ainda não criado no Stripe
+    priceId: string | null;
     valorCentavos: number;
   };
   anual: {
     priceId: string | null;
-    valorCentavos: number; // valor total anual
+    valorCentavos: number;
   };
 }
 
-/**
- * Mapeamento dos planos para os Price IDs do Stripe.
- */
 export const PLANOS_STRIPE: Record<string, PlanoStripe> = {
   SOLO: {
     nome: "Hubly Solo",
     descricao: "Para profissionais autônomos — 1 profissional, agendamentos ilimitados",
-    mensal: { priceId: "price_1THsO8LUFOvpH4vDPedJXKt4", valorCentavos: 4900 },  // R$ 49,00/mês
-    anual:  { priceId: "price_1THsOELUFOvpH4vDrZQ2cdqQ", valorCentavos: 49000 },  // R$ 490,00/ano
+    mensal: { priceId: "price_1TIDdSBbN12GNJRM5nsicm99", valorCentavos: 4900 },
+    anual:  { priceId: "price_1TIDdTBbN12GNJRMSRPVIgjc", valorCentavos: 49000 },
   },
   PLUS: {
     nome: "Hubly Plus",
-    descricao: "Para equipes pequenas — até 8 profissionais, agendamentos ilimitados",
-    mensal: { priceId: "price_1THsObLUFOvpH4vDkzHLfhbx", valorCentavos: 14900 },  // R$ 149,00/mês
-    anual:  { priceId: "price_1THsOcLUFOvpH4vDh7jqFqbH", valorCentavos: 149000 },  // R$ 1.490,00/ano
+    descricao: "Para equipes pequenas — até 5 profissionais, agendamentos ilimitados",
+    mensal: { priceId: "price_1TIDdVBbN12GNJRM59VMnBp8", valorCentavos: 14900 },
+    anual:  { priceId: "price_1TIDdWBbN12GNJRMfFcdGw2R", valorCentavos: 149000 },
   },
   PRO: {
     nome: "Hubly Pro",
     descricao: "Para salões e clínicas — até 20 profissionais, IA + relatórios avançados",
-    mensal: { priceId: "price_1THsOqLUFOvpH4vDP6JGnszg", valorCentavos: 29900 }, // R$ 299,00/mês
-    anual:  { priceId: "price_1THsOrLUFOvpH4vDvKI97lcp", valorCentavos: 299000 },  // R$ 2.990,00/ano
+    mensal: { priceId: "price_1TIDdYBbN12GNJRMhzZ0Vy4f", valorCentavos: 29900 },
+    anual:  { priceId: "price_1TIDdYBbN12GNJRMMzn7M81r", valorCentavos: 299000 },
   },
 };
 
