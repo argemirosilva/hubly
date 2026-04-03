@@ -247,7 +247,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-xl font-bold tracking-tight mb-2">Configure sua empresa</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Para começar a usar o Agendei, configure as informações do seu estabelecimento.
+              Para começar a usar o Hubly, configure as informações do seu estabelecimento.
             </p>
           </div>
           <Link href="/admin/configuracoes">

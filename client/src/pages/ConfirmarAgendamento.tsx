@@ -107,8 +107,12 @@ export default function ConfirmarAgendamento() {
       <div className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Agendei</h1>
-          <p className="text-muted-foreground text-sm mt-1">Sistema de Agendamento</p>
+          <img
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
+            alt="Hubly"
+            className="h-10 w-auto object-contain mx-auto mb-2"
+          />
+          <p className="text-muted-foreground text-sm mt-1">Centralize Your Service Management</p>
         </div>
 
         <Card className={`border-0 shadow-lg ${current.bgColor}`}>
@@ -151,7 +155,7 @@ export default function ConfirmarAgendamento() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Powered by Agendei — Sistema de Agendamento Inteligente
+          Powered by Hubly — Centralize Your Service Management
         </p>
       </div>
     </div>

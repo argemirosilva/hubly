@@ -154,7 +154,7 @@ class WhatsAppManager extends EventEmitter {
           keys: makeCacheableSignalKeyStore(authState.keys, undefined as any),
         },
         printQRInTerminal: false,
-        browser: ["Agendei", "Chrome", "1.0.0"],
+        browser: ["Hubly", "Chrome", "1.0.0"],
         connectTimeoutMs: 60_000,
         defaultQueryTimeoutMs: 30_000,
         keepAliveIntervalMs: 25_000,

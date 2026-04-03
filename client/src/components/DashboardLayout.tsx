@@ -170,7 +170,7 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-bold text-white tracking-tight truncate">Agendei</span>
+                  <span className="font-bold text-white tracking-tight truncate">Hubly</span>
                 </div>
               ) : null}
             </div>

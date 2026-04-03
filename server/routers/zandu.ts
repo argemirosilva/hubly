@@ -472,7 +472,7 @@ export const zanduRouter = router({
                 continue;
               }
 
-              // Mapear status do Zandu para o Agendei
+              // Mapear status do Zandu para o Hubly
               const statusMap: Record<string, "agendado" | "confirmado" | "concluido" | "cancelado" | "faltou"> = {
                 criado: "agendado",
                 confirmado: "confirmado",

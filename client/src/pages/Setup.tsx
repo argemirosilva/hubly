@@ -26,31 +26,32 @@ export default function Setup() {
     <div className="min-h-screen flex" style={{ background: "oklch(98% 0.004 250)" }}>
       {/* Painel esquerdo */}
       <div className="hidden lg:flex w-2/5 flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: "oklch(12% 0.020 260)" }}>
+        style={{ background: "oklch(20% 0.10 255)" }}>
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full opacity-10"
-          style={{ background: "oklch(55% 0.22 264)" }} />
+          style={{ background: "oklch(62% 0.16 225)" }} />
         <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full opacity-5"
-          style={{ background: "oklch(60% 0.20 300)" }} />
+          style={{ background: "oklch(62% 0.18 145)" }} />
 
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">Agendei</span>
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
+              alt="Hubly"
+              className="h-9 w-auto object-contain brightness-0 invert"
+            />
           </div>
           <div className="space-y-4">
             <p className="text-xs font-semibold tracking-[0.18em] uppercase"
-              style={{ color: "oklch(55% 0.22 264)" }}>
+              style={{ color: "oklch(62% 0.16 225)" }}>
               Primeiros passos
             </p>
             <h2 className="font-bold leading-tight"
-              style={{ fontSize: "2rem", color: "oklch(95% 0.008 250)", letterSpacing: "-0.03em" }}>
+              style={{ fontSize: "2rem", color: "oklch(95% 0.008 240)", letterSpacing: "-0.03em" }}>
               Configure seu negócio em minutos
             </h2>
             <p className="text-sm leading-relaxed"
-              style={{ color: "oklch(50% 0.012 260)" }}>
-              Preencha as informações básicas do seu estabelecimento para começar a usar o Agendei.
+              style={{ color: "oklch(55% 0.08 255)" }}>
+              Preencha as informações básicas do seu estabelecimento para começar a usar o Hubly.
             </p>
           </div>
         </div>
@@ -65,9 +66,9 @@ export default function Setup() {
             <div key={item} className="flex items-center gap-2.5">
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ background: "oklch(55% 0.22 264 / 20%)" }}>
-                <CheckCircle2 className="w-3 h-3" style={{ color: "oklch(65% 0.18 264)" }} />
+                <CheckCircle2 className="w-3 h-3" style={{ color: "oklch(65% 0.16 225)" }} />
               </div>
-              <span className="text-sm" style={{ color: "oklch(65% 0.012 260)" }}>{item}</span>
+              <span className="text-sm" style={{ color: "oklch(65% 0.08 255)" }}>{item}</span>
             </div>
           ))}
         </div>
@@ -77,10 +78,11 @@ export default function Setup() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">Agendei</span>
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
+              alt="Hubly"
+              className="h-9 w-auto object-contain"
+            />
           </div>
 
           <div className="mb-8">
@@ -117,7 +119,7 @@ export default function Setup() {
                       background: "white",
                       outline: "none",
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = "oklch(55% 0.22 264)"; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = "oklch(62% 0.16 225)"; }}
                     onBlur={e => { e.currentTarget.style.borderColor = "oklch(90% 0.012 250)"; }}
                   />
                 </div>
@@ -129,7 +131,7 @@ export default function Setup() {
               {criar.isPending ? (
                 <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Configurando...</>
               ) : (
-                <>Começar a usar o Agendei <ChevronRight className="w-4 h-4" /></>
+                <>Começar a usar o Hubly <ChevronRight className="w-4 h-4" /></>
               )}
             </button>
           </form>

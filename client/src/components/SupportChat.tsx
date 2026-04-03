@@ -52,7 +52,7 @@ export function SupportChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Olá! Sou a assistente do Agendei. Pode me perguntar qualquer coisa sobre o sistema — estou aqui para ajudar!",
+      content: "Olá! Sou a assistente do Hubly. Pode me perguntar qualquer coisa sobre o sistema — estou aqui para ajudar!",
     },
   ]);
   const [location] = useLocation();
@@ -109,14 +109,14 @@ export function SupportChat() {
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3 shrink-0"
-            style={{ background: "oklch(45% 0.18 264)", color: "white" }}
+            style={{ background: "oklch(32% 0.12 255)", color: "white" }}
           >
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                 <Bot size={16} />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">Assistente Agendei</p>
+                <p className="text-sm font-semibold leading-none">Assistente Hubly</p>
                 <p className="text-xs opacity-75 mt-0.5">Pagina atual: {paginaAtual}</p>
               </div>
             </div>
@@ -154,8 +154,8 @@ export function SupportChat() {
                   className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-xs mt-0.5"
                   style={{
                     background: msg.role === "user"
-                      ? "oklch(55% 0.14 155)"
-                      : "oklch(45% 0.18 264)",
+                      ? "oklch(62% 0.18 145)"
+                      : "oklch(32% 0.12 255)",
                   }}
                 >
                   {msg.role === "user" ? <User size={13} /> : <Bot size={13} />}
@@ -164,7 +164,7 @@ export function SupportChat() {
                   className="max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
                   style={{
                     background: msg.role === "user"
-                      ? "oklch(45% 0.18 264)"
+                      ? "oklch(32% 0.12 255)"
                       : "var(--muted)",
                     color: msg.role === "user"
                       ? "white"
@@ -182,7 +182,7 @@ export function SupportChat() {
               <div className="flex gap-2 items-center">
                 <div
                   className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white"
-                  style={{ background: "oklch(45% 0.18 264)" }}
+                  style={{ background: "oklch(32% 0.12 255)" }}
                 >
                   <Bot size={13} />
                 </div>
@@ -234,7 +234,7 @@ export function SupportChat() {
               disabled={!input.trim() || chatMutation.isPending}
               className="shrink-0"
               style={{
-                background: "oklch(45% 0.18 264)",
+                background: "oklch(32% 0.12 255)",
                 color: "white",
               }}
             >

@@ -66,14 +66,16 @@ export function PWAInstallBanner() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="rounded-2xl shadow-2xl border border-violet-200 bg-white overflow-hidden">
+      <div className="rounded-2xl shadow-2xl border overflow-hidden" style={{ borderColor: "oklch(80% 0.10 225)" }}>
         {/* Header colorido */}
-        <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, oklch(32% 0.12 255), oklch(62% 0.16 225))" }}>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-              <Smartphone className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-white font-semibold text-sm">Instalar Agendei</span>
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logomarca_6ccd1def.png"
+              alt="Hubly"
+              className="w-8 h-8 rounded-xl object-contain bg-white/20 p-1"
+            />
+            <span className="text-white font-semibold text-sm">Instalar Hubly</span>
           </div>
           <button
             onClick={handleDismiss}
@@ -84,12 +86,12 @@ export function PWAInstallBanner() {
         </div>
 
         {/* Conteúdo */}
-        <div className="p-4">
+        <div className="p-4 bg-white">
           {isIOS ? (
             // Instruções iOS
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                Adicione o Agendei à sua tela inicial para acesso rápido como um app.
+                Adicione o Hubly à sua tela inicial para acesso rápido como um app.
               </p>
               <ol className="space-y-2">
                 {[
@@ -100,11 +102,12 @@ export function PWAInstallBanner() {
                   const Icon = step.icon;
                   return (
                     <li key={i} className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 text-white"
+                        style={{ background: "oklch(62% 0.16 225)" }}>
                         {i + 1}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <Icon className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: "oklch(62% 0.16 225)" }} />
                         {step.text}
                       </div>
                     </li>
@@ -124,12 +127,13 @@ export function PWAInstallBanner() {
             // Banner Android/Chrome
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                Instale o Agendei na sua tela inicial para acesso rápido, mesmo sem internet.
+                Instale o Hubly na sua tela inicial para acesso rápido, mesmo sem internet.
               </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-xs"
+                  className="flex-1 text-white text-xs"
+                  style={{ background: "oklch(32% 0.12 255)" }}
                   onClick={handleInstall}
                 >
                   <Smartphone className="w-3.5 h-3.5 mr-1.5" />

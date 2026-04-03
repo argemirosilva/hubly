@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agendei-v4';
+const CACHE_NAME = 'hubly-v1';
 const STATIC_ASSETS = [
   '/manifest.json',
 ];
@@ -71,15 +71,15 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'Agendei', body: event.data.text() };
+    payload = { title: 'Hubly', body: event.data.text() };
   }
 
   const {
-    title = 'Agendei',
+    title = 'Hubly',
     body = '',
     icon = '/icon-192.png',
     badge = '/icon-192.png',
-    tag = 'agendei-notification',
+    tag = 'hubly-notification',
     sound = false,
     data = {},
     url = '/',

@@ -671,3 +671,14 @@
 - [x] Campo reservaPercentual nas Configurações → Agendamentos (já existia)
 - [x] Job scheduler: lembrete automático às 9h do dia anterior com {{link_confirmacao}}
 - [x] Preview em tempo real do template de mensagem nas Automações
+
+## Rebranding para Hubly (Apr 03 2026)
+
+- [x] Upload dos logos Hubly (logomarca e logo completo) para CDN
+- [x] Atualizar paleta de cores para identidade Hubly (azul escuro #1a3a6b, azul médio #29abe2, verde #4caf50)
+- [x] Atualizar nome Agendei → Hubly em todos os arquivos frontend e backend
+- [x] Substituir logo na sidebar, topbar mobile, tela de login, Setup e ConfirmarAgendamento
+- [x] Atualizar manifest.json (PWA) com nome, ícone e cores Hubly
+- [x] Atualizar service worker com nome Hubly
+- [x] Atualizar PWAInstallBanner com nome e cores Hubly
+- [x] Atualizar SupportChat com nome Hubly

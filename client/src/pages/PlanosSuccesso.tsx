@@ -187,7 +187,7 @@ export default function PlanosSuccesso() {
               Assinatura confirmada! 🎉
             </h1>
             <p className="text-white/80 text-base">
-              Bem-vindo ao <strong className="text-white">{session?.planLabel ?? "Agendei"}</strong>.
+              Bem-vindo ao <strong className="text-white">{session?.planLabel ?? "Hubly"}</strong>.
               Seu negócio agora tem superpoderes.
             </p>
           </div>

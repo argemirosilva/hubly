@@ -78,7 +78,7 @@ describe("Importação Zandu — lógica de deduplicação", () => {
 // ─── Testes de mapeamento de campos ───────────────────────────────────────────
 
 describe("Importação Zandu — mapeamento de campos", () => {
-  it("mapeia campos da pessoa Zandu para cliente Agendei corretamente", () => {
+  it("mapeia campos da pessoa Zandu para cliente Hubly corretamente", () => {
     const zanduPerson = {
       personId: "abc-123",
       name: "Maria Silva",
@@ -89,7 +89,7 @@ describe("Importação Zandu — mapeamento de campos", () => {
       comments: "Cliente VIP",
     };
 
-    const clienteAgendei = {
+    const clienteHubly = {
       empresaId: 1,
       nome: zanduPerson.name,
       email: zanduPerson.email || null,
@@ -102,14 +102,14 @@ describe("Importação Zandu — mapeamento de campos", () => {
       ativo: true,
     };
 
-    expect(clienteAgendei.nome).toBe("Maria Silva");
-    expect(clienteAgendei.email).toBe("maria@email.com");
-    expect(clienteAgendei.dataNascimento).toBe("1990-05-15");
-    expect(clienteAgendei.cpf).toBe("123.456.789-00");
-    expect(clienteAgendei.ativo).toBe(true);
+    expect(clienteHubly.nome).toBe("Maria Silva");
+    expect(clienteHubly.email).toBe("maria@email.com");
+    expect(clienteHubly.dataNascimento).toBe("1990-05-15");
+    expect(clienteHubly.cpf).toBe("123.456.789-00");
+    expect(clienteHubly.ativo).toBe(true);
   });
 
-  it("mapeia campos do serviço Zandu para serviço Agendei corretamente", () => {
+  it("mapeia campos do serviço Zandu para serviço Hubly corretamente", () => {
     const zanduService = {
       name: "Corte + Escova",
       description: "Corte e escova profissional",
@@ -118,7 +118,7 @@ describe("Importação Zandu — mapeamento de campos", () => {
       category: "Cabelo",
     };
 
-    const servicoAgendei = {
+    const servicoHubly = {
       empresaId: 1,
       nome: zanduService.name,
       descricao: zanduService.description || null,
@@ -128,10 +128,10 @@ describe("Importação Zandu — mapeamento de campos", () => {
       ativo: true,
     };
 
-    expect(servicoAgendei.nome).toBe("Corte + Escova");
-    expect(servicoAgendei.valor).toBe("120.5");
-    expect(servicoAgendei.duracaoMinutos).toBe(90);
-    expect(servicoAgendei.categoria).toBe("Cabelo");
+    expect(servicoHubly.nome).toBe("Corte + Escova");
+    expect(servicoHubly.valor).toBe("120.5");
+    expect(servicoHubly.duracaoMinutos).toBe(90);
+    expect(servicoHubly.categoria).toBe("Cabelo");
   });
 
   it("usa valor padrão de duração 60 min quando não informado", () => {
@@ -169,7 +169,7 @@ describe("Importação Zandu — contagem de resultados", () => {
 // ─── Testes de mapeamento de agendamentos ─────────────────────────────────────
 
 describe("Importação Zandu — mapeamento de agendamentos", () => {
-  it("mapeia status do Zandu para status do Agendei corretamente", () => {
+  it("mapeia status do Zandu para status do Hubly corretamente", () => {
     const statusMap: Record<string, string> = {
       criado: "agendado",
       confirmado: "confirmado",

@@ -2,11 +2,11 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 
-const SYSTEM_PROMPT = `Você é a assistente de suporte do Agendei, um sistema de gestão para salões de beleza, clínicas de estética e barbearias.
+const SYSTEM_PROMPT = `Você é a assistente de suporte do Hubly, um sistema de gestão para salões de beleza, clínicas de estética e barbearias.
 
 Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza, paciência e linguagem simples.
 
-## O que o Agendei oferece:
+## O que o Hubly oferece:
 
 ### Agendamentos
 - Criar agendamentos com cliente, serviço, profissional, data e hora

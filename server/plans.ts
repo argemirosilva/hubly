@@ -1,5 +1,5 @@
 /**
- * Definição dos planos, limites e feature gating do Agendei.
+ * Definição dos planos, limites e feature gating do Hubly.
  * Altere os preços e limites aqui para refletir em todo o sistema.
  */
 

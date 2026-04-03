@@ -1369,7 +1369,7 @@ export const appRouter = router({
         }
         const ok = await waManager.sendMessage(
           input.telefone,
-          '✅ *Teste Agendei*\n\nSeu WhatsApp está conectado e funcionando corretamente!'
+          '✅ *Teste Hubly*\n\nSeu WhatsApp está conectado e funcionando corretamente!'
         );
         return { success: ok };
       }),
@@ -2063,7 +2063,7 @@ export const appRouter = router({
     sendTest: protectedProcedure.mutation(async ({ ctx }) => {
       const { sendPushToUser } = await import('./pushNotifications');
       const result = await sendPushToUser(ctx.user.id, {
-        title: '🔔 Agendei - Teste de Notificação',
+        title: '🔔 Hubly - Teste de Notificação',
         body: 'Notificações push estão funcionando corretamente!',
         icon: '/icon-192.png',
         badge: '/icon-192.png',

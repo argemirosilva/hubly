@@ -113,7 +113,7 @@ export default function ImportacaoZandu() {
           <h1 className="text-xl font-semibold">Importar do Zandu</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Migre seus dados do Zandu para o Agendei em poucos cliques usando a API oficial.
+          Migre seus dados do Zandu para o Hubly em poucos cliques usando a API oficial.
         </p>
       </div>
 

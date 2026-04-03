@@ -88,7 +88,7 @@ const SECTIONS: Section[] = [
     title: "Agendamentos",
     subtitle: "Gerencie toda a agenda do salão",
     color: "oklch(45% 0.18 264)",
-    intro: "O módulo de agendamentos é o coração do Agendei. Aqui você cria, confirma, cancela e acompanha todos os atendimentos do salão.",
+    intro: "O módulo de agendamentos é o coração do Hubly. Aqui você cria, confirma, cancela e acompanha todos os atendimentos do salão.",
     topics: [
       {
         title: "Criar um novo agendamento",
@@ -418,9 +418,9 @@ const SECTIONS: Section[] = [
     id: "importacao-zandu",
     icon: <Download size={20} />,
     title: "Importação Zandu",
-    subtitle: "Migre seus dados do Zandu para o Agendei",
+    subtitle: "Migre seus dados do Zandu para o Hubly",
     color: "oklch(45% 0.18 30)",
-    intro: "Se você usava o Zandu antes, pode importar todos os seus dados para o Agendei em poucos minutos. O processo é simples e seguro.",
+    intro: "Se você usava o Zandu antes, pode importar todos os seus dados para o Hubly em poucos minutos. O processo é simples e seguro.",
     topics: [
       {
         title: "Obter o token de API do Zandu",
@@ -433,9 +433,9 @@ const SECTIONS: Section[] = [
         tip: "O token começa com letras e números e tem cerca de 30 caracteres.",
       },
       {
-        title: "Importar dados no Agendei",
+        title: "Importar dados no Hubly",
         steps: [
-          "No Agendei, vá em Configurações > Importação Zandu.",
+          "No Hubly, vá em Configurações > Importação Zandu.",
           "Cole o token de API do Zandu.",
           "Selecione o tipo de dado a importar: Clientes, Serviços, Profissionais ou Agendamentos.",
           "Clique em Visualizar para ver um preview dos dados.",

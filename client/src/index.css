@@ -43,35 +43,35 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Paleta: Nudos (Verde, Turquesa, Coral, Laranja) ─────────────────────────── */
+/* ─── Paleta: Hubly (Azul Escuro #1a3a6b, Azul Médio #29abe2, Verde #4caf50) ─── */
 :root {
   --radius: 0.5rem;
 
   /* Backgrounds */
-  --background:         oklch(98% 0.004 250);
-  --foreground:         oklch(20% 0.020 160);
+  --background:         oklch(98% 0.005 240);
+  --foreground:         oklch(18% 0.025 240);
 
   /* Cards */
   --card:               oklch(100% 0 0);
-  --card-foreground:    oklch(20% 0.020 160);
+  --card-foreground:    oklch(18% 0.025 240);
 
   --popover:            oklch(100% 0 0);
-  --popover-foreground: oklch(20% 0.020 160);
+  --popover-foreground: oklch(18% 0.025 240);
 
-  /* Primary — Verde escuro Nudos (#1B6B4F) */
-  --primary:            oklch(45% 0.15 160);
+  /* Primary — Azul Escuro Hubly (#1a3a6b) */
+  --primary:            oklch(32% 0.12 255);
   --primary-foreground: oklch(100% 0 0);
 
-  /* Secondary — Turquesa vibrante (#4DB8A8) */
-  --secondary:          oklch(65% 0.18 170);
+  /* Secondary — Azul Médio Hubly (#29abe2) */
+  --secondary:          oklch(62% 0.16 225);
   --secondary-foreground: oklch(100% 0 0);
 
   /* Muted */
-  --muted:              oklch(96% 0.008 250);
-  --muted-foreground:   oklch(52% 0.016 260);
+  --muted:              oklch(96% 0.006 240);
+  --muted-foreground:   oklch(52% 0.016 240);
 
-  /* Accent — Coral/Laranja (#FF6B5B) */
-  --accent:             oklch(60% 0.20 30);
+  /* Accent — Verde Hubly (#4caf50) */
+  --accent:             oklch(62% 0.18 145);
   --accent-foreground:  oklch(100% 0 0);
 
   /* Destructive */
@@ -79,26 +79,26 @@
   --destructive-foreground: oklch(100% 0 0);
 
   /* Borders & inputs */
-  --border:             oklch(90% 0.012 250);
-  --input:              oklch(90% 0.012 250);
-  --ring:               oklch(45% 0.15 160 / 30%);
+  --border:             oklch(90% 0.010 240);
+  --input:              oklch(90% 0.010 240);
+  --ring:               oklch(62% 0.16 225 / 35%);
 
   /* Charts */
-  --chart-1:            oklch(45% 0.15 160);
-  --chart-2:            oklch(65% 0.18 170);
-  --chart-3:            oklch(60% 0.20 30);
-  --chart-4:            oklch(70% 0.18 90);
-  --chart-5:            oklch(58% 0.20 30);
+  --chart-1:            oklch(32% 0.12 255);
+  --chart-2:            oklch(62% 0.16 225);
+  --chart-3:            oklch(62% 0.18 145);
+  --chart-4:            oklch(70% 0.14 200);
+  --chart-5:            oklch(50% 0.18 255);
 
-  /* Sidebar — Verde escuro */
-  --sidebar:                      oklch(18% 0.015 160);
-  --sidebar-foreground:           oklch(90% 0.010 250);
-  --sidebar-primary:              oklch(65% 0.18 170);
+  /* Sidebar — Azul Escuro Hubly */
+  --sidebar:                      oklch(22% 0.10 255);
+  --sidebar-foreground:           oklch(92% 0.008 240);
+  --sidebar-primary:              oklch(62% 0.16 225);
   --sidebar-primary-foreground:   oklch(100% 0 0);
-  --sidebar-accent:               oklch(60% 0.20 30);
+  --sidebar-accent:               oklch(62% 0.18 145);
   --sidebar-accent-foreground:    oklch(100% 0 0);
-  --sidebar-border:               oklch(28% 0.012 160);
-  --sidebar-ring:                 oklch(65% 0.18 170);
+  --sidebar-border:               oklch(30% 0.08 255);
+  --sidebar-ring:                 oklch(62% 0.16 225);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
