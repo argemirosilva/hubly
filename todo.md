@@ -495,3 +495,21 @@
 - [ ] Atualizar cadastro de serviços no frontend para incluir percentual de comissão
 - [ ] Implementar preenchimento automático de comissão ao concluir agendamento
 - [ ] Usar percentual do serviço como prioridade, fallback para percentual do profissional
+
+## Vínculo Usuário-Profissional e Controle de Acesso (v8)
+- [ ] Adicionar campo profissionalId na tabela system_users e migrar banco
+- [ ] Atualizar cadastro de usuários para vincular a um profissional
+- [ ] Filtrar agenda por profissional vinculado no frontend (padrão)
+- [ ] Filtrar comissões e histórico financeiro por profissional vinculado
+- [ ] Admins veem todas as comissões; usuários comuns veem apenas as próprias
+- [ ] Adicionar barra de rolagem no modal de seleção de permissões
+
+## Vínculo Usuário-Profissional e Controle de Acesso (v8) — Concluído
+- [x] Adicionar campo profissionalId na tabela system_users e migrar banco
+- [x] Atualizar cadastro de usuários para vincular a um profissional (dropdown no modal)
+- [x] Filtrar agenda por profissional vinculado no frontend (Agendamentos.tsx e Calendario.tsx)
+- [x] Filtrar comissões e histórico financeiro por profissional vinculado (Financeiro.tsx)
+- [x] Admins veem todas as comissões; usuários vinculados a profissional veem apenas as próprias
+- [x] Seletor de profissional oculto para usuários vinculados no Financeiro
+- [x] Exibir badge "Profissional" na tabela de usuários para usuários vinculados
+- [x] Modal de permissões já possui scrollbar (overflow-y-auto)

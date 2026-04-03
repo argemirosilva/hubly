@@ -439,6 +439,7 @@ export const systemUsers = mysqlTable("system_users", {
   email: varchar("email", { length: 320 }).notNull(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   grupoId: int("grupoId"),
+  profissionalId: int("profissionalId"), // vínculo com profissional da empresa
   ativo: boolean("ativo").default(true).notNull(),
   ultimoAcesso: timestamp("ultimoAcesso"),
   criadoPorId: int("criadoPorId"),

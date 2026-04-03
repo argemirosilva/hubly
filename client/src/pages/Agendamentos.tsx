@@ -6,6 +6,7 @@ import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
@@ -34,11 +35,15 @@ function formatCurrency(v: number) {
 }
 
 export default function Agendamentos() {
+  const { user } = useAuth();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [agSelecionado, setAgSelecionado] = useState<number | null>(null);
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+
+  // Se o usuário é profissional vinculado, filtra apenas seus agendamentos
+  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
 
   const today = new Date().toISOString().split("T")[0];
   const [dataInicio, setDataInicio] = useState(today);
@@ -72,9 +77,11 @@ export default function Agendamentos() {
       const matchStatus = filtroStatus === "todos" || ag.status === filtroStatus;
       const nomeCliente = clienteMap[ag.clienteId] ?? "";
       const matchBusca = !busca || nomeCliente.toLowerCase().includes(busca.toLowerCase());
-      return matchStatus && matchBusca;
+      // Filtro automático: profissional vinculado vê apenas seus próprios agendamentos
+      const matchProfissional = !profissionalVinculadoId || ag.profissionalId === profissionalVinculadoId;
+      return matchStatus && matchBusca && matchProfissional;
     }).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-  }, [agendamentos, filtroStatus, busca, clienteMap]);
+  }, [agendamentos, filtroStatus, busca, clienteMap, profissionalVinculadoId]);
 
   const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today;
 

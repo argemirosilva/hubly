@@ -550,6 +550,7 @@ export async function createSystemUser(data: {
   email: string;
   senha: string;
   grupoId?: number;
+  profissionalId?: number;
   criadoPorId?: number;
 }) {
   const db = await getDb();
@@ -564,6 +565,7 @@ export async function createSystemUser(data: {
     email: data.email,
     passwordHash,
     grupoId: data.grupoId ?? null,
+    profissionalId: data.profissionalId ?? null,
     criadoPorId: data.criadoPorId ?? null,
     ativo: true,
   });
@@ -578,6 +580,7 @@ export async function getSystemUsersByEmpresa(empresaId: number) {
     nome: systemUsers.nome,
     email: systemUsers.email,
     grupoId: systemUsers.grupoId,
+    profissionalId: systemUsers.profissionalId,
     ativo: systemUsers.ativo,
     ultimoAcesso: systemUsers.ultimoAcesso,
     createdAt: systemUsers.createdAt,
@@ -595,6 +598,7 @@ export async function updateSystemUser(id: number, data: {
   email?: string;
   senha?: string;
   grupoId?: number | null;
+  profissionalId?: number | null;
   ativo?: boolean;
 }) {
   const db = await getDb();
@@ -603,6 +607,7 @@ export async function updateSystemUser(id: number, data: {
   if (data.nome !== undefined) updateData.nome = data.nome;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.grupoId !== undefined) updateData.grupoId = data.grupoId;
+  if (data.profissionalId !== undefined) updateData.profissionalId = data.profissionalId;
   if (data.ativo !== undefined) updateData.ativo = data.ativo;
   if (data.senha) updateData.passwordHash = await bcrypt.hash(data.senha, 10);
   await db.update(systemUsers).set(updateData).where(eq(systemUsers.id, id));

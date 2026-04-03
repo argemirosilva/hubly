@@ -59,7 +59,14 @@ export const appRouter = router({
   pacotes: pacotesRouter,
 
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => {
+      if (!opts.ctx.user) return null;
+      return {
+        ...opts.ctx.user,
+        profissionalId: opts.ctx.systemUser?.profissionalId ?? null,
+        isSystemUser: !!opts.ctx.systemUser,
+      };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -973,6 +980,7 @@ export const appRouter = router({
           email: z.string().email(),
           senha: z.string().min(6),
           grupoId: z.number().optional(),
+          profissionalId: z.number().optional(),
         }))
         .mutation(async ({ ctx, input }) => {
           const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -983,6 +991,7 @@ export const appRouter = router({
             email: input.email,
             senha: input.senha,
             grupoId: input.grupoId,
+            profissionalId: input.profissionalId,
             criadoPorId: ctx.user.id,
           });
         }),
@@ -993,6 +1002,7 @@ export const appRouter = router({
           email: z.string().email().optional(),
           senha: z.string().min(6).optional(),
           grupoId: z.number().nullable().optional(),
+          profissionalId: z.number().nullable().optional(),
           ativo: z.boolean().optional(),
         }))
         .mutation(async ({ input }) => {

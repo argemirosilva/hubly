@@ -24,6 +24,7 @@ function makeDbChain(resolveWith: any[] = []) {
 
 vi.mock("./db", () => ({
   getEmpresaDoUsuario: vi.fn(),
+  getEmpresaDoContexto: vi.fn(),
   getClientesByEmpresa: vi.fn(),
   saveScoreFinanceiro: vi.fn(),
   getScoreAtual: vi.fn(),
@@ -62,6 +63,7 @@ function createCaller() {
 describe("iaFinanceiro", () => {
   beforeEach(() => {
     vi.mocked(db.getEmpresaDoUsuario).mockResolvedValue(mockEmpresa as any);
+    vi.mocked(db.getEmpresaDoContexto).mockResolvedValue(mockEmpresa as any);
     vi.mocked(db.getScoreAtual).mockResolvedValue(null);
     vi.mocked(db.getHistoricoScore).mockResolvedValue([]);
     vi.mocked(db.saveScoreFinanceiro).mockResolvedValue(null as any);
@@ -160,6 +162,7 @@ describe("iaFinanceiro", () => {
 describe("iaClientes", () => {
   beforeEach(() => {
     vi.mocked(db.getEmpresaDoUsuario).mockResolvedValue(mockEmpresa as any);
+    vi.mocked(db.getEmpresaDoContexto).mockResolvedValue(mockEmpresa as any);
     vi.mocked(db.getClientesByEmpresa).mockResolvedValue([]);
     vi.mocked(db.saveAnaliseCliente).mockResolvedValue(null as any);
     vi.mocked(db.getAnaliseClientesByEmpresa).mockResolvedValue([]);

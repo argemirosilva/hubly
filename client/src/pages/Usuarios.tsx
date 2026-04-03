@@ -230,7 +230,10 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
   const [email, setEmail] = useState(user?.email ?? "");
   const [senha, setSenha] = useState("");
   const [grupoId, setGrupoId] = useState<string>(user?.grupoId?.toString() ?? "");
+  const [profissionalId, setProfissionalId] = useState<string>(user?.profissionalId?.toString() ?? "");
   const [showSenha, setShowSenha] = useState(false);
+
+  const { data: profissionais = [] } = trpc.profissionais.list.useQuery();
 
   const criarMutation = trpc.usuarios.systemUsers.criar.useMutation({
     onSuccess: () => { toast.success("Usuário cadastrado!"); onSave(); onClose(); },
@@ -246,10 +249,11 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
     if (!email.trim()) return toast.error("E-mail é obrigatório");
     if (isNew && senha.length < 6) return toast.error("Senha deve ter pelo menos 6 caracteres");
     const gId = grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined;
+    const pId = profissionalId && profissionalId !== "none" ? parseInt(profissionalId) : undefined;
     if (isNew) {
-      criarMutation.mutate({ nome, email, senha, grupoId: gId });
+      criarMutation.mutate({ nome, email, senha, grupoId: gId, profissionalId: pId });
     } else {
-      atualizarMutation.mutate({ id: user.id, nome, email, grupoId: gId ?? null, ...(senha ? { senha } : {}) });
+      atualizarMutation.mutate({ id: user.id, nome, email, grupoId: gId ?? null, profissionalId: pId ?? null, ...(senha ? { senha } : {}) });
     }
   };
 
@@ -286,6 +290,20 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
                 {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional vinculado</Label>
+            <select
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={profissionalId}
+              onChange={e => setProfissionalId(e.target.value)}
+            >
+              <option value="none">Nenhum (usuário administrativo)</option>
+              {(profissionais as any[]).map((p: any) => (
+                <option key={p.id} value={p.id}>{p.nome}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">Vinculando a um profissional, o usuário verá apenas a própria agenda e comissões por padrão.</p>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Grupo de permissões</Label>
@@ -463,7 +481,12 @@ export default function Usuarios() {
                             {u.nome?.charAt(0).toUpperCase() ?? "?"}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-foreground">{u.nome}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium text-foreground">{u.nome}</p>
+                              {u.profissionalId && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "oklch(55% 0.22 155 / 12%)", color: "oklch(35% 0.14 155)" }}>Profissional</span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                           </div>
                         </div>

@@ -4,15 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, TrendingUp, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
 export default function Financeiro() {
+  const { user } = useAuth();
   const utils = trpc.useUtils();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroProfId, setFiltroProfId] = useState("todos");
+
+  // Se o usuário é profissional vinculado, filtra apenas suas comissões
+  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
 
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
   const { data: comissoes } = trpc.financeiro.comissoes.useQuery();
@@ -32,10 +37,13 @@ export default function Financeiro() {
   const filtradas = useMemo(() => {
     return (comissoes ?? []).filter(c => {
       const matchStatus = filtroStatus === "todos" || (filtroStatus === "paga" ? c.paga : !c.paga);
-      const matchProf = filtroProfId === "todos" || c.profissionalId === parseInt(filtroProfId);
+      // Filtro automático: profissional vinculado vê apenas suas próprias comissões
+      const matchProf = profissionalVinculadoId
+        ? c.profissionalId === profissionalVinculadoId
+        : filtroProfId === "todos" || c.profissionalId === parseInt(filtroProfId);
       return matchStatus && matchProf;
     });
-  }, [comissoes, filtroStatus, filtroProfId]);
+  }, [comissoes, filtroStatus, filtroProfId, profissionalVinculadoId]);
 
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
 
@@ -78,17 +86,20 @@ export default function Financeiro() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Select value={filtroProfId} onValueChange={setFiltroProfId}>
-              <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
-                <SelectValue placeholder="Profissional" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {profissionais?.map(p => (
-                  <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Seletor de profissional: ocultado para usuários vinculados a um profissional */}
+            {!profissionalVinculadoId && (
+              <Select value={filtroProfId} onValueChange={setFiltroProfId}>
+                <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {profissionais?.map(p => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>
               <SelectTrigger className="w-auto min-w-[110px] h-8 text-xs">
                 <SelectValue placeholder="Status" />

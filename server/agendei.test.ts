@@ -46,6 +46,23 @@ vi.mock("./db", () => ({
   createProntuario: vi.fn().mockResolvedValue(1),
   getCoresStatus: vi.fn().mockResolvedValue(null),
   upsertCoresStatus: vi.fn().mockResolvedValue(undefined),
+  getEmpresaDoContexto: vi.fn().mockResolvedValue({ id: 1, nome: "Studio Test", tipo: "salao", telefone: null, email: null, endereco: null, logoUrl: null, corPrimaria: "#1a1a2e", corSecundaria: "#e8d5c4", whatsappNumero: null, whatsappApiKey: null, taxaMaquininha: "2.99", percentualDona: "0.00", reservaPercentual: "30.00", reservaHorasExpiracao: 24, ownerId: 1, createdAt: new Date(), updatedAt: new Date() }),
+  getSystemUsersByEmpresa: vi.fn().mockResolvedValue([]),
+  createSystemUser: vi.fn().mockResolvedValue(1),
+  updateSystemUser: vi.fn().mockResolvedValue(undefined),
+  deleteSystemUser: vi.fn().mockResolvedValue(undefined),
+  getSystemUserByEmail: vi.fn().mockResolvedValue(null),
+  getSystemUserById: vi.fn().mockResolvedValue(null),
+  toggleSystemUserAtivo: vi.fn().mockResolvedValue(undefined),
+  resetSystemUserPassword: vi.fn().mockResolvedValue(undefined),
+  getGruposPermissoesByEmpresa: vi.fn().mockResolvedValue([]),
+  createGrupoPermissoes: vi.fn().mockResolvedValue(1),
+  updateGrupoPermissoes: vi.fn().mockResolvedValue(undefined),
+  deleteGrupoPermissoes: vi.fn().mockResolvedValue(undefined),
+  getPermissoesByGrupo: vi.fn().mockResolvedValue({}),
+  updatePermissoesByGrupo: vi.fn().mockResolvedValue(undefined),
+  getDashboardMetrics: vi.fn().mockResolvedValue({ receitaMes: 0, ticketMedio: 0, totalAgendamentos: 0, totalClientes: 0, comissoesPendentes: 0 }),
+  getFinanceiroDashboard: vi.fn().mockResolvedValue({ receitaMes: 0, ticketMedio: 0, comissoesPendentes: 0 }),
 }));
 
 function createAdminCtx(): TrpcContext {

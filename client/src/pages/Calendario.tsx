@@ -4,6 +4,7 @@ import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { getServiceIcon } from "@/lib/serviceIcons";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DIAS_SEMANA_CURTO = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -21,11 +22,15 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
 };
 
 export default function Calendario() {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
+
+  // Se o usuário é profissional vinculado, filtra apenas seus agendamentos
+  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -33,7 +38,13 @@ export default function Calendario() {
   const dataInicio = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const dataFim = `${year}-${String(month + 1).padStart(2, "0")}-${new Date(year, month + 1, 0).getDate()}`;
 
-  const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
+  const { data: agendamentosRaw } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
+  // Filtro automático: profissional vinculado vê apenas seus próprios agendamentos
+  const agendamentos = useMemo(() => {
+    if (!profissionalVinculadoId) return agendamentosRaw;
+    return agendamentosRaw?.filter(ag => ag.profissionalId === profissionalVinculadoId);
+  }, [agendamentosRaw, profissionalVinculadoId]);
+
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
 

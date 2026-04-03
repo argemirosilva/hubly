@@ -11,7 +11,7 @@ export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
-  systemUser?: { id: number; nome: string; email: string; empresaId: number } | null;
+  systemUser?: { id: number; nome: string; email: string; empresaId: number; profissionalId?: number | null } | null;
 };
 
 export async function createContext(
@@ -33,6 +33,7 @@ export async function createContext(
           nome: systemUsers.nome,
           email: systemUsers.email,
           empresaId: systemUsers.empresaId,
+          profissionalId: systemUsers.profissionalId,
           ativo: systemUsers.ativo,
         }).from(systemUsers).where(eq(systemUsers.id, systemSession.systemUserId)).limit(1);
 
@@ -58,7 +59,7 @@ export async function createContext(
               req: opts.req,
               res: opts.res,
               user,
-              systemUser: { id: su.id, nome: su.nome, email: su.email, empresaId: su.empresaId },
+              systemUser: { id: su.id, nome: su.nome, email: su.email, empresaId: su.empresaId, profissionalId: su.profissionalId ?? null },
             };
           }
         }
