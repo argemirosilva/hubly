@@ -646,3 +646,8 @@
 - [x] AgendamentoDetalheModal: botão "Link Confirm." para gerar e copiar link automaticamente
 - [x] AgendamentoDetalheModal: exibição do link gerado com botão de copiar manual
 - [x] Automacoes.tsx: variável {{link_confirmacao}} adicionada na lista de variáveis disponíveis
+
+## Variável {{valor_reserva}} nas Automações
+
+- [x] Frontend: adicionar {{valor_reserva}} na lista VARIAVEIS da página Automacoes.tsx
+- [x] Backend: calcular valor_reserva (percentual reserva × valor serviço) ao processar variáveis de automação

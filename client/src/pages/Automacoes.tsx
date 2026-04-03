@@ -72,6 +72,7 @@ const VARIAVEIS = [
   { var: "{{valor}}", desc: "Valor do serviço" },
   { var: "{{empresa}}", desc: "Nome da empresa" },
   { var: "{{link_confirmacao}}", desc: "Link para o cliente confirmar o agendamento" },
+  { var: "{{valor_reserva}}", desc: "Valor da reserva (% configurado × valor do serviço)" },
 ];
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];

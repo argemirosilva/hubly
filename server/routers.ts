@@ -47,6 +47,33 @@ import { pacotesClientes, pacotesClientesItens } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
 
 /**
+ * Processa variáveis de template em mensagens de WhatsApp/automações.
+ * Substitui {{variavel}} pelos valores reais do agendamento.
+ */
+function processarVariaveisTemplate(template: string, vars: {
+  nome_cliente?: string;
+  servico?: string;
+  data?: string;
+  hora?: string;
+  profissional?: string;
+  empresa?: string;
+  valor?: string;
+  valor_reserva?: string;
+  link_confirmacao?: string;
+}): string {
+  return template
+    .replace(/\{\{nome_cliente\}\}/g, vars.nome_cliente ?? '')
+    .replace(/\{\{servico\}\}/g, vars.servico ?? '')
+    .replace(/\{\{data\}\}/g, vars.data ?? '')
+    .replace(/\{\{hora\}\}/g, vars.hora ?? '')
+    .replace(/\{\{profissional\}\}/g, vars.profissional ?? '')
+    .replace(/\{\{empresa\}\}/g, vars.empresa ?? '')
+    .replace(/\{\{valor\}\}/g, vars.valor ?? '')
+    .replace(/\{\{valor_reserva\}\}/g, vars.valor_reserva ?? '')
+    .replace(/\{\{link_confirmacao\}\}/g, vars.link_confirmacao ?? '');
+}
+
+/**
  * Verifica se o usuário tem uma permissão específica do grupo.
  * Owner OAuth sempre tem permissão. SystemUser precisa ter o campo true no grupo.
  * Lança TRPCError FORBIDDEN se não tiver permissão.
@@ -535,20 +562,39 @@ export const appRouter = router({
             const telefone = cliente?.whatsapp || cliente?.telefone;
             if (telefone && cliente) {
               const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              const mensagem = [
-                `✅ *Agendamento Confirmado!*`,
-                ``,
-                `Olá, *${cliente.nome}*!`,
-                `Seu agendamento foi confirmado com sucesso.`,
-                ``,
-                `📅 *Data:* ${dataFormatada}`,
-                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                `💰 *Valor:* R$ ${parseFloat(rest.valorTotal).toFixed(2).replace('.', ',')}`,
-                ``,
-                `_${empresa.nome}_`,
-              ].filter(Boolean).join('\n');
+              // Calcular valor_reserva: percentual da empresa × valor do serviço
+              const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+              const valorServico = parseFloat(rest.valorTotal ?? '0');
+              const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
+              const templateVars = {
+                nome_cliente: cliente.nome,
+                servico: servico?.nome ?? '',
+                data: dataFormatada,
+                hora: `${rest.horaInicio} – ${rest.horaFim}`,
+                profissional: profissional?.nome ?? '',
+                empresa: empresa.nome,
+                valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+                valor_reserva: valorReservaCalc,
+              };
+              // Usar template personalizado da empresa se configurado, senão usar mensagem padrão
+              const templateConfirmacao = (empresa as any).waMsgConfirmacao;
+              const mensagem = templateConfirmacao
+                ? processarVariaveisTemplate(templateConfirmacao, templateVars)
+                : [
+                    `✅ *Agendamento Confirmado!*`,
+                    ``,
+                    `Olá, *${cliente.nome}*!`,
+                    `Seu agendamento foi confirmado com sucesso.`,
+                    ``,
+                    `📅 *Data:* ${dataFormatada}`,
+                    `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+                    servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                    profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                    `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+                    valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
+                    ``,
+                    `_${empresa.nome}_`,
+                  ].filter(Boolean).join('\n');
               await waManager.sendMessage(telefone, mensagem);
               // Incrementar contador de notificações WhatsApp
               try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
@@ -671,33 +717,54 @@ export const appRouter = router({
                 const telefone = cliente?.whatsapp || cliente?.telefone;
                 if (telefone && cliente) {
                   const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                  // Calcular valor_reserva
+                  const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+                  const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
+                  const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
+                  const templateVars2 = {
+                    nome_cliente: cliente.nome,
+                    servico: servico?.nome ?? '',
+                    data: dataFormatada,
+                    hora: `${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                    profissional: profissional?.nome ?? '',
+                    empresa: empresa.nome,
+                    valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
+                    valor_reserva: valorReservaCalc2,
+                  };
                   let mensagem: string;
                   if (data.status === 'confirmado') {
-                    mensagem = [
-                      `✅ *Agendamento Confirmado!*`,
-                      ``,
-                      `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
-                      ``,
-                      `📅 *Data:* ${dataFormatada}`,
-                      `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                      ``,
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
+                    const templateConf = (empresa as any).waMsgConfirmacao;
+                    mensagem = templateConf
+                      ? processarVariaveisTemplate(templateConf, templateVars2)
+                      : [
+                          `✅ *Agendamento Confirmado!*`,
+                          ``,
+                          `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
+                          ``,
+                          `📅 *Data:* ${dataFormatada}`,
+                          `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                          servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                          profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                          valorReservaCalc2 ? `🔒 *Reserva:* ${valorReservaCalc2}` : null,
+                          ``,
+                          `_${empresa.nome}_`,
+                        ].filter(Boolean).join('\n');
                   } else {
-                    mensagem = [
-                      `❌ *Agendamento Cancelado*`,
-                      ``,
-                      `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
-                      ``,
-                      `📅 *Data:* ${dataFormatada}`,
-                      `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      ``,
-                      `Entre em contato para reagendar.`,
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
+                    const templateCanc = (empresa as any).waMsgCancelamento;
+                    mensagem = templateCanc
+                      ? processarVariaveisTemplate(templateCanc, templateVars2)
+                      : [
+                          `❌ *Agendamento Cancelado*`,
+                          ``,
+                          `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
+                          ``,
+                          `📅 *Data:* ${dataFormatada}`,
+                          `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                          servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                          ``,
+                          `Entre em contato para reagendar.`,
+                          `_${empresa.nome}_`,
+                        ].filter(Boolean).join('\n');
                   }
                   await waManager.sendMessage(telefone, mensagem);
                 }
