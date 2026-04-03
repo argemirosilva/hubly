@@ -11,14 +11,10 @@ import "./index.css";
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
+  // Não redirecionar automaticamente - o AdminLayout gerencia o estado de login
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
-
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  if (!isUnauthorized) return;
-
-  window.location.href = getLoginUrl();
+  // Silenciar erros de autenticação - a UI mostrará a tela de login
 };
 
 queryClient.getQueryCache().subscribe(event => {

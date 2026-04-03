@@ -1,13 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, ChevronRight, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones
+  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 
 const navGroups = [
   {
@@ -68,9 +68,35 @@ const bottomNav = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAuthenticated, logout } = useAuth();
+  const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
+  const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout } = useSystemAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginSenha, setLoginSenha] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [showSenha, setShowSenha] = useState(false);
+
+  const isAuthenticated = oauthAuth || systemAuth;
+  const loading = oauthLoading || systemLoading;
+  const user = oauthUser || (systemUser ? { id: systemUser.id, name: systemUser.nome, email: systemUser.email, role: "user" as const, openId: `system_${systemUser.id}`, loginMethod: "email", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } : null);
+
+  const logout = async () => {
+    if (systemAuth) await systemLogout();
+    if (oauthAuth) await oauthLogout();
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
+    const result = await systemLogin(loginEmail, loginSenha);
+    setLoginLoading(false);
+    if (!result.success) {
+      setLoginError(result.error || "Erro ao fazer login");
+    }
+  };
 
   const { data: notificacoes } = trpc.notificacoes.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -90,10 +116,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const getPlanColor = (plan?: string) => {
     switch (plan) {
-      case "PRO": return "oklch(45% 0.15 160)"; // Verde
-      case "PLUS": return "oklch(60% 0.20 30)"; // Coral
-      case "SOLO": return "oklch(65% 0.18 170)"; // Turquesa
-      default: return "oklch(52% 0.016 260)"; // Cinza
+      case "PRO": return "oklch(45% 0.15 160)";
+      case "PLUS": return "oklch(60% 0.20 30)";
+      case "SOLO": return "oklch(65% 0.18 170)";
+      default: return "oklch(52% 0.016 260)";
     }
   };
 
@@ -151,7 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Painel direito — login */}
+        {/* Painel direito — formulário de login */}
         <div className="flex-1 flex items-center justify-center px-8">
           <div className="w-full max-w-sm">
             <div className="flex items-center gap-2.5 mb-10 lg:hidden">
@@ -165,18 +191,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Bem-vindo de volta
               </h1>
               <p className="text-sm text-muted-foreground">
-                Acesse o painel para gerenciar seu negócio
+                Acesse o painel com seu e-mail e senha
               </p>
             </div>
-            <a href={getLoginUrl()}
-              className="btn-primary w-full justify-center py-3 text-sm rounded-xl"
-              style={{ display: "flex" }}>
-              Entrar na plataforma
-              <ChevronRight className="w-4 h-4" />
-            </a>
-            <p className="mt-5 text-xs text-center text-muted-foreground">
-              Acesso restrito a usuários autorizados
-            </p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">E-mail</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Senha</label>
+                <div className="relative">
+                  <input
+                    type={showSenha ? "text" : "password"}
+                    value={loginSenha}
+                    onChange={e => setLoginSenha(e.target.value)}
+                    placeholder="Sua senha"
+                    required
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                  />
+                  <button type="button" onClick={() => setShowSenha(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              {loginError && (
+                <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">{loginError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="btn-primary w-full justify-center py-3 text-sm rounded-xl"
+                style={{ display: "flex" }}>
+                {loginLoading ? "Entrando..." : "Entrar"}
+              </button>
+            </form>
           </div>
         </div>
       </div>
