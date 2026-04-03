@@ -190,6 +190,13 @@
       "when": 1775248737368,
       "tag": "0026_yellow_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1775253387165,
+      "tag": "0027_sparkling_vermin",
+      "breakpoints": true
     }
   ]
 }

@@ -800,3 +800,11 @@
 - [x] Configuracoes: adicionar guarda de permissão configuracoesVer
 - [x] Profissionais: adicionar guarda de permissão profissionaisVer
 - [x] Equipe: adicionar guarda de permissão profissionaisVer
+
+## Melhorias Solicitadas (03/04/2026 - Lote 2)
+- [x] Corrigir filtro de agenda no Dashboard: profissional vê apenas seus agendamentos no card "Minha Agenda"
+- [x] Implementar prioridade de permissão individual sobre grupo (override)
+- [x] Restringir agendamento: não-admin só pode agendar para si próprio
+- [x] Busca inteligente de clientes com autocomplete (debounce, case-insensitive, sem acento)
+- [x] Padronizar ícones por categoria de serviço usando Lucide
+- [x] Proteger /assinatura e /planos apenas para admins (backend + frontend)

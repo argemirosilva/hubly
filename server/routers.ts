@@ -20,6 +20,7 @@ import {
   getDashboardMetrics,
   getGruposByEmpresa, getGrupoById, createGrupo, updateGrupo, deleteGrupo,
   getPermissoesGrupo, updatePermissoesGrupo, getPermissoesGrupoByProfissional,
+  getPermissoesIndividuais, updatePermissoesIndividuais, deletePermissoesIndividuais,
   getMembrosGrupo, getMembrosEmpresa, addMembroGrupo, removeMembroGrupo, getPermissoesUsuario,
   getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
@@ -563,6 +564,16 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // ── Restrição: profissional sem permissão só pode agendar para si próprio ──
+        if (ctx.systemUser?.profissionalId) {
+          const { isAdmin } = await resolveAdminContext(ctx, empresa, 'agendamentosVerTodos');
+          if (!isAdmin && input.profissionalId !== ctx.systemUser.profissionalId) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Você só pode criar agendamentos para si próprio.',
+            });
+          }
+        }
         // ── Verificar limite de agendamentos do plano ──────────────────────────
         const limitError = await checkAgendamentoLimit(empresa.id);
         if (limitError) {
@@ -1515,6 +1526,9 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Apenas admin/owner pode assinar planos
+        const { isAdmin } = await resolveAdminContext(ctx, empresa);
+        if (!isAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar assinaturas" });
         const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
         const { PLANOS_STRIPE } = await import("./stripe-products");
         // Obter ou criar o Customer do Stripe
@@ -1564,6 +1578,9 @@ export const appRouter = router({
     createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
+      // Apenas admin/owner pode gerenciar assinatura
+      const { isAdmin } = await resolveAdminContext(ctx, empresa);
+      if (!isAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar assinaturas" });
       const subscription = await getOrCreateSubscription(empresa.id);
       if (!subscription.stripeCustomerId) {
         throw new Error("Nenhuma assinatura ativa encontrada");
@@ -1882,9 +1899,40 @@ export const appRouter = router({
         await setTiposProfissional(input.profissionalId, input.tipoIds);
         return { success: true };
       }),
+  }),  // ─── Permissões Individuais ─────────────────────────────────────────────────
+  permissoesIndividuais: router({
+    get: protectedProcedure
+      .input(z.object({ profissionalId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'FORBIDDEN' });
+        await requirePermissao(ctx, empresa, 'profissionaisGerenciarPermissoes');
+        return getPermissoesIndividuais(input.profissionalId);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        permissoes: z.record(z.string(), z.boolean().nullable()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'FORBIDDEN' });
+        await requirePermissao(ctx, empresa, 'profissionaisGerenciarPermissoes');
+        await updatePermissoesIndividuais(input.profissionalId, input.permissoes as any);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ profissionalId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'FORBIDDEN' });
+        await requirePermissao(ctx, empresa, 'profissionaisGerenciarPermissoes');
+        await deletePermissoesIndividuais(input.profissionalId);
+        return { success: true };
+      }),
   }),
 
-  // ─── Contas a Pagar ───────────────────────────────────────────────────────
+  // ─── Contas a Pagar ───────────────────────────────────────────────────────────
   contasPagar: router({
     categorias: router({
       list: protectedProcedure.query(async ({ ctx }) => {

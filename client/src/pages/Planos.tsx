@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,7 @@ function PlanoBadgeAtual() {
 }
 
 export default function Planos() {
+  const { isAdmin } = usePermissoes();
   const [ciclo, setCiclo] = useState<"monthly" | "annual">("monthly");
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
@@ -123,6 +125,16 @@ export default function Planos() {
   function handleAssinar(planKey: "SOLO" | "PLUS" | "PRO") {
     setLoadingKey(planKey);
     checkoutMutation.mutate({ planType: planKey, billingCycle: ciclo });
+  }
+
+  // Guarda: apenas administradores podem acessar
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Crown className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Apenas administradores podem acessar os planos.</p>
+      </div>
+    );
   }
 
   return (

@@ -835,3 +835,83 @@ export const tokensConfirmacao = mysqlTable("tokens_confirmacao", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type TokenConfirmacao = typeof tokensConfirmacao.$inferSelect;
+
+
+// ─── PERMISSÕES INDIVIDUAIS (override sobre grupo) ────────────────────────────
+// Cada campo pode ser null (herda do grupo), true (permite) ou false (bloqueia)
+// Prioridade: individual > grupo > padrão (negar)
+export const permissoesIndividuais = mysqlTable("permissoes_individuais", {
+  id: int("id").autoincrement().primaryKey(),
+  profissionalId: int("profissionalId").notNull().unique(),
+  // ── Agendamentos ──
+  agendamentosVer: boolean("agendamentosVer"),
+  agendamentosCriar: boolean("agendamentosCriar"),
+  agendamentosEditar: boolean("agendamentosEditar"),
+  agendamentosCancelar: boolean("agendamentosCancelar"),
+  agendamentosRemarcar: boolean("agendamentosRemarcar"),
+  agendamentosConfirmar: boolean("agendamentosConfirmar"),
+  agendamentosConcluir: boolean("agendamentosConcluir"),
+  agendamentosVerTodos: boolean("agendamentosVerTodos"),
+  // ── Clientes ──
+  clientesVer: boolean("clientesVer"),
+  clientesCriar: boolean("clientesCriar"),
+  clientesEditar: boolean("clientesEditar"),
+  clientesExcluir: boolean("clientesExcluir"),
+  clientesVerHistorico: boolean("clientesVerHistorico"),
+  clientesVerProntuario: boolean("clientesVerProntuario"),
+  clientesEditarProntuario: boolean("clientesEditarProntuario"),
+  clientesVerContato: boolean("clientesVerContato"),
+  // ── Profissionais ──
+  profissionaisVer: boolean("profissionaisVer"),
+  profissionaisCriar: boolean("profissionaisCriar"),
+  profissionaisEditar: boolean("profissionaisEditar"),
+  profissionaisExcluir: boolean("profissionaisExcluir"),
+  profissionaisGerenciarPermissoes: boolean("profissionaisGerenciarPermissoes"),
+  // ── Serviços ──
+  servicosVer: boolean("servicosVer"),
+  servicosCriar: boolean("servicosCriar"),
+  servicosEditar: boolean("servicosEditar"),
+  servicosExcluir: boolean("servicosExcluir"),
+  // ── Financeiro ──
+  financeiroVer: boolean("financeiroVer"),
+  financeiroVerComissoes: boolean("financeiroVerComissoes"),
+  financeiroEditarComissoes: boolean("financeiroEditarComissoes"),
+  financeiroVerReceita: boolean("financeiroVerReceita"),
+  financeiroVerCustos: boolean("financeiroVerCustos"),
+  financeiroMarcarPago: boolean("financeiroMarcarPago"),
+  financeiroVerRelatorios: boolean("financeiroVerRelatorios"),
+  // ── Agenda / Bloqueios ──
+  agendaSolicitarBloqueio: boolean("agendaSolicitarBloqueio"),
+  agendaAprovarBloqueio: boolean("agendaAprovarBloqueio"),
+  agendaVerBloqueiosTodos: boolean("agendaVerBloqueiosTodos"),
+  // ── Automações ──
+  automacoesVer: boolean("automacoesVer"),
+  automacoesCriar: boolean("automacoesCriar"),
+  automacoesEditar: boolean("automacoesEditar"),
+  automacoesExcluir: boolean("automacoesExcluir"),
+  automacoesAtivar: boolean("automacoesAtivar"),
+  // ── Notificações ──
+  notificacoesVer: boolean("notificacoesVer"),
+  // ── Relatórios ──
+  relatoriosVer: boolean("relatoriosVer"),
+  relatoriosExportar: boolean("relatoriosExportar"),
+  // ── Configurações ──
+  configuracoesVer: boolean("configuracoesVer"),
+  configuracoesEditar: boolean("configuracoesEditar"),
+  // ── Usuários e Grupos ──
+  usuariosVer: boolean("usuariosVer"),
+  usuariosConvidar: boolean("usuariosConvidar"),
+  usuariosEditar: boolean("usuariosEditar"),
+  usuariosRemover: boolean("usuariosRemover"),
+  gruposVer: boolean("gruposVer"),
+  gruposCriar: boolean("gruposCriar"),
+  gruposEditar: boolean("gruposEditar"),
+  gruposExcluir: boolean("gruposExcluir"),
+  // ── Dashboard ──
+  dashboardVer: boolean("dashboardVer"),
+  dashboardVerMetricas: boolean("dashboardVerMetricas"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PermissoesIndividuais = typeof permissoesIndividuais.$inferSelect;
+export type InsertPermissoesIndividuais = typeof permissoesIndividuais.$inferInsert;

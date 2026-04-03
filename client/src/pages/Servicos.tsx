@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Layers, Clock, Percent, Pencil, Tag, Trash2, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { getServiceIcon } from "@/lib/serviceIcons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -248,12 +249,17 @@ export default function Servicos() {
                     <Card key={s.id} className="border-border shadow-none hover:shadow-sm transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: (grupo.cor ?? "#7c3aed") + "20" }}
-                          >
-                            <Layers className="w-4 h-4" style={{ color: grupo.cor ?? "#7c3aed" }} />
-                          </div>
+                          {(() => {
+                            const { icon: IconComp, color: iconColor } = getServiceIcon(s.nome);
+                            return (
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                style={{ backgroundColor: (iconColor ?? grupo.cor ?? "#7c3aed") + "18" }}
+                              >
+                                <IconComp className="w-4 h-4" style={{ color: iconColor ?? grupo.cor ?? "#7c3aed" }} />
+                              </div>
+                            );
+                          })()}
                           <div className="flex items-center gap-1.5">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${s.ativo ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                               {s.ativo ? "Ativo" : "Inativo"}

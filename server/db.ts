@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -464,8 +464,25 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
     .from(profissionais).where(eq(profissionais.id, profissionalId)).limit(1);
   if (!prof || !prof.grupoId) return null;
   // Buscar as permissões do grupo
-  const result = await db.select().from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, prof.grupoId)).limit(1);
-  return result[0] ?? null;
+  const grupoResult = await db.select().from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, prof.grupoId)).limit(1);
+  const grupoPerms = grupoResult[0] ?? null;
+  // Buscar permissões individuais (override)
+  const indivResult = await db.select().from(permissoesIndividuais).where(eq(permissoesIndividuais.profissionalId, profissionalId)).limit(1);
+  const indivPerms = indivResult[0] ?? null;
+  // Se não há permissões de grupo, retornar individuais ou null
+  if (!grupoPerms) return indivPerms;
+  // Se não há permissões individuais, retornar grupo
+  if (!indivPerms) return grupoPerms;
+  // Merge: individual tem prioridade sobre grupo (null = herda do grupo)
+  const merged = { ...grupoPerms };
+  for (const key of Object.keys(indivPerms) as (keyof typeof indivPerms)[]) {
+    if (key === 'id' || key === 'profissionalId' || key === 'createdAt' || key === 'updatedAt') continue;
+    const val = indivPerms[key];
+    if (val !== null && val !== undefined) {
+      (merged as any)[key] = val;
+    }
+  }
+  return merged;
 }
 
 export async function getPermissoesGrupo(grupoId: number) {
@@ -484,6 +501,31 @@ export async function updatePermissoesGrupo(grupoId: number, data: Partial<typeo
   } else {
     await db.update(permissoesGrupo).set(data).where(eq(permissoesGrupo.grupoId, grupoId));
   }
+}
+
+// ─── PERMISSÕES INDIVIDUAIS ──────────────────────────────────────────────────
+export async function getPermissoesIndividuais(profissionalId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(permissoesIndividuais).where(eq(permissoesIndividuais.profissionalId, profissionalId)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function updatePermissoesIndividuais(profissionalId: number, data: Partial<typeof permissoesIndividuais.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const exists = await db.select({ id: permissoesIndividuais.id }).from(permissoesIndividuais).where(eq(permissoesIndividuais.profissionalId, profissionalId)).limit(1);
+  if (exists.length === 0) {
+    await db.insert(permissoesIndividuais).values({ profissionalId, ...data });
+  } else {
+    await db.update(permissoesIndividuais).set(data).where(eq(permissoesIndividuais.profissionalId, profissionalId));
+  }
+}
+
+export async function deletePermissoesIndividuais(profissionalId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(permissoesIndividuais).where(eq(permissoesIndividuais.profissionalId, profissionalId));
 }
 
 // ─── MEMBROS DO GRUPO ─────────────────────────────────────────────────────────

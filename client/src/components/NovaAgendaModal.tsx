@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/usePermissoes";
+import ClienteAutocomplete from "@/components/ClienteAutocomplete";
 
 interface Props {
   open: boolean;
@@ -21,10 +23,13 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+  const { pode, profissionalId: meuProfissionalId, isOwner } = usePermissoes();
+  // Não-admin: forçar profissionalId para o próprio
+  const podeAgendarParaOutros = isOwner || pode('agendamentosVerTodos');
 
   const [form, setForm] = useState({
     clienteId: "",
-    profissionalId: profissionalIdInicial ? String(profissionalIdInicial) : "",
+    profissionalId: profissionalIdInicial ? String(profissionalIdInicial) : (meuProfissionalId && !podeAgendarParaOutros ? String(meuProfissionalId) : ""),
     servicoId: "",
     data: dataInicial ?? new Date().toISOString().split("T")[0],
     horaInicio: "09:00",
@@ -117,30 +122,34 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
-              <Select value={form.clienteId} onValueChange={v => setForm(f => ({ ...f, clienteId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes?.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClienteAutocomplete
+                clientes={clientes}
+                value={form.clienteId}
+                onValueChange={v => setForm(f => ({ ...f, clienteId: v }))}
+                placeholder="Buscar cliente por nome ou telefone..."
+              />
             </div>
 
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional *</Label>
-              <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profissionais?.filter(p => p.ativo).map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {podeAgendarParaOutros ? (
+                <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profissionais?.filter(p => p.ativo).map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={profissionais?.find(p => p.id === meuProfissionalId)?.nome ?? "Carregando..."}
+                  disabled
+                  className="bg-muted"
+                />
+              )}
             </div>
 
             <div>

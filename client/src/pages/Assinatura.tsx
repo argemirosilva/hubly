@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import {
@@ -79,6 +80,7 @@ function getPlanColor(plan: string | null | undefined) {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function Assinatura() {
+  const { isAdmin } = usePermissoes();
   const [loadingPortal, setLoadingPortal] = useState(false);
 
   const { data: planStatus, isLoading: loadingPlan } = trpc.planos.getStatus.useQuery();
@@ -108,6 +110,16 @@ export default function Assinatura() {
   const planGradient = getPlanColor(plan);
 
   const isLoading = loadingPlan || loadingSub;
+
+  // Guarda: apenas administradores podem acessar
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Shield className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Apenas administradores podem acessar a assinatura.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 lg:p-6 max-w-5xl">

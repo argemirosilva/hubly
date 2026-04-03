@@ -34,6 +34,8 @@ export function usePermissoes() {
   function pode(campo: string): boolean {
     if (isLoading) return false;
     if (!meData) return false;
+    // Campo especial __admin__: exige isAdmin ou isOwner
+    if (campo === "__admin__") return hasFullAccess;
     // Owner tem tudo
     if (permissoes === null) return true;
     return permissoes[campo] === true;
