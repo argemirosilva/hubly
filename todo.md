@@ -708,3 +708,9 @@
 - [x] Atualizar nomes dos planos no stripe-products.ts e plans.ts
 - [x] Atualizar nomes na página /admin/planos (frontend)
 - [x] Criar produtos e preços no Stripe com nomes Hubly Solo/Plus/Pro via API
+
+## Correção Logo Sidebar (Apr 03 2026)
+
+- [x] Remover fundo branco do logo e gerar versão com fundo transparente
+- [x] Fazer upload do logo transparente para CDN
+- [x] Corrigir o componente da sidebar para exibir o logo corretamente
