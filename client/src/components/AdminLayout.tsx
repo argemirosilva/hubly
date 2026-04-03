@@ -357,27 +357,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <div key={item.href}>
                         {/* Item pai expansível */}
                         <div
-                          className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
+                          className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden"
                           style={{
-                            background: isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent",
-                            color: isParentActive ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)",
+                            background: isParentActive ? "oklch(55% 0.22 264 / 20%)" : "transparent",
+                            color: isParentActive ? "oklch(78% 0.16 225)" : "oklch(58% 0.025 255)",
+                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(62% 0.18 225)" : "inset 3px 0 0 transparent",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
                             if (!isParentActive) {
-                              (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
-                              (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
+                              const el = e.currentTarget as HTMLElement;
+                              el.style.background = "oklch(24% 0.018 255)";
+                              el.style.color = "oklch(88% 0.008 240)";
+                              el.style.boxShadow = "inset 3px 0 0 oklch(62% 0.18 225 / 60%)";
+                              el.style.transform = "translateX(2px)";
                             }
                           }}
                           onMouseLeave={e => {
                             if (!isParentActive) {
-                              (e.currentTarget as HTMLElement).style.background = isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent";
-                              (e.currentTarget as HTMLElement).style.color = isParentActive ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)";
+                              const el = e.currentTarget as HTMLElement;
+                              el.style.background = "transparent";
+                              el.style.color = "oklch(58% 0.025 255)";
+                              el.style.boxShadow = "inset 3px 0 0 transparent";
+                              el.style.transform = "translateX(0)";
                             }
                           }}
                         >
                           <div className="flex items-center gap-3">
-                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
                             <span className="text-sm font-medium">{item.label}</span>
                           </div>
                           <ChevronDown
@@ -394,25 +401,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                               return (
                                 <Link key={child.href} href={child.href}>
                                   <div
-                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150"
+                                    className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200"
                                     style={{
                                       background: childActive ? "oklch(55% 0.22 264 / 15%)" : "transparent",
                                       color: childActive ? "oklch(72% 0.16 225)" : "oklch(50% 0.022 255)",
+                                      boxShadow: childActive ? "inset 2px 0 0 oklch(62% 0.18 225 / 70%)" : "inset 2px 0 0 transparent",
                                     }}
                                     onMouseEnter={e => {
                                       if (!childActive) {
-                                        (e.currentTarget as HTMLElement).style.background = "oklch(20% 0.016 255)";
-                                        (e.currentTarget as HTMLElement).style.color = "oklch(80% 0.008 240)";
+                                        const el = e.currentTarget as HTMLElement;
+                                        el.style.background = "oklch(22% 0.016 255)";
+                                        el.style.color = "oklch(82% 0.008 240)";
+                                        el.style.boxShadow = "inset 2px 0 0 oklch(62% 0.18 225 / 40%)";
+                                        el.style.transform = "translateX(2px)";
                                       }
                                     }}
                                     onMouseLeave={e => {
                                       if (!childActive) {
-                                        (e.currentTarget as HTMLElement).style.background = "transparent";
-                                        (e.currentTarget as HTMLElement).style.color = "oklch(50% 0.022 255)";
+                                        const el = e.currentTarget as HTMLElement;
+                                        el.style.background = "transparent";
+                                        el.style.color = "oklch(50% 0.022 255)";
+                                        el.style.boxShadow = "inset 2px 0 0 transparent";
+                                        el.style.transform = "translateX(0)";
                                       }
                                     }}
                                   >
-                                    <ChildIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <ChildIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
                                     <span className="text-[13px] font-medium">{child.label}</span>
                                   </div>
                                 </Link>
@@ -429,26 +443,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   return (
                     <Link key={item.href} href={item.href}>
                       <div
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
+                        className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative"
                         style={{
-                          background: active ? "oklch(55% 0.22 264 / 18%)" : "transparent",
-                          color: active ? "oklch(75% 0.16 225)" : "oklch(58% 0.025 255)",
+                          background: active ? "oklch(55% 0.22 264 / 20%)" : "transparent",
+                          color: active ? "oklch(78% 0.16 225)" : "oklch(58% 0.025 255)",
+                          boxShadow: active ? "inset 3px 0 0 oklch(62% 0.18 225)" : "inset 3px 0 0 transparent",
                         }}
                         onMouseEnter={e => {
                           if (!active) {
-                            (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
-                            (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
+                            const el = e.currentTarget as HTMLElement;
+                            el.style.background = "oklch(24% 0.018 255)";
+                            el.style.color = "oklch(88% 0.008 240)";
+                            el.style.boxShadow = "inset 3px 0 0 oklch(62% 0.18 225 / 60%)";
+                            el.style.transform = "translateX(2px)";
                           }
                         }}
                         onMouseLeave={e => {
                           if (!active) {
-                            (e.currentTarget as HTMLElement).style.background = "transparent";
-                            (e.currentTarget as HTMLElement).style.color = "oklch(58% 0.025 255)";
+                            const el = e.currentTarget as HTMLElement;
+                            el.style.background = "transparent";
+                            el.style.color = "oklch(58% 0.025 255)";
+                            el.style.boxShadow = "inset 3px 0 0 transparent";
+                            el.style.transform = "translateX(0)";
                           }
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
                           <span className="text-sm font-medium">{item.label}</span>
                         </div>
                         {item.href === "/admin/notificacoes" && naoLidas > 0 && (
@@ -473,18 +494,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               const event = new CustomEvent('open-support-chat');
               window.dispatchEvent(event);
             }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150 text-left"
-            style={{ color: "oklch(58% 0.025 255)" }}
+            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 text-left"
+            style={{ color: "oklch(58% 0.025 255)", boxShadow: "inset 3px 0 0 transparent" }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = "oklch(22% 0.015 255)";
-              (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.008 240)";
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "oklch(24% 0.018 255)";
+              el.style.color = "oklch(88% 0.008 240)";
+              el.style.boxShadow = "inset 3px 0 0 oklch(62% 0.18 225 / 60%)";
+              el.style.transform = "translateX(2px)";
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "oklch(58% 0.025 255)";
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "transparent";
+              el.style.color = "oklch(58% 0.025 255)";
+              el.style.boxShadow = "inset 3px 0 0 transparent";
+              el.style.transform = "translateX(0)";
             }}
           >
-            <Headphones className="w-4 h-4 flex-shrink-0" />
+            <Headphones className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-sm font-medium">Suporte</span>
           </button>
         </div>

@@ -714,3 +714,7 @@
 - [x] Remover fundo branco do logo e gerar versão com fundo transparente
 - [x] Fazer upload do logo transparente para CDN
 - [x] Corrigir o componente da sidebar para exibir o logo corretamente
+
+## Hover Menu Lateral (Apr 03 2026)
+
+- [x] Implementar efeitos de hover com transições suaves nos itens da sidebar
