@@ -249,7 +249,7 @@ function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLocal({})}>Limpar todas</Button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+      <div className="overflow-y-auto space-y-2 pr-1" style={{ maxHeight: "380px", minHeight: "120px" }}>
         {PERMISSION_GROUPS.map((group) => {
           const Icon = group.icon;
           const allChecked = isAllChecked(group.items);
@@ -329,7 +329,7 @@ function AbaGrupos() {
   });
 
   const membrosCount = (grupo: any) => {
-    return grupo.membros ?? 0;
+    return grupo.totalMembros ?? 0;
   };
 
   if (isLoading) {
