@@ -1,10 +1,9 @@
-const CACHE_NAME = 'agendei-v1';
+const CACHE_NAME = 'agendei-v3';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
 ];
 
-// Instalar e cachear assets estáticos
+// Instalar e cachear apenas assets estáticos mínimos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -22,13 +21,21 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estratégia: Network first, fallback para cache
+// Estratégia: Network first para tudo (sem cache de JS/CSS para evitar problemas de versão)
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Ignorar requisições de API e tRPC
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/api/trpc')) {
+    return;
+  }
+
+  // Ignorar assets do Vite (JS, CSS, chunks) - sempre buscar da rede
+  if (url.pathname.startsWith('/@') || url.pathname.startsWith('/src/') ||
+      url.pathname.includes('node_modules') || url.pathname.includes('.vite') ||
+      url.pathname.endsWith('.js') || url.pathname.endsWith('.css') ||
+      url.pathname.endsWith('.ts') || url.pathname.endsWith('.tsx')) {
     return;
   }
 
@@ -40,7 +47,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para outros assets: cache first
+  // Para outros assets estáticos (imagens, fontes): cache first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

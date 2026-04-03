@@ -31,14 +31,21 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Registrar Service Worker -->
+    <!-- Registrar Service Worker apenas em produção -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js')
-            .then(function(reg) { console.log('[PWA] Service Worker registrado:', reg.scope); })
-            .catch(function(err) { console.log('[PWA] Falha ao registrar SW:', err); });
-        });
+        // Em desenvolvimento, desregistrar qualquer SW existente para evitar cache de assets antigos
+        if (location.hostname === 'localhost' || location.hostname.includes('.manus.computer') || location.hostname.includes('.manuspre.computer')) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(reg) { reg.unregister(); });
+          });
+        } else {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(reg) { console.log('[PWA] Service Worker registrado:', reg.scope); })
+              .catch(function(err) { console.log('[PWA] Falha ao registrar SW:', err); });
+          });
+        }
       }
     </script>
 

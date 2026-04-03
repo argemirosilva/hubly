@@ -154,7 +154,11 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 
 export default defineConfig({
   plugins,
+  optimizeDeps: {
+    include: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query", "@trpc/react-query"],
+  },
   resolve: {
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
