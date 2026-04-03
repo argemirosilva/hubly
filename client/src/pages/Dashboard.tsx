@@ -364,9 +364,11 @@ export default function Dashboard() {
                 <Clock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
               </div>
               <div>
-                <h3 className="font-semibold text-sm tracking-tight">Agenda de Hoje</h3>
+                <h3 className="font-semibold text-sm tracking-tight">
+                  {isProfissional ? "Minha Agenda" : "Agenda de Hoje"}
+                </h3>
                 <p className="text-xs text-muted-foreground">
-                  {agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}
+                  Hoje · {agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
