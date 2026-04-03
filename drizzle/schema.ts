@@ -725,3 +725,36 @@ export const profissionalTipos = mysqlTable("profissional_tipos", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type ProfissionalTipo = typeof profissionalTipos.$inferSelect;
+
+// ─── Módulo Contas a Pagar ────────────────────────────────────────────────────
+// Categorias de despesa (ex: Aluguel, Produtos, Fornecedores, Impostos, etc.)
+export const categoriasDespesa = mysqlTable("categorias_despesa", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  cor: varchar("cor", { length: 7 }).default("#6b7280"),
+  icone: varchar("icone", { length: 50 }).default("receipt"),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type CategoriaDespesa = typeof categoriasDespesa.$inferSelect;
+
+// Contas a pagar
+export const contasPagar = mysqlTable("contas_pagar", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  descricao: varchar("descricao", { length: 200 }).notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  dataVencimento: varchar("dataVencimento", { length: 10 }).notNull(),
+  dataPagamento: varchar("dataPagamento", { length: 10 }),
+  categoriaId: int("categoriaId"),
+  status: mysqlEnum("status_conta", ["pendente", "pago", "vencido", "cancelado"]).default("pendente").notNull(),
+  recorrente: boolean("recorrente").default(false).notNull(),
+  recorrenciaTipo: mysqlEnum("recorrencia_tipo", ["semanal", "mensal", "anual"]),
+  observacoes: text("observacoes"),
+  fornecedor: varchar("fornecedor", { length: 150 }),
+  comprovante: varchar("comprovante", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ContaPagar = typeof contasPagar.$inferSelect;

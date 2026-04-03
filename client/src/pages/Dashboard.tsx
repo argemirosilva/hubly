@@ -291,13 +291,13 @@ export default function Dashboard() {
           {
             label: "Hoje",
             value: String(agendamentosHoje?.length ?? 0),
-            sub: "agendamentos",
+            sub: isProfissional ? "meus atendimentos" : "agendamentos",
             icon: Calendar,
             iconBg: "oklch(55% 0.22 264 / 12%)",
             iconColor: "oklch(45% 0.18 264)",
           },
           {
-            label: "Receita do mês",
+            label: isProfissional ? "Minha receita" : "Receita do mês",
             value: formatCurrency(metrics?.receitaMes ?? 0),
             sub: variacaoReceita !== 0
               ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs anterior`
@@ -308,9 +308,9 @@ export default function Dashboard() {
             iconColor: "oklch(38% 0.14 155)",
           },
           {
-            label: "Clientes",
+            label: isProfissional ? "Clientes atendidos" : "Clientes",
             value: String(metrics?.totalClientes ?? 0),
-            sub: "cadastrados",
+            sub: isProfissional ? "no mês" : "cadastrados",
             icon: Users,
             iconBg: "oklch(60% 0.20 300 / 12%)",
             iconColor: "oklch(42% 0.16 300)",
@@ -318,7 +318,7 @@ export default function Dashboard() {
           {
             label: "Conversão",
             value: `${metrics?.taxaConversao ?? 0}%`,
-            sub: "concluídos / total",
+            sub: isProfissional ? "meus concluídos" : "concluídos / total",
             icon: TrendingUp,
             iconBg: "oklch(68% 0.18 80 / 12%)",
             iconColor: "oklch(40% 0.14 80)",

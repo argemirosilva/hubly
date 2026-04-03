@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -374,11 +374,11 @@ export async function getDashboardMetrics(empresaId: number, profissionalId?: nu
     ? and(eq(comissoes.empresaId, empresaId), eq(comissoes.profissionalId, profissionalId), gte(comissoes.createdAt, new Date(inicioMes)))
     : and(eq(comissoes.empresaId, empresaId), gte(comissoes.createdAt, new Date(inicioMes)));
 
-  const [agendamentosHoje, agendamentosMes, agendamentosMesAnterior, totalClientes, comissoesMes] = await Promise.all([
+  const [agendamentosHoje, agendamentosMes, agendamentosMesAnterior, totalClientesEmpresa, comissoesMes] = await Promise.all([
     db.select().from(agendamentos).where(filtroHoje),
     db.select().from(agendamentos).where(filtroMes),
     db.select().from(agendamentos).where(filtroMesAnterior),
-    // Total de clientes sempre da empresa (não filtra por profissional)
+    // Total de clientes da empresa (para admin); profissional calcula clientes únicos a partir dos agendamentos
     db.select({ count: sql<number>`count(*)` }).from(clientes).where(and(eq(clientes.empresaId, empresaId), eq(clientes.ativo, true))),
     db.select().from(comissoes).where(filtroComissoes),
   ]);
@@ -388,14 +388,24 @@ export async function getDashboardMetrics(empresaId: number, profissionalId?: nu
   const ticketMedio = agendamentosMes.filter(a => a.status === 'concluido').length > 0
     ? receitaMes / agendamentosMes.filter(a => a.status === 'concluido').length : 0;
 
+  // Clientes únicos atendidos no mês pelo profissional (ou total da empresa para admin)
+  const clientesUnicosMes = profissionalId
+    ? new Set(agendamentosMes.map(a => a.clienteId)).size
+    : (totalClientesEmpresa[0]?.count ?? 0);
+
+  // Comissões pendentes em valor monetário (não quantidade)
+  const comissoesPendentesValor = comissoesMes
+    .filter(c => !c.paga)
+    .reduce((sum, c) => sum + parseFloat(String(c.valorComissao ?? 0)), 0);
+
   return {
     agendamentosHoje: agendamentosHoje.length,
     agendamentosMes: agendamentosMes.length,
     receitaMes,
     receitaMesAnterior,
     ticketMedio,
-    totalClientes: totalClientes[0]?.count ?? 0,
-    comissoesPendentes: comissoesMes.filter(c => !c.paga).length,
+    totalClientes: clientesUnicosMes,
+    comissoesPendentes: comissoesPendentesValor,
     taxaConversao: agendamentosMes.length > 0
       ? Math.round((agendamentosMes.filter(a => a.status === 'concluido').length / agendamentosMes.length) * 100) : 0,
     // Indica se os dados estão filtrados por profissional
@@ -1053,4 +1063,164 @@ export async function setTiposProfissional(profissionalId: number, tipoIds: numb
       tipoIds.map(tipoProfissionalId => ({ profissionalId, tipoProfissionalId }))
     );
   }
+}
+
+// ─── CATEGORIAS DE DESPESA ────────────────────────────────────────────────────
+export async function getCategoriasDespesaByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(categoriasDespesa)
+    .where(and(eq(categoriasDespesa.empresaId, empresaId), eq(categoriasDespesa.ativo, true)))
+    .orderBy(categoriasDespesa.nome);
+}
+
+export async function createCategoriaDespesa(data: typeof categoriasDespesa.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(categoriasDespesa).values(data);
+  return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function updateCategoriaDespesa(id: number, data: Partial<typeof categoriasDespesa.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(categoriasDespesa).set(data).where(eq(categoriasDespesa.id, id));
+}
+
+export async function deleteCategoriaDespesa(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(categoriasDespesa).set({ ativo: false }).where(eq(categoriasDespesa.id, id));
+}
+
+// ─── CONTAS A PAGAR ───────────────────────────────────────────────────────────
+export async function getContasPagarByEmpresa(empresaId: number, filtros?: {
+  status?: string;
+  categoriaId?: number;
+  dataInicio?: string;
+  dataFim?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(contasPagar.empresaId, empresaId)];
+  if (filtros?.status && filtros.status !== "todos") {
+    conditions.push(eq(contasPagar.status, filtros.status as any));
+  }
+  if (filtros?.categoriaId) {
+    conditions.push(eq(contasPagar.categoriaId, filtros.categoriaId));
+  }
+  if (filtros?.dataInicio) {
+    conditions.push(sql`${contasPagar.dataVencimento} >= ${filtros.dataInicio}`);
+  }
+  if (filtros?.dataFim) {
+    conditions.push(sql`${contasPagar.dataVencimento} <= ${filtros.dataFim}`);
+  }
+  const contas = await db.select({
+    id: contasPagar.id,
+    empresaId: contasPagar.empresaId,
+    descricao: contasPagar.descricao,
+    valor: contasPagar.valor,
+    dataVencimento: contasPagar.dataVencimento,
+    dataPagamento: contasPagar.dataPagamento,
+    categoriaId: contasPagar.categoriaId,
+    status: contasPagar.status,
+    recorrente: contasPagar.recorrente,
+    recorrenciaTipo: contasPagar.recorrenciaTipo,
+    observacoes: contasPagar.observacoes,
+    fornecedor: contasPagar.fornecedor,
+    comprovante: contasPagar.comprovante,
+    createdAt: contasPagar.createdAt,
+    updatedAt: contasPagar.updatedAt,
+    categoriaNome: categoriasDespesa.nome,
+    categoriaCor: categoriasDespesa.cor,
+    categoriaIcone: categoriasDespesa.icone,
+  })
+    .from(contasPagar)
+    .leftJoin(categoriasDespesa, eq(contasPagar.categoriaId, categoriasDespesa.id))
+    .where(and(...conditions))
+    .orderBy(contasPagar.dataVencimento);
+  return contas;
+}
+
+export async function createContaPagar(data: typeof contasPagar.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(contasPagar).values(data);
+  return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function updateContaPagar(id: number, data: Partial<typeof contasPagar.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(contasPagar).set(data).where(eq(contasPagar.id, id));
+}
+
+export async function deleteContaPagar(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(contasPagar).where(eq(contasPagar.id, id));
+}
+
+export async function getMetricasContasPagar(empresaId: number) {
+  const db = await getDb();
+  if (!db) return { totalPendente: 0, totalVencido: 0, totalPagoMes: 0, totalMes: 0, contasVencidas: 0, contasPendentes: 0 };
+  const hoje = new Date().toISOString().split("T")[0];
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+  const fimMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0];
+  const todasContas = await db.select().from(contasPagar).where(eq(contasPagar.empresaId, empresaId));
+  // Atualizar status de vencidas automaticamente
+  const vencidas = todasContas.filter(c => c.status === "pendente" && c.dataVencimento < hoje);
+  for (const conta of vencidas) {
+    await db.update(contasPagar).set({ status: "vencido" }).where(eq(contasPagar.id, conta.id));
+  }
+  const pendentes = todasContas.filter(c => c.status === "pendente" && c.dataVencimento >= hoje);
+  const vencidasAtual = todasContas.filter(c => c.status === "vencido" || (c.status === "pendente" && c.dataVencimento < hoje));
+  const pagosMes = todasContas.filter(c => c.status === "pago" && c.dataPagamento && c.dataPagamento >= inicioMes && c.dataPagamento <= fimMes);
+  const doMes = todasContas.filter(c => c.dataVencimento >= inicioMes && c.dataVencimento <= fimMes && c.status !== "cancelado");
+  return {
+    totalPendente: pendentes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalVencido: vencidasAtual.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalPagoMes: pagosMes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalMes: doMes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    contasVencidas: vencidasAtual.length,
+    contasPendentes: pendentes.length,
+  };
+}
+
+export async function getResumoContasPagarParaIA(empresaId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const hoje = new Date().toISOString().split("T")[0];
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+  const fimMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0];
+  const todasContas = await db.select({
+    id: contasPagar.id,
+    descricao: contasPagar.descricao,
+    valor: contasPagar.valor,
+    dataVencimento: contasPagar.dataVencimento,
+    dataPagamento: contasPagar.dataPagamento,
+    status: contasPagar.status,
+    fornecedor: contasPagar.fornecedor,
+    categoriaNome: categoriasDespesa.nome,
+  })
+    .from(contasPagar)
+    .leftJoin(categoriasDespesa, eq(contasPagar.categoriaId, categoriasDespesa.id))
+    .where(eq(contasPagar.empresaId, empresaId));
+  const vencidas = todasContas.filter(c => (c.status === "vencido" || (c.status === "pendente" && c.dataVencimento < hoje)));
+  const pendentes = todasContas.filter(c => c.status === "pendente" && c.dataVencimento >= hoje);
+  const pagosMes = todasContas.filter(c => c.status === "pago" && c.dataPagamento && c.dataPagamento >= inicioMes && c.dataPagamento <= fimMes);
+  const proximas7Dias = pendentes.filter(c => {
+    const diff = (new Date(c.dataVencimento).getTime() - new Date(hoje).getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+  return {
+    totalVencido: vencidas.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalPendente: pendentes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalPagoMes: pagosMes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    quantidadeVencidas: vencidas.length,
+    quantidadePendentes: pendentes.length,
+    contasVencidas: vencidas.slice(0, 5).map(c => ({ descricao: c.descricao, valor: parseFloat(String(c.valor)), vencimento: c.dataVencimento, categoria: c.categoriaNome })),
+    proximasAVencer: proximas7Dias.slice(0, 5).map(c => ({ descricao: c.descricao, valor: parseFloat(String(c.valor)), vencimento: c.dataVencimento, categoria: c.categoriaNome })),
+    maiorDespesaMes: pagosMes.sort((a, b) => parseFloat(String(b.valor)) - parseFloat(String(a.valor))).slice(0, 3).map(c => ({ descricao: c.descricao, valor: parseFloat(String(c.valor)), categoria: c.categoriaNome })),
+  };
 }

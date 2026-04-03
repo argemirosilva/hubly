@@ -337,17 +337,27 @@ function AbaTipos({
         {todosTipos.map((tipo) => {
           const selecionado = tiposIds.includes(tipo.id);
           return (
-            <label
+            <div
               key={tipo.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              role="button"
+              tabIndex={0}
+              onClick={() => toggleTipo(tipo.id)}
+              onKeyDown={(e) => e.key === " " && toggleTipo(tipo.id)}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
                 selecionado ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/50"
               }`}
             >
-              <Checkbox
-                checked={selecionado}
-                onCheckedChange={() => toggleTipo(tipo.id)}
-                className="shrink-0"
-              />
+              <div
+                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  selecionado ? "bg-primary border-primary" : "border-muted-foreground/40"
+                }`}
+              >
+                {selecionado && (
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none">
+                    <path d="M1.5 5l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
               <span
                 className="w-3 h-3 rounded-full shrink-0"
                 style={{ backgroundColor: tipo.cor ?? "#7c3aed" }}
@@ -356,7 +366,7 @@ function AbaTipos({
               {selecionado && (
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
               )}
-            </label>
+            </div>
           );
         })}
       </div>
@@ -446,23 +456,6 @@ function ModalMembro({
   }, [tiposVinculados]);
 
   const setTiposMutation = trpc.tiposProfissional.setProfissional.useMutation();
-
-  // Reset ao abrir/fechar
-  useEffect(() => {
-    if (open) {
-      setAbaModal("dados");
-      setNome(membro?.nome ?? "");
-      setEmail(membro?.email ?? "");
-      setTelefone(membro?.telefone ?? "");
-      setEspecialidade(membro?.especialidade ?? "");
-      setCorCalendario(membro?.corCalendario ?? "#7c3aed");
-      setIsProfissional(membro?.isProfissional ?? true);
-      setTemAcesso(membro?.temAcesso ?? false);
-      setGrupoId(membro?.grupoId?.toString() ?? "");
-      setSenha("");
-      setAtivo(membro?.ativo ?? true);
-    }
-  }, [open, membro]);
 
   const criar = trpc.equipe.criar.useMutation({
     onSuccess: () => {

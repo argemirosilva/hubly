@@ -33,6 +33,8 @@ vi.mock("./db", () => ({
   getAlertasFinanceiros: vi.fn(),
   marcarAlertaFinanceiroLido: vi.fn(),
   marcarTodosAlertasLidos: vi.fn(),
+  getResumoContasPagarParaIA: vi.fn().mockResolvedValue(null),
+  getMetricasContasPagar: vi.fn().mockResolvedValue({ totalPendente: 0, totalVencido: 0, totalPagoMes: 0, totalMes: 0, contasVencidas: 0, contasPendentes: 0 }),
   saveAnaliseCliente: vi.fn(),
   getAnaliseClientesByEmpresa: vi.fn(),
   getAnaliseByCliente: vi.fn(),

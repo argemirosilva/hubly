@@ -141,6 +141,13 @@
       "when": 1775228136616,
       "tag": "0019_slow_sleepwalker",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1775229567116,
+      "tag": "0020_sloppy_timeslip",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,8 @@ import {
   getAlertasFinanceiros,
   marcarAlertaFinanceiroLido,
   marcarTodosAlertasLidos,
+  getResumoContasPagarParaIA,
+  getMetricasContasPagar,
 } from "../db";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "../db";
@@ -308,15 +310,27 @@ export const iaFinanceiroRouter = router({
 
       const score = await getScoreAtual(empresa.id);
       const alertas = await getAlertasFinanceiros(empresa.id, false);
-      const historico = await getHistoricoScore(empresa.id, 7);
+      const contasPagarResumo = await getResumoContasPagarParaIA(empresa.id);
 
-      const contexto = score
-        ? `Score atual: ${score.score}/100 (${score.status === "saudavel" ? "Saudável" : score.status === "atencao" ? "Atenção" : "Risco"}).
+      const contextoScore = score
+        ? `Score financeiro: ${score.score}/100 (${score.status === "saudavel" ? "Saudável" : score.status === "atencao" ? "Atenção" : "Risco"}).
 Explicação: ${score.explicacao}
 Motivos: ${(score.motivos as string[]).join("; ")}
 Dicas: ${(score.dicas as string[]).join("; ")}
 Alertas recentes: ${alertas.slice(0, 3).map(a => a.titulo).join("; ") || "Nenhum alerta"}`
         : "Ainda não há score calculado para esta empresa.";
+
+      const contextoContas = contasPagarResumo
+        ? `
+
+CONTAS A PAGAR:
+- Total vencido (em atraso): R$ ${contasPagarResumo.totalVencido.toFixed(2)} (${contasPagarResumo.quantidadeVencidas} conta(s))
+- Total pendente (a vencer): R$ ${contasPagarResumo.totalPendente.toFixed(2)} (${contasPagarResumo.quantidadePendentes} conta(s))
+- Total pago este mês: R$ ${contasPagarResumo.totalPagoMes.toFixed(2)}
+${contasPagarResumo.contasVencidas.length > 0 ? `- Contas vencidas: ${contasPagarResumo.contasVencidas.map(c => `${c.descricao} (R$ ${c.valor.toFixed(2)}, venceu ${c.vencimento})`).join("; ")}` : ""}
+${contasPagarResumo.proximasAVencer.length > 0 ? `- Próximas a vencer (7 dias): ${contasPagarResumo.proximasAVencer.map(c => `${c.descricao} (R$ ${c.valor.toFixed(2)}, vence ${c.vencimento})`).join("; ")}` : ""}
+${contasPagarResumo.maiorDespesaMes.length > 0 ? `- Maiores despesas do mês: ${contasPagarResumo.maiorDespesaMes.map(c => `${c.descricao} (R$ ${c.valor.toFixed(2)})`).join("; ")}` : ""}`
+        : "";
 
       const resposta = await invokeLLM({
         messages: [
@@ -328,7 +342,7 @@ Nunca invente dados. Use apenas as informações fornecidas no contexto.
 Sempre sugira uma ação prática ao final.
 
 Contexto financeiro atual:
-${contexto}`,
+${contextoScore}${contextoContas}`,
           },
           { role: "user", content: input.mensagem },
         ],
@@ -336,4 +350,11 @@ ${contexto}`,
 
       return { resposta: resposta.choices[0]?.message?.content ?? "Não consegui processar sua pergunta. Tente novamente." };
     }),
+
+  // Métricas de contas a pagar (para o score e alertas)
+  getMetricasContasPagar: protectedProcedure.query(async ({ ctx }) => {
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+    if (!empresa) return null;
+    return getMetricasContasPagar(empresa.id);
+  }),
 });

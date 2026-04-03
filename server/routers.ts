@@ -26,6 +26,8 @@ import {
   getEquipeByEmpresa,
   getTiposProfissionalByEmpresa, createTipoProfissional, updateTipoProfissional, deleteTipoProfissional,
   getTiposByProfissional, setTiposProfissional,
+  getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
+  getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1583,6 +1585,124 @@ export const appRouter = router({
       .input(z.object({ profissionalId: z.number(), tipoIds: z.array(z.number()) }))
       .mutation(async ({ input }) => {
         await setTiposProfissional(input.profissionalId, input.tipoIds);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Contas a Pagar ───────────────────────────────────────────────────────
+  contasPagar: router({
+    categorias: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        return getCategoriasDespesaByEmpresa(empresa.id);
+      }),
+      criar: protectedProcedure
+        .input(z.object({
+          nome: z.string().min(1).max(100),
+          cor: z.string().optional(),
+          icone: z.string().optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+          if (!empresa) throw new TRPCError({ code: "NOT_FOUND" });
+          const id = await createCategoriaDespesa({ ...input, empresaId: empresa.id });
+          return { id };
+        }),
+      atualizar: protectedProcedure
+        .input(z.object({
+          id: z.number(),
+          nome: z.string().min(1).max(100).optional(),
+          cor: z.string().optional(),
+          icone: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { id, ...data } = input;
+          await updateCategoriaDespesa(id, data);
+          return { success: true };
+        }),
+      deletar: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+          await deleteCategoriaDespesa(input.id);
+          return { success: true };
+        }),
+    }),
+    list: protectedProcedure
+      .input(z.object({
+        status: z.string().optional(),
+        categoriaId: z.number().optional(),
+        dataInicio: z.string().optional(),
+        dataFim: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        return getContasPagarByEmpresa(empresa.id, input ?? {});
+      }),
+    metricas: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { totalPendente: 0, totalVencido: 0, totalPagoMes: 0, totalMes: 0, contasVencidas: 0, contasPendentes: 0 };
+      return getMetricasContasPagar(empresa.id);
+    }),
+    criar: protectedProcedure
+      .input(z.object({
+        descricao: z.string().min(1).max(200),
+        valor: z.number().positive(),
+        dataVencimento: z.string(),
+        categoriaId: z.number().optional(),
+        recorrente: z.boolean().optional(),
+        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional(),
+        observacoes: z.string().optional(),
+        fornecedor: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND" });
+        const id = await createContaPagar({
+          ...input,
+          valor: String(input.valor),
+          empresaId: empresa.id,
+          status: "pendente",
+        });
+        return { id };
+      }),
+    atualizar: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        descricao: z.string().min(1).max(200).optional(),
+        valor: z.number().positive().optional(),
+        dataVencimento: z.string().optional(),
+        dataPagamento: z.string().optional().nullable(),
+        categoriaId: z.number().optional().nullable(),
+        status: z.enum(["pendente", "pago", "vencido", "cancelado"]).optional(),
+        recorrente: z.boolean().optional(),
+        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional().nullable(),
+        observacoes: z.string().optional().nullable(),
+        fornecedor: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, valor, ...rest } = input;
+        await updateContaPagar(id, { ...rest, ...(valor !== undefined ? { valor: String(valor) } : {}) });
+        return { success: true };
+      }),
+    marcarPago: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        dataPagamento: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const hoje = new Date().toISOString().split("T")[0];
+        await updateContaPagar(input.id, {
+          status: "pago",
+          dataPagamento: input.dataPagamento ?? hoje,
+        });
+        return { success: true };
+      }),
+    deletar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteContaPagar(input.id);
         return { success: true };
       }),
   }),

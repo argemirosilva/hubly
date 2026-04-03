@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
-  Bell, Calendar, CalendarCheck, CreditCard,
+  Bell, Calendar, CalendarCheck, CreditCard, ReceiptText,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
   UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle
 } from "lucide-react";
@@ -31,6 +31,7 @@ const navGroups = [
     label: "Operações",
     items: [
       { href: "/admin/financeiro", label: "Financeiro", icon: CreditCard },
+      { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText },
       { href: "/admin/automacoes", label: "Automações", icon: MessageSquare },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
