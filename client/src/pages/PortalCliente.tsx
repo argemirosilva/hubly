@@ -286,9 +286,7 @@ export default function PortalCliente() {
             </button>
           </div>
         </div>
-        <footer className="text-center py-4 text-[11px] text-slate-400 flex items-center justify-center gap-1">
-          Powered by <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-tech-logo_93e7520c.png" alt="Orizon Tech" className="h-4 inline-block" />
-        </footer>
+        <HublyFooter />
       </div>
     );
   }
@@ -704,10 +702,26 @@ export default function PortalCliente() {
         )}
       </div>
 
-      <footer className="text-center py-4 text-[11px] text-slate-400 flex items-center justify-center gap-1">
-        Powered by <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-tech-logo_93e7520c.png" alt="Orizon Tech" className="h-4 inline-block" />
-      </footer>
+      <HublyFooter />
     </div>
+  );
+}
+
+const HUBLY_LOGO_COMPLETO = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png";
+const HUBLY_LOGO_TRANSPARENTE = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png";
+
+function HublyFooter() {
+  return (
+    <footer className="mt-auto border-t border-slate-100 py-5 px-4">
+      <div className="max-w-lg mx-auto flex flex-col items-center gap-2">
+        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">Agendamento gerenciado por</p>
+        <a href="https://hubly.com.br" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity">
+          <img src={HUBLY_LOGO_COMPLETO} alt="Hubly" className="h-5 w-auto object-contain" />
+        </a>
+        <p className="text-[9px] text-slate-300">Hub de Serviços Inteligentes</p>
+      </div>
+    </footer>
   );
 }
 
@@ -716,25 +730,30 @@ function PortalHeader({ empresa, corPrimaria }: {
   corPrimaria: string;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+    <header className="sticky top-0 z-20 shadow-md" style={{
+      background: `linear-gradient(135deg, #1a3a6b 0%, #1e6fa8 60%, #29abe2 100%)`,
+    }}>
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           {empresa.logoUrl ? (
-            <img src={empresa.logoUrl} alt={empresa.nome} className="h-8 w-auto object-contain" />
+            <img src={empresa.logoUrl} alt={empresa.nome}
+              className="h-9 w-auto object-contain rounded-lg"
+              style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }} />
           ) : (
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: corPrimaria }}>
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/30">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
           )}
           <div>
-            <p className="font-bold text-sm tracking-tight text-slate-800">{empresa.nome}</p>
-            <p className="text-[10px] text-slate-400">Agendamento Online</p>
+            <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">{empresa.nome}</p>
+            <p className="text-[10px] text-blue-100/80">Agendamento Online</p>
           </div>
         </div>
-        <a href="/admin" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-          Área restrita →
-        </a>
+        <div className="flex items-center gap-2">
+          <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
+            className="h-5 w-auto object-contain opacity-60 hover:opacity-90 transition-opacity"
+            style={{ filter: "brightness(0) invert(1)" }} />
+        </div>
       </div>
     </header>
   );

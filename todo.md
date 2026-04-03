@@ -718,3 +718,9 @@
 ## Hover Menu Lateral (Apr 03 2026)
 
 - [x] Implementar efeitos de hover com transições suaves nos itens da sidebar
+
+## Identidade Hubly na Página Pública /agendar (Apr 03 2026)
+
+- [x] Aplicar logo, cores e tipografia Hubly no header da página pública
+- [x] Atualizar paleta de cores dos botões, seleções e destaques
+- [x] Adicionar rodapé "Powered by Hubly" com logo
