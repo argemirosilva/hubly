@@ -18,7 +18,9 @@ export default function Financeiro() {
 
   // Se o usuário é profissional vinculado, filtra apenas suas comissões
   const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
+  const isAdmin = (user as any)?.isAdmin === true || (!profissionalVinculadoId && !!(user as any)?.id);
 
+  // Backend já aplica o filtro correto via resolveAdminContext
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
   const { data: comissoes } = trpc.financeiro.comissoes.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
@@ -37,13 +39,11 @@ export default function Financeiro() {
   const filtradas = useMemo(() => {
     return (comissoes ?? []).filter(c => {
       const matchStatus = filtroStatus === "todos" || (filtroStatus === "paga" ? c.paga : !c.paga);
-      // Filtro automático: profissional vinculado vê apenas suas próprias comissões
-      const matchProf = profissionalVinculadoId
-        ? c.profissionalId === profissionalVinculadoId
-        : filtroProfId === "todos" || c.profissionalId === parseInt(filtroProfId);
+      // Admin pode filtrar por profissional específico via select; profissional já recebe apenas os seus do backend
+      const matchProf = !isAdmin || filtroProfId === "todos" || c.profissionalId === parseInt(filtroProfId);
       return matchStatus && matchProf;
     });
-  }, [comissoes, filtroStatus, filtroProfId, profissionalVinculadoId]);
+  }, [comissoes, filtroStatus, filtroProfId, isAdmin]);
 
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
 
@@ -86,8 +86,8 @@ export default function Financeiro() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* Seletor de profissional: ocultado para usuários vinculados a um profissional */}
-            {!profissionalVinculadoId && (
+            {/* Seletor de profissional: visível apenas para admins */}
+            {isAdmin && (
               <Select value={filtroProfId} onValueChange={setFiltroProfId}>
                 <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
                   <SelectValue placeholder="Profissional" />

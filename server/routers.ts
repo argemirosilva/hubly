@@ -52,6 +52,35 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
   return getEmpresaDoContexto(userId, systemUserEmpresaId);
 }
 
+/**
+ * Determina se o usuário logado é admin/owner e resolve o profissionalId correto para filtros.
+ * - Owner OAuth (sem systemUser): isAdmin=true, profId=null (vê todos)
+ * - SystemUser com permissão verTodos: isAdmin=true, profId=null
+ * - SystemUser sem permissão verTodos: isAdmin=false, profId=systemUser.id
+ */
+async function resolveAdminContext(
+  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null } | null },
+  empresa: { id: number; ownerId: number },
+  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" = "agendamentosVerTodos"
+): Promise<{ isAdmin: boolean; profId: number | null }> {
+  // Owner OAuth: sempre admin
+  if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
+    return { isAdmin: true, profId: null };
+  }
+  // SystemUser: verificar permissões do grupo
+  if (ctx.systemUser) {
+    const perms = await getPermissoesByProfissional(ctx.systemUser.id);
+    // Verificar permissão específica ou permissão genérica de ver todos
+    const temPermissao = perms ? (perms as any)[permField] === true : false;
+    if (temPermissao) {
+      return { isAdmin: true, profId: null };
+    }
+    return { isAdmin: false, profId: ctx.systemUser.profissionalId };
+  }
+  // OAuth sem ser owner: sem empresa vinculada, tratar como admin (owner de outra empresa)
+  return { isAdmin: true, profId: null };
+}
+
 import { getUsageWithAlerts } from "./db-usage-alerts";
 
 export const appRouter = router({
@@ -65,14 +94,26 @@ export const appRouter = router({
   pacotes: pacotesRouter,
 
   auth: router({
-    me: publicProcedure.query(opts => {
+    me: publicProcedure.query(async opts => {
       if (!opts.ctx.user) return null;
       // No modelo unificado, o systemUser É o profissional (profissionalId = systemUser.id)
+      // isAdmin: owner OAuth (sem systemUser) ou systemUser com agendamentosVerTodos
+      let isAdmin = false;
+      if (!opts.ctx.systemUser) {
+        // Owner OAuth: buscar empresa para verificar se é owner
+        const empresa = await getEmpresaDoContexto(opts.ctx.user.id, null);
+        isAdmin = empresa ? empresa.ownerId === opts.ctx.user.id : false;
+      } else {
+        // SystemUser: verificar permissões do grupo
+        const perms = await getPermissoesByProfissional(opts.ctx.systemUser.id);
+        isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
+      }
       return {
         ...opts.ctx.user,
         profissionalId: opts.ctx.systemUser ? opts.ctx.systemUser.id : null,
         isProfissional: opts.ctx.systemUser?.isProfissional ?? false,
         isSystemUser: !!opts.ctx.systemUser,
+        isAdmin,
       };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -377,8 +418,15 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
-        // Prioridade: filtro explícito do input > profissional vinculado ao system_user
-        const profId = input?.profissionalId ?? ctx.systemUser?.profissionalId ?? null;
+        // Se o input especifica explicitamente um profissionalId, usar esse
+        // Caso contrário: admin vê todos (profId=null), profissional vê só os seus
+        let profId: number | null;
+        if (input?.profissionalId !== undefined) {
+          profId = input.profissionalId;
+        } else {
+          const { profId: resolvedProfId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+          profId = resolvedProfId;
+        }
         return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim, profId);
       }),
     getById: protectedProcedure
@@ -693,7 +741,15 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
-        return getComissoesByEmpresa(empresa.id, input?.profissionalId);
+        // Admin vê todos; profissional vê apenas as suas próprias comissões
+        let profId: number | undefined;
+        if (input?.profissionalId !== undefined) {
+          profId = input.profissionalId;
+        } else {
+          const { profId: resolved } = await resolveAdminContext(ctx, empresa, "financeiroVerComissoes");
+          profId = resolved ?? undefined;
+        }
+        return getComissoesByEmpresa(empresa.id, profId);
       }),
     criarComissao: protectedProcedure
       .input(z.object({
@@ -743,8 +799,14 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return null;
-        // Se o usuário é um system_user vinculado a um profissional, filtrar automaticamente
-        const profId = input?.profissionalId ?? ctx.systemUser?.profissionalId ?? null;
+        // Admin vê métricas consolidadas; profissional vê apenas as suas
+        let profId: number | null;
+        if (input?.profissionalId !== undefined) {
+          profId = input.profissionalId;
+        } else {
+          const { profId: resolved } = await resolveAdminContext(ctx, empresa, "financeiroVer");
+          profId = resolved;
+        }
         return getDashboardMetrics(empresa.id, profId);
       }),
   }),

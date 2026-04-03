@@ -41,14 +41,17 @@ export default function Agendamentos() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [filtroProfissional, setFiltroProfissional] = useState<string>("todos");
 
   // Se o usuário é profissional vinculado, filtra apenas seus agendamentos
   const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
+  const isAdmin = (user as any)?.isAdmin === true || (!profissionalVinculadoId && !!(user as any)?.id);
 
   const today = new Date().toISOString().split("T")[0];
   const [dataInicio, setDataInicio] = useState(today);
   const [dataFim, setDataFim] = useState(today);
 
+  // Backend já aplica o filtro correto via resolveAdminContext
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
@@ -77,13 +80,13 @@ export default function Agendamentos() {
       const matchStatus = filtroStatus === "todos" || ag.status === filtroStatus;
       const nomeCliente = clienteMap[ag.clienteId] ?? "";
       const matchBusca = !busca || nomeCliente.toLowerCase().includes(busca.toLowerCase());
-      // Filtro automático: profissional vinculado vê apenas seus próprios agendamentos
-      const matchProfissional = !profissionalVinculadoId || ag.profissionalId === profissionalVinculadoId;
+      // Filtro por profissional: admin pode filtrar por profissional específico via select
+      const matchProfissional = filtroProfissional === "todos" || ag.profissionalId === parseInt(filtroProfissional);
       return matchStatus && matchBusca && matchProfissional;
     }).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-  }, [agendamentos, filtroStatus, busca, clienteMap, profissionalVinculadoId]);
+  }, [agendamentos, filtroStatus, busca, clienteMap, filtroProfissional]);
 
-  const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today;
+  const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today || filtroProfissional !== "todos";
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto animate-in-up">
@@ -163,9 +166,23 @@ export default function Agendamentos() {
             ))}
           </SelectContent>
         </Select>
+        {/* Filtro por profissional — apenas para admins */}
+        {isAdmin && profissionais && profissionais.length > 0 && (
+          <Select value={filtroProfissional} onValueChange={setFiltroProfissional}>
+            <SelectTrigger className="w-auto min-w-[160px] h-9 text-sm">
+              <SelectValue placeholder="Profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os profissionais</SelectItem>
+              {profissionais.map(p => (
+                <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {filtrosAtivos && (
           <button
-            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); }}
+            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); setFiltroProfissional("todos"); }}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors h-9 px-2">
             <X className="w-3.5 h-3.5" />
             Limpar

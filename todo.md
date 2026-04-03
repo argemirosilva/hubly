@@ -605,3 +605,23 @@
 - [x] Seção Push Notifications (PWA) adicionada na página Notificações
 - [x] Procedures tRPC: push.getVapidPublicKey, push.subscribe, push.unsubscribe, push.sendTest
 - [x] Instruções de instalação PWA (Android/iPhone/Desktop) na página de Notificações
+
+## Visibilidade de Dados para Admins vs Profissionais (v14)
+- [ ] Backend: agendamentos — admin vê todos, profissional vê apenas os seus
+- [ ] Backend: financeiro (comissões, contas a receber) — admin vê todos, profissional vê apenas os seus
+- [ ] Backend: dashboard KPIs — admin vê dados consolidados de todos
+- [ ] Frontend: tela de Agendamentos — filtro de profissional visível apenas para admins
+- [ ] Frontend: tela de Financeiro — filtro de profissional visível apenas para admins
+- [ ] Frontend: tela de Calendário — admin vê todos por padrão, profissional vê só o seu
+
+## Visibilidade de Dados para Admins (2026-04-03)
+
+- [x] Adicionar função resolveAdminContext no backend para determinar se o usuário é admin
+- [x] Corrigir agendamentos.list para admin ver todos os profissionais
+- [x] Corrigir financeiro.comissoes para admin ver todos os profissionais
+- [x] Corrigir financeiro.dashboard para admin ver métricas consolidadas
+- [x] Adicionar campo isAdmin ao retorno de auth.me
+- [x] Atualizar Dashboard para usar isAdmin do auth.me
+- [x] Adicionar filtro de profissional na página Agendamentos (visível apenas para admins)
+- [x] Atualizar página Financeiro para usar isAdmin e mostrar filtro de profissional
+- [x] Atualizar Calendário para remover filtro manual no frontend (backend já filtra)

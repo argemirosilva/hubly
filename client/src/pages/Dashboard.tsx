@@ -164,20 +164,18 @@ export default function Dashboard() {
   const { data: meData } = trpc.auth.me.useQuery();
   const profissionalIdVinculado = (meData as any)?.profissionalId ?? null;
   const isProfissional = !!profissionalIdVinculado;
+  // isAdmin: owner OAuth ou systemUser com permissão agendamentosVerTodos
+  const isAdmin = (meData as any)?.isAdmin === true || (!profissionalIdVinculado && !!(meData as any)?.id);
 
   const { data: empresa } = trpc.empresa.get.useQuery();
-  // Passa profissionalId automaticamente — backend filtra se vinculado, admin recebe null e vê tudo
-  const { data: metrics } = trpc.financeiro.dashboard.useQuery(
-    isProfissional ? { profissionalId: profissionalIdVinculado } : undefined
-  );
+  // Backend já aplica o filtro correto via resolveAdminContext
+  const { data: metrics } = trpc.financeiro.dashboard.useQuery(undefined);
   const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
   const { data: alertasIA } = trpc.iaFinanceiro.getAlertas.useQuery({ apenasNaoLidos: true });
   const alertasNaoLidos = (alertasIA ?? []).length;
-  // Agenda do dia: filtrar por profissional se vinculado
+  // Agenda do dia: backend já aplica o filtro correto via resolveAdminContext
   const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery(
-    isProfissional
-      ? { dataInicio: today, dataFim: today, profissionalId: profissionalIdVinculado }
-      : { dataInicio: today, dataFim: today }
+    { dataInicio: today, dataFim: today }
   );
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
@@ -185,7 +183,6 @@ export default function Dashboard() {
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
 
   // Contas a Pagar — apenas para admins
-  const isAdmin = !isProfissional;
   const [hojeStr] = useState(() => new Date().toISOString().split("T")[0]);
   const [fimSemanaStr] = useState(() => new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
   const { data: contasHoje } = trpc.contasPagar.list.useQuery(

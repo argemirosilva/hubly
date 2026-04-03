@@ -29,21 +29,14 @@ export default function Calendario() {
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
 
-  // Se o usuário é profissional vinculado, filtra apenas seus agendamentos
-  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
-
+  // Backend já aplica o filtro correto via resolveAdminContext
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
   const dataInicio = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const dataFim = `${year}-${String(month + 1).padStart(2, "0")}-${new Date(year, month + 1, 0).getDate()}`;
 
-  const { data: agendamentosRaw } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
-  // Filtro automático: profissional vinculado vê apenas seus próprios agendamentos
-  const agendamentos = useMemo(() => {
-    if (!profissionalVinculadoId) return agendamentosRaw;
-    return agendamentosRaw?.filter(ag => ag.profissionalId === profissionalVinculadoId);
-  }, [agendamentosRaw, profissionalVinculadoId]);
+  const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
 
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
