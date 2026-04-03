@@ -94,7 +94,7 @@ function ModalConta({
   const [descricao, setDescricao] = useState(conta?.descricao ?? "");
   const [valor, setValor] = useState(conta ? String(parseFloat(String(conta.valor))) : "");
   const [dataVencimento, setDataVencimento] = useState(conta?.dataVencimento ?? new Date().toISOString().split("T")[0]);
-  const [categoriaId, setCategoriaId] = useState<string>(conta?.categoriaId ? String(conta.categoriaId) : "");
+  const [categoriaId, setCategoriaId] = useState<string>(conta?.categoriaId ? String(conta.categoriaId) : "none");
   const [recorrente, setRecorrente] = useState(conta?.recorrente ?? false);
   const [recorrenciaTipo, setRecorrenciaTipo] = useState<string>(conta?.recorrenciaTipo ?? "mensal");
   const [observacoes, setObservacoes] = useState(conta?.observacoes ?? "");
@@ -130,7 +130,7 @@ function ModalConta({
       descricao: descricao.trim(),
       valor: valorNum,
       dataVencimento,
-      categoriaId: categoriaId ? parseInt(categoriaId) : undefined,
+      categoriaId: (categoriaId && categoriaId !== "none") ? parseInt(categoriaId) : undefined,
       recorrente,
       recorrenciaTipo: recorrente ? (recorrenciaTipo as any) : undefined,
       observacoes: observacoes || undefined,
@@ -195,7 +195,7 @@ function ModalConta({
                 <SelectValue placeholder="Selecione uma categoria (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sem categoria</SelectItem>
+                <SelectItem value="none">Sem categoria</SelectItem>
                 {categorias.map(c => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     <span className="flex items-center gap-2">
@@ -462,7 +462,7 @@ export default function ContasPagar() {
   // Queries
   const { data: contas = [], isLoading } = trpc.contasPagar.list.useQuery({
     status: filtroStatus !== "todos" ? filtroStatus : undefined,
-    categoriaId: filtroCategoria ? parseInt(filtroCategoria) : undefined,
+    categoriaId: (filtroCategoria && filtroCategoria !== "todas") ? parseInt(filtroCategoria) : undefined,
   });
   const { data: metricas } = trpc.contasPagar.metricas.useQuery();
   const { data: categorias = [] } = trpc.contasPagar.categorias.list.useQuery();
@@ -619,7 +619,7 @@ export default function ContasPagar() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="todas">Todas</SelectItem>
                   {categorias.map(c => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
                   ))}
