@@ -997,6 +997,22 @@ export const appRouter = router({
         await deleteAutomacao(input.id);
         return { success: true };
       }),
+    uploadMidia: protectedProcedure
+      .input(z.object({
+        arquivoBase64: z.string(),
+        arquivoNome: z.string(),
+        arquivoTipo: z.string(), // "image/jpeg", "image/png", "application/pdf"
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const buffer = Buffer.from(input.arquivoBase64, "base64");
+        if (buffer.length > 16 * 1024 * 1024) throw new Error("Arquivo muito grande. Máximo 16MB.");
+        const ext = input.arquivoNome.split(".").pop() || "bin";
+        const key = `empresa-${empresa.id}/automacoes/${nanoid()}.${ext}`;
+        const { url } = await storagePut(key, buffer, input.arquivoTipo);
+        return { url, key, success: true };
+      }),
   }),
 
   // ─── CORES / CONFIGURAÇÕES ────────────────────────────────────────────────

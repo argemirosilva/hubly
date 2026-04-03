@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Layers, Clock, Percent, Pencil, Tag, Settings2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
@@ -278,18 +279,32 @@ export default function Servicos() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Categoria / Tipo</Label>
-                <div className="relative">
+                <div className="flex flex-col gap-1.5">
+                  <Select
+                    value={(tipos ?? []).some(t => t.nome === form.categoria) ? form.categoria : form.categoria ? '__custom__' : ''}
+                    onValueChange={val => {
+                      if (val === '__custom__') return;
+                      setForm(f => ({ ...f, categoria: val }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione ou digite..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(tipos ?? []).map(t => (
+                        <SelectItem key={t.id} value={t.nome}>{t.nome}</SelectItem>
+                      ))}
+                      {(tipos ?? []).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Nenhum tipo cadastrado. Crie em "Tipos de Profissional".</div>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <Input
-                    list="categorias-list"
                     value={form.categoria}
                     onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
-                    placeholder="Ex: Manicure, Cabelo..."
+                    placeholder="Ou digite livremente..."
+                    className="text-xs h-8"
                   />
-                  <datalist id="categorias-list">
-                    {(tipos ?? []).map(t => (
-                      <option key={t.id} value={t.nome} />
-                    ))}
-                  </datalist>
                 </div>
               </div>
               <div>

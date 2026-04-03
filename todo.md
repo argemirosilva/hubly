@@ -651,3 +651,17 @@
 
 - [x] Frontend: adicionar {{valor_reserva}} na lista VARIAVEIS da página Automacoes.tsx
 - [x] Backend: calcular valor_reserva (percentual reserva × valor serviço) ao processar variáveis de automação
+
+## Tooltips, Imagem/PDF nas Automações, Bug Categoria/Tipo
+
+- [ ] Corrigir bug: lista de Categoria/Tipo no modal de serviço não está sendo populada
+- [ ] Adicionar tooltips explicativos nas variáveis de automação ({{nome_cliente}}, {{valor_reserva}}, etc.)
+- [ ] Implementar seleção e envio de imagem/PDF nas mensagens de automação (upload para S3 + envio via WhatsApp)
+
+## Tooltips, Imagem/PDF e Categoria/Tipo (Apr 03 2026)
+
+- [x] Corrigir bug do campo Categoria/Tipo no modal de serviço (substituir datalist por Select confiável)
+- [x] Adicionar tooltips explicativos com descrição e exemplo em cada variável de automação
+- [x] Backend: procedure automacoes.uploadMidia para upload de imagem/PDF para S3
+- [x] Backend: função sendMediaMessage no WhatsApp para envio de imagem/PDF via Baileys
+- [x] Frontend: seção de anexo de mídia no editor de nó de automação (imagem ou PDF, máx 16MB, preview)

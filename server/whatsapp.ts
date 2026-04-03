@@ -302,6 +302,42 @@ class WhatsAppManager extends EventEmitter {
     console.log("[WhatsApp] 🔄 Sessão resetada. Pronto para novo QR Code.");
   }
 
+  async sendMediaMessage(phoneNumber: string, mediaUrl: string, caption?: string, mimeType?: string): Promise<boolean> {
+    if (this.state.status !== "connected" || !this.sock) {
+      console.warn("[WhatsApp] Tentativa de envio sem conexão ativa");
+      return false;
+    }
+
+    try {
+      const cleaned = phoneNumber.replace(/\D/g, "");
+      const withCountry = cleaned.startsWith("55") ? cleaned : `55${cleaned}`;
+      const jid = `${withCountry}@s.whatsapp.net`;
+
+      const mime = mimeType || (mediaUrl.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg");
+      const isDocument = mime === "application/pdf" || mime.startsWith("application/");
+
+      if (isDocument) {
+        await this.sock.sendMessage(jid, {
+          document: { url: mediaUrl },
+          mimetype: mime,
+          fileName: mediaUrl.split("/").pop() || "arquivo.pdf",
+          caption: caption || "",
+        });
+      } else {
+        await this.sock.sendMessage(jid, {
+          image: { url: mediaUrl },
+          caption: caption || "",
+        });
+      }
+
+      console.log(`[WhatsApp] Mídia enviada para ${jid}`);
+      return true;
+    } catch (err) {
+      console.error(`[WhatsApp] Erro ao enviar mídia para ${phoneNumber}:`, err);
+      return false;
+    }
+  }
+
   async sendMessage(phoneNumber: string, message: string): Promise<boolean> {
     if (this.state.status !== "connected" || !this.sock) {
       console.warn("[WhatsApp] Tentativa de envio sem conexão ativa");
@@ -421,4 +457,13 @@ export async function sendPacoteVencendo(params: {
     `📍 *${empresaNome}*\n\n` +
     `_Entre em contato para renovar seu pacote e não perder seus benefícios!_`;
   return waManager.sendMessage(clienteTelefone, mensagem);
+}
+
+export async function sendWAMedia(params: {
+  telefone: string;
+  mediaUrl: string;
+  caption?: string;
+  mimeType?: string;
+}): Promise<boolean> {
+  return waManager.sendMediaMessage(params.telefone, params.mediaUrl, params.caption, params.mimeType);
 }

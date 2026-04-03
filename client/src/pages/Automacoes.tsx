@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -64,15 +65,15 @@ const CONDITION_OPTIONS = [
 ];
 
 const VARIAVEIS = [
-  { var: "{{nome_cliente}}", desc: "Nome da cliente" },
-  { var: "{{servico}}", desc: "Nome do serviço" },
-  { var: "{{profissional}}", desc: "Nome do profissional" },
-  { var: "{{data}}", desc: "Data do agendamento" },
-  { var: "{{hora}}", desc: "Hora do agendamento" },
-  { var: "{{valor}}", desc: "Valor do serviço" },
-  { var: "{{empresa}}", desc: "Nome da empresa" },
-  { var: "{{link_confirmacao}}", desc: "Link para o cliente confirmar o agendamento" },
-  { var: "{{valor_reserva}}", desc: "Valor da reserva (% configurado × valor do serviço)" },
+  { var: "{{nome_cliente}}", desc: "Nome completo da cliente", exemplo: "Ex: Ana Silva" },
+  { var: "{{servico}}", desc: "Nome do serviço agendado", exemplo: "Ex: Escova progressiva" },
+  { var: "{{profissional}}", desc: "Nome da profissional que irá realizar o serviço", exemplo: "Ex: Maria" },
+  { var: "{{data}}", desc: "Data do agendamento por extenso", exemplo: "Ex: segunda-feira, 07 de abril" },
+  { var: "{{hora}}", desc: "Horário de início e fim do agendamento", exemplo: "Ex: 14:00 – 15:30" },
+  { var: "{{valor}}", desc: "Valor total do serviço", exemplo: "Ex: R$ 150,00" },
+  { var: "{{empresa}}", desc: "Nome do seu salão/empresa", exemplo: "Ex: Studio Beléza" },
+  { var: "{{link_confirmacao}}", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
+  { var: "{{valor_reserva}}", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
 ];
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -148,9 +149,30 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
   onClose: () => void;
 }) {
   const [data, setData] = useState({ ...node.data });
+  const [uploadingMidia, setUploadingMidia] = useState(false);
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
   const save = () => { onUpdate(node.id, data); toast.success("Nó atualizado!"); };
   const insertVar = (v: string) => set("mensagem", (data.mensagem || "") + v);
+  const utils = trpc.useUtils();
+  const uploadMidiaMutation = trpc.automacoes.uploadMidia.useMutation({
+    onSuccess: (res) => {
+      set("midiaUrl", res.url);
+      toast.success("Arquivo enviado com sucesso!");
+    },
+    onError: (err) => toast.error(err.message || "Erro ao enviar arquivo"),
+  });
+
+  function handleMidiaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo muito grande. Máximo 16MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = (ev.target?.result as string).split(",")[1];
+      uploadMidiaMutation.mutate({ arquivoBase64: base64, arquivoNome: file.name, arquivoTipo: file.type });
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -259,14 +281,61 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
                     placeholder="Olá {{nome_cliente}}, seu agendamento de {{servico}} está confirmado para {{data}} às {{hora}}."
                     className="text-sm min-h-[90px] resize-none" />
                   <p className="text-xs text-gray-400 mt-1.5 mb-1">Inserir variável:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {VARIAVEIS.map(v => (
-                      <button key={v.var} onClick={() => insertVar(v.var)} title={v.desc}
-                        className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1.5 py-0.5 hover:bg-indigo-100 font-mono">
-                        {v.var}
-                      </button>
-                    ))}
-                  </div>
+                  <TooltipProvider delayDuration={200}>
+                    <div className="flex flex-wrap gap-1">
+                      {VARIAVEIS.map(v => (
+                        <Tooltip key={v.var}>
+                          <TooltipTrigger asChild>
+                            <button onClick={() => insertVar(v.var)}
+                              className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1.5 py-0.5 hover:bg-indigo-100 font-mono transition-colors">
+                              {v.var}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] text-left">
+                            <p className="font-medium text-xs mb-0.5">{v.desc}</p>
+                            <p className="text-xs text-muted-foreground">{v.exemplo}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </TooltipProvider>
+
+                  {/* Anexo de mídia */}
+                  {data.tipo === "enviar_whatsapp" && (
+                    <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <p className="text-xs text-gray-500 mb-2 font-medium">Anexar imagem ou PDF (opcional)</p>
+                      {data.midiaUrl ? (
+                        <div className="flex items-center gap-2">
+                          {data.midiaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img src={data.midiaUrl} alt="preview" className="w-16 h-16 object-cover rounded border" />
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-white border rounded px-2 py-1.5">
+                              <span>📄</span>
+                              <span className="truncate max-w-[120px]">{data.midiaUrl.split("/").pop()}</span>
+                            </div>
+                          )}
+                          <button onClick={() => set("midiaUrl", "")} className="text-xs text-red-500 hover:text-red-700 ml-auto">Remover</button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 hover:text-indigo-600 transition-colors">
+                            {uploadMidiaMutation.isPending ? (
+                              <span className="text-xs text-indigo-500">Enviando...</span>
+                            ) : (
+                              <>
+                                <span className="text-lg">📎</span>
+                                <span>Clique para selecionar imagem (JPG, PNG) ou PDF</span>
+                              </>
+                            )}
+                          </div>
+                          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" className="hidden" onChange={handleMidiaChange} disabled={uploadMidiaMutation.isPending} />
+                        </label>
+                      )}
+                      {data.midiaUrl && (
+                        <p className="text-xs text-gray-400 mt-1.5">A mídia será enviada junto com a mensagem de texto.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
