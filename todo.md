@@ -755,3 +755,18 @@
 - [x] Página com identidade Hubly: confirmação do plano, próximos passos e CTA
 - [x] Integrar success_url do Stripe para redirecionar para /admin/planos/sucesso
 - [x] Buscar detalhes da sessão Stripe para exibir o plano contratado
+
+## Correção de Permissões (Apr 03 2026)
+
+- [ ] Administradora deve ver todos os agendamentos (não apenas os próprios)
+- [ ] Profissional vê nome e valor dos serviços de outros profissionais (sem custo, sem edição)
+- [ ] Profissional vê custo e pode editar apenas seus próprios serviços
+
+## Correções de Permissão (03/04/2026)
+- [x] Corrigir resolveAdminContext para usar getPermissoesGrupoByProfissional (tabela permissoes_grupo) em vez de getPermissoesByProfissional (tabela permissoes antiga sem agendamentosVerTodos)
+- [x] Corrigir requirePermissao para usar getPermissoesGrupoByProfissional
+- [x] Corrigir auth.me para usar getPermissoesGrupoByProfissional ao calcular isAdmin
+- [x] Visibilidade granular de serviços: profissional vê dados completos (custo, comissão) apenas dos seus próprios serviços; outros serviços mostram apenas nome/preço/duração
+- [x] Frontend Servicos.tsx: ocultar botão Novo Serviço e Tipos de Profissional para não-admins
+- [x] Frontend Servicos.tsx: ocultar botão de editar para serviços que o profissional não possui vínculo
+- [x] Frontend Servicos.tsx: ocultar percentual de comissão para serviços de outros profissionais

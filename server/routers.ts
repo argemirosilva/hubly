@@ -9,7 +9,7 @@ import {
   getProfissionaisByEmpresa, getProfissionaisParaAgendamento, getProfissionalById, createProfissional, updateProfissional,
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClienteById, createCliente, updateCliente,
-  getServicosByEmpresa, createServico, updateServico,
+  getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
   getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
@@ -19,7 +19,7 @@ import {
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
   getGruposByEmpresa, getGrupoById, createGrupo, updateGrupo, deleteGrupo,
-  getPermissoesGrupo, updatePermissoesGrupo,
+  getPermissoesGrupo, updatePermissoesGrupo, getPermissoesGrupoByProfissional,
   getMembrosGrupo, getMembrosEmpresa, addMembroGrupo, removeMembroGrupo, getPermissoesUsuario,
   getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
@@ -88,8 +88,8 @@ async function requirePermissao(
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) return;
   // OAuth sem ser owner: também tem (pode ser dono de outra empresa)
   if (!ctx.systemUser) return;
-  // SystemUser: verificar permissões do grupo
-  const perms = await getPermissoesByProfissional(ctx.systemUser.id);
+  // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
+  const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
   if (!perms || !(perms as any)[permField]) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -119,9 +119,9 @@ async function resolveAdminContext(
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
     return { isAdmin: true, profId: null };
   }
-  // SystemUser: verificar permissões do grupo
+  // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   if (ctx.systemUser) {
-    const perms = await getPermissoesByProfissional(ctx.systemUser.id);
+    const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
     // Verificar permissão específica ou permissão genérica de ver todos
     const temPermissao = perms ? (perms as any)[permField] === true : false;
     if (temPermissao) {
@@ -156,8 +156,8 @@ export const appRouter = router({
         const empresa = await getEmpresaDoContexto(opts.ctx.user.id, null);
         isAdmin = empresa ? empresa.ownerId === opts.ctx.user.id : false;
       } else {
-        // SystemUser: verificar permissões do grupo
-        const perms = await getPermissoesByProfissional(opts.ctx.systemUser.id);
+        // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
+        const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.id);
         isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
       }
       return {
@@ -439,13 +439,25 @@ export const appRouter = router({
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       const todosServicos = await getServicosByEmpresa(empresa.id);
-      // Profissionais sem permissão de edição não veem custoFixo nem percentualComissao de outros
+      // Admin/owner vê tudo
       const { isAdmin } = await resolveAdminContext(ctx, empresa, 'servicosEditar');
-      if (!isAdmin) {
-        // Retornar apenas campos públicos — sem custoFixo nem percentualComissao
-        return todosServicos.map(({ custoFixo: _c, percentualComissao: _p, ...pub }) => pub);
+      if (isAdmin) return todosServicos;
+      // Profissional: vê dados completos dos seus próprios serviços, apenas nome/preço/categoria dos outros
+      if (ctx.systemUser) {
+        const meusServicos = await getServicosByProfissional(ctx.systemUser.id);
+        const meusServicosIds = new Set(meusServicos.map((s: { servicoId: number }) => s.servicoId));
+        return todosServicos.map((s) => {
+          if (meusServicosIds.has(s.id)) {
+            // Serviço próprio: retornar dados completos
+            return s;
+          }
+          // Serviço de outro profissional: apenas campos públicos (sem custo e comissão)
+          const { custoFixo: _c, percentualComissao: _p, ...pub } = s;
+          return { ...pub, custoFixo: undefined, percentualComissao: undefined };
+        });
       }
-      return todosServicos;
+      // Fallback: sem systemUser e não é admin (não deveria ocorrer)
+      return todosServicos.map(({ custoFixo: _c, percentualComissao: _p, ...pub }) => pub);
     }),
     listPublico: publicProcedure
       .input(z.object({ empresaId: z.number() }))

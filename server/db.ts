@@ -452,6 +452,22 @@ export async function deleteGrupo(id: number) {
 }
 
 // ─── PERMISSÕES DO GRUPO ──────────────────────────────────────────────────────
+/**
+ * Busca as permissões do grupo ao qual o profissional pertence.
+ * Retorna permissoes_grupo se o profissional tem grupoId, null caso contrário.
+ */
+export async function getPermissoesGrupoByProfissional(profissionalId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  // Buscar o grupoId do profissional
+  const [prof] = await db.select({ grupoId: profissionais.grupoId })
+    .from(profissionais).where(eq(profissionais.id, profissionalId)).limit(1);
+  if (!prof || !prof.grupoId) return null;
+  // Buscar as permissões do grupo
+  const result = await db.select().from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, prof.grupoId)).limit(1);
+  return result[0] ?? null;
+}
+
 export async function getPermissoesGrupo(grupoId: number) {
   const db = await getDb();
   if (!db) return null;
