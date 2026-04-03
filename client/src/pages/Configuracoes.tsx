@@ -1,8 +1,8 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const DIAS_SEMANA = [
@@ -67,7 +67,32 @@ export default function Configuracoes() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  // Validação de slug em tempo real
+  const [slugParaVerificar, setSlugParaVerificar] = useState("");
+  const [slugDigitando, setSlugDigitando] = useState(false);
+  const { data: slugCheck, isFetching: verificandoSlug } = trpc.empresa.checkSlugDisponivel.useQuery(
+    { slug: slugParaVerificar },
+    { enabled: slugParaVerificar.length >= 2, staleTime: 5000 }
+  );
+
+  // Debounce: atualiza slugParaVerificar 600ms após parar de digitar
+  useEffect(() => {
+    if (!slugDigitando) return;
+    const timer = setTimeout(() => {
+      setSlugParaVerificar(form.portalSlug);
+      setSlugDigitando(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.portalSlug, slugDigitando]);
+
+  const slugOcupado = slugParaVerificar === form.portalSlug && slugCheck?.disponivel === false;
+  const slugDisponivel = slugParaVerificar === form.portalSlug && slugCheck?.disponivel === true && form.portalSlug.length >= 2;
+
   function handleSave() {
+    if (slugOcupado) {
+      toast.error("Este slug já está em uso por outra empresa. Escolha outro.");
+      return;
+    }
     updateMutation.mutate({
       nome: form.nome,
       telefone: form.telefone,
@@ -231,19 +256,53 @@ export default function Configuracoes() {
               {/* Campo de slug personalizado */}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground block">URL personalizada (slug)</Label>
-                <div className="flex items-center gap-1.5 rounded-lg border bg-background overflow-hidden" style={{ borderColor: "oklch(88% 0.012 250)" }}>
+                <div
+                  className="flex items-center gap-1.5 rounded-lg border bg-background overflow-hidden transition-colors"
+                  style={{
+                    borderColor: slugOcupado
+                      ? "oklch(55% 0.18 25)"
+                      : slugDisponivel
+                      ? "oklch(55% 0.15 145)"
+                      : "oklch(88% 0.012 250)"
+                  }}
+                >
                   <span className="text-xs text-muted-foreground px-2 py-2 bg-muted border-r whitespace-nowrap" style={{ borderColor: "oklch(88% 0.012 250)" }}>
                     /agendar/
                   </span>
                   <input
                     type="text"
                     value={form.portalSlug}
-                    onChange={e => setForm(f => ({ ...f, portalSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/--+/g, "-") }))}
+                    onChange={e => {
+                      setForm(f => ({ ...f, portalSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/--+/g, "-") }));
+                      setSlugDigitando(true);
+                    }}
                     placeholder="meu-salao"
                     className="flex-1 text-xs px-2 py-2 bg-transparent outline-none"
                   />
+                  {/* Ícone de status */}
+                  <span className="pr-2 flex-shrink-0">
+                    {(verificandoSlug || slugDigitando) && form.portalSlug.length >= 2 ? (
+                      <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                    ) : slugOcupado ? (
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                    ) : slugDisponivel ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    ) : null}
+                  </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Use apenas letras minúsculas, números e hífens. Salve para ativar.</p>
+                {slugOcupado && (
+                  <p className="text-[10px] font-medium" style={{ color: "oklch(55% 0.18 25)" }}>
+                    ⚠️ Este slug já está em uso por outra empresa. Escolha outro.
+                  </p>
+                )}
+                {slugDisponivel && (
+                  <p className="text-[10px] font-medium" style={{ color: "oklch(45% 0.15 145)" }}>
+                    ✓ Slug disponível!
+                  </p>
+                )}
+                {!slugOcupado && !slugDisponivel && (
+                  <p className="text-[10px] text-muted-foreground">Use apenas letras minúsculas, números e hífens. Salve para ativar.</p>
+                )}
               </div>
 
               {/* Link atual */}

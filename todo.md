@@ -734,3 +734,9 @@
 - [x] Campo de edição de slug em Configurações → Portal
 - [x] Imagem de capa com overlay gradiente Hubly no portal
 - [x] Botão de compartilhamento (copiar link) no header do portal
+
+## Validação de Slug Único (Apr 03 2026)
+
+- [x] Procedure checkSlugDisponivel no backend (verifica se slug já está em uso por outra empresa)
+- [x] Validação em tempo real no campo de slug (debounce + feedback visual)
+- [x] Bloquear salvamento se slug já estiver em uso

@@ -193,6 +193,25 @@ export const appRouter = router({
         await createEmpresa({ ...input, ownerId: ctx.user.id });
         return { success: true };
       }),
+    checkSlugDisponivel: protectedProcedure
+      .input(z.object({ slug: z.string().min(1) }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const db = await getDb();
+        if (!db) return { disponivel: true };
+        const { empresas: empresasTable } = await import("../drizzle/schema.js");
+        const { eq, and, ne } = await import("drizzle-orm");
+        const existente = await db.select({ id: empresasTable.id })
+          .from(empresasTable)
+          .where(and(
+            eq(empresasTable.portalSlug, input.slug),
+            ne(empresasTable.id, empresa.id)
+          ))
+          .limit(1);
+        return { disponivel: existente.length === 0 };
+      }),
+
     update: protectedProcedure
       .input(z.object({
         nome: z.string().optional(),
