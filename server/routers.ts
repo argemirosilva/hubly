@@ -28,6 +28,7 @@ import {
   getTiposByProfissional, setTiposProfissional,
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
+  getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1704,6 +1705,100 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteContaPagar(input.id);
         return { success: true };
+      }),
+  }),
+  // ─── CONTAS A RECEBER ─────────────────────────────────────────────────────
+  contasReceber: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      return getContasReceberByEmpresa(empresa.id);
+    }),
+    metricas: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { totalPendente: 0, totalRecebidoMes: 0, totalVencido: 0, quantidadePendentes: 0, quantidadeVencidas: 0, quantidadeProximas7: 0, totalProximas7: 0 };
+      return getMetricasContasReceber(empresa.id);
+    }),
+    criar: protectedProcedure
+      .input(z.object({
+        descricao: z.string().min(1),
+        valor: z.number().positive(),
+        dataVencimento: z.string(),
+        dataRecebimento: z.string().optional(),
+        status: z.enum(["pendente", "recebido", "vencido", "cancelado"]).default("pendente"),
+        origem: z.enum(["manual", "agendamento", "pacote"]).default("manual"),
+        clienteId: z.number().optional(),
+        profissionalId: z.number().optional(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+        observacoes: z.string().optional(),
+        recorrente: z.boolean().default(false),
+        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND" });
+        const id = await createContaReceber({
+          empresaId: empresa.id,
+          descricao: input.descricao,
+          valor: String(input.valor),
+          dataVencimento: input.dataVencimento,
+          dataRecebimento: input.dataRecebimento,
+          status: input.status,
+          origem: input.origem,
+          clienteId: input.clienteId,
+          profissionalId: input.profissionalId,
+          tipoPagamento: input.tipoPagamento,
+          observacoes: input.observacoes,
+          recorrente: input.recorrente,
+          recorrenciaTipo: input.recorrenciaTipo,
+        });
+        return { id, success: true };
+      }),
+    atualizar: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        descricao: z.string().min(1).optional(),
+        valor: z.number().positive().optional(),
+        dataVencimento: z.string().optional(),
+        dataRecebimento: z.string().optional(),
+        status: z.enum(["pendente", "recebido", "vencido", "cancelado"]).optional(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+        observacoes: z.string().optional(),
+        clienteId: z.number().optional(),
+        profissionalId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, valor, ...rest } = input;
+        await updateContaReceber(id, { ...rest, ...(valor !== undefined ? { valor: String(valor) } : {}) });
+        return { success: true };
+      }),
+    marcarRecebido: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        dataRecebimento: z.string().optional(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const hoje = new Date().toISOString().split("T")[0];
+        await updateContaReceber(input.id, {
+          status: "recebido",
+          dataRecebimento: input.dataRecebimento ?? hoje,
+          tipoPagamento: input.tipoPagamento,
+        });
+        return { success: true };
+      }),
+    deletar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteContaReceber(input.id);
+        return { success: true };
+      }),
+    importarAgendamentos: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND" });
+        const count = await importarAgendamentosParaContasReceber(empresa.id);
+        return { count, success: true };
       }),
   }),
 });

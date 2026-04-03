@@ -1,15 +1,28 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
-  Bell, Calendar, CalendarCheck, CreditCard, ReceiptText,
+  Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle
+  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 
-const navGroups = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  exact?: boolean;
+  children?: { href: string; label: string; icon: React.ElementType }[];
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
   {
     label: "Principal",
     items: [
@@ -30,8 +43,16 @@ const navGroups = [
   {
     label: "Operações",
     items: [
-      { href: "/admin/financeiro", label: "Financeiro", icon: CreditCard },
-      { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText },
+      {
+        href: "/admin/financeiro",
+        label: "Financeiro",
+        icon: CreditCard,
+        children: [
+          { href: "/admin/financeiro", label: "Visão Geral", icon: TrendingUp },
+          { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText },
+          { href: "/admin/contas-receber", label: "Contas a Receber", icon: ArrowDownCircle },
+        ],
+      },
       { href: "/admin/automacoes", label: "Automações", icon: MessageSquare },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
@@ -252,6 +273,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return location.startsWith(href);
   };
 
+  // Controla quais itens com submenu estão expandidos
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
+    // Abrir automaticamente o grupo que contém a rota atual
+    const initial = new Set<string>();
+    navGroups.forEach(group => {
+      group.items.forEach(item => {
+        if (item.children && item.children.some(c => location.startsWith(c.href))) {
+          initial.add(item.href);
+        }
+      });
+    });
+    return initial;
+  });
+
+  const toggleExpanded = (href: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(href)) next.delete(href);
+      else next.add(href);
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Overlay mobile */}
@@ -294,6 +338,85 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
+                  const hasChildren = !!(item.children && item.children.length > 0);
+                  const isExpanded = expandedItems.has(item.href);
+                  const isParentActive = hasChildren
+                    ? item.children!.some(c => location.startsWith(c.href))
+                    : isActive(item.href, item.exact);
+
+                  if (hasChildren) {
+                    return (
+                      <div key={item.href}>
+                        {/* Item pai expansível */}
+                        <div
+                          className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
+                          style={{
+                            background: isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent",
+                            color: isParentActive ? "oklch(75% 0.18 264)" : "oklch(52% 0.012 260)",
+                          }}
+                          onClick={() => toggleExpanded(item.href)}
+                          onMouseEnter={e => {
+                            if (!isParentActive) {
+                              (e.currentTarget as HTMLElement).style.background = "oklch(20% 0.018 260)";
+                              (e.currentTarget as HTMLElement).style.color = "oklch(80% 0.010 250)";
+                            }
+                          }}
+                          onMouseLeave={e => {
+                            if (!isParentActive) {
+                              (e.currentTarget as HTMLElement).style.background = isParentActive ? "oklch(55% 0.22 264 / 18%)" : "transparent";
+                              (e.currentTarget as HTMLElement).style.color = isParentActive ? "oklch(75% 0.18 264)" : "oklch(52% 0.012 260)";
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-medium">{item.label}</span>
+                          </div>
+                          <ChevronDown
+                            className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200"
+                            style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                          />
+                        </div>
+                        {/* Subitens */}
+                        {isExpanded && (
+                          <div className="mt-0.5 ml-3 pl-3 space-y-0.5" style={{ borderLeft: "1px solid oklch(22% 0.018 260)" }}>
+                            {item.children!.map(child => {
+                              const ChildIcon = child.icon;
+                              const childActive = location === child.href || (child.href !== "/admin/financeiro" && location.startsWith(child.href));
+                              return (
+                                <Link key={child.href} href={child.href}>
+                                  <div
+                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150"
+                                    style={{
+                                      background: childActive ? "oklch(55% 0.22 264 / 15%)" : "transparent",
+                                      color: childActive ? "oklch(72% 0.18 264)" : "oklch(45% 0.012 260)",
+                                    }}
+                                    onMouseEnter={e => {
+                                      if (!childActive) {
+                                        (e.currentTarget as HTMLElement).style.background = "oklch(18% 0.018 260)";
+                                        (e.currentTarget as HTMLElement).style.color = "oklch(72% 0.010 250)";
+                                      }
+                                    }}
+                                    onMouseLeave={e => {
+                                      if (!childActive) {
+                                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                                        (e.currentTarget as HTMLElement).style.color = "oklch(45% 0.012 260)";
+                                      }
+                                    }}
+                                  >
+                                    <ChildIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="text-[13px] font-medium">{child.label}</span>
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Item simples (sem filhos)
                   const active = isActive(item.href, item.exact);
                   return (
                     <Link key={item.href} href={item.href}>

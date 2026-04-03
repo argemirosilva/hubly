@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1223,4 +1223,128 @@ export async function getResumoContasPagarParaIA(empresaId: number) {
     proximasAVencer: proximas7Dias.slice(0, 5).map(c => ({ descricao: c.descricao, valor: parseFloat(String(c.valor)), vencimento: c.dataVencimento, categoria: c.categoriaNome })),
     maiorDespesaMes: pagosMes.sort((a, b) => parseFloat(String(b.valor)) - parseFloat(String(a.valor))).slice(0, 3).map(c => ({ descricao: c.descricao, valor: parseFloat(String(c.valor)), categoria: c.categoriaNome })),
   };
+}
+
+// ─── CONTAS A RECEBER ─────────────────────────────────────────────────────────
+export async function getContasReceberByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: contasReceber.id,
+    descricao: contasReceber.descricao,
+    valor: contasReceber.valor,
+    dataVencimento: contasReceber.dataVencimento,
+    dataRecebimento: contasReceber.dataRecebimento,
+    status: contasReceber.status,
+    origem: contasReceber.origem,
+    origemId: contasReceber.origemId,
+    clienteId: contasReceber.clienteId,
+    profissionalId: contasReceber.profissionalId,
+    tipoPagamento: contasReceber.tipoPagamento,
+    observacoes: contasReceber.observacoes,
+    recorrente: contasReceber.recorrente,
+    recorrenciaTipo: contasReceber.recorrenciaTipo,
+    createdAt: contasReceber.createdAt,
+    clienteNome: clientes.nome,
+    profissionalNome: profissionais.nome,
+  })
+    .from(contasReceber)
+    .leftJoin(clientes, eq(contasReceber.clienteId, clientes.id))
+    .leftJoin(profissionais, eq(contasReceber.profissionalId, profissionais.id))
+    .where(eq(contasReceber.empresaId, empresaId))
+    .orderBy(desc(contasReceber.dataVencimento));
+}
+
+export async function createContaReceber(data: typeof contasReceber.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(contasReceber).values(data);
+  return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function updateContaReceber(id: number, data: Partial<typeof contasReceber.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(contasReceber).set(data).where(eq(contasReceber.id, id));
+}
+
+export async function deleteContaReceber(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(contasReceber).where(eq(contasReceber.id, id));
+}
+
+export async function getMetricasContasReceber(empresaId: number) {
+  const db = await getDb();
+  if (!db) return { totalPendente: 0, totalRecebidoMes: 0, totalVencido: 0, quantidadePendentes: 0, quantidadeVencidas: 0 };
+  const hoje = new Date().toISOString().split("T")[0];
+  const inicioMes = hoje.substring(0, 7) + "-01";
+  const fimMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0];
+  const todas = await db.select({
+    id: contasReceber.id,
+    valor: contasReceber.valor,
+    dataVencimento: contasReceber.dataVencimento,
+    dataRecebimento: contasReceber.dataRecebimento,
+    status: contasReceber.status,
+  }).from(contasReceber).where(eq(contasReceber.empresaId, empresaId));
+  const vencidas = todas.filter(c => c.status === "vencido" || (c.status === "pendente" && c.dataVencimento < hoje));
+  const pendentes = todas.filter(c => c.status === "pendente" && c.dataVencimento >= hoje);
+  const recebidosMes = todas.filter(c => c.status === "recebido" && c.dataRecebimento && c.dataRecebimento >= inicioMes && c.dataRecebimento <= fimMes);
+  const proximas7 = pendentes.filter(c => {
+    const diff = (new Date(c.dataVencimento).getTime() - new Date(hoje).getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+  return {
+    totalPendente: pendentes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalRecebidoMes: recebidosMes.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    totalVencido: vencidas.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+    quantidadePendentes: pendentes.length,
+    quantidadeVencidas: vencidas.length,
+    quantidadeProximas7: proximas7.length,
+    totalProximas7: proximas7.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0),
+  };
+}
+
+// Importa agendamentos concluídos que ainda não têm conta a receber
+export async function importarAgendamentosParaContasReceber(empresaId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  // Busca agendamentos concluídos
+  const agendsConcluidos = await db.select({
+    id: agendamentos.id,
+    clienteId: agendamentos.clienteId,
+    profissionalId: agendamentos.profissionalId,
+    valorTotal: agendamentos.valorTotal,
+    data: agendamentos.data,
+    tipoPagamento: agendamentos.tipoPagamento,
+    concluidoEm: agendamentos.concluidoEm,
+  }).from(agendamentos).where(
+    and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.status, "concluido"))
+  );
+  // Busca origemIds já importados
+  const jaImportados = await db.select({ origemId: contasReceber.origemId })
+    .from(contasReceber)
+    .where(and(eq(contasReceber.empresaId, empresaId), eq(contasReceber.origem, "agendamento")));
+  const idsImportados = new Set(jaImportados.map(r => r.origemId));
+  const novos = agendsConcluidos.filter(a => !idsImportados.has(a.id));
+  if (novos.length === 0) return 0;
+  const clientesList = await db.select({ id: clientes.id, nome: clientes.nome }).from(clientes).where(eq(clientes.empresaId, empresaId));
+  const clientesMap = new Map(clientesList.map(c => [c.id, c.nome]));
+  for (const ag of novos) {
+    const nomeCliente = clientesMap.get(ag.clienteId) ?? "Cliente";
+    await db.insert(contasReceber).values({
+      empresaId,
+      descricao: `Atendimento - ${nomeCliente}`,
+      valor: ag.valorTotal,
+      dataVencimento: ag.data,
+      dataRecebimento: ag.data,
+      status: "recebido",
+      origem: "agendamento",
+      origemId: ag.id,
+      clienteId: ag.clienteId,
+      profissionalId: ag.profissionalId,
+      tipoPagamento: ag.tipoPagamento ?? undefined,
+    });
+  }
+  return novos.length;
 }

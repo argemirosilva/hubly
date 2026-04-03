@@ -768,3 +768,25 @@ export const waSession = mysqlTable("wa_session", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type WaSession = typeof waSession.$inferSelect;
+
+// ─── CONTAS A RECEBER ────────────────────────────────────────────────────────
+export const contasReceber = mysqlTable("contas_receber", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  descricao: varchar("descricao", { length: 200 }).notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  dataVencimento: varchar("dataVencimento", { length: 10 }).notNull(),
+  dataRecebimento: varchar("dataRecebimento", { length: 10 }),
+  status: mysqlEnum("status_receber", ["pendente", "recebido", "vencido", "cancelado"]).default("pendente").notNull(),
+  origem: mysqlEnum("origem_receber", ["manual", "agendamento", "pacote"]).default("manual").notNull(),
+  origemId: int("origemId"),
+  clienteId: int("clienteId"),
+  profissionalId: int("profissionalId"),
+  tipoPagamento: mysqlEnum("tipo_pagamento_receber", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  observacoes: text("observacoes"),
+  recorrente: boolean("recorrente").default(false).notNull(),
+  recorrenciaTipo: mysqlEnum("recorrencia_tipo_receber", ["semanal", "mensal", "anual"]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ContaReceber = typeof contasReceber.$inferSelect;
