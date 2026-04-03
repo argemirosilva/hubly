@@ -695,3 +695,10 @@
 - [x] Atualizar title, description e meta tags no index.html
 - [x] Atualizar manifest.json
 - [x] Atualizar textos na sidebar, login, Setup e ConfirmarAgendamento
+
+## Open Graph / Social Preview (Apr 03 2026)
+
+- [x] Gerar imagem OG 1200x630 com logo e identidade visual Hubly
+- [x] Fazer upload da imagem OG para CDN
+- [x] Adicionar meta tags og:title, og:description, og:image, og:type, og:url no index.html
+- [x] Adicionar Twitter Card meta tags
