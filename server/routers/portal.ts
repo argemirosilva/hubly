@@ -29,6 +29,7 @@ async function getEmpresaPublicaById(id: number) {
     corPrimaria: empresas.corPrimaria,
     corSecundaria: empresas.corSecundaria,
     portalAtivo: empresas.portalAtivo,
+    portalSlug: empresas.portalSlug,
     portalHeaderUrl: empresas.portalHeaderUrl,
     portalMensagemBemVindo: empresas.portalMensagemBemVindo,
     horaAbertura: empresas.horaAbertura,
@@ -37,6 +38,33 @@ async function getEmpresaPublicaById(id: number) {
     intervaloMinutos: empresas.intervaloMinutos,
     autoConfirmarPortal: empresas.autoConfirmarPortal,
   }).from(empresas).where(eq(empresas.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
+/** Retorna a empresa pelo slug (dados públicos) */
+async function getEmpresaPublicaBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({
+    id: empresas.id,
+    nome: empresas.nome,
+    tipo: empresas.tipo,
+    telefone: empresas.telefone,
+    email: empresas.email,
+    endereco: empresas.endereco,
+    logoUrl: empresas.logoUrl,
+    corPrimaria: empresas.corPrimaria,
+    corSecundaria: empresas.corSecundaria,
+    portalAtivo: empresas.portalAtivo,
+    portalSlug: empresas.portalSlug,
+    portalHeaderUrl: empresas.portalHeaderUrl,
+    portalMensagemBemVindo: empresas.portalMensagemBemVindo,
+    horaAbertura: empresas.horaAbertura,
+    horaFechamento: empresas.horaFechamento,
+    diasFuncionamento: empresas.diasFuncionamento,
+    intervaloMinutos: empresas.intervaloMinutos,
+    autoConfirmarPortal: empresas.autoConfirmarPortal,
+  }).from(empresas).where(eq(empresas.portalSlug, slug)).limit(1);
   return result[0] ?? null;
 }
 
@@ -79,6 +107,16 @@ export const portalRouter = router({
     .input(z.object({ empresaId: z.number() }))
     .query(async ({ input }) => {
       const empresa = await getEmpresaPublicaById(input.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
+      return empresa;
+    }),
+
+  /** Dados públicos da empresa pelo slug (URL amigável) */
+  getEmpresaBySlug: publicProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ input }) => {
+      const empresa = await getEmpresaPublicaBySlug(input.slug);
       if (!empresa) throw new Error("Empresa não encontrada");
       if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
       return empresa;

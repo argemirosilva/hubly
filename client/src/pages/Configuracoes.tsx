@@ -29,6 +29,7 @@ export default function Configuracoes() {
     autoConfirmarPortal: false,
     portalHeaderUrl: "",
     portalMensagemBemVindo: "",
+    portalSlug: "",
     horaAbertura: "08:00",
     horaFechamento: "18:00",
     diasFuncionamento: [1, 2, 3, 4, 5] as number[],
@@ -52,6 +53,7 @@ export default function Configuracoes() {
         autoConfirmarPortal: empresa.autoConfirmarPortal ?? false,
         portalHeaderUrl: (empresa as any).portalHeaderUrl ?? "",
         portalMensagemBemVindo: (empresa as any).portalMensagemBemVindo ?? "",
+        portalSlug: (empresa as any).portalSlug ?? "",
         horaAbertura: (empresa as any).horaAbertura ?? "08:00",
         horaFechamento: (empresa as any).horaFechamento ?? "18:00",
         diasFuncionamento: (empresa as any).diasFuncionamento ?? [1, 2, 3, 4, 5],
@@ -81,6 +83,7 @@ export default function Configuracoes() {
       autoConfirmarPortal: form.autoConfirmarPortal,
       portalHeaderUrl: form.portalHeaderUrl || undefined,
       portalMensagemBemVindo: form.portalMensagemBemVindo || undefined,
+      portalSlug: form.portalSlug || undefined,
       horaAbertura: form.horaAbertura,
       horaFechamento: form.horaFechamento,
       diasFuncionamento: form.diasFuncionamento,
@@ -97,7 +100,10 @@ export default function Configuracoes() {
     }));
   }
 
-  const portalUrl = `${window.location.origin}/agendar?e=${empresa?.id ?? 1}`;
+  const portalSlugAtual = (empresa as any)?.portalSlug;
+  const portalUrl = portalSlugAtual
+    ? `${window.location.origin}/agendar/${portalSlugAtual}`
+    : `${window.location.origin}/agendar?e=${empresa?.id ?? 1}`;
 
   function copiarLink() {
     navigator.clipboard.writeText(portalUrl);
@@ -219,8 +225,28 @@ export default function Configuracoes() {
 
           {/* Link do portal */}
           {form.portalAtivo && (
-            <div className="rounded-xl p-4 space-y-2" style={{ background: "oklch(96% 0.008 250)", border: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "oklch(96% 0.008 250)", border: "1px solid oklch(90% 0.012 250)" }}>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link do portal</p>
+
+              {/* Campo de slug personalizado */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground block">URL personalizada (slug)</Label>
+                <div className="flex items-center gap-1.5 rounded-lg border bg-background overflow-hidden" style={{ borderColor: "oklch(88% 0.012 250)" }}>
+                  <span className="text-xs text-muted-foreground px-2 py-2 bg-muted border-r whitespace-nowrap" style={{ borderColor: "oklch(88% 0.012 250)" }}>
+                    /agendar/
+                  </span>
+                  <input
+                    type="text"
+                    value={form.portalSlug}
+                    onChange={e => setForm(f => ({ ...f, portalSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/--+/g, "-") }))}
+                    placeholder="meu-salao"
+                    className="flex-1 text-xs px-2 py-2 bg-transparent outline-none"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">Use apenas letras minúsculas, números e hífens. Salve para ativar.</p>
+              </div>
+
+              {/* Link atual */}
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg truncate">{portalUrl}</code>
                 <button onClick={copiarLink}

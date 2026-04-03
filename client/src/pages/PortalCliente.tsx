@@ -1,9 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { useRoute } from "wouter";
 import {
   Calendar, Clock, CheckCircle2, ChevronRight, ChevronLeft,
   User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
-  AlertCircle, Loader2, ShieldCheck,
+  AlertCircle, Loader2, ShieldCheck, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,18 +39,42 @@ function gerarDatasDisponiveis(diasFuncionamento: number[]): string[] {
   return datas;
 }
 
-function getEmpresaId(): number {
-  const params = new URLSearchParams(window.location.search);
-  return parseInt(params.get("e") ?? "1");
-}
-
 type Step = "identificacao" | "servico" | "profissional" | "data" | "confirmacao" | "sucesso";
 const STEPS: Step[] = ["identificacao", "servico", "profissional", "data", "confirmacao"];
 const STEP_LABELS = ["Identificação", "Serviço", "Profissional", "Data & Hora", "Confirmar"];
 const STEP_ICONS = [User, Scissors, User, Calendar, CheckCircle2];
 
 export default function PortalCliente() {
-  const empresaId = useMemo(() => getEmpresaId(), []);
+  const [matchSlug, paramsSlug] = useRoute("/agendar/:slug");
+  const slug = matchSlug ? paramsSlug?.slug : null;
+
+  // Se tiver slug na URL, busca empresa por slug; caso contrário usa ?e=ID
+  const empresaIdFromQuery = useMemo(() => {
+    if (slug) return null;
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("e") ?? "0");
+    return isNaN(id) || id === 0 ? null : id;
+  }, [slug]);
+
+  // Query por slug
+  const { data: empresaBySlug, isLoading: loadingSlug, error: errorSlug } =
+    trpc.portal.getEmpresaBySlug.useQuery(
+      { slug: slug ?? "" },
+      { enabled: !!slug, retry: false }
+    );
+
+  // Query por ID (legado)
+  const { data: empresaById, isLoading: loadingId, error: errorId } =
+    trpc.portal.getEmpresa.useQuery(
+      { empresaId: empresaIdFromQuery ?? 1 },
+      { enabled: !slug && !!empresaIdFromQuery, retry: false }
+    );
+
+  const empresa = slug ? empresaBySlug : empresaById;
+  const loadingEmpresa = slug ? loadingSlug : loadingId;
+  const errorEmpresa = slug ? errorSlug : errorId;
+  const empresaId = empresa?.id ?? (empresaIdFromQuery ?? 1);
+
   const [step, setStep] = useState<Step>("identificacao");
 
   const [telefone, setTelefone] = useState("");
@@ -72,8 +97,6 @@ export default function PortalCliente() {
   const [hora, setHora] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
-  const { data: empresa, isLoading: loadingEmpresa, error: errorEmpresa } =
-    trpc.portal.getEmpresa.useQuery({ empresaId }, { retry: false });
   const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId });
   const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId });
   const { data: meusAgendamentos } = trpc.portal.getMeusAgendamentos.useQuery(
@@ -298,12 +321,23 @@ export default function PortalCliente() {
       <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
 
       {empresa.portalHeaderUrl && step === "identificacao" && (
-        <div className="w-full h-40 sm:h-56 overflow-hidden">
-          <img src={empresa.portalHeaderUrl} alt="Header" className="w-full h-full object-cover" />
+        <div className="relative w-full h-44 sm:h-60 overflow-hidden">
+          <img src={empresa.portalHeaderUrl} alt="Capa" className="w-full h-full object-cover" />
+          {/* Overlay gradiente Hubly */}
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(to bottom, rgba(26,58,107,0.55) 0%, rgba(26,58,107,0.15) 50%, rgba(26,58,107,0.7) 100%)"
+          }} />
+          {empresa.portalMensagemBemVindo && (
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 max-w-lg mx-auto">
+              <p className="text-white text-sm font-medium drop-shadow-md leading-relaxed">
+                {empresa.portalMensagemBemVindo}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      {step === "identificacao" && empresa.portalMensagemBemVindo && (
+      {step === "identificacao" && !empresa.portalHeaderUrl && empresa.portalMensagemBemVindo && (
         <div className="max-w-lg mx-auto w-full px-4 pt-6">
           <p className="text-sm text-slate-600 text-center leading-relaxed italic">
             "{empresa.portalMensagemBemVindo}"
@@ -729,6 +763,26 @@ function PortalHeader({ empresa, corPrimaria }: {
   empresa: { nome: string; logoUrl?: string | null };
   corPrimaria: string;
 }) {
+  const [copiado, setCopiado] = useState(false);
+
+  function compartilhar() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: empresa.nome, text: `Agende online em ${empresa.nome}`, url })
+        .catch(() => copiarLink(url));
+    } else {
+      copiarLink(url);
+    }
+  }
+
+  function copiarLink(url: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiado(true);
+      toast.success("Link copiado! Compartilhe com seus clientes.");
+      setTimeout(() => setCopiado(false), 2500);
+    }).catch(() => toast.error("Não foi possível copiar o link."));
+  }
+
   return (
     <header className="sticky top-0 z-20 shadow-md" style={{
       background: `linear-gradient(135deg, #1a3a6b 0%, #1e6fa8 60%, #29abe2 100%)`,
@@ -750,6 +804,16 @@ function PortalHeader({ empresa, corPrimaria }: {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={compartilhar}
+            title="Compartilhar link de agendamento"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all text-white border border-white/20 text-[11px] font-medium"
+          >
+            {copiado
+              ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-300" /><span className="hidden sm:inline">Copiado!</span></>
+              : <><Share2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Compartilhar</span></>
+            }
+          </button>
           <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
             className="h-5 w-auto object-contain opacity-60 hover:opacity-90 transition-opacity"
             style={{ filter: "brightness(0) invert(1)" }} />

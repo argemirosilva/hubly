@@ -724,3 +724,13 @@
 - [x] Aplicar logo, cores e tipografia Hubly no header da página pública
 - [x] Atualizar paleta de cores dos botões, seleções e destaques
 - [x] Adicionar rodapé "Powered by Hubly" com logo
+
+## Portal Público - URL Slug, Capa e Compartilhamento (Apr 03 2026)
+
+- [x] Adicionar campo slug na tabela empresa (ex: meu-salao)
+- [x] Criar rota /agendar/:slug no frontend e backend
+- [x] Manter compatibilidade com /agendar?e=ID (legado)
+- [x] Gerar slug automático a partir do nome da empresa no Setup
+- [x] Campo de edição de slug em Configurações → Portal
+- [x] Imagem de capa com overlay gradiente Hubly no portal
+- [x] Botão de compartilhamento (copiar link) no header do portal

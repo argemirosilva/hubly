@@ -209,6 +209,7 @@ export const appRouter = router({
         corSecundaria: z.string().optional(),
         logoUrl: z.string().optional(),
         portalAtivo: z.boolean().optional(),
+        portalSlug: z.string().optional(),
         autoConfirmarPortal: z.boolean().optional(),
         portalHeaderUrl: z.string().optional(),
         portalMensagemBemVindo: z.string().optional(),

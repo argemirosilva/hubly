@@ -55,6 +55,7 @@ function Router() {
     <Switch>
       <Route path="/">{() => <Redirect to="/admin" />}</Route>
       <Route path="/agendar" component={PortalCliente} />
+      <Route path="/agendar/:slug" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
       <Route path="/confirmar/:token" component={ConfirmarAgendamento} />
 

@@ -53,6 +53,7 @@ export const empresas = mysqlTable("empresas", {
   reservaPercentual: decimal("reservaPercentual", { precision: 5, scale: 2 }).default("30.00"),
   reservaHorasExpiracao: int("reservaHorasExpiracao").default(24),
   // Portal de agendamento público
+  portalSlug: varchar("portalSlug", { length: 100 }),
   portalAtivo: boolean("portalAtivo").default(false),
   autoConfirmarPortal: boolean("autoConfirmarPortal").default(false),
   portalHeaderUrl: text("portalHeaderUrl"),
