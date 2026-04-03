@@ -37,7 +37,7 @@ const SECTIONS: Section[] = [
     title: "Primeiros Passos",
     subtitle: "Configure o sistema antes de começar",
     color: "oklch(45% 0.18 155)",
-    intro: "Antes de usar o Agendei no dia a dia, é importante configurar as informações da sua empresa, cadastrar seus serviços e profissionais. Siga esta ordem para uma configuração tranquila.",
+    intro: "Antes de usar o sistema no dia a dia, é importante configurar as informações da sua empresa, cadastrar seus serviços e profissionais. Siga esta ordem para uma configuração tranquila.",
     topics: [
       {
         title: "Configurar os dados da empresa",
@@ -55,9 +55,10 @@ const SECTIONS: Section[] = [
           "Vá em Serviços no menu lateral.",
           "Clique em Novo Serviço.",
           "Informe o nome, duração (em minutos), preço e categoria.",
+          "Defina o percentual de comissão padrão do serviço (ex: 40%). Esse valor será preenchido automaticamente ao concluir um agendamento.",
           "Salve o serviço.",
         ],
-        tip: "Cadastre todos os serviços que você oferece antes de criar agendamentos.",
+        tip: "O percentual de comissão do serviço tem prioridade sobre o percentual do profissional. Se não definido no serviço, o sistema usa o percentual do profissional.",
       },
       {
         title: "Cadastrar profissionais",
@@ -73,11 +74,11 @@ const SECTIONS: Section[] = [
         steps: [
           "Vá em Usuários no menu lateral.",
           "Clique em Novo Usuário.",
-          "Informe nome, e-mail e senha.",
+          "Informe nome, e-mail e senha (mínimo 6 caracteres).",
           "Atribua um grupo de permissão (Administrador, Recepcionista, etc.).",
           "Salve o usuário.",
         ],
-        tip: "Cada profissional que precisar acessar o sistema deve ter um usuário cadastrado.",
+        tip: "Cada colaborador que precisar acessar o sistema deve ter um usuário cadastrado com e-mail e senha próprios.",
       },
     ],
   },
@@ -254,13 +255,25 @@ const SECTIONS: Section[] = [
         ],
       },
       {
+        title: "Registrar comissão ao concluir atendimento",
+        steps: [
+          "Ao clicar em Concluído em um agendamento, o sistema abre automaticamente o modal de comissão.",
+          "O percentual já vem preenchido com o valor configurado no serviço (ou no profissional, como fallback).",
+          "Selecione o tipo de pagamento: Dinheiro, PIX, Cartão Débito, Cartão Crédito ou Outro.",
+          "Informe o custo de reposição de produtos, se houver (opcional).",
+          "Veja a prévia do cálculo antes de confirmar.",
+          "Clique em Registrar Comissão ou Pular se não quiser registrar agora.",
+        ],
+        tip: "O percentual de comissão do serviço tem prioridade sobre o do profissional. Configure o percentual em Serviços para que seja preenchido automaticamente.",
+      },
+      {
         title: "Ver comissões dos profissionais",
         steps: [
           "Na tela de Financeiro, vá para a aba Comissões.",
           "Selecione o período desejado.",
           "Veja o valor de comissão calculado para cada profissional.",
         ],
-        tip: "O percentual de comissão é definido no cadastro de cada profissional.",
+        tip: "O percentual de comissão pode ser definido tanto no cadastro do profissional quanto no cadastro do serviço. O serviço tem prioridade.",
       },
       {
         title: "Usar a IA Financeira",
@@ -471,6 +484,155 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    id: "pacotes",
+    icon: <BarChart2 size={20} />,
+    title: "Pacotes",
+    subtitle: "Venda combinações de serviços com desconto",
+    color: "oklch(45% 0.18 30)",
+    intro: "O módulo de Pacotes permite criar combinações de serviços que podem ser vendidas juntas com preço especial. É ideal para fidelizar clientes e aumentar o ticket médio.",
+    topics: [
+      {
+        title: "Criar um pacote de serviços",
+        steps: [
+          "Vá em Pacotes no menu lateral.",
+          "Clique em Novo Pacote.",
+          "Informe o nome do pacote e o preço total.",
+          "Adicione os serviços incluídos no pacote e a quantidade de cada um.",
+          "Defina a validade do pacote em dias.",
+          "Salve o pacote.",
+        ],
+        tip: "Pacotes são ótimos para serviços recorrentes como escova + hidratação ou combo de estética.",
+      },
+      {
+        title: "Vender um pacote para um cliente",
+        steps: [
+          "No perfil do cliente ou na tela de Pacotes, clique em Vender Pacote.",
+          "Selecione o cliente e o pacote desejado.",
+          "Confirme a venda.",
+          "O pacote fica registrado no histórico do cliente com os créditos disponíveis.",
+        ],
+      },
+      {
+        title: "Usar créditos do pacote em um agendamento",
+        steps: [
+          "Ao criar um agendamento para um cliente que possui pacote ativo, o sistema exibe os créditos disponíveis.",
+          "Selecione o pacote para descontar o serviço automaticamente.",
+          "O saldo de créditos é atualizado após o uso.",
+        ],
+        tip: "Pacotes expirados não podem ser utilizados. Verifique a validade antes de vender.",
+      },
+    ],
+  },
+  {
+    id: "whatsapp",
+    icon: <MessageSquare size={20} />,
+    title: "WhatsApp",
+    subtitle: "Integração com WhatsApp Business",
+    color: "oklch(45% 0.18 155)",
+    intro: "O módulo de WhatsApp permite integrar o sistema com sua conta do WhatsApp Business para envio de mensagens automáticas e manuais diretamente pelo painel.",
+    topics: [
+      {
+        title: "Configurar a integração com WhatsApp",
+        steps: [
+          "Vá em WhatsApp no menu lateral.",
+          "Clique em Conectar WhatsApp.",
+          "Escaneie o QR Code com o celular onde está o WhatsApp Business da empresa.",
+          "Aguarde a conexão ser estabelecida (status fica verde).",
+        ],
+        warning: "Use apenas o WhatsApp Business da empresa. Não conecte o WhatsApp pessoal para evitar bloqueios.",
+      },
+      {
+        title: "Enviar mensagem manual para um cliente",
+        steps: [
+          "Vá em WhatsApp no menu lateral.",
+          "Clique em Nova Mensagem.",
+          "Selecione o cliente ou informe o número do telefone.",
+          "Digite a mensagem e clique em Enviar.",
+        ],
+        tip: "As mensagens enviadas ficam registradas no histórico do cliente.",
+      },
+      {
+        title: "Configurar mensagens automáticas",
+        steps: [
+          "As mensagens automáticas são configuradas no módulo de Automações.",
+          "Crie uma automação com o gatilho desejado (ex: Agendamento Confirmado).",
+          "Adicione a ação Enviar WhatsApp e escreva a mensagem.",
+          "Ative a automação para começar a enviar automaticamente.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "assinatura",
+    icon: <Lock size={20} />,
+    title: "Assinatura e Planos",
+    subtitle: "Gerencie seu plano e recursos disponíveis",
+    color: "oklch(45% 0.18 264)",
+    intro: "O sistema oferece diferentes planos com recursos e limites distintos. Você pode visualizar seu plano atual, fazer upgrade e acompanhar o uso dos recursos diretamente pelo painel.",
+    topics: [
+      {
+        title: "Ver o plano atual",
+        steps: [
+          "O plano atual é exibido no header do sistema (canto superior direito no mobile).",
+          "Para ver os detalhes completos, vá em Assinatura no menu lateral.",
+          "Veja os recursos incluídos e os limites do seu plano.",
+        ],
+        tip: "O sistema exibe um alerta automático quando você atingir 80% do limite de qualquer recurso do seu plano.",
+      },
+      {
+        title: "Fazer upgrade de plano",
+        steps: [
+          "Vá em Assinatura no menu lateral.",
+          "Clique em Ver Planos.",
+          "Escolha o plano desejado (SOLO, PLUS ou PRO).",
+          "Clique em Contratar e será redirecionado para o checkout seguro.",
+          "Após o pagamento, o plano é ativado automaticamente.",
+        ],
+        tip: "Use o cartão 4242 4242 4242 4242 para testar o checkout em ambiente de testes.",
+      },
+      {
+        title: "Alertas de limite de plano",
+        steps: [
+          "O sistema monitora automaticamente o uso de recursos como clientes, agendamentos e profissionais.",
+          "Quando você atingir 80% do limite, um alerta aparece no topo da tela.",
+          "Clique no alerta para ver qual recurso está próximo do limite.",
+          "Clique em Fazer Upgrade para ampliar os limites.",
+        ],
+        warning: "Ao atingir 100% do limite, não será possível cadastrar novos registros até fazer upgrade do plano.",
+      },
+    ],
+  },
+  {
+    id: "suporte",
+    icon: <HelpCircle size={20} />,
+    title: "Suporte",
+    subtitle: "Tire dúvidas e obtenha ajuda",
+    color: "oklch(45% 0.18 30)",
+    intro: "O sistema possui um assistente de suporte integrado que responde dúvidas sobre o uso do sistema em tempo real, sem precisar sair da plataforma.",
+    topics: [
+      {
+        title: "Acessar o chat de suporte",
+        steps: [
+          "No menu lateral, role até o final e clique em Suporte (ícone de fone de ouvido).",
+          "O painel de chat de suporte abre na lateral.",
+          "Digite sua dúvida e pressione Enter ou clique em Enviar.",
+          "O assistente responde com base no manual e nas funcionalidades do sistema.",
+        ],
+        tip: "O suporte está disponível 24 horas por dia, 7 dias por semana, sem espera.",
+      },
+      {
+        title: "Tipos de dúvidas que o suporte responde",
+        steps: [
+          "Como usar qualquer funcionalidade do sistema.",
+          "Explicações sobre relatórios e dados do dashboard.",
+          "Orientações sobre configuração de automações.",
+          "Dúvidas sobre planos e assinatura.",
+          "Problemas com agendamentos, clientes ou financeiro.",
+        ],
+      },
+    ],
+  },
+  {
     id: "configuracoes",
     icon: <Settings size={20} />,
     title: "Configurações",
@@ -552,7 +714,7 @@ export default function Manual() {
               </div>
               <div>
                 <p className="text-sm font-semibold">Manual do Sistema</p>
-                <p className="text-xs text-muted-foreground">Agendei</p>
+                <p className="text-xs text-muted-foreground">Sistema de Agendamento</p>
               </div>
             </div>
             <button
