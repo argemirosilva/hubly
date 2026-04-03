@@ -1142,6 +1142,11 @@ export const appRouter = router({
       await waManager.disconnect();
       return { success: true };
     }),
+    resetSession: protectedProcedure.mutation(async () => {
+      const { waManager } = await import('./whatsapp');
+      await waManager.resetSession();
+      return { success: true };
+    }),
     sendTest: protectedProcedure
       .input(z.object({ telefone: z.string().min(10) }))
       .mutation(async ({ input }) => {
@@ -1800,6 +1805,57 @@ export const appRouter = router({
         const count = await importarAgendamentosParaContasReceber(empresa.id);
         return { count, success: true };
       }),
+  }),
+  // ─── PUSH NOTIFICATIONS (PWA) ────────────────────────────────────────────────────────────────────────────────
+  push: router({
+    /** Retorna a chave pública VAPID para o frontend criar a subscription */
+    getVapidPublicKey: publicProcedure.query(() => {
+      return { publicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY ?? "" };
+    }),
+    /** Salva a subscription push do dispositivo atual */
+    subscribe: protectedProcedure
+      .input(z.object({
+        endpoint: z.string().url(),
+        p256dh: z.string(),
+        auth: z.string(),
+        userAgent: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND' });
+        const { savePushSubscription } = await import('./pushNotifications');
+        await savePushSubscription({
+          userId: ctx.user.id,
+          empresaId: empresa.id,
+          endpoint: input.endpoint,
+          p256dh: input.p256dh,
+          auth: input.auth,
+          userAgent: input.userAgent,
+        });
+        return { success: true };
+      }),
+    /** Remove a subscription push do dispositivo atual */
+    unsubscribe: protectedProcedure
+      .input(z.object({ endpoint: z.string() }))
+      .mutation(async ({ input }) => {
+        const { removePushSubscription } = await import('./pushNotifications');
+        await removePushSubscription(input.endpoint);
+        return { success: true };
+      }),
+    /** Envia uma notificação de teste para o usuário atual */
+    sendTest: protectedProcedure.mutation(async ({ ctx }) => {
+      const { sendPushToUser } = await import('./pushNotifications');
+      const result = await sendPushToUser(ctx.user.id, {
+        title: '🔔 Agendei - Teste de Notificação',
+        body: 'Notificações push estão funcionando corretamente!',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        sound: true,
+        tag: 'test-notification',
+        url: '/',
+      });
+      return result;
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

@@ -123,6 +123,8 @@ class WhatsAppManager extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isShuttingDown = false;
   private dbAuth: Awaited<ReturnType<typeof useDbAuthState>> | null = null;
+  private reconnectCount = 0;
+  private readonly MAX_RECONNECT_BEFORE_CLEAR = 5;
 
   getState(): WAState {
     return { ...this.state };
@@ -191,6 +193,7 @@ class WhatsAppManager extends EventEmitter {
         }
 
         if (connection === "open") {
+          this.reconnectCount = 0; // Reset contador ao conectar com sucesso
           const phoneNumber = this.sock?.user?.id?.split(":")[0] ?? null;
           this.setState({
             status: "connected",
@@ -215,6 +218,16 @@ class WhatsAppManager extends EventEmitter {
             this.dbAuth = null;
             this.emit("logged_out");
           } else if (shouldReconnect && !this.isShuttingDown) {
+            this.reconnectCount++;
+            if (this.reconnectCount >= this.MAX_RECONNECT_BEFORE_CLEAR) {
+              console.log(`[WhatsApp] ⚠️ Muitas tentativas de reconexão (${this.reconnectCount}). Limpando sessão corrompida...`);
+              this.reconnectCount = 0;
+              await this.dbAuth?.clearSession();
+              this.dbAuth = null;
+              this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
+              this.emit("disconnected");
+              return;
+            }
             this.setState({ status: "disconnected" });
             this.emit("disconnected");
             // Reconectar automaticamente após 5 segundos
@@ -246,6 +259,7 @@ class WhatsAppManager extends EventEmitter {
 
   async disconnect(): Promise<void> {
     this.isShuttingDown = true;
+    this.reconnectCount = 0;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -263,6 +277,29 @@ class WhatsAppManager extends EventEmitter {
     this.dbAuth = null;
     this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
     this.emit("disconnected");
+  }
+
+  /**
+   * Limpa a sessão salva no banco e reseta o estado.
+   * Útil quando o QR Code não aparece ou a sessão está corrompida.
+   */
+  async resetSession(): Promise<void> {
+    this.isShuttingDown = true;
+    this.reconnectCount = 0;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.sock) {
+      try { this.sock.end(undefined); } catch { /* ignorar */ }
+      this.sock = null;
+    }
+    await this.dbAuth?.clearSession();
+    this.dbAuth = null;
+    this.isShuttingDown = false;
+    this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
+    this.emit("disconnected");
+    console.log("[WhatsApp] 🔄 Sessão resetada. Pronto para novo QR Code.");
   }
 
   async sendMessage(phoneNumber: string, message: string): Promise<boolean> {

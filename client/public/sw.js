@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agendei-v3';
+const CACHE_NAME = 'agendei-v4';
 const STATIC_ASSETS = [
   '/manifest.json',
 ];
@@ -60,4 +60,77 @@ self.addEventListener('fetch', (event) => {
       });
     })
   );
+});
+
+// ─── PUSH NOTIFICATIONS ───────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'Agendei', body: event.data.text() };
+  }
+
+  const {
+    title = 'Agendei',
+    body = '',
+    icon = '/icon-192.png',
+    badge = '/icon-192.png',
+    tag = 'agendei-notification',
+    sound = false,
+    data = {},
+    url = '/',
+  } = payload;
+
+  const notificationOptions = {
+    body,
+    icon,
+    badge,
+    tag,
+    renotify: true,
+    requireInteraction: false,
+    silent: !sound, // Se sound=true, o navegador usa o som padrão do sistema
+    data: { ...data, url },
+    actions: [
+      { action: 'open', title: 'Abrir' },
+      { action: 'close', title: 'Fechar' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, notificationOptions)
+  );
+});
+
+// Ao clicar na notificação
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const url = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Se já tem uma janela aberta, focar nela
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      // Caso contrário, abrir nova janela
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});
+
+// Ao fechar a notificação
+self.addEventListener('notificationclose', () => {
+  // Pode ser usado para analytics
 });

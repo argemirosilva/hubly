@@ -590,3 +590,18 @@
 - [x] Abertura automática quando equipe está vazia (com delay de 800ms)
 - [x] Persistência de conclusão em localStorage (não reabre após concluído)
 - [x] Botão "Guia de cadastro" no header da tela de Equipe
+
+## QR Code + Push Notifications PWA (v13)
+- [x] Correção QR Code WhatsApp: detectar loop de reconexão e limpar sessão corrompida após 5 tentativas
+- [x] Método resetSession() no WhatsAppManager para forçar novo QR Code
+- [x] Procedure whatsapp.resetSession no router tRPC
+- [x] Botão "Resetar sessão" na tela WhatsApp (QR Code não aparece?)
+- [x] Aviso de expiração do QR Code (~60 segundos) na tela WhatsApp
+- [x] Tabela push_subscriptions criada no banco de dados
+- [x] Serviço pushNotifications.ts com VAPID, subscribe, unsubscribe, sendPushToUser, sendPushToEmpresa
+- [x] Service worker atualizado com handler de push notifications e suporte a som
+- [x] Service worker registrado em todos os ambientes (dev + prod)
+- [x] Hook usePushNotifications para gerenciar subscriptions no frontend
+- [x] Seção Push Notifications (PWA) adicionada na página Notificações
+- [x] Procedures tRPC: push.getVapidPublicKey, push.subscribe, push.unsubscribe, push.sendTest
+- [x] Instruções de instalação PWA (Android/iPhone/Desktop) na página de Notificações

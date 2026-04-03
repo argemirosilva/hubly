@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Loader2,
   MessageCircle,
+  RotateCcw,
 } from "lucide-react";
 
 type WAStatus = "disconnected" | "connecting" | "qr_ready" | "connected" | "logged_out";
@@ -108,8 +109,20 @@ export default function WhatsAppPage() {
     },
   });
 
+  const resetSessionMutation = trpc.whatsapp.resetSession.useMutation({
+    onSuccess: () => {
+      setPollingInterval(2000);
+      refetchStatus();
+      toast.success("Sessão resetada!", { description: "Clique em Conectar para gerar um novo QR Code." });
+    },
+    onError: (err) => {
+      toast.error("Erro ao resetar sessão", { description: err.message });
+    },
+  });
+
   const handleConnect = () => connectMutation.mutate();
   const handleDisconnect = () => disconnectMutation.mutate();
+  const handleResetSession = () => resetSessionMutation.mutate();
   const handleSendTest = () => {
     if (!testPhone.trim()) return;
     sendTestMutation.mutate({ telefone: testPhone.trim() });
@@ -171,6 +184,9 @@ export default function WhatsAppPage() {
                 <p className="text-xs text-muted-foreground">
                   Abra o WhatsApp → Menu → Aparelhos conectados → Conectar um aparelho
                 </p>
+                <p className="text-xs text-amber-600 font-medium mt-1">
+                  ⏱ O QR Code expira em ~60 segundos
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -181,6 +197,14 @@ export default function WhatsAppPage() {
                 <RefreshCw className="w-3.5 h-3.5" />
                 Atualizar QR Code
               </Button>
+            </div>
+          )}
+
+          {/* QR Code aguardando (sem imagem ainda) */}
+          {status === "qr_ready" && !statusData?.qrDataUrl && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <QrCode className="w-10 h-10 text-blue-400 animate-pulse" />
+              <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
             </div>
           )}
 
@@ -215,38 +239,64 @@ export default function WhatsAppPage() {
                   Clique em "Conectar" para gerar o QR Code
                 </p>
               </div>
+              {status === "logged_out" && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-left max-w-xs">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">
+                    Sessão encerrada. Se o QR Code não aparecer, use o botão "Resetar Sessão" abaixo.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            {status !== "connected" && (
+          <div className="flex flex-col gap-2 pt-2">
+            <div className="flex gap-2">
+              {status !== "connected" && (
+                <Button
+                  onClick={handleConnect}
+                  disabled={connectMutation.isPending || status === "connecting" || status === "qr_ready"}
+                  className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {connectMutation.isPending || status === "connecting" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wifi className="w-4 h-4" />
+                  )}
+                  {status === "qr_ready" ? "Aguardando escaneamento..." : "Conectar WhatsApp"}
+                </Button>
+              )}
+              {(status === "connected" || status === "qr_ready" || status === "connecting") && (
+                <Button
+                  variant="outline"
+                  onClick={handleDisconnect}
+                  disabled={disconnectMutation.isPending}
+                  className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  {disconnectMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogOut className="w-4 h-4" />
+                  )}
+                  Desconectar
+                </Button>
+              )}
+            </div>
+            {(status === "disconnected" || status === "logged_out") && (
               <Button
-                onClick={handleConnect}
-                disabled={connectMutation.isPending || status === "connecting" || status === "qr_ready"}
-                className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetSession}
+                disabled={resetSessionMutation.isPending}
+                className="gap-1.5 text-muted-foreground hover:text-foreground text-xs"
               >
-                {connectMutation.isPending || status === "connecting" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                {resetSessionMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Wifi className="w-4 h-4" />
+                  <RotateCcw className="w-3.5 h-3.5" />
                 )}
-                {status === "qr_ready" ? "Aguardando escaneamento..." : "Conectar WhatsApp"}
-              </Button>
-            )}
-            {(status === "connected" || status === "qr_ready" || status === "connecting") && (
-              <Button
-                variant="outline"
-                onClick={handleDisconnect}
-                disabled={disconnectMutation.isPending}
-                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                {disconnectMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <LogOut className="w-4 h-4" />
-                )}
-                Desconectar
+                Resetar sessão (QR Code não aparece?)
               </Button>
             )}
           </div>

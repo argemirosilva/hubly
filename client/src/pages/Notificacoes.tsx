@@ -1,10 +1,16 @@
 import { trpc } from "@/lib/trpc";
 import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
-  Package, Clock, RefreshCw, ChevronRight
+  Package, Clock, RefreshCw, ChevronRight,
+  BellRing, BellOff, Smartphone, CheckCircle2, XCircle, Volume2, Loader2, Info
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 // ── Ícones por tipo ───────────────────────────────────────────────────────────
 function getNotifIcon(tipo?: string | null) {
@@ -44,6 +50,11 @@ type NotifUnificada = {
 export default function Notificacoes() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+
+  // ── Push Notifications (PWA) ──────────────────────────────────────────
+  const push = usePushNotifications();
+  const isPWA = window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true;
 
   // ── Notificações do sistema ───────────────────────────────────────────────
   const { data: notifSistema } = trpc.notificacoes.list.useQuery();
@@ -250,6 +261,124 @@ export default function Notificacoes() {
           </div>
         )}
       </div>
+
+      {/* ─── Push Notifications (PWA) ─── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              Notificações Push (PWA)
+            </CardTitle>
+            {push.isSubscribed && (
+              <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Ativo
+              </Badge>
+            )}
+            {push.isDenied && (
+              <Badge variant="destructive" className="text-xs">
+                <XCircle className="w-3 h-3 mr-1" />
+                Bloqueado
+              </Badge>
+            )}
+            {!push.isSubscribed && !push.isDenied && push.isSupported && (
+              <Badge variant="secondary" className="text-xs">
+                <BellOff className="w-3 h-3 mr-1" />
+                Inativo
+              </Badge>
+            )}
+          </div>
+          <CardDescription>
+            Receba alertas com som mesmo com o app em segundo plano ou fechado
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!push.isSupported && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                Navegador não suportado. Use Chrome, Edge ou Firefox para ativar notificações push.
+              </p>
+            </div>
+          )}
+          {push.isDenied && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+              <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700">
+                Notificações bloqueadas. Acesse as configurações do navegador → Privacidade → Notificações → Permitir para este site.
+              </p>
+            </div>
+          )}
+          {push.isSubscribed && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-green-50 border border-green-100">
+              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-green-800">
+                Notificações ativas neste dispositivo. Você receberá alertas mesmo com o app fechado.
+              </p>
+            </div>
+          )}
+          {!push.isSubscribed && !push.isDenied && push.isSupported && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100">
+              <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                Ative para receber alertas de novos agendamentos, lembretes e avisos financeiros{isPWA ? " com som" : ". Instale o app como atalho para receber notificações com som"}.
+              </p>
+            </div>
+          )}
+          {push.isSupported && !push.isDenied && (
+            <div className="flex gap-2">
+              {!push.isSubscribed ? (
+                <Button
+                  size="sm"
+                  onClick={push.subscribe}
+                  disabled={push.isLoading}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  {push.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
+                  Ativar Notificações Push
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={push.sendTest}
+                    disabled={push.isLoading}
+                    className="gap-2"
+                  >
+                    {push.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    Enviar Teste
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={push.unsubscribe}
+                    disabled={push.isLoading}
+                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    {push.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellOff className="w-3.5 h-3.5" />}
+                    Desativar
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          {!isPWA && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold">Para receber notificações com som, instale como atalho:</p>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Android (Chrome):</span> Menu (⋮) → Adicionar à tela inicial</p>
+                  <p><span className="font-medium text-foreground">iPhone (Safari):</span> Compartilhar (□↑) → Adicionar à Tela de Início</p>
+                  <p><span className="font-medium text-foreground">Desktop (Chrome):</span> Ícone de instalação (⊕) na barra de endereços</p>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

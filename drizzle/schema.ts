@@ -790,3 +790,17 @@ export const contasReceber = mysqlTable("contas_receber", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type ContaReceber = typeof contasReceber.$inferSelect;
+
+// ─── PUSH SUBSCRIPTIONS (PWA) ─────────────────────────────────────────────────
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: varchar("userAgent", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
