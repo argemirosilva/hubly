@@ -892,10 +892,15 @@ export const appRouter = router({
     updatePermissoes: protectedProcedure
       .input(z.object({
         grupoId: z.number(),
-        permissoes: z.record(z.string(), z.boolean()),
+        // Aceita qualquer valor e filtra no servidor para garantir robustez
+        permissoes: z.record(z.string(), z.any()),
       }))
       .mutation(async ({ input }) => {
-        await updatePermissoesGrupo(input.grupoId, input.permissoes as any);
+        // Filtrar apenas campos booleanos para evitar erro com campos extras do banco (id, grupoId, createdAt, updatedAt)
+        const permissoesBooleanas = Object.fromEntries(
+          Object.entries(input.permissoes).filter(([, v]) => typeof v === 'boolean')
+        ) as Record<string, boolean>;
+        await updatePermissoesGrupo(input.grupoId, permissoesBooleanas as any);
         return { success: true };
       }),
 

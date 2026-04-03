@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,25 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     status: "agendado" as const,
   });
 
+  // Buscar serviços vinculados ao profissional selecionado
+  const profissionalIdNum = form.profissionalId ? parseInt(form.profissionalId) : null;
+  const { data: servicosVinculados } = trpc.profissionalServicos.getByProfissional.useQuery(
+    { profissionalId: profissionalIdNum! },
+    { enabled: !!profissionalIdNum }
+  );
+
+  // Filtrar serviços: se o profissional tem vínculos, mostrar apenas esses; senão, mostrar todos
+  const servicosFiltrados = useMemo(() => {
+    if (!servicos) return [];
+    if (!profissionalIdNum) return servicos.filter(s => s.ativo);
+    if (!servicosVinculados || servicosVinculados.length === 0) {
+      // Profissional sem vínculos configurados → mostrar todos os serviços ativos
+      return servicos.filter(s => s.ativo);
+    }
+    const idsVinculados = new Set(servicosVinculados.map(v => v.servicoId));
+    return servicos.filter(s => s.ativo && idsVinculados.has(s.id));
+  }, [servicos, servicosVinculados, profissionalIdNum]);
+
   const criarMutation = trpc.agendamentos.create.useMutation({
     onSuccess: () => {
       toast.success("Agendamento criado com sucesso!");
@@ -45,6 +64,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   });
 
   const servicoSelecionado = servicos?.find(s => s.id === parseInt(form.servicoId));
+
+  const handleProfissionalChange = (id: string) => {
+    // Ao trocar de profissional, limpar o serviço selecionado
+    setForm(f => ({ ...f, profissionalId: id, servicoId: "" }));
+  };
 
   const handleServicoChange = (id: string) => {
     const servico = servicos?.find(s => s.id === parseInt(id));
@@ -78,6 +102,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     });
   };
 
+  const temVinculos = !!profissionalIdNum && !!servicosVinculados && servicosVinculados.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -105,7 +131,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional *</Label>
-              <Select value={form.profissionalId} onValueChange={v => setForm(f => ({ ...f, profissionalId: v }))}>
+              <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar" />
                 </SelectTrigger>
@@ -118,17 +144,40 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Serviço *</Label>
-              <Select value={form.servicoId} onValueChange={handleServicoChange}>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Serviço *
+                {temVinculos && (
+                  <span className="ml-1.5 text-[10px] text-primary font-normal">
+                    ({servicosFiltrados.length} disponível{servicosFiltrados.length !== 1 ? "is" : ""})
+                  </span>
+                )}
+              </Label>
+              <Select
+                value={form.servicoId}
+                onValueChange={handleServicoChange}
+                disabled={!form.profissionalId && servicosFiltrados.length === 0}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar" />
+                  <SelectValue placeholder={
+                    !form.profissionalId
+                      ? "Selecione o profissional primeiro"
+                      : servicosFiltrados.length === 0
+                      ? "Nenhum serviço disponível"
+                      : "Selecionar serviço"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {servicos?.map(s => (
+                  {servicosFiltrados.map(s => (
                     <SelectItem key={s.id} value={String(s.id)}>
                       {s.nome} — R$ {parseFloat(String(s.valor)).toFixed(2)}
+                      {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
                     </SelectItem>
                   ))}
+                  {servicosFiltrados.length === 0 && form.profissionalId && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Nenhum serviço vinculado a este profissional.
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>

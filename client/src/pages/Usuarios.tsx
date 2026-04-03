@@ -122,6 +122,14 @@ const PERMISSION_GROUPS = [
 const TOTAL_PERMS = PERMISSION_GROUPS.flatMap(g => g.items).length;
 const COR_PRESETS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899", "#64748b", "#0ea5e9"];
 
+// Filtra apenas os campos booleanos de um objeto de permissões (remove id, grupoId, createdAt, updatedAt, etc.)
+function filtrarPermissoesBooleanas(obj: Record<string, any> | null | undefined): Record<string, boolean> {
+  if (!obj) return {};
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => typeof v === 'boolean')
+  ) as Record<string, boolean>;
+}
+
 // ─── Editor de Permissões ─────────────────────────────────────────────────────
 function PermissoesEditor({ grupoId, permissoes, onClose }: {
   grupoId: number;
@@ -129,7 +137,8 @@ function PermissoesEditor({ grupoId, permissoes, onClose }: {
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
-  const [local, setLocal] = useState<Record<string, boolean>>(permissoes ?? {});
+  // Filtrar apenas campos booleanos para evitar erro de validação ao salvar
+  const [local, setLocal] = useState<Record<string, boolean>>(() => filtrarPermissoesBooleanas(permissoes));
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(PERMISSION_GROUPS.map(g => g.key)));
 
   const updateMutation = trpc.grupos.updatePermissoes.useMutation({
