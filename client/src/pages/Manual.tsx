@@ -714,7 +714,7 @@ export default function Manual() {
               </div>
               <div>
                 <p className="text-sm font-semibold">Manual do Sistema</p>
-                <p className="text-xs text-muted-foreground">Sistema de Agendamento</p>
+                <p className="text-xs text-muted-foreground">Hub de Serviços Inteligentes</p>
               </div>
             </div>
             <button

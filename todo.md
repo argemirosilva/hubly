@@ -688,3 +688,10 @@
 - [x] Gerar favicon.ico multi-tamanho (16x16, 32x32, 48x48, 64x64, 128x128, 256x256) a partir da logomarca
 - [x] Fazer upload do favicon para CDN
 - [x] Aplicar favicon no index.html, manifest.json e service worker
+
+## Atualização Nome/Subtítulo Hubly (Apr 03 2026)
+
+- [x] Substituir subtítulo "Centralize Your Service Management" por "Hub de Serviços Inteligentes"
+- [x] Atualizar title, description e meta tags no index.html
+- [x] Atualizar manifest.json
+- [x] Atualizar textos na sidebar, login, Setup e ConfirmarAgendamento

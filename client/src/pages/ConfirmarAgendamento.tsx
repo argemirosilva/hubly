@@ -112,7 +112,7 @@ export default function ConfirmarAgendamento() {
             alt="Hubly"
             className="h-10 w-auto object-contain mx-auto mb-2"
           />
-          <p className="text-muted-foreground text-sm mt-1">Centralize Your Service Management</p>
+          <p className="text-muted-foreground text-sm mt-1">Hub de Serviços Inteligentes</p>
         </div>
 
         <Card className={`border-0 shadow-lg ${current.bgColor}`}>
@@ -155,7 +155,7 @@ export default function ConfirmarAgendamento() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Powered by Hubly — Centralize Your Service Management
+          Powered by Hubly — Hub de Serviços Inteligentes
         </p>
       </div>
     </div>

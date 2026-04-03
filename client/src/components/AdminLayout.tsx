@@ -208,7 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="space-y-5">
               <p className="text-xs font-semibold tracking-[0.18em] uppercase"
                 style={{ color: "oklch(62% 0.16 225)" }}>
-                Centralize Your Service Management
+                Hub de Serviços Inteligentes
               </p>
               <h2 className="font-bold leading-tight"
                 style={{ fontSize: "2.2rem", color: "oklch(95% 0.008 240)", letterSpacing: "-0.03em" }}>
