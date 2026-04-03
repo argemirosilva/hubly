@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: servicos } = trpc.servicos.list.useQuery();
 
   const [comissaoModal, setComissaoModal] = useState(false);
+  const [linkConfirmacao, setLinkConfirmacao] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const [comissaoForm, setComissaoForm] = useState({
     percentualComissao: "",
     tipoPagamento: "dinheiro" as "dinheiro" | "pix" | "cartao_debito" | "cartao_credito" | "outro",
@@ -44,6 +46,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       toast.success("Status atualizado!");
       utils.agendamentos.list.invalidate();
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const gerarLinkMutation = trpc.confirmacao.gerarLink.useMutation({
+    onSuccess: (data) => {
+      setLinkConfirmacao(data.link);
+      navigator.clipboard.writeText(data.link).then(() => {
+        setLinkCopiado(true);
+        toast.success("Link de confirmação copiado!");
+        setTimeout(() => setLinkCopiado(false), 3000);
+      }).catch(() => {
+        toast.success("Link gerado! Copie manualmente.");
+      });
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -67,7 +83,13 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
       const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
       const pct = pctServico > 0 ? pctServico : pctProfissional;
-      setComissaoForm(f => ({ ...f, percentualComissao: pct > 0 ? String(pct) : "" }));
+      // Pré-preencher custo de reposição com custoFixo do serviço
+      const custoServico = (servico as any)?.custoFixo ? parseFloat(String((servico as any).custoFixo)) : 0;
+      setComissaoForm(f => ({
+        ...f,
+        percentualComissao: pct > 0 ? String(pct) : "",
+        custoReposicao: custoServico > 0 ? String(custoServico) : "",
+      }));
       // Primeiro atualiza status
       updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
         onSuccess: () => {
@@ -207,6 +229,17 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
+              {["agendado", "pre_agendado", "confirmado"].includes(ag.status) && (
+                <ActionBtn
+                  label={gerarLinkMutation.isPending ? "Gerando..." : linkCopiado ? "Copiado!" : "Link Confirm."}
+                  icon={linkCopiado ? Check : Link2}
+                  bg="oklch(55% 0.22 264 / 10%)"
+                  color="oklch(45% 0.18 264)"
+                  border="oklch(55% 0.22 264 / 25%)"
+                  onClick={() => gerarLinkMutation.mutate({ agendamentoId: ag.id, origin: window.location.origin })}
+                  loading={gerarLinkMutation.isPending}
+                />
+              )}
               {["agendado", "confirmado"].includes(ag.status) && (
                 <ActionBtn
                   label="Concluído"
@@ -242,6 +275,28 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               )}
             </div>
           </div>
+          {/* Link de confirmação gerado */}
+          {linkConfirmacao && (
+            <div className="px-5 pb-4">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Link2 className="w-4 h-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground truncate flex-1">{linkConfirmacao}</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(linkConfirmacao);
+                    setLinkCopiado(true);
+                    toast.success("Link copiado!");
+                    setTimeout(() => setLinkCopiado(false), 2000);
+                  }}
+                >
+                  {linkCopiado ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -262,12 +317,19 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">% Comissão</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                % Comissão
+                {(servico as any)?.percentualComissao && parseFloat(String((servico as any).percentualComissao)) > 0 && (
+                  <span className="ml-1 text-primary/70">(fixo do serviço)</span>
+                )}
+              </Label>
               <Input
                 type="number" min="0" max="100" step="0.5"
                 value={comissaoForm.percentualComissao}
                 onChange={e => setComissaoForm(f => ({ ...f, percentualComissao: e.target.value }))}
                 placeholder="Ex: 40"
+                readOnly={(servico as any)?.percentualComissao && parseFloat(String((servico as any).percentualComissao)) > 0}
+                className={(servico as any)?.percentualComissao && parseFloat(String((servico as any).percentualComissao)) > 0 ? "bg-secondary/50 cursor-not-allowed" : ""}
               />
             </div>
             <div>

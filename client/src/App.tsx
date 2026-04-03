@@ -33,6 +33,7 @@ import WhatsAppPage from "./pages/WhatsApp";
 import Planos from "./pages/Planos";
 import PlanosSuccesso from "./pages/PlanosSuccesso";
 import Assinatura from "./pages/Assinatura";
+import ConfirmarAgendamento from "./pages/ConfirmarAgendamento";
 import Perfil from "./pages/Perfil";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/">{() => <Redirect to="/admin" />}</Route>
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
+      <Route path="/confirmar/:token" component={ConfirmarAgendamento} />
 
       {/* Rotas admin — todas no mesmo Switch para garantir matching correto */}
       <Route path="/admin/clientes/:id">{(p) => <WithAdmin><ClienteDetalhe id={Number(p.id)} /></WithAdmin>}</Route>

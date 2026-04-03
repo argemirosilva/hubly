@@ -625,3 +625,24 @@
 - [x] Adicionar filtro de profissional na página Agendamentos (visível apenas para admins)
 - [x] Atualizar página Financeiro para usar isAdmin e mostrar filtro de profissional
 - [x] Atualizar Calendário para remover filtro manual no frontend (backend já filtra)
+
+## Permissões, Comissão Fixa, Custo, Confirmação por Link (Apr 03)
+
+- [x] Bug crítico: helper requirePermissao aplicado em todas as mutations sensíveis (grupos, profissionais, serviços, systemUsers)
+- [x] Schema: campo percentualComissao na tabela profissionais
+- [x] Schema: campo custoFixo na tabela servicos
+- [x] Migração SQL aplicada para os novos campos
+- [x] Frontend Equipe: campo % Comissão padrão no formulário de profissional
+- [x] Frontend Serviços: campo Custo Fixo no formulário de serviço
+- [x] AgendamentoDetalheModal: pré-preencher percentual (serviço > profissional) e custoReposicao com custoFixo
+- [x] AgendamentoDetalheModal: campo percentual somente leitura quando vem de configuração automática
+- [x] Backend: filtrar campos sensíveis de serviços para profissionais não-admin
+- [x] Backend: proteção contra profissional ver comissões de outros via profissionalId explícito
+- [x] Schema: tabela tokens_confirmacao criada e migração aplicada
+- [x] Backend: módulo confirmacao.ts com gerarTokenConfirmacao e rota Express GET /api/confirmar/:token
+- [x] Backend: notificação push para admin e profissional após confirmação do cliente
+- [x] Frontend: página pública ConfirmarAgendamento.tsx com estados (confirmado, já confirmado, expirado, inválido)
+- [x] App.tsx: rota pública /confirmar/:token registrada
+- [x] AgendamentoDetalheModal: botão "Link Confirm." para gerar e copiar link automaticamente
+- [x] AgendamentoDetalheModal: exibição do link gerado com botão de copiar manual
+- [x] Automacoes.tsx: variável {{link_confirmacao}} adicionada na lista de variáveis disponíveis

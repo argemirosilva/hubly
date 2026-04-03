@@ -78,6 +78,7 @@ type MembroEquipe = {
   createdAt: Date;
   grupoNome: string | null;
   grupoCor: string | null;
+  percentualComissao: string | null;
 };
 
 type Servico = {
@@ -782,6 +783,8 @@ function ModalMembro({
   const [senha, setSenha] = useState("");
   const [ativo, setAtivo] = useState(true);
   const [tiposIds, setTiposIds] = useState<number[]>([]);
+  const [percentualComissao, setPercentualComissao] = useState("");
+  const formDadosProps = { nome, setNome, email, setEmail, telefone, setTelefone, especialidade, setEspecialidade, corCalendario, setCorCalendario, isProfissional, setIsProfissional, temAcesso, setTemAcesso, grupoId, setGrupoId, senha, setSenha, ativo, setAtivo, isEdit, grupos, percentualComissao, setPercentualComissao };
 
   // Buscar tipos vinculados ao profissional (apenas na edição)
   const { data: tiposVinculados } = trpc.tiposProfissional.getByProfissional.useQuery(
@@ -805,6 +808,7 @@ function ModalMembro({
       setSenha("");
       setAtivo(membro?.ativo ?? true);
       setTiposIds([]);
+      setPercentualComissao(membro?.percentualComissao ? String(parseFloat(String(membro.percentualComissao))) : "");
     }
   }, [open, membro]);
 
@@ -859,6 +863,7 @@ function ModalMembro({
       temAcesso,
       grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined,
       senha: senha || undefined,
+      percentualComissao: percentualComissao || undefined,
     };
 
     if (isEdit) {
@@ -911,20 +916,7 @@ function ModalMembro({
 
             <div className="flex-1 overflow-y-auto">
               <TabsContent value="dados" className="mt-0 space-y-4 py-2">
-                <FormDados
-                  nome={nome} setNome={setNome}
-                  email={email} setEmail={setEmail}
-                  telefone={telefone} setTelefone={setTelefone}
-                  especialidade={especialidade} setEspecialidade={setEspecialidade}
-                  corCalendario={corCalendario} setCorCalendario={setCorCalendario}
-                  isProfissional={isProfissional} setIsProfissional={setIsProfissional}
-                  temAcesso={temAcesso} setTemAcesso={setTemAcesso}
-                  grupoId={grupoId} setGrupoId={setGrupoId}
-                  senha={senha} setSenha={setSenha}
-                  ativo={ativo} setAtivo={setAtivo}
-                  isEdit={isEdit}
-                  grupos={grupos}
-                />
+                <FormDados {...formDadosProps} />
               </TabsContent>
 
               <TabsContent value="tipos" className="mt-0 py-2">
@@ -953,20 +945,7 @@ function ModalMembro({
           <>
             <div className="overflow-y-auto flex-1">
               <div className="space-y-4 py-2">
-                <FormDados
-                  nome={nome} setNome={setNome}
-                  email={email} setEmail={setEmail}
-                  telefone={telefone} setTelefone={setTelefone}
-                  especialidade={especialidade} setEspecialidade={setEspecialidade}
-                  corCalendario={corCalendario} setCorCalendario={setCorCalendario}
-                  isProfissional={isProfissional} setIsProfissional={setIsProfissional}
-                  temAcesso={temAcesso} setTemAcesso={setTemAcesso}
-                  grupoId={grupoId} setGrupoId={setGrupoId}
-                  senha={senha} setSenha={setSenha}
-                  ativo={ativo} setAtivo={setAtivo}
-                  isEdit={isEdit}
-                  grupos={grupos}
-                />
+                <FormDados {...formDadosProps} />
               </div>
             </div>
             <DialogFooter className="shrink-0 pt-2">
@@ -996,6 +975,7 @@ function FormDados({
   ativo, setAtivo,
   isEdit,
   grupos,
+  percentualComissao, setPercentualComissao,
 }: {
   nome: string; setNome: (v: string) => void;
   email: string; setEmail: (v: string) => void;
@@ -1009,6 +989,7 @@ function FormDados({
   ativo: boolean; setAtivo: (v: boolean) => void;
   isEdit: boolean;
   grupos: { id: number; nome: string; cor: string | null }[];
+  percentualComissao: string; setPercentualComissao: (v: string) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -1073,6 +1054,16 @@ function FormDados({
               />
               <span className="text-sm text-muted-foreground">{corCalendario}</span>
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label>% Comissão padrão</Label>
+            <Input
+              type="number" min="0" max="100" step="0.5"
+              value={percentualComissao}
+              onChange={(e) => setPercentualComissao(e.target.value)}
+              placeholder="Ex: 40 (sobreposto pelo % do serviço)"
+            />
+            <p className="text-xs text-muted-foreground">Usado quando o serviço não tem comissão definida. Não pode ser alterado pelo profissional.</p>
           </div>
         </div>
       )}

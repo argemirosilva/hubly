@@ -71,6 +71,7 @@ const VARIAVEIS = [
   { var: "{{hora}}", desc: "Hora do agendamento" },
   { var: "{{valor}}", desc: "Valor do serviço" },
   { var: "{{empresa}}", desc: "Nome da empresa" },
+  { var: "{{link_confirmacao}}", desc: "Link para o cliente confirmar o agendamento" },
 ];
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];

@@ -46,6 +46,30 @@ import { getDb } from "./db";
 import { pacotesClientes, pacotesClientesItens } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
 
+/**
+ * Verifica se o usuário tem uma permissão específica do grupo.
+ * Owner OAuth sempre tem permissão. SystemUser precisa ter o campo true no grupo.
+ * Lança TRPCError FORBIDDEN se não tiver permissão.
+ */
+async function requirePermissao(
+  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number } | null },
+  empresa: { ownerId: number },
+  permField: string
+): Promise<void> {
+  // Owner OAuth: sempre tem permissão
+  if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) return;
+  // OAuth sem ser owner: também tem (pode ser dono de outra empresa)
+  if (!ctx.systemUser) return;
+  // SystemUser: verificar permissões do grupo
+  const perms = await getPermissoesByProfissional(ctx.systemUser.id);
+  if (!perms || !(perms as any)[permField]) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Sem permissão para realizar esta ação (${permField}).`,
+    });
+  }
+}
+
 // Helper para obter empresa do usuário logado
 // Suporta tanto usuários OAuth quanto system_users (ID negativo)
 async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number | null) {
@@ -61,7 +85,7 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
 async function resolveAdminContext(
   ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null } | null },
   empresa: { id: number; ownerId: number },
-  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" = "agendamentosVerTodos"
+  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" = "agendamentosVerTodos"
 ): Promise<{ isAdmin: boolean; profId: number | null }> {
   // Owner OAuth: sempre admin
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
@@ -211,6 +235,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'profissionaisCriar');
         const id = await createProfissional({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -223,10 +248,12 @@ export const appRouter = router({
         especialidade: z.string().optional(),
         corCalendario: z.string().optional(),
         ativo: z.boolean().optional(),
+        percentualComissao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'profissionaisEditar');
         const { id, ...data } = input;
         await updateProfissional(id, data);
         return { success: true };
@@ -251,6 +278,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'profissionaisEditar');
         const { profissionalId, ...perms } = input;
         await updatePermissoes(profissionalId, perms);
         return { success: true };
@@ -362,7 +390,14 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
-      return getServicosByEmpresa(empresa.id);
+      const todosServicos = await getServicosByEmpresa(empresa.id);
+      // Profissionais sem permissão de edição não veem custoFixo nem percentualComissao de outros
+      const { isAdmin } = await resolveAdminContext(ctx, empresa, 'servicosEditar');
+      if (!isAdmin) {
+        // Retornar apenas campos públicos — sem custoFixo nem percentualComissao
+        return todosServicos.map(({ custoFixo: _c, percentualComissao: _p, ...pub }) => pub);
+      }
+      return todosServicos;
     }),
     listPublico: publicProcedure
       .input(z.object({ empresaId: z.number() }))
@@ -378,10 +413,12 @@ export const appRouter = router({
         categoria: z.string().optional(),
         cor: z.string().optional(),
         percentualComissao: z.string().optional(),
+        custoFixo: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosCriar');
         const id = await createServico({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -396,10 +433,12 @@ export const appRouter = router({
         cor: z.string().optional(),
         ativo: z.boolean().optional(),
         percentualComissao: z.string().optional(),
+        custoFixo: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosEditar');
         const { id, ...data } = input;
         await updateServico(id, data as any);
         return { success: true };
@@ -742,12 +781,16 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         // Admin vê todos; profissional vê apenas as suas próprias comissões
+        const { isAdmin, profId: myProfId } = await resolveAdminContext(ctx, empresa, "financeiroVerComissoes");
         let profId: number | undefined;
         if (input?.profissionalId !== undefined) {
+          // Profissional não pode ver comissões de outro profissional
+          if (!isAdmin && myProfId !== null && input.profissionalId !== myProfId) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão para ver comissões de outro profissional.' });
+          }
           profId = input.profissionalId;
         } else {
-          const { profId: resolved } = await resolveAdminContext(ctx, empresa, "financeiroVerComissoes");
-          profId = resolved ?? undefined;
+          profId = myProfId ?? undefined;
         }
         return getComissoesByEmpresa(empresa.id, profId);
       }),
@@ -949,6 +992,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposCriar');
         const id = await createGrupo({ ...input, empresaId: empresa.id });
         return { id };
       }),
@@ -961,7 +1005,10 @@ export const appRouter = router({
         cor: z.string().optional(),
         isDefault: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposEditar');
         const { id, ...data } = input;
         await updateGrupo(id, data);
         return { success: true };
@@ -969,7 +1016,10 @@ export const appRouter = router({
 
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposExcluir');
         await deleteGrupo(input.id);
         return { success: true };
       }),
@@ -980,7 +1030,10 @@ export const appRouter = router({
         // Aceita qualquer valor e filtra no servidor para garantir robustez
         permissoes: z.record(z.string(), z.any()),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposEditar');
         // Filtrar apenas campos booleanos para evitar erro com campos extras do banco (id, grupoId, createdAt, updatedAt)
         const permissoesBooleanas = Object.fromEntries(
           Object.entries(input.permissoes).filter(([, v]) => typeof v === 'boolean')
@@ -994,13 +1047,17 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposEditar');
         const id = await addMembroGrupo(input.grupoId, input.userId, empresa.id, ctx.user.id);
         return { id };
       }),
 
     removeMembro: protectedProcedure
       .input(z.object({ membroId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'gruposEditar');
         await removeMembroGrupo(input.membroId);
         return { success: true };
       }),
@@ -1075,6 +1132,7 @@ export const appRouter = router({
         .mutation(async ({ ctx, input }) => {
           const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
           if (!empresa) throw new Error("Empresa não encontrada");
+          await requirePermissao(ctx, empresa, 'usuariosEditar');
           return createSystemUser({
             empresaId: empresa.id,
             nome: input.nome,
@@ -1095,20 +1153,29 @@ export const appRouter = router({
           isProfissional: z.boolean().optional(),
           ativo: z.boolean().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+          if (!empresa) throw new Error("Empresa não encontrada");
+          await requirePermissao(ctx, empresa, 'usuariosEditar');
           const { id, ...data } = input;
           await updateSystemUser(id, data);
           return { success: true };
         }),
       excluir: protectedProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+          if (!empresa) throw new Error("Empresa não encontrada");
+          await requirePermissao(ctx, empresa, 'usuariosEditar');
           await deleteSystemUser(input.id);
           return { success: true };
         }),
       resetarSenha: protectedProcedure
         .input(z.object({ id: z.number(), novaSenha: z.string().min(6) }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+          const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+          if (!empresa) throw new Error("Empresa não encontrada");
+          await requirePermissao(ctx, empresa, 'usuariosEditar');
           await resetSystemUserPassword(input.id, input.novaSenha);
           return { success: true };
         }),
@@ -1550,10 +1617,12 @@ export const appRouter = router({
         temAcesso: z.boolean().default(false),
         senha: z.string().min(6).optional(),
         grupoId: z.number().optional(),
+        percentualComissao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'profissionaisCriar');
         let passwordHash: string | undefined;
         if (input.temAcesso && input.senha) {
           const bcryptLib = await import('bcryptjs');
@@ -1572,7 +1641,8 @@ export const appRouter = router({
           grupoId: input.grupoId ?? null,
           criadoPorId: ctx.user.id,
           ativo: true,
-        });
+          percentualComissao: input.percentualComissao ?? '0.00',
+        } as any);
         return { id, success: true };
       }),
     atualizar: protectedProcedure
@@ -1588,10 +1658,12 @@ export const appRouter = router({
         ativo: z.boolean().optional(),
         senha: z.string().min(6).optional(),
         grupoId: z.number().nullable().optional(),
+        percentualComissao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'profissionaisEditar');
         const { id, senha, ...data } = input;
         const updateData: Record<string, unknown> = { ...data };
         if (senha) {
@@ -1918,6 +1990,43 @@ export const appRouter = router({
       });
       return result;
     }),
+  }),
+
+  // ─── CONFIRMAÇÃO DE AGENDAMENTO ──────────────────────────────────────────────
+  confirmacao: router({
+    /** Gera um link de confirmação para um agendamento (para incluir na mensagem de lembrete) */
+    gerarLink: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        origin: z.string().optional(), // window.location.origin do frontend
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const { gerarTokenConfirmacao } = await import('./confirmacao');
+        const token = await gerarTokenConfirmacao(input.agendamentoId, empresa.id);
+        const origin = input.origin ?? 'https://agendei-app-bkct9rps.manus.space';
+        const link = `${origin}/api/confirmar/${token}`;
+        return { token, link };
+      }),
+    /** Verifica o status de um token de confirmação (para a página pública) */
+    verificarToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { status: 'erro' as const };
+        const { tokensConfirmacao: tbl } = await import('../drizzle/schema');
+        const { isNull, gt: drizzleGt } = await import('drizzle-orm');
+        const agora = new Date();
+        const [tokenRow] = await db.select()
+          .from(tbl)
+          .where(and(eq(tbl.token, input.token)))
+          .limit(1);
+        if (!tokenRow) return { status: 'invalido' as const };
+        if (tokenRow.usadoEm) return { status: 'ja_confirmado' as const, usadoEm: tokenRow.usadoEm };
+        if (tokenRow.expiresAt < agora) return { status: 'expirado' as const };
+        return { status: 'pendente' as const };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

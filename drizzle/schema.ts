@@ -88,6 +88,7 @@ export const profissionais = mysqlTable("profissionais", {
   grupoId: int("grupoId"),                                            // grupo de permissões
   ultimoAcesso: timestamp("ultimoAcesso"),
   criadoPorId: int("criadoPorId"),
+  percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"), // comissão padrão do profissional
   // ─────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -146,6 +147,7 @@ export const servicos = mysqlTable("servicos", {
   cor: varchar("cor", { length: 7 }).default("#7c3aed"),
   ativo: boolean("ativo").default(true),
   percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"),
+  custoFixo: decimal("custoFixo", { precision: 10, scale: 2 }).default("0.00"), // custo de insumos/produtos do serviço
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -804,3 +806,15 @@ export const pushSubscriptions = mysqlTable("push_subscriptions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+
+// ─── TOKENS DE CONFIRMAÇÃO DE AGENDAMENTO ─────────────────────────────────────
+export const tokensConfirmacao = mysqlTable("tokens_confirmacao", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usadoEm: timestamp("usadoEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TokenConfirmacao = typeof tokensConfirmacao.$inferSelect;

@@ -968,6 +968,7 @@ export async function getEquipeByEmpresa(empresaId: number) {
     createdAt: profissionais.createdAt,
     grupoNome: gruposPermissoes.nome,
     grupoCor: gruposPermissoes.cor,
+    percentualComissao: profissionais.percentualComissao,
   })
     .from(profissionais)
     .leftJoin(gruposPermissoes, eq(profissionais.grupoId, gruposPermissoes.id))

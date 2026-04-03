@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { initScheduler } from "../scheduler";
 import { registerStripeWebhook } from "../stripe-webhook";
 import { waManager } from "../whatsapp";
+import { registerConfirmacaoRoute } from "../confirmacao";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // System user auth (email/senha)
   registerSystemAuthRoutes(app);
+  // Confirmação pública de agendamento via token
+  registerConfirmacaoRoute(app);
   // tRPC API
   app.use(
     "/api/trpc",

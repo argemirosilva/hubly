@@ -13,7 +13,7 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
-const emptyForm = { nome: "", descricao: "", valor: "", duracaoMinutos: "60", categoria: "", percentualComissao: "" };
+const emptyForm = { nome: "", descricao: "", valor: "", duracaoMinutos: "60", categoria: "", percentualComissao: "", custoFixo: "" };
 const emptyTipoForm = { nome: "", cor: "#7c3aed" };
 
 const COR_PRESETS = [
@@ -110,6 +110,7 @@ export default function Servicos() {
       duracaoMinutos: String(s.duracaoMinutos ?? 60),
       categoria: s.categoria ?? "",
       percentualComissao: s.percentualComissao ? String(parseFloat(String(s.percentualComissao))) : "",
+      custoFixo: s.custoFixo ? String(parseFloat(String(s.custoFixo))) : "",
     });
     setModalOpen(true);
   }
@@ -125,6 +126,7 @@ export default function Servicos() {
       ...form,
       duracaoMinutos: parseInt(form.duracaoMinutos),
       percentualComissao: form.percentualComissao || undefined,
+      custoFixo: form.custoFixo || undefined,
     } as any;
     if (editando) {
       editarMutation.mutate({ id: editando, ...payload });
@@ -227,10 +229,10 @@ export default function Servicos() {
                               <Clock className="w-3 h-3" />
                               {s.duracaoMinutos ?? 60} min
                             </div>
-                            {s.percentualComissao && parseFloat(String(s.percentualComissao)) > 0 && (
+                            {(s as any).percentualComissao && parseFloat(String((s as any).percentualComissao)) > 0 && (
                               <div className="flex items-center gap-1 text-xs text-primary font-medium">
                                 <Percent className="w-3 h-3" />
-                                {parseFloat(String(s.percentualComissao)).toFixed(0)}%
+                                {parseFloat(String((s as any).percentualComissao)).toFixed(0)}%
                               </div>
                             )}
                           </div>
@@ -303,6 +305,20 @@ export default function Servicos() {
                   placeholder="Ex: 40"
                 />
               </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                <span className="flex items-center gap-1">
+                  Custo do serviço (R$)
+                </span>
+              </Label>
+              <Input
+                type="number" min="0" step="0.01"
+                value={form.custoFixo}
+                onChange={e => setForm(f => ({ ...f, custoFixo: e.target.value }))}
+                placeholder="Ex: 15,00 (insumos, produtos)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Custo de insumos ou produtos usados neste serviço. Será pré-preenchido ao registrar comissão.</p>
             </div>
             {form.percentualComissao && parseFloat(form.percentualComissao) > 0 && (
               <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md px-3 py-2">
