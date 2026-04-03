@@ -84,7 +84,7 @@ export const appRouter = router({
         nome: z.string().min(1),
         tipo: z.enum(["salao", "clinica", "barbearia", "consultorio", "outro"]).default("salao"),
         telefone: z.string().optional(),
-        email: z.string().email().optional(),
+        email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
         endereco: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -153,7 +153,8 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
-        email: z.string().email().optional(),
+        // Aceita string vazia (campo deixado em branco) convertendo para undefined
+        email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
         telefone: z.string().optional(),
         especialidade: z.string().optional(),
         corCalendario: z.string().optional(),
@@ -221,7 +222,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
-        email: z.string().email().optional(),
+        email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
         telefone: z.string().optional(),
         whatsapp: z.string().optional(),
         cpf: z.string().optional(),
@@ -1012,7 +1013,7 @@ export const appRouter = router({
         .input(z.object({
           id: z.number(),
           nome: z.string().min(2).optional(),
-          email: z.string().email().optional(),
+          email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
           senha: z.string().min(6).optional(),
           grupoId: z.number().nullable().optional(),
           profissionalId: z.number().nullable().optional(),
