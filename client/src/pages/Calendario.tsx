@@ -4,7 +4,7 @@ import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { getServiceIcon } from "@/lib/serviceIcons";
-import { useAuth } from "@/_core/hooks/useAuth";
+// Backend já aplica filtros via resolveAdminContext, sem necessidade de useAuth aqui
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DIAS_SEMANA_CURTO = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -22,7 +22,6 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
 };
 
 export default function Calendario() {
-  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();

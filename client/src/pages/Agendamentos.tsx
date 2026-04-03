@@ -6,7 +6,7 @@ import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
@@ -35,17 +35,13 @@ function formatCurrency(v: number) {
 }
 
 export default function Agendamentos() {
-  const { user } = useAuth();
+  const { pode, isAdmin } = usePermissoes();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [agSelecionado, setAgSelecionado] = useState<number | null>(null);
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [filtroProfissional, setFiltroProfissional] = useState<string>("todos");
-
-  // Se o usuário é profissional vinculado, filtra apenas seus agendamentos
-  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
-  const isAdmin = (user as any)?.isAdmin === true || (!profissionalVinculadoId && !!(user as any)?.id);
 
   const today = new Date().toISOString().split("T")[0];
   const [dataInicio, setDataInicio] = useState(today);

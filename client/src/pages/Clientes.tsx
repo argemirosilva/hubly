@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ function formatCurrency(v: number) {
 }
 
 export default function Clientes() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const [busca, setBusca] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,6 +40,16 @@ export default function Clientes() {
       (c.telefone ?? "").includes(busca) || (c.email ?? "").toLowerCase().includes(busca.toLowerCase())
     );
   }, [clientes, busca]);
+
+  // Guarda de permissão: apenas quem tem clientesVer pode acessar Clientes
+  if (!pode("clientesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Users className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar os Clientes.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto animate-in-up">

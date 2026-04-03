@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import OnboardingEquipe, { useOnboardingEquipe } from "@/components/OnboardingEquipe";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1284,6 +1285,7 @@ function CardMembro({
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function Equipe() {
+  const { pode } = usePermissoes();
   const [busca, setBusca] = useState("");
   const [filtroAba, setFiltroAba] = useState<FiltroAba>("todos");
   const [modalAberto, setModalAberto] = useState(false);
@@ -1355,6 +1357,16 @@ export default function Equipe() {
   const handleAbrirGuia = () => {
     onboarding.abrir();
   };
+
+  // Guarda de permissão: apenas quem tem profissionaisVer pode acessar Equipe
+  if (!pode("profissionaisVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Users className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar a Equipe.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-4xl mx-auto">

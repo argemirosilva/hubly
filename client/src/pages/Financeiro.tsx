@@ -4,21 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, TrendingUp, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
 export default function Financeiro() {
-  const { user } = useAuth();
   const utils = trpc.useUtils();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroProfId, setFiltroProfId] = useState("todos");
 
-  // Se o usuário é profissional vinculado, filtra apenas suas comissões
-  const profissionalVinculadoId = (user as any)?.profissionalId ?? null;
-  const isAdmin = (user as any)?.isAdmin === true || (!profissionalVinculadoId && !!(user as any)?.id);
+  // Permissões centralizadas
+  const { pode, isAdmin, profissionalId: profissionalVinculadoId } = usePermissoes();
+  const podeMarcarPaga = pode("financeiroMarcarPago"); // apenas quem pode marcar como pago pode clicar no botão
 
   // Backend já aplica o filtro correto via resolveAdminContext
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
@@ -44,6 +43,16 @@ export default function Financeiro() {
       return matchStatus && matchProf;
     });
   }, [comissoes, filtroStatus, filtroProfId, isAdmin]);
+
+  // Profissional sem permissão financeiroVer não deve ver esta página
+  if (!pode("financeiroVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <DollarSign className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar o financeiro.</p>
+      </div>
+    );
+  }
 
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
 
@@ -135,7 +144,7 @@ export default function Financeiro() {
                   {c.paga ? (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
                       style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
-                  ) : (
+                  ) : podeMarcarPaga ? (
                     <button
                       className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border font-medium flex-shrink-0 transition-colors"
                       style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
@@ -145,6 +154,9 @@ export default function Financeiro() {
                       <CheckCircle className="w-3 h-3" />
                       Pagar
                     </button>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                      style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>Pendente</span>
                   )}
                 </div>
               ))}

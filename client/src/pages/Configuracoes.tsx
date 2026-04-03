@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect, useCallback } from "react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
@@ -16,6 +17,7 @@ const DIAS_SEMANA = [
 ];
 
 export default function Configuracoes() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const { data: empresa } = trpc.empresa.get.useQuery();
   const [copied, setCopied] = useState(false);
@@ -135,6 +137,16 @@ export default function Configuracoes() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast.success("Link copiado!");
+  }
+
+  // Guarda de permissão: apenas quem tem configuracoesVer pode acessar Configurações
+  if (!pode("configuracoesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Settings className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar as Configurações.</p>
+      </div>
+    );
   }
 
   return (

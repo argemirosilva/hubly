@@ -3,18 +3,21 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Shield, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ElementType;
   exact?: boolean;
-  children?: { href: string; label: string; icon: React.ElementType }[];
+  /** Campo de permissão necessário para ver este item. Undefined = sempre visível. */
+  permissao?: string;
+  children?: { href: string; label: string; icon: React.ElementType; permissao?: string }[];
 };
 
 type NavGroup = {
@@ -27,17 +30,17 @@ const navGroups: NavGroup[] = [
     label: "Principal",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-      { href: "/admin/calendario", label: "Calendário", icon: Calendar },
-      { href: "/admin/agendamentos", label: "Agendamentos", icon: CalendarCheck },
+      { href: "/admin/calendario", label: "Calendário", icon: Calendar, permissao: "agendamentosVer" },
+      { href: "/admin/agendamentos", label: "Agendamentos", icon: CalendarCheck, permissao: "agendamentosVer" },
     ],
   },
   {
     label: "Gestão",
     items: [
-      { href: "/admin/clientes", label: "Clientes", icon: Users },
-      { href: "/admin/equipe", label: "Equipe", icon: UserCog },
-      { href: "/admin/servicos", label: "Serviços", icon: Sparkles },
-      { href: "/admin/pacotes", label: "Pacotes", icon: Package },
+      { href: "/admin/clientes", label: "Clientes", icon: Users, permissao: "clientesVer" },
+      { href: "/admin/equipe", label: "Equipe", icon: UserCog, permissao: "profissionaisVer" },
+      { href: "/admin/servicos", label: "Serviços", icon: Sparkles, permissao: "servicosVer" },
+      { href: "/admin/pacotes", label: "Pacotes", icon: Package, permissao: "clientesVer" },
     ],
   },
   {
@@ -47,33 +50,34 @@ const navGroups: NavGroup[] = [
         href: "/admin/financeiro",
         label: "Financeiro",
         icon: CreditCard,
+        permissao: "financeiroVer",
         children: [
-          { href: "/admin/financeiro", label: "Visão Geral", icon: TrendingUp },
-          { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText },
-          { href: "/admin/contas-receber", label: "Contas a Receber", icon: ArrowDownCircle },
+          { href: "/admin/financeiro", label: "Visão Geral", icon: TrendingUp, permissao: "financeiroVer" },
+          { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText, permissao: "financeiroVer" },
+          { href: "/admin/contas-receber", label: "Contas a Receber", icon: ArrowDownCircle, permissao: "financeiroVer" },
         ],
       },
-      { href: "/admin/automacoes", label: "Automações", icon: MessageSquare },
-      { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
+      { href: "/admin/automacoes", label: "Automações", icon: MessageSquare, permissao: "automacoesVer" },
+      { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle, permissao: "automacoesVer" },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
-      { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock },
+      { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock, permissao: "agendamentosVer" },
     ],
   },
   {
     label: "IA Inteligente",
     items: [
-      { href: "/admin/ia-financeiro", label: "IA Financeira", icon: Brain },
-      { href: "/admin/ia-clientes", label: "IA Clientes", icon: Users },
+      { href: "/admin/ia-financeiro", label: "IA Financeira", icon: Brain, permissao: "financeiroVer" },
+      { href: "/admin/ia-clientes", label: "IA Clientes", icon: Users, permissao: "clientesVer" },
     ],
   },
   {
     label: "Sistema",
     items: [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
-      { href: "/admin/importacao", label: "Importar Zandu", icon: Download },
-      { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
-      { href: "/admin/planos", label: "Planos", icon: Gem },
-      { href: "/admin/assinatura", label: "Minha Assinatura", icon: CreditCard },
+      { href: "/admin/importacao", label: "Importar Zandu", icon: Download, permissao: "configuracoesEditar" },
+      { href: "/admin/configuracoes", label: "Configurações", icon: Settings, permissao: "configuracoesVer" },
+      { href: "/admin/planos", label: "Planos", icon: Gem, permissao: "configuracoesVer" },
+      { href: "/admin/assinatura", label: "Minha Assinatura", icon: CreditCard, permissao: "configuracoesVer" },
       { href: "/admin/manual", label: "Manual do Sistema", icon: BookOpen },
     ],
   },
@@ -91,6 +95,7 @@ const bottomNav = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
   const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout } = useSystemAuth();
+  const { pode, isOwner, permissoes: permsObj } = usePermissoes();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -337,14 +342,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
-          {navGroups.map((group) => (
+          {navGroups.map((group) => {
+            // Filtrar itens do grupo baseado nas permissões
+            const visibleItems = group.items.filter(item => {
+              if (!item.permissao) return true; // sem restrição = sempre visível
+              return pode(item.permissao);
+            });
+            if (visibleItems.length === 0) return null;
+            return (
             <div key={group.label}>
               <p className="px-2 mb-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase"
                 style={{ color: "oklch(48% 0.022 255)" }}>
                 {group.label}
               </p>
               <div className="space-y-0.5">
-                {group.items.map((item) => {
+                {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const hasChildren = !!(item.children && item.children.length > 0);
                   const isExpanded = expandedItems.has(item.href);
@@ -395,7 +407,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {/* Subitens */}
                         {isExpanded && (
                           <div className="mt-0.5 ml-3 pl-3 space-y-0.5" style={{ borderLeft: "1px solid oklch(26% 0.015 255)" }}>
-                            {item.children!.map(child => {
+                            {item.children!.filter(child => !child.permissao || pode(child.permissao)).map(child => {
                               const ChildIcon = child.icon;
                               const childActive = location === child.href || (child.href !== "/admin/financeiro" && location.startsWith(child.href));
                               return (
@@ -481,10 +493,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       </div>
                     </Link>
                   );
-                })}
+                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Suporte */}

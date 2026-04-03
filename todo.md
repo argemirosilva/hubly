@@ -770,3 +770,33 @@
 - [x] Frontend Servicos.tsx: ocultar botão Novo Serviço e Tipos de Profissional para não-admins
 - [x] Frontend Servicos.tsx: ocultar botão de editar para serviços que o profissional não possui vínculo
 - [x] Frontend Servicos.tsx: ocultar percentual de comissão para serviços de outros profissionais
+
+## Correções Profundas de Permissão (03/04/2026 v2)
+- [ ] Menu lateral (AdminLayout): ocultar itens sem permissão para profissionais
+- [ ] Dashboard: ocultar blocos de contas vencidas/a pagar para quem não tem financeiroVer
+- [ ] Dashboard: mostrar apenas agendamentos do próprio profissional no painel do dia
+- [ ] Financeiro: profissional vê apenas suas próprias comissões (não de outros)
+- [ ] Financeiro: ocultar seções de receita/custos/despesas sem permissão
+- [ ] Agenda/Calendário: filtrar por profissional logado por padrão
+- [ ] Backend: procedure auth.me deve retornar objeto de permissões completo para o frontend
+- [ ] Verificar todas as páginas com dados sensíveis e aplicar filtros de permissão
+
+## Correções de Permissão (03/04/2026)
+- [x] Criar função getPermissoesGrupoByProfissional que busca da tabela permissoes_grupo (correta)
+- [x] Corrigir resolveAdminContext para usar tabela permissoes_grupo
+- [x] Corrigir auth.me para retornar objeto completo de permissões do grupo
+- [x] Criar hook usePermissoes centralizado no frontend
+- [x] AdminLayout: filtrar itens do menu lateral por permissão (incluindo subitens)
+- [x] Dashboard: ocultar blocos financeiros (receita, contas, comissões) sem permissão financeiroVer
+- [x] Financeiro: ocultar botão Pagar para não-admins, filtrar comissões por profissional
+- [x] ContasPagar: adicionar guarda de permissão financeiroVer no backend e frontend
+- [x] ContasReceber: adicionar guarda de permissão financeiroVer no backend e frontend
+- [x] IAFinanceiro: adicionar guarda de permissão financeiroVer
+- [x] IAClientes: adicionar guarda de permissão clientesVer
+- [x] Automacoes: adicionar guarda de permissão automacoesVer
+- [x] WhatsApp: adicionar guarda de permissão automacoesVer
+- [x] Clientes: adicionar guarda de permissão clientesVer
+- [x] Servicos: adicionar guarda de permissão servicosVer
+- [x] Configuracoes: adicionar guarda de permissão configuracoesVer
+- [x] Profissionais: adicionar guarda de permissão profissionaisVer
+- [x] Equipe: adicionar guarda de permissão profissionaisVer

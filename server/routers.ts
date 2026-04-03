@@ -151,14 +151,24 @@ export const appRouter = router({
       // No modelo unificado, o systemUser É o profissional (profissionalId = systemUser.id)
       // isAdmin: owner OAuth (sem systemUser) ou systemUser com agendamentosVerTodos
       let isAdmin = false;
+      let permissoes: Record<string, boolean> | null = null;
       if (!opts.ctx.systemUser) {
         // Owner OAuth: buscar empresa para verificar se é owner
         const empresa = await getEmpresaDoContexto(opts.ctx.user.id, null);
         isAdmin = empresa ? empresa.ownerId === opts.ctx.user.id : false;
+        // Owner tem todas as permissões — null = acesso total
+        permissoes = null;
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
         const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.id);
         isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
+        if (perms) {
+          // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)
+          const { id: _id, grupoId: _g, createdAt: _c, updatedAt: _u, ...boolPerms } = perms as any;
+          permissoes = boolPerms as Record<string, boolean>;
+        } else {
+          permissoes = {}; // sem grupo = sem permissões
+        }
       }
       return {
         ...opts.ctx.user,
@@ -166,6 +176,7 @@ export const appRouter = router({
         isProfissional: opts.ctx.systemUser?.isProfissional ?? false,
         isSystemUser: !!opts.ctx.systemUser,
         isAdmin,
+        permissoes, // null = owner (acesso total); objeto = permissões do grupo
       };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -1922,11 +1933,15 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
+        // Apenas quem tem financeiroVer pode acessar contas a pagar
+        await requirePermissao(ctx, empresa, 'financeiroVer');
         return getContasPagarByEmpresa(empresa.id, input ?? {});
       }),
     metricas: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return { totalPendente: 0, totalVencido: 0, totalPagoMes: 0, totalMes: 0, contasVencidas: 0, contasPendentes: 0 };
+      // Apenas quem tem financeiroVer pode ver métricas de contas a pagar
+      await requirePermissao(ctx, empresa, 'financeiroVer');
       return getMetricasContasPagar(empresa.id);
     }),
     criar: protectedProcedure
@@ -1995,11 +2010,15 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
+      // Apenas quem tem financeiroVer pode acessar contas a receber
+      await requirePermissao(ctx, empresa, 'financeiroVer');
       return getContasReceberByEmpresa(empresa.id);
     }),
     metricas: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return { totalPendente: 0, totalRecebidoMes: 0, totalVencido: 0, quantidadePendentes: 0, quantidadeVencidas: 0, quantidadeProximas7: 0, totalProximas7: 0 };
+      // Apenas quem tem financeiroVer pode ver métricas de contas a receber
+      await requirePermissao(ctx, empresa, 'financeiroVer');
       return getMetricasContasReceber(empresa.id);
     }),
     criar: protectedProcedure

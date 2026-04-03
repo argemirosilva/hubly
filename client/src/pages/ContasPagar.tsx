@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -446,6 +447,7 @@ function CardConta({ conta, onEditar, onMarcarPago, onDeletar }: {
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function ContasPagar() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
 
   // Filtros
@@ -504,6 +506,16 @@ export default function ContasPagar() {
     setModalConta(false);
     setContaEditando(null);
   };
+
+  // Guarda de permissão: apenas quem tem financeiroVer pode acessar
+  if (!pode("financeiroVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <ReceiptText className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar contas a pagar.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">

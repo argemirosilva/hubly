@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
@@ -159,13 +160,11 @@ export default function Dashboard() {
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
-  // Detectar se o usuário logado é um profissional vinculado
-  // auth.me retorna profissionalId quando é um system_user com vínculo
-  const { data: meData } = trpc.auth.me.useQuery();
-  const profissionalIdVinculado = (meData as any)?.profissionalId ?? null;
+  // Permissões centralizadas
+  const { pode, isOwner, isAdmin, profissionalId: profissionalIdVinculado } = usePermissoes();
   const isProfissional = !!profissionalIdVinculado;
-  // isAdmin: owner OAuth ou systemUser com permissão agendamentosVerTodos
-  const isAdmin = (meData as any)?.isAdmin === true || (!profissionalIdVinculado && !!(meData as any)?.id);
+  // Pode ver financeiro = owner ou permissão financeiroVer
+  const podeVerFinanceiro = pode("financeiroVer");
 
   const { data: empresa } = trpc.empresa.get.useQuery();
   // Backend já aplica o filtro correto via resolveAdminContext
@@ -182,20 +181,20 @@ export default function Dashboard() {
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
 
-  // Contas a Pagar — apenas para admins
+  // Contas a Pagar — apenas para quem tem permissão financeiroVer
   const [hojeStr] = useState(() => new Date().toISOString().split("T")[0]);
   const [fimSemanaStr] = useState(() => new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
   const { data: contasHoje } = trpc.contasPagar.list.useQuery(
     { status: "pendente", dataInicio: hojeStr, dataFim: hojeStr },
-    { enabled: isAdmin }
+    { enabled: podeVerFinanceiro }
   );
   const { data: contasSemana } = trpc.contasPagar.list.useQuery(
     { status: "pendente", dataInicio: hojeStr, dataFim: fimSemanaStr },
-    { enabled: isAdmin }
+    { enabled: podeVerFinanceiro }
   );
   const { data: contasVencidas } = trpc.contasPagar.list.useQuery(
     { status: "vencido" },
-    { enabled: isAdmin }
+    { enabled: podeVerFinanceiro }
   );
   const totalContasHoje = contasHoje?.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0) ?? 0;
   const totalContasSemana = contasSemana?.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0) ?? 0;
@@ -313,7 +312,8 @@ export default function Dashboard() {
             iconBg: "oklch(55% 0.22 264 / 12%)",
             iconColor: "oklch(45% 0.18 264)",
           },
-          {
+          // Card de receita: apenas para quem tem financeiroVer ou financeiroVerComissoes
+          ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{
             label: isProfissional ? "Minha receita" : "Receita do mês",
             value: formatCurrency(metrics?.receitaMes ?? 0),
             sub: variacaoReceita !== 0
@@ -323,7 +323,7 @@ export default function Dashboard() {
             icon: DollarSign,
             iconBg: "oklch(62% 0.18 155 / 12%)",
             iconColor: "oklch(38% 0.14 155)",
-          },
+          }] : []),
           {
             label: isProfissional ? "Clientes atendidos" : "Clientes",
             value: String(metrics?.totalClientes ?? 0),
@@ -368,8 +368,8 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Cards de Contas a Pagar — apenas para admins */}
-      {isAdmin && (
+      {/* Cards de Contas a Pagar — apenas para quem tem permissão financeiroVer */}
+      {podeVerFinanceiro && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Vencidas */}
           <Link href="/admin/financeiro/contas-pagar">
@@ -545,7 +545,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Resumo financeiro */}
+          {/* Resumo financeiro — apenas para quem tem permissão financeiroVer */}
+          {podeVerFinanceiro && (
           <div className="card-elegant p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm tracking-tight">Financeiro</h3>
@@ -571,6 +572,7 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+          )}
 
           {/* Card IA Financeira */}
           <div className="card-elegant p-4">

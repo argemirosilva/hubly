@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Layers, Clock, Percent, Pencil, Tag, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Layers, Clock, Percent, Pencil, Tag, Trash2, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -25,11 +25,7 @@ const COR_PRESETS = [
 
 export default function Servicos() {
   const utils = trpc.useUtils();
-  const { user } = useAuth();
-
-  // Determinar se o usuário é admin/owner
-  const isAdmin = (user as any)?.isAdmin === true || (!(user as any)?.profissionalId && !!(user as any)?.id);
-  const meuProfissionalId = (user as any)?.profissionalId ?? null;
+  const { pode, isAdmin, profissionalId: meuProfissionalId } = usePermissoes();
 
   // ─── Serviços ──────────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
@@ -183,6 +179,16 @@ export default function Servicos() {
 
   const isPending = criarMutation.isPending || editarMutation.isPending;
   const isTipoPending = criarTipoMutation.isPending || atualizarTipoMutation.isPending;
+
+  // Guarda de permissão: apenas quem tem servicosVer pode acessar Serviços
+  if (!pode("servicosVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Sparkles className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar os Serviços.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-5xl mx-auto animate-in-up">

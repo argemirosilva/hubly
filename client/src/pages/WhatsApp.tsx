@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ const statusConfig: Record<WAStatus, { label: string; color: string; icon: React
 };
 
 export default function WhatsAppPage() {
+  const { pode } = usePermissoes();
   const [testPhone, setTestPhone] = useState("");
   const [pollingInterval, setPollingInterval] = useState(3000);
 
@@ -127,6 +129,16 @@ export default function WhatsAppPage() {
     if (!testPhone.trim()) return;
     sendTestMutation.mutate({ telefone: testPhone.trim() });
   };
+
+  // Guarda de permissão: apenas quem tem automacoesVer pode acessar WhatsApp
+  if (!pode("automacoesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <MessageCircle className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar o WhatsApp.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-2xl py-8 space-y-6">

@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +107,7 @@ function ServicosTab({ profissionalId }: { profissionalId: number }) {
 }
 
 export default function Profissionais() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
   const [gerenModalOpen, setGerenModalOpen] = useState(false);
@@ -136,6 +138,16 @@ export default function Profissionais() {
     setProfSelecionado(p);
     setGerenModalOpen(true);
   };
+
+  // Guarda de permissão: apenas quem tem profissionaisVer pode acessar Profissionais
+  if (!pode("profissionaisVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Scissors className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar a Equipe.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-5xl mx-auto animate-in-up">

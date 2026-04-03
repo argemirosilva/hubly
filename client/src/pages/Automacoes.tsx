@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
 import {
   Zap, Calendar, Clock, Gift, MessageSquare, Bell, Mail,
@@ -641,6 +642,7 @@ const TEMPLATES = [
 //  Página principal
 
 export default function Automacoes() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const { data: automacoesSalvas = [], isLoading } = trpc.automacoes.list.useQuery();
   const createMutation = trpc.automacoes.create.useMutation({
@@ -753,6 +755,16 @@ export default function Automacoes() {
       default: return a.tipoGatilho;
     }
   };
+
+  //  Guarda de permissão: apenas quem tem automacoesVer pode acessar Automações
+  if (!pode("automacoesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Zap className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar as Automações.</p>
+      </div>
+    );
+  }
 
   //  LISTA
   if (view === "list") {

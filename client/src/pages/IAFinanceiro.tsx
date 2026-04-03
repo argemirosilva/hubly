@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Brain, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, RefreshCw, Send, Bot, User, ChevronRight, Bell, BellOff } from "lucide-react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
@@ -26,6 +27,7 @@ function ScoreGauge({ score, status }: { score: number; status: string }) {
 }
 
 export default function IAFinanceiro() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([
     { role: "assistant", content: "Olá! Sou seu assistente financeiro. Pode me perguntar sobre seu score, alertas ou qualquer dúvida sobre o financeiro do seu negócio." }
@@ -79,6 +81,16 @@ export default function IAFinanceiro() {
 
   const prioridadeCor = (p: string) =>
     p === "alta" ? "oklch(55% 0.22 25)" : p === "media" ? "oklch(65% 0.20 75)" : "oklch(55% 0.18 155)";
+
+  // Guarda de permissão: apenas quem tem financeiroVer pode acessar IA Financeira
+  if (!pode("financeiroVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Brain className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar a IA Financeira.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-6xl mx-auto animate-in-up">

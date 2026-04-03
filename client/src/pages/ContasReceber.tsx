@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -432,6 +433,7 @@ function ModalMarcarRecebido({
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function ContasReceber() {
+  const { pode } = usePermissoes();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroOrigem, setFiltroOrigem] = useState("todos");
@@ -493,6 +495,15 @@ export default function ContasReceber() {
     setModalAberto(false);
     setEditando(null);
   };
+
+  // Guarda de permissão: apenas quem tem financeiroVer pode acessar
+  if (!pode("financeiroVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar contas a receber.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

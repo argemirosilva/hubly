@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Users, Brain, RefreshCw, Send, Bot, User, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Moon, Star, Zap, BellOff } from "lucide-react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
@@ -19,6 +20,7 @@ const CLASSIFICACAO_CONFIG: Record<string, { label: string; icon: string; color:
 };
 
 export default function IAClientes() {
+  const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([
     { role: "assistant", content: "Olá! Posso te ajudar a entender seus clientes. Pergunte quem são os melhores, quem está atrasando, quem sumiu, e muito mais!" }
@@ -74,6 +76,16 @@ export default function IAClientes() {
   const statusGeral = analise?.statusGeral;
   const statusLabel = statusGeral === "saudavel" ? " Clientes saudáveis" : " Atenção: há clientes com risco";
   const statusColor = statusGeral === "saudavel" ? "oklch(38% 0.14 155)" : "oklch(45% 0.18 75)";
+
+  // Guarda de permissão: apenas quem tem clientesVer pode acessar IA Clientes
+  if (!pode("clientesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <Users className="w-12 h-12 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">Você não tem permissão para acessar a IA de Clientes.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-6xl mx-auto animate-in-up">
