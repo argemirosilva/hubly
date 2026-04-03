@@ -682,3 +682,9 @@
 - [x] Atualizar service worker com nome Hubly
 - [x] Atualizar PWAInstallBanner com nome e cores Hubly
 - [x] Atualizar SupportChat com nome Hubly
+
+## Favicon Hubly (Apr 03 2026)
+
+- [x] Gerar favicon.ico multi-tamanho (16x16, 32x32, 48x48, 64x64, 128x128, 256x256) a partir da logomarca
+- [x] Fazer upload do favicon para CDN
+- [x] Aplicar favicon no index.html, manifest.json e service worker
