@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import OnboardingEquipe, { useOnboardingEquipe } from "@/components/OnboardingEquipe";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1301,6 +1302,10 @@ export default function Equipe() {
 
   const { data: membros = [], refetch } = trpc.equipe.list.useQuery();
   const { data: grupos = [] } = trpc.grupos.list.useQuery();
+  const { data: tiposProfissional = [] } = trpc.tiposProfissional.list.useQuery();
+
+  // Onboarding
+  const onboarding = useOnboardingEquipe((membros as MembroEquipe[]).length);
 
   const atualizar = trpc.equipe.atualizar.useMutation({
     onSuccess: () => {
@@ -1356,6 +1361,10 @@ export default function Equipe() {
     setModalAberto(true);
   };
 
+  const handleAbrirGuia = () => {
+    onboarding.abrir();
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-4xl mx-auto">
       {/* Header */}
@@ -1370,11 +1379,17 @@ export default function Equipe() {
           </p>
         </div>
         {filtroAba !== "grupos" && (
-          <Button onClick={handleNovoMembro} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Novo membro</span>
-            <span className="sm:hidden">Novo</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleAbrirGuia} className="hidden sm:flex gap-1.5 text-xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              Guia de cadastro
+            </Button>
+            <Button onClick={handleNovoMembro}>
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Novo membro</span>
+              <span className="sm:hidden">Novo</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -1481,6 +1496,15 @@ export default function Equipe() {
         }}
         membro={membroResetSenha}
         onSaved={() => refetch()}
+      />
+
+      {/* Wizard de Onboarding */}
+      <OnboardingEquipe
+        open={onboarding.aberto}
+        onClose={onboarding.fechar}
+        onConcluido={() => refetch()}
+        grupos={grupos as { id: number; nome: string; cor: string | null }[]}
+        tiposProfissional={tiposProfissional as { id: number; nome: string; cor: string | null }[]}
       />
     </div>
   );

@@ -576,3 +576,17 @@
 - [x] Agrupamento de serviços por tipo de profissional na tela de Serviços
 - [x] Correção do carregamento de dados no modal de edição
 - [x] Botão "Tipos de Profissional" na tela de Serviços para gerenciar tipos
+
+## Dashboard + Onboarding de Equipe (v12)
+- [x] Cards de Contas a Pagar no Dashboard para admins: Contas Vencidas, A Pagar Hoje, A Pagar na Semana
+- [x] Cards clicáveis que redirecionam para a tela de Contas a Pagar
+- [x] Wizard de Onboarding de Equipe: componente OnboardingEquipe.tsx com 5 passos
+- [x] Passo 1: Boas-vindas com visão geral dos passos
+- [x] Passo 2: Dados básicos (nome, telefone, e-mail, especialidade)
+- [x] Passo 3: Configurações de profissional (cor do calendário, aparece na agenda, tipos)
+- [x] Passo 4: Acesso ao sistema (grupo de permissões, senha)
+- [x] Passo 5: Conclusão com opção de adicionar outro membro
+- [x] Indicador de progresso visual com ícones por passo
+- [x] Abertura automática quando equipe está vazia (com delay de 800ms)
+- [x] Persistência de conclusão em localStorage (não reabre após concluído)
+- [x] Botão "Guia de cadastro" no header da tela de Equipe
