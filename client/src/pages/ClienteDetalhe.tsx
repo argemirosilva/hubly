@@ -1,19 +1,28 @@
 import { trpc } from "@/lib/trpc";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
+  Pencil, Save, X, Trash2, MapPin, CreditCard,
 } from "lucide-react";
-import { Link } from "wouter";
-import { useMemo } from "react";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 const statusColor: Record<string, string> = {
   concluido: "bg-emerald-100 text-emerald-700",
@@ -23,14 +32,39 @@ const statusColor: Record<string, string> = {
   confirmado: "bg-emerald-100 text-emerald-700",
 };
 
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+function formatCurrency(v: number | string | null | undefined) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
 }
 
 export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const id = propId ?? parseInt(window.location.pathname.split("/").pop() ?? "0");
+  const [, navigate] = useLocation();
 
-  const { data: cliente } = trpc.clientes.getById.useQuery({ id }, { enabled: !!id });
+  // Estado de edição
+  const [modoEdicao, setModoEdicao] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [confirmarExcluir, setConfirmarExcluir] = useState(false);
+
+  const { data: cliente, isLoading } = trpc.clientes.getById.useQuery({ id }, {
+    enabled: !!id,
+  });
+
+  // Inicializa o form quando os dados chegam (apenas se não estiver editando)
+  useEffect(() => {
+    if (cliente && !modoEdicao) {
+      const c = cliente as any;
+      setForm({
+        nome: c.nome ?? "",
+        telefone: c.telefone ?? "",
+        whatsapp: c.whatsapp ?? "",
+        email: c.email ?? "",
+        cpf: c.cpf ?? "",
+        dataNascimento: c.dataNascimento ?? "",
+        endereco: c.endereco ?? "",
+        observacoes: c.observacoes ?? "",
+      });
+    }
+  }, [cliente]);
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({});
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: analiseIA } = trpc.iaClientes.getClienteAnalise.useQuery({ clienteId: id }, { enabled: !!id });
@@ -40,12 +74,32 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   );
 
   const utils = trpc.useUtils();
+
   const consumirMutation = trpc.pacotes.consumirSessao.useMutation({
     onSuccess: () => {
       utils.pacotes.listarPorCliente.invalidate();
       toast.success("Sessão consumida com sucesso!");
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const editarMutation = trpc.clientes.update.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente atualizado com sucesso!");
+      utils.clientes.getById.invalidate({ id });
+      utils.clientes.list.invalidate();
+      utils.clientes.listAll.invalidate();
+      setModoEdicao(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const excluirMutation = trpc.clientes.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente removido.");
+      navigate("/admin/clientes");
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const servicoMap = useMemo(() => {
@@ -62,76 +116,200 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
 
   const pacotesAtivos = useMemo(() => pacotesCliente.filter(p => p.status === "ativo"), [pacotesCliente]);
 
-  if (!cliente) return (
+  function iniciarEdicao() {
+    if (cliente) {
+      setForm({
+        nome: (cliente as any).nome ?? "",
+        telefone: (cliente as any).telefone ?? "",
+        whatsapp: (cliente as any).whatsapp ?? "",
+        email: (cliente as any).email ?? "",
+        cpf: (cliente as any).cpf ?? "",
+        dataNascimento: (cliente as any).dataNascimento ?? "",
+        endereco: (cliente as any).endereco ?? "",
+        observacoes: (cliente as any).observacoes ?? "",
+      });
+      setModoEdicao(true);
+    }
+  }
+
+  function cancelarEdicao() {
+    setModoEdicao(false);
+  }
+
+  function salvar() {
+    editarMutation.mutate({ id, ...form } as any);
+  }
+
+  if (isLoading || !cliente) return (
     <div className="p-6 flex items-center justify-center min-h-[400px]">
       <p className="text-muted-foreground">Carregando...</p>
     </div>
   );
 
+  const c = cliente as any;
+
   return (
     <TooltipProvider>
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
-        <div className="flex items-center gap-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link href="/admin/clientes">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <ArrowLeft className="w-4 h-4" />
+      <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto">
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/admin/clientes">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Voltar para Clientes</TooltipContent>
+            </Tooltip>
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">
+              {modoEdicao ? "Editando cliente" : c.nome}
+            </h1>
+          </div>
+
+          {/* Botões de ação */}
+          <div className="flex items-center gap-2">
+            {modoEdicao ? (
+              <>
+                <Button variant="outline" size="sm" onClick={cancelarEdicao} className="gap-1.5">
+                  <X className="w-3.5 h-3.5" /> Cancelar
                 </Button>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent>Voltar para Clientes</TooltipContent>
-          </Tooltip>
-          <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Perfil da Cliente
-          </h1>
+                <Button size="sm" onClick={salvar} disabled={editarMutation.isPending} className="gap-1.5">
+                  <Save className="w-3.5 h-3.5" />
+                  {editarMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmarExcluir(true)}
+                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </Button>
+                <Button size="sm" onClick={iniciarEdicao} className="gap-1.5">
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Editar</span>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Info principal */}
+          {/* ── Card de dados do cliente ── */}
           <Card className="border-border shadow-none">
-            <CardContent className="p-6 text-center">
-              <Avatar className="w-20 h-20 mx-auto mb-4">
-                <AvatarFallback className="bg-secondary text-secondary-foreground text-2xl font-bold">
-                  {cliente.nome.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-lg font-semibold text-foreground">{cliente.nome}</h2>
-              <div className="mt-4 space-y-2 text-left">
-                {cliente.telefone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="w-4 h-4 shrink-0" />{cliente.telefone}
-                  </div>
-                )}
-                {cliente.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="w-4 h-4 shrink-0" />{cliente.email}
-                  </div>
-                )}
-                {cliente.dataNascimento && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4 shrink-0" />
-                    {cliente.dataNascimento.split("-").reverse().join("/")}
-                  </div>
-                )}
+            <CardContent className="p-6">
+              <div className="text-center mb-5">
+                <Avatar className="w-16 h-16 mx-auto mb-3">
+                  <AvatarFallback className="text-xl font-bold" style={{ background: "oklch(55% 0.22 264)", color: "white" }}>
+                    {(modoEdicao ? form.nome : c.nome)?.charAt(0)?.toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+                {!modoEdicao && <h2 className="text-base font-semibold">{c.nome}</h2>}
               </div>
-              {cliente.observacoes && (
-                <div className="mt-4 p-3 bg-muted/50 rounded-lg text-left">
-                  <p className="text-xs text-muted-foreground mb-1">Observações</p>
-                  <p className="text-sm">{cliente.observacoes}</p>
+
+              {modoEdicao ? (
+                /* Formulário de edição */
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Nome completo *</Label>
+                    <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Telefone</Label>
+                    <Input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} placeholder="(11) 99999-9999" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">WhatsApp</Label>
+                    <Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>
+                    <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@exemplo.com" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">CPF</Label>
+                    <Input value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} placeholder="000.000.000-00" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Data de nascimento</Label>
+                    <Input type="date" value={form.dataNascimento} onChange={e => setForm(f => ({ ...f, dataNascimento: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Endereço</Label>
+                    <Input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} placeholder="Rua, número, bairro..." />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Observações</Label>
+                    <Textarea value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} rows={3} placeholder="Alergias, preferências..." />
+                  </div>
+                </div>
+              ) : (
+                /* Visualização dos dados */
+                <div className="space-y-2.5">
+                  {c.telefone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 shrink-0" />{c.telefone}
+                    </div>
+                  )}
+                  {c.whatsapp && c.whatsapp !== c.telefone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 shrink-0 text-green-500" />
+                      <span>{c.whatsapp} <span className="text-xs text-green-600">(WhatsApp)</span></span>
+                    </div>
+                  )}
+                  {c.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="w-4 h-4 shrink-0" />{c.email}
+                    </div>
+                  )}
+                  {c.cpf && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CreditCard className="w-4 h-4 shrink-0" />{c.cpf}
+                    </div>
+                  )}
+                  {c.dataNascimento && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4 shrink-0" />
+                      {c.dataNascimento.split("-").reverse().join("/")}
+                    </div>
+                  )}
+                  {c.endereco && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4 shrink-0" />{c.endereco}
+                    </div>
+                  )}
+                  {c.observacoes && (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1 font-medium">Observações</p>
+                      <p className="text-sm">{c.observacoes}</p>
+                    </div>
+                  )}
+                  {!c.telefone && !c.email && !c.cpf && !c.observacoes && (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      Clique em <strong>Editar</strong> para adicionar informações
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Stats e abas */}
+          {/* ── Stats e abas ── */}
           <div className="lg:col-span-2 space-y-4">
             {/* KPIs */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: "Total gasto", value: formatCurrency(parseFloat(String(cliente.totalGasto ?? 0))), icon: DollarSign, color: "text-emerald-600" },
-                { label: "Atendimentos", value: cliente.totalAtendimentos ?? 0, icon: Scissors, color: "text-blue-600" },
-                { label: "Saldo sessões", value: cliente.saldoSessoes ?? 0, icon: Calendar, color: "text-purple-600" },
+                { label: "Total gasto", value: formatCurrency(c.totalGasto), icon: DollarSign, color: "text-emerald-600" },
+                { label: "Atendimentos", value: c.totalAtendimentos ?? 0, icon: Scissors, color: "text-blue-600" },
+                { label: "Saldo sessões", value: c.saldoSessoes ?? 0, icon: Calendar, color: "text-purple-600" },
               ].map(stat => {
                 const Icon = stat.icon;
                 return (
@@ -156,8 +334,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                     </div>
                     <h3 className="font-semibold text-sm">Análise IA</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto" style={{
-                      color: analiseIA.classificacao === 'risco' ? 'oklch(40% 0.18 25)' : analiseIA.classificacao === 'atraso_frequente' ? 'oklch(42% 0.14 75)' : analiseIA.classificacao === 'inativo' ? 'oklch(40% 0.06 250)' : analiseIA.classificacao === 'principal' ? 'oklch(38% 0.14 155)' : 'oklch(45% 0.18 264)',
-                      background: analiseIA.classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : analiseIA.classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : analiseIA.classificacao === 'inativo' ? 'oklch(60% 0.04 250 / 12%)' : analiseIA.classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(55% 0.22 264 / 12%)'
+                      color: (analiseIA as any).classificacao === 'risco' ? 'oklch(40% 0.18 25)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(42% 0.14 75)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(40% 0.06 250)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(38% 0.14 155)' : 'oklch(45% 0.18 264)',
+                      background: (analiseIA as any).classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(60% 0.04 250 / 12%)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(55% 0.22 264 / 12%)'
                     }}>
                       {{
                         principal: '⭐ Principal',
@@ -168,11 +346,14 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         atraso_frequente: '⚠ Atraso frequente',
                         risco: '⚡ Risco',
                         novo: '✦ Novo',
-                      }[analiseIA.classificacao] ?? analiseIA.classificacao}
+                      }[(analiseIA as any).classificacao as string] ?? (analiseIA as any).classificacao}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{analiseIA.resumo}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Score: <span className="font-bold text-foreground">{analiseIA.scoreCliente}/100</span> · Calculado em {new Date(analiseIA.calculadoEm).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-sm text-muted-foreground">{(analiseIA as any).resumo}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Score: <span className="font-bold text-foreground">{(analiseIA as any).scoreCliente}/100</span>
+                    {" · "}Calculado em {new Date((analiseIA as any).calculadoEm).toLocaleDateString("pt-BR")}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -219,7 +400,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                 {ag.status}
                               </span>
                               <span className="text-sm font-semibold">
-                                {formatCurrency(parseFloat(String(ag.valorTotal)))}
+                                {formatCurrency(ag.valorTotal)}
                               </span>
                             </div>
                           </div>
@@ -246,7 +427,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                   </Card>
                 ) : (
                   <div className="space-y-3">
-                    {pacotesCliente.map(pacote => {
+                    {pacotesCliente.map((pacote: any) => {
                       const venc = pacote.dataVencimento ? new Date(pacote.dataVencimento) : null;
                       const vencido = venc && venc < new Date();
                       const vencendoBreve = venc && !vencido && (venc.getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000;
@@ -256,7 +437,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         concluido: "bg-slate-100 text-slate-600",
                         cancelado: "bg-red-100 text-red-600",
                         vencido: "bg-amber-100 text-amber-700",
-                      }[pacote.status ?? "ativo"] ?? "bg-slate-100 text-slate-600";
+                      }[(pacote.status ?? "ativo") as string] ?? "bg-slate-100 text-slate-600";
 
                       const StatusIcon = pacote.status === "ativo"
                         ? CheckCircle2
@@ -267,7 +448,6 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                       return (
                         <Card key={pacote.id} className={`border-border shadow-none transition-opacity ${pacote.status !== "ativo" ? "opacity-60" : ""}`}>
                           <CardContent className="p-4 space-y-3">
-                            {/* Header */}
                             <div className="flex items-start justify-between">
                               <div>
                                 <p className="font-semibold text-foreground text-sm">{pacote.nome}</p>
@@ -292,7 +472,6 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                               </div>
                             </div>
 
-                            {/* Itens com progresso */}
                             <div className="space-y-2.5">
                               {(pacote.itens as any[]).map((item: any) => {
                                 const pct = item.quantidadeTotal > 0
@@ -341,12 +520,11 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                               })}
                             </div>
 
-                            {/* Valor pago */}
                             {pacote.valorPago && (
                               <div className="pt-2 border-t border-border flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground">Valor pago</span>
                                 <span className="text-sm font-bold text-violet-700">
-                                  {formatCurrency(parseFloat(String(pacote.valorPago)))}
+                                  {formatCurrency(pacote.valorPago)}
                                 </span>
                               </div>
                             )}
@@ -361,6 +539,27 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           </div>
         </div>
       </div>
+
+      {/* ── Confirmação de exclusão ── */}
+      <AlertDialog open={confirmarExcluir} onOpenChange={setConfirmarExcluir}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cliente <strong>{c.nome}</strong> será marcado como inativo. Você pode reativá-lo depois na lista de clientes usando o filtro "Ver inativos".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => excluirMutation.mutate({ id })}
+            >
+              {excluirMutation.isPending ? "Removendo..." : "Remover cliente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }

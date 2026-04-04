@@ -840,3 +840,10 @@
 - [x] Toggle "Ver inativos" para gerenciar clientes removidos
 - [x] Busca por CPF além de nome, telefone e email
 - [x] Endpoints delete, restore e listAll adicionados no backend
+
+## Página de Detalhes do Cliente (04/04/2026)
+- [x] Botão Editar na página de detalhes: ativa modo de edição inline dos campos
+- [x] Botão Salvar: confirma as alterações feitas no modo de edição
+- [x] Botão Excluir com confirmação: remove o cliente com diálogo de confirmação e redireciona para a lista
+- [x] Botão Cancelar: descarta alterações e volta ao modo de visualização
+- [x] Exibe CPF, WhatsApp e endereço na visualização (campos que antes não apareciam)
