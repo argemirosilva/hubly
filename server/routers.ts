@@ -63,6 +63,7 @@ import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
  */
 function processarVariaveisTemplate(template: string, vars: {
   nome_cliente?: string;
+  primeiro_nome?: string;
   servico?: string;
   data?: string;
   hora?: string;
@@ -74,6 +75,7 @@ function processarVariaveisTemplate(template: string, vars: {
 }): string {
   return template
     .replace(/\{\{nome_cliente\}\}/g, vars.nome_cliente ?? '')
+    .replace(/\{\{primeiro_nome\}\}/g, vars.primeiro_nome ?? (vars.nome_cliente ?? '').split(' ')[0])
     .replace(/\{\{servico\}\}/g, vars.servico ?? '')
     .replace(/\{\{data\}\}/g, vars.data ?? '')
     .replace(/\{\{hora\}\}/g, vars.hora ?? '')

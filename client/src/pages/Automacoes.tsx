@@ -72,6 +72,7 @@ const CONDITION_OPTIONS = [
 
 const VARIAVEIS = [
   { var: "{{nome_cliente}}", desc: "Nome completo da cliente", exemplo: "Ex: Ana Silva" },
+  { var: "{{primeiro_nome}}", desc: "Primeiro nome da cliente (somente o primeiro)", exemplo: "Ex: Ana" },
   { var: "{{servico}}", desc: "Nome do serviço agendado", exemplo: "Ex: Escova progressiva" },
   { var: "{{profissional}}", desc: "Nome da profissional que irá realizar o serviço", exemplo: "Ex: Maria" },
   { var: "{{data}}", desc: "Data do agendamento por extenso", exemplo: "Ex: segunda-feira, 07 de abril" },
@@ -150,6 +151,7 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
 // Dados de exemplo para preview
 const PREVIEW_VARS: Record<string, string> = {
   "{{nome_cliente}}": "Ana Silva",
+  "{{primeiro_nome}}": "Ana",
   "{{servico}}": "Escova Progressiva",
   "{{profissional}}": "Maria Oliveira",
   "{{data}}": "segunda-feira, 07 de abril",
