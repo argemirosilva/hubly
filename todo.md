@@ -967,3 +967,11 @@
 - [x] Frontend: redirecionamento automático para Pipeline após geração
 - [x] Backend: endpoint getMetricasJornada (métricas agregadas por fase)
 - [x] Frontend: aba "Jornada ao Vivo" na tela de Automações com activity feed em tempo real
+
+## Jornada ao Vivo: Melhorias (04/04/2026)
+- [x] Backend: filtro de período (24h/7d/30d) no endpoint getMetricasJornada
+- [x] Backend: mutation reenviarMensagem para reprocessar envios com falha
+- [x] Backend: contagem de falhas recentes para badge no menu
+- [x] Frontend: seletor de período na aba Jornada ao Vivo
+- [x] Frontend: badge de erros no item Automações do menu lateral
+- [x] Frontend: botão "Reenviar" nos itens com status falhou no feed

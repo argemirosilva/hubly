@@ -676,10 +676,22 @@ export default function Automacoes() {
   const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
   const HISTORICO_LIMIT = 20;
 
+  const [jornadaPeriodo, setJornadaPeriodo] = useState<"24h" | "7d" | "30d">("7d");
   const { data: jornadaData, isLoading: jornadaLoading, refetch: jornadaRefetch } = trpc.automacoes.getMetricasJornada.useQuery(
-    undefined,
+    { periodo: jornadaPeriodo },
     { enabled: activeTab === "jornada", refetchInterval: 30000 }
   );
+  const { data: falhasData } = trpc.automacoes.getFalhasRecentes.useQuery(
+    undefined,
+    { refetchInterval: 60000 }
+  );
+  const reenviarMutation = trpc.automacoes.reenviarMensagem.useMutation({
+    onSuccess: () => {
+      toast.success("Mensagem reenviada com sucesso!");
+      jornadaRefetch();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const { data: historicoData, isLoading: historicoLoading, refetch: historicoRefetch } = trpc.automacoes.getHistorico.useQuery({
     limit: HISTORICO_LIMIT,
@@ -995,6 +1007,30 @@ export default function Automacoes() {
           {/* ABA JORNADA AO VIVO */}
           {activeTab === "jornada" && (
             <div>
+              {/* Seletor de período */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs text-gray-500 font-medium">Período:</span>
+                {(["24h", "7d", "30d"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setJornadaPeriodo(p)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+                      jornadaPeriodo === p
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-white border border-gray-200 text-gray-600 hover:border-indigo-300"
+                    }`}
+                  >
+                    {p === "24h" ? "Últimas 24h" : p === "7d" ? "Últimos 7 dias" : "Últimos 30 dias"}
+                  </button>
+                ))}
+                {(jornadaData?.totalFalhas ?? 0) > 0 && (
+                  <span className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-full">
+                    <AlertCircle size={12} />
+                    {jornadaData!.totalFalhas} falha{jornadaData!.totalFalhas !== 1 ? "s" : ""} no período
+                  </span>
+                )}
+              </div>
+
               {jornadaLoading ? (
                 <div className="space-y-3">
                   {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
@@ -1005,7 +1041,7 @@ export default function Automacoes() {
                   <div className="mb-5">
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingUp size={14} className="text-indigo-500" />
-                      <h3 className="text-sm font-semibold text-gray-700">Resumo dos envios (200 mais recentes)</h3>
+                      <h3 className="text-sm font-semibold text-gray-700">Resumo dos envios — {jornadaPeriodo === "24h" ? "últimas 24h" : jornadaPeriodo === "7d" ? "últimos 7 dias" : "últimos 30 dias"}</h3>
                     </div>
                     {(!jornadaData?.metricas || jornadaData.metricas.length === 0) ? (
                       <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
@@ -1076,23 +1112,39 @@ export default function Automacoes() {
                                   </span>
                                 </div>
                               </div>
-                              <span
-                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                style={{
-                                  backgroundColor:
-                                    item.status === "enviado" ? "#dcfce7" :
-                                    item.status === "falhou" ? "#fee2e2" :
-                                    item.status === "pendente" ? "#fef9c3" : "#f3f4f6",
-                                  color:
-                                    item.status === "enviado" ? "#16a34a" :
-                                    item.status === "falhou" ? "#dc2626" :
-                                    item.status === "pendente" ? "#ca8a04" : "#6b7280",
-                                }}
-                              >
-                                {item.status === "enviado" ? "Enviado" :
-                                 item.status === "falhou" ? "Falhou" :
-                                 item.status === "pendente" ? "Pendente" : item.status}
-                              </span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      item.status === "enviado" ? "#dcfce7" :
+                                      item.status === "falhou" ? "#fee2e2" :
+                                      item.status === "pendente" ? "#fef9c3" : "#f3f4f6",
+                                    color:
+                                      item.status === "enviado" ? "#16a34a" :
+                                      item.status === "falhou" ? "#dc2626" :
+                                      item.status === "pendente" ? "#ca8a04" : "#6b7280",
+                                  }}
+                                >
+                                  {item.status === "enviado" ? "Enviado" :
+                                   item.status === "falhou" ? "Falhou" :
+                                   item.status === "pendente" ? "Pendente" : item.status}
+                                </span>
+                                {item.status === "falhou" && (
+                                  <button
+                                    onClick={() => reenviarMutation.mutate({ envioId: item.id })}
+                                    disabled={reenviarMutation.isPending}
+                                    title="Reenviar mensagem"
+                                    className="p-1 rounded-md text-indigo-500 hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                                  >
+                                    {reenviarMutation.isPending ? (
+                                      <Loader2 size={12} className="animate-spin" />
+                                    ) : (
+                                      <RefreshCw size={12} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

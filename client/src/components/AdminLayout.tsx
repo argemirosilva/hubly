@@ -158,6 +158,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const waConnected = waStatus?.status === "connected";
   const waPhoneNumber = waStatus?.phoneNumber ?? null;
 
+  // Falhas recentes de automações — poll a cada 60s para badge no menu
+  const { data: falhasAutomacoes } = trpc.automacoes.getFalhasRecentes.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const totalFalhasAutomacoes = falhasAutomacoes?.total ?? 0;
+
   const getPlanColor = (plan?: string) => {
     switch (plan) {
       case "PRO": return "oklch(45% 0.15 160)";
@@ -524,6 +532,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           <span className="text-[9px] rounded-full px-1.5 py-0.5 font-bold leading-none"
                             style={{ background: "oklch(55% 0.18 25 / 20%)", color: "oklch(62% 0.20 25)" }}>
                             OFF
+                          </span>
+                        )}
+                        {/* Badge de falhas de automações */}
+                        {item.href === "/admin/automacoes" && totalFalhasAutomacoes > 0 && (
+                          <span className="text-[9px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold"
+                            style={{ background: "oklch(55% 0.22 25 / 15%)", color: "oklch(52% 0.22 25)" }}>
+                            {totalFalhasAutomacoes > 9 ? "9+" : totalFalhasAutomacoes}
                           </span>
                         )}
                       </div>

@@ -1589,6 +1589,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   offset?: number;
   canal?: string;
   status?: string;
+  desde?: Date;
 }) {
   const db = await getDb();
   if (!db) return { rows: [], total: 0 };
@@ -1598,6 +1599,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   const conditions = [eq(historicoEnviosAutomacao.empresaId, empresaId)];
   if (opts?.canal) conditions.push(eq(historicoEnviosAutomacao.canal, opts.canal as any));
   if (opts?.status) conditions.push(eq(historicoEnviosAutomacao.status, opts.status as any));
+  if (opts?.desde) conditions.push(gte(historicoEnviosAutomacao.criadoEm, opts.desde));
 
   const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 
@@ -1611,6 +1613,35 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   ]);
 
   return { rows, total: Number(countResult[0]?.count ?? 0) };
+}
+
+export async function contarFalhasRecentes(empresaId: number, horas = 24): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const desde = new Date(Date.now() - horas * 60 * 60 * 1000);
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(historicoEnviosAutomacao)
+    .where(and(
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+      eq(historicoEnviosAutomacao.status, "falhou"),
+      gte(historicoEnviosAutomacao.criadoEm, desde),
+    ));
+  return Number(result[0]?.count ?? 0);
+}
+
+export async function getEnvioById(id: number, empresaId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(historicoEnviosAutomacao)
+    .where(and(
+      eq(historicoEnviosAutomacao.id, id),
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+    ))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 // ─── MEIOS DE PAGAMENTO ───────────────────────────────────────────────────────

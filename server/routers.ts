@@ -30,7 +30,7 @@ import {
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
   getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
-  registrarEnvioAutomacao, getHistoricoEnvios,
+  registrarEnvioAutomacao, getHistoricoEnvios, contarFalhasRecentes, getEnvioById,
   getMeiosPagamentoByEmpresa, getMeioPagamentoById, createMeioPagamento, updateMeioPagamento, deleteMeioPagamento,
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
@@ -1315,12 +1315,18 @@ export const appRouter = router({
       }),
 
     getMetricasJornada: protectedProcedure
-      .query(async ({ ctx }) => {
+      .input(z.object({
+        periodo: z.enum(["24h", "7d", "30d"]).default("7d"),
+      }))
+      .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (!empresa) return { metricas: [], feed: [] };
+        if (!empresa) return { metricas: [], feed: [], totalFalhas: 0 };
 
-        // Buscar histórico dos últimos 7 dias
-        const historico = await getHistoricoEnvios(empresa.id, { limit: 200 });
+        const horasPorPeriodo: Record<string, number> = { "24h": 24, "7d": 168, "30d": 720 };
+        const horas = horasPorPeriodo[input.periodo] ?? 168;
+        const desde = new Date(Date.now() - horas * 60 * 60 * 1000);
+
+        const historico = await getHistoricoEnvios(empresa.id, { limit: 500, desde });
         const rows = historico.rows;
 
         // Métricas agregadas por status
@@ -1356,7 +1362,57 @@ export const appRouter = router({
           emoji: LABELS[row.status ?? "desconhecido"]?.emoji ?? "•",
         }));
 
-        return { metricas, feed };
+        const totalFalhas = rows.filter(r => r.status === "falhou").length;
+
+        return { metricas, feed, totalFalhas };
+      }),
+
+    getFalhasRecentes: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { total: 0 };
+        const total = await contarFalhasRecentes(empresa.id, 24);
+        return { total };
+      }),
+
+    reenviarMensagem: protectedProcedure
+      .input(z.object({ envioId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        const envio = await getEnvioById(input.envioId, empresa.id);
+        if (!envio) throw new TRPCError({ code: "NOT_FOUND", message: "Envio não encontrado" });
+        if (envio.status !== "falhou") throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios com falha podem ser reenviados" });
+
+        // Tentar reenviar via WhatsApp
+        const { waManager } = await import("./whatsapp");
+        const waState = waManager.getState();
+
+        if (waState.status !== "connected" || !envio.telefone || !envio.mensagem) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não conectado ou dados insuficientes para reenvio" });
+        }
+
+        try {
+          await waManager.sendMessage(envio.telefone, envio.mensagem);
+
+          // Registrar novo envio bem-sucedido
+          await registrarEnvioAutomacao({
+            empresaId: empresa.id,
+            automacaoId: envio.automacaoId ?? undefined,
+            automacaoNome: envio.automacaoNome ? `${envio.automacaoNome} (reenvio)` : "Reenvio manual",
+            clienteId: envio.clienteId ?? undefined,
+            clienteNome: envio.clienteNome ?? undefined,
+            telefone: envio.telefone,
+            canal: envio.canal,
+            mensagem: envio.mensagem,
+            status: "enviado",
+          });
+
+          return { success: true };
+        } catch (err: any) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Falha no reenvio: ${err?.message ?? "erro desconhecido"}` });
+        }
       }),
   }),
 

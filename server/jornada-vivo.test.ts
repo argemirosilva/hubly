@@ -7,6 +7,20 @@ import { describe, it, expect } from "vitest";
 
 // ─── Helpers locais (replicam a lógica do endpoint) ──────────────────────────
 
+function calcularDesde(periodo: "24h" | "7d" | "30d"): Date {
+  const horasPorPeriodo: Record<string, number> = { "24h": 24, "7d": 168, "30d": 720 };
+  const horas = horasPorPeriodo[periodo] ?? 168;
+  return new Date(Date.now() - horas * 60 * 60 * 1000);
+}
+
+function filtrarPorPeriodo(
+  rows: { status: string; criadoEm: Date }[],
+  periodo: "24h" | "7d" | "30d"
+) {
+  const desde = calcularDesde(periodo);
+  return rows.filter(r => r.criadoEm >= desde);
+}
+
 const LABELS: Record<string, { label: string; cor: string; emoji: string }> = {
   enviado:      { label: "Enviados",    cor: "#22c55e", emoji: "✅" },
   pendente:     { label: "Pendentes",   cor: "#f59e0b", emoji: "⏳" },
@@ -144,5 +158,63 @@ describe("getMetricasJornada – buildFeed", () => {
       const rows = [{ id: 1, clienteNome: "X", automacaoNome: "Y", canal: "whatsapp", status, criadoEm: now }];
       expect(buildFeed(rows)[0].emoji).toBe(expectedEmoji);
     }
+  });
+});
+
+describe("filtrarPorPeriodo", () => {
+  const now = new Date();
+  const h1ago = new Date(now.getTime() - 1 * 60 * 60 * 1000);   // 1h atrás
+  const h25ago = new Date(now.getTime() - 25 * 60 * 60 * 1000); // 25h atrás
+  const d8ago = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000); // 8 dias atrás
+
+  const rows = [
+    { status: "enviado", criadoEm: h1ago },
+    { status: "falhou",  criadoEm: h25ago },
+    { status: "enviado", criadoEm: d8ago },
+  ];
+
+  it("24h: retorna apenas eventos das últimas 24h", () => {
+    const result = filtrarPorPeriodo(rows, "24h");
+    expect(result).toHaveLength(1);
+    expect(result[0].criadoEm).toBe(h1ago);
+  });
+
+  it("7d: retorna eventos dos últimos 7 dias", () => {
+    const result = filtrarPorPeriodo(rows, "7d");
+    expect(result).toHaveLength(2); // 1h e 25h atrás
+  });
+
+  it("30d: retorna todos os eventos dos últimos 30 dias", () => {
+    const result = filtrarPorPeriodo(rows, "30d");
+    expect(result).toHaveLength(3);
+  });
+});
+
+describe("contarFalhasRecentes – lógica local", () => {
+  function contarFalhas(rows: { status: string; criadoEm: Date }[], horas = 24): number {
+    const desde = new Date(Date.now() - horas * 60 * 60 * 1000);
+    return rows.filter(r => r.status === "falhou" && r.criadoEm >= desde).length;
+  }
+
+  const now = new Date();
+  const h1ago = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+  const h25ago = new Date(now.getTime() - 25 * 60 * 60 * 1000);
+
+  it("conta apenas falhas dentro das últimas 24h", () => {
+    const rows = [
+      { status: "falhou",  criadoEm: h1ago },
+      { status: "falhou",  criadoEm: h25ago },
+      { status: "enviado", criadoEm: h1ago },
+    ];
+    expect(contarFalhas(rows, 24)).toBe(1);
+  });
+
+  it("retorna 0 quando não há falhas recentes", () => {
+    const rows = [{ status: "enviado", criadoEm: h1ago }];
+    expect(contarFalhas(rows, 24)).toBe(0);
+  });
+
+  it("retorna 0 para array vazio", () => {
+    expect(contarFalhas([], 24)).toBe(0);
   });
 });
