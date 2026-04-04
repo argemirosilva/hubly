@@ -1113,3 +1113,12 @@
 - [x] Botão "Reserva recebida" no detalhe do agendamento pré-agendado para confirmar pagamento e mudar status para agendado
 - [x] Cancelamento automático de pré-agendamentos não confirmados após prazo configurável (ex: 24h ou 48h)
 - [x] Card de taxa de conversão de pré-agendamentos no Dashboard
+
+## Auditoria de Gatilhos de Automação (04/04/2026)
+
+### Inconsistências encontradas:
+- [x] Bug: template "Solicitar reserva" usa evento_pre_agendamento (nome antigo) em vez de evento_agendamento_pre_agendado
+- [x] Bug: update de agendamento (confirmado/cancelado) ainda envia direto pelo WhatsApp sem passar pela fila universal
+- [x] Bug: evento agendamento_concluido não está implementado (UI não tem, backend não dispara ao mudar para concluido)
+- [x] Bug: evento agendamento_confirmado não está na lista de eventos da UI (apenas no backend)
+- [x] Melhoria: adicionar evento agendamento_concluido na UI e no backend (disparar ao mudar status para concluido)

@@ -7,7 +7,7 @@ import {
   Zap, Calendar, Clock, Gift, MessageSquare, Bell, Mail,
   Plus, Trash2, Play, Pause, Settings, ChevronRight,
   ArrowRight, X, Save, Sparkles, Filter,
-  AlarmClock, Users, Tag, Check, Edit2, Eye,
+  AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp,
 } from "lucide-react";
@@ -49,6 +49,7 @@ const TRIGGER_OPTIONS = [
   { value: "evento_agendamento_pre_agendado", label: "Pré-agendamento criado", icon: Calendar, color: "#8b5cf6" },
   { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981" },
   { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444" },
+  { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9" },
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
   { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
   { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },
@@ -642,7 +643,7 @@ const TEMPLATES = [
   {
     nome: "Solicitar reserva", descricao: "Pede pagamento de 30% após pré-agendamento", icon: Clock,
     nodes: [
-      { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Pré-agendamento criado", tipo: "evento_pre_agendamento" }, connections: ["a1"] },
+      { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Pré-agendamento criado", tipo: "evento_agendamento_pre_agendado" }, connections: ["a1"] },
       { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Solicitar reserva", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu horário de {{servico}} em {{data}} às {{hora}} foi pré-reservado. Para confirmar, pague a reserva de 30% ({{valor}}) via Pix. Válido por 24h ⏰" }, connections: [] },
     ],
   },

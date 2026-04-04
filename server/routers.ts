@@ -914,96 +914,115 @@ export const appRouter = router({
           }
         }
 
-        // ── Envio automático de WhatsApp ao confirmar ou cancelar ────────────────
-        if (data.status === 'confirmado' || data.status === 'cancelado') {
+          // ── Enfileirar automação para confirmado, cancelado ou concluido ───────────
+        if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido') {
           try {
-            const { waManager } = await import('./whatsapp');
-            const waState = waManager.getState();
-            if (waState.status === 'connected') {
-              const agendamento = await getAgendamentoById(id);
-              if (agendamento) {
-                const [cliente, profissional, servico] = await Promise.all([
-                  getClienteById(agendamento.clienteId),
-                  getProfissionalById(agendamento.profissionalId),
-                  (async () => {
-                    const servicos = await getServicosByEmpresa(empresa.id);
-                    return servicos.find(s => s.id === agendamento.servicoId);
-                  })(),
-                ]);
-                const telefone = cliente?.whatsapp || cliente?.telefone;
-                if (telefone && cliente) {
-                  const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-                  // Calcular valor_reserva
-                  const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
-                  const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
-                  const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
-                  const templateVars2 = {
-                    nome_cliente: cliente.nome,
-                    servico: servico?.nome ?? '',
-                    data: dataFormatada,
-                    hora: `${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                    profissional: profissional?.nome ?? '',
-                    empresa: empresa.nome,
-                    valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
-                    valor_reserva: valorReservaCalc2,
-                  };
-                  let mensagem: string;
-                  let automacaoUsada: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
-                  if (data.status === 'confirmado') {
-                    // Buscar automação configurada para 'agendamento_confirmado'
-                    automacaoUsada = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
-                    mensagem = automacaoUsada?.corpoMensagem
-                      ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
-                      : [
-                          `✅ *Agendamento Confirmado!*`,
-                          ``,
-                          `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
-                          ``,
-                          `📅 *Data:* ${dataFormatada}`,
-                          `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                          servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                          profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                          valorReservaCalc2 ? `🔒 *Reserva:* ${valorReservaCalc2}` : null,
-                          ``,
-                          `_${empresa.nome}_`,
-                        ].filter(Boolean).join('\n');
-                  } else {
-                    // Buscar automação configurada para 'agendamento_cancelado'
-                    automacaoUsada = await getAutomacaoByEvento(empresa.id, 'agendamento_cancelado');
-                    mensagem = automacaoUsada?.corpoMensagem
-                      ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
-                      : [
-                          `❌ *Agendamento Cancelado*`,
-                          ``,
-                          `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
-                          ``,
-                          `📅 *Data:* ${dataFormatada}`,
-                          `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                          servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                          ``,
-                          `Entre em contato para reagendar.`,
-                          `_${empresa.nome}_`,
-                        ].filter(Boolean).join('\n');
-                  }
-                  await waManager.sendMessage(telefone, mensagem);
-                  // Registrar no histórico de envios
-                  registrarEnvioAutomacao({
-                    empresaId: empresa.id,
-                    automacaoId: automacaoUsada?.id,
-                    automacaoNome: automacaoUsada?.nome ?? (data.status === 'confirmado' ? 'Confirmação de Agendamento' : 'Cancelamento de Agendamento'),
-                    clienteId: cliente.id,
-                    clienteNome: cliente.nome,
-                    telefone,
-                    canal: 'whatsapp',
-                    mensagem,
-                    status: 'enviado',
-                  }).catch(() => {});
-                  try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+            const agendamento = await getAgendamentoById(id);
+            if (agendamento) {
+              const [cliente, profissional, servico] = await Promise.all([
+                getClienteById(agendamento.clienteId),
+                getProfissionalById(agendamento.profissionalId),
+                (async () => {
+                  const servicos = await getServicosByEmpresa(empresa.id);
+                  return servicos.find(s => s.id === agendamento.servicoId);
+                })(),
+              ]);
+              const telefone = cliente?.whatsapp || cliente?.telefone;
+              if (telefone && cliente) {
+                const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+                const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
+                const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
+                const templateVars2 = {
+                  nome_cliente: cliente.nome,
+                  primeiro_nome: cliente.nome.split(' ')[0],
+                  servico: servico?.nome ?? '',
+                  data: dataFormatada,
+                  hora: `${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                  profissional: profissional?.nome ?? '',
+                  empresa: empresa.nome,
+                  valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
+                  valor_reserva: valorReservaCalc2,
+                };
+
+                // Determinar evento e mensagem padrão por status
+                const eventoStatus = data.status === 'confirmado' ? 'agendamento_confirmado'
+                  : data.status === 'cancelado' ? 'agendamento_cancelado'
+                  : 'agendamento_concluido';
+                const automacaoUsada = await getAutomacaoByEvento(empresa.id, eventoStatus);
+
+                let mensagem: string;
+                if (data.status === 'confirmado') {
+                  mensagem = automacaoUsada?.corpoMensagem
+                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
+                    : [
+                        `✅ *Agendamento Confirmado!*`,
+                        ``,
+                        `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
+                        ``,
+                        `📅 *Data:* ${dataFormatada}`,
+                        `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                        ``,
+                        `_${empresa.nome}_`,
+                      ].filter(Boolean).join('\n');
+                } else if (data.status === 'cancelado') {
+                  mensagem = automacaoUsada?.corpoMensagem
+                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
+                    : [
+                        `❌ *Agendamento Cancelado*`,
+                        ``,
+                        `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
+                        ``,
+                        `📅 *Data:* ${dataFormatada}`,
+                        `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
+                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        ``,
+                        `Entre em contato para reagendar.`,
+                        `_${empresa.nome}_`,
+                      ].filter(Boolean).join('\n');
+                } else {
+                  // concluido
+                  mensagem = automacaoUsada?.corpoMensagem
+                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
+                    : [
+                        `🌟 *Atendimento Concluído!*`,
+                        ``,
+                        `Olá, *${cliente.nome}*! Seu atendimento foi concluído com sucesso.`,
+                        ``,
+                        `📅 *Data:* ${dataFormatada}`,
+                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                        ``,
+                        `Obrigada pela preferência! Esperamos você em breve. 💖`,
+                        `_${empresa.nome}_`,
+                      ].filter(Boolean).join('\n');
                 }
+
+                // Enfileirar na fila universal (envia imediatamente quando WA conectar)
+                const nomeEvento = data.status === 'confirmado' ? 'Confirmação de Agendamento'
+                  : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
+                  : 'Atendimento Concluído';
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  agendamentoId: id,
+                  automacaoId: automacaoUsada?.id,
+                  automacaoNome: automacaoUsada?.nome ?? nomeEvento,
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                });
+                console.log(`[Fila] ${nomeEvento} enfileirado para ag. ${id} (${telefone})`);
+                try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
               }
             }
           } catch (e) {
-            console.error('[WhatsApp] Erro ao enviar atualização de status:', e);
+            console.error('[Fila] Erro ao enfileirar atualização de status:', e);
           }
         }
 
