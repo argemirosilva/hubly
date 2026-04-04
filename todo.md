@@ -893,3 +893,8 @@
 
 ## Bug: Botão "Cancelar" cortado no NovaAgendaModal mobile (04/04/2026)
 - [x] Corrigir modal de novo agendamento no mobile: botão "Cancelar" fica cortado abaixo da tela, modal não rola até o fim
+
+## Bug: Botão X duplicado nos modais (04/04/2026)
+- [x] Remover X duplicado do AgendamentoDetalheModal: adicionado showCloseButton={false} no DialogContent para desativar o X nativo do Radix (o header customizado já tem seu próprio botão X)
+- [x] Modal de Permissões (Equipe): adicionado showCloseButton={false} no DialogContent com p-0 e header customizado
+- [x] NovaAgendaModal e ReceitaDetalheModal: adicionado pr-12 no DialogHeader para evitar sobrepôr o título com o X nativo

@@ -166,7 +166,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[90vh]">
-        <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0">
+        <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
           </DialogTitle>

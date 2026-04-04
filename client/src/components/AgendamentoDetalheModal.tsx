@@ -250,7 +250,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col" showCloseButton={false}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>

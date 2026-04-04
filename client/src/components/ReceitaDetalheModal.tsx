@@ -117,7 +117,7 @@ export default function ReceitaDetalheModal({ open, onClose }: Props) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
-        <DialogHeader className="px-6 pt-6 pb-0">
+        <DialogHeader className="px-6 pt-6 pb-0 pr-12">
           <DialogTitle className="text-lg font-bold tracking-tight">
             {isProfissional ? "Minhas Receitas" : "Receitas do Período"}
           </DialogTitle>

@@ -448,7 +448,7 @@ function AbaGrupos() {
       {/* Modal Permissões */}
       {permissoesModal && (
         <Dialog open={permissoesModal.open} onOpenChange={(o) => !o && setPermissoesModal(null)}>
-          <DialogContent className="max-w-2xl p-0" style={{ maxHeight: "min(90vh, 700px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <DialogContent className="max-w-2xl p-0" showCloseButton={false} style={{ maxHeight: "min(90vh, 700px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
               <DialogTitle className="text-lg font-semibold">Permissões: {permissoesModal.nome}</DialogTitle>
               <p className="text-sm text-muted-foreground mt-1">Defina o que os membros deste grupo podem acessar</p>
