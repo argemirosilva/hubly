@@ -52,6 +52,7 @@ const TRIGGER_OPTIONS = [
   { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9" },
   { value: "evento_cliente_criado", label: "Novo cliente cadastrado", icon: UserPlus, color: "#10b981" },
   { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento cancelado (expiração)", icon: UserX, color: "#f97316" },
+  { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6" },
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
   { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
   { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },
@@ -84,6 +85,10 @@ const VARIAVEIS = [
   { var: "{{empresa}}", desc: "Nome do seu salão/empresa", exemplo: "Ex: Studio Beléza" },
   { var: "{{link_confirmacao}}", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
   { var: "{{valor_reserva}}", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
+  { var: "{{nome_pacote}}", desc: "Nome do pacote renovado (disponível no evento Pacote renovado)", exemplo: "Ex: Pacote Progressiva 5x" },
+  { var: "{{data_vencimento}}", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
+  { var: "{{valor_pago}}", desc: "Valor total pago na renovação do pacote", exemplo: "Ex: R$ 350,00" },
+  { var: "{{parcelas}}", desc: "Forma de pagamento parcelada ou valor único do pacote", exemplo: "Ex: 3x de R$ 116,67" },
 ];
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -163,6 +168,10 @@ const PREVIEW_VARS: Record<string, string> = {
   "{{empresa}}": "Studio Beleza",
   "{{link_confirmacao}}": "https://agendei.manus.space/confirmar/abc123xyz",
   "{{valor_reserva}}": "R$ 45,00",
+  "{{nome_pacote}}": "Pacote Progressiva 5x",
+  "{{data_vencimento}}": "30/06/2025",
+  "{{valor_pago}}": "R$ 350,00",
+  "{{parcelas}}": "3x de R$ 116,67",
 };
 
 function previewMensagem(template: string): string {

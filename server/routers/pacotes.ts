@@ -16,6 +16,8 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { getAutomacaoByEvento } from "../db";
+import { waManager } from "../whatsapp";
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
   const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
@@ -848,13 +850,45 @@ export const pacotesRouter = router({
         eq(pacotesClientes.empresaId, empId),
       ));
 
+       // Buscar dados do cliente para notificações
+      const [clienteRow] = await db.select({
+        nome: clientes.nome,
+        telefone: clientes.telefone,
+        whatsapp: clientes.whatsapp,
+      }).from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+
       // Notificar o admin
-      const [clienteRow] = await db.select({ nome: clientes.nome })
-        .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
       await notifyOwner({
         title: "Pacote renovado!",
         content: `O pacote "${pacote.nome}" de ${clienteRow?.nome ?? "cliente"} foi renovado com sucesso. Valor: R$ ${input.valorPago.toFixed(2)}.`,
       });
+
+      // Disparar automação de evento 'pacote_renovado' se configurada
+      try {
+        const automacao = await getAutomacaoByEvento(empId, 'pacote_renovado');
+        if (automacao && automacao.canalEnvio === 'whatsapp') {
+          const telefoneCliente = clienteRow?.whatsapp || clienteRow?.telefone;
+          if (telefoneCliente) {
+            const vencimentoStr = novoVencimento
+              ? novoVencimento.toLocaleDateString('pt-BR')
+              : 'sem vencimento';
+            const parcelasStr = numeroParcelas > 1
+              ? `${numeroParcelas}x de R$ ${(input.valorPago / numeroParcelas).toFixed(2).replace('.', ',')}`
+              : `R$ ${input.valorPago.toFixed(2).replace('.', ',')}`;
+            const mensagem = automacao.corpoMensagem
+              .replace(/\{\{nome_cliente\}\}/g, clienteRow?.nome ?? '')
+              .replace(/\{\{primeiro_nome\}\}/g, (clienteRow?.nome ?? '').split(' ')[0])
+              .replace(/\{\{nome_pacote\}\}/g, pacote.nome)
+              .replace(/\{\{data_vencimento\}\}/g, vencimentoStr)
+              .replace(/\{\{valor_pago\}\}/g, `R$ ${input.valorPago.toFixed(2).replace('.', ',')}`)
+              .replace(/\{\{parcelas\}\}/g, parcelasStr);
+            await waManager.sendMessage(telefoneCliente, mensagem);
+          }
+        }
+      } catch (e) {
+        // Não falhar a renovação por erro de WhatsApp
+        console.error('[renovarPacote] Erro ao disparar automação WhatsApp:', e);
+      }
 
       return { ok: true };
     }),

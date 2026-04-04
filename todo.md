@@ -1159,3 +1159,11 @@
 - [x] Frontend: seção "Histórico de Sessões" expansível no perfil do cliente (por pacote)
 - [x] Frontend: botão "Renovar Pacote" no card de pacote concluído/vencido na tela de Pacotes
 - [x] Frontend: modal de renovação (novo valor, forma de pagamento, vencimento, parcelamento)
+
+## Fase 5 — WhatsApp na Renovação de Pacote
+
+- [x] Backend: disparar automação de evento 'pacote_renovado' no endpoint renovarPacote
+- [x] Backend: buscar telefone/whatsapp do cliente e processar variáveis do template
+- [x] Frontend: adicionar gatilho 'Pacote renovado' na UI de Automações
+- [x] Frontend: adicionar variáveis {{nome_pacote}}, {{data_vencimento}}, {{valor_pago}}, {{parcelas}} na lista de variáveis
+- [x] Frontend: adicionar preview das novas variáveis no modal de pré-visualização
