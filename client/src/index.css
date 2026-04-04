@@ -284,4 +284,9 @@
   .gradient-primary {
     background: linear-gradient(135deg, oklch(45% 0.15 160), oklch(60% 0.20 30));
   }
+  /* ── WhatsApp status pulse — animação lenta e discreta */
+  @keyframes wa-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.55; transform: scale(0.82); }
+  }
 }

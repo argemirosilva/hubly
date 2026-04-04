@@ -812,6 +812,15 @@ export const waSession = mysqlTable("wa_session", {
 });
 export type WaSession = typeof waSession.$inferSelect;
 
+// ─── LOG DE EVENTOS WHATSAPP ──────────────────────────────────────────────────
+export const waConnectionLog = mysqlTable("wa_connection_log", {
+  id: int("id").autoincrement().primaryKey(),
+  event: mysqlEnum("event", ["connected", "disconnected", "qr_ready", "logged_out", "reconnecting"]).notNull(),
+  detail: varchar("detail", { length: 255 }),  // ex: motivo da desconexão, número conectado
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WaConnectionLog = typeof waConnectionLog.$inferSelect;
+
 // ─── CONTAS A RECEBER ────────────────────────────────────────────────────────
 export const contasReceber = mysqlTable("contas_receber", {
   id: int("id").autoincrement().primaryKey(),

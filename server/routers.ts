@@ -1587,7 +1587,17 @@ export const appRouter = router({
         phoneNumber: state.phoneNumber,
         connectedAt: state.connectedAt,
         qrDataUrl: state.qrDataUrl,
+        nextReconnectAt: state.nextReconnectAt ?? null,
       };
+    }),
+    getConnectionLog: protectedProcedure.query(async () => {
+      const { getDb } = await import('./db');
+      const { waConnectionLog } = await import('../drizzle/schema');
+      const { desc } = await import('drizzle-orm');
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select().from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(30);
+      return rows;
     }),
     connect: protectedProcedure.mutation(async () => {
       const { waManager } = await import('./whatsapp');

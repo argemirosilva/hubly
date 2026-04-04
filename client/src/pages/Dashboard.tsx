@@ -183,6 +183,13 @@ export default function Dashboard() {
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
 
+  // Status WhatsApp para alerta no dashboard
+  const { data: waStatus } = trpc.whatsapp.getStatus.useQuery(undefined, {
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+  const waDesconectado = waStatus !== undefined && waStatus.status !== "connected" && waStatus.status !== "connecting" && waStatus.status !== "qr_ready";
+
   // Contas a Pagar — apenas para quem tem permissão financeiroVer
   const [hojeStr] = useState(() => new Date().toISOString().split("T")[0]);
   const [fimSemanaStr] = useState(() => new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
@@ -263,6 +270,28 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5 animate-in-up">
+
+      {/* Alerta WhatsApp desconectado */}
+      {waDesconectado && (
+        <Link href="/admin/whatsapp">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ background: "oklch(55% 0.18 25 / 10%)", border: "1px solid oklch(55% 0.18 25 / 25%)" }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "oklch(55% 0.18 25 / 15%)" }}>
+              <MessageCircle className="w-4 h-4" style={{ color: "oklch(48% 0.18 25)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: "oklch(38% 0.18 25)" }}>
+                WhatsApp desconectado
+              </p>
+              <p className="text-xs" style={{ color: "oklch(50% 0.12 25)" }}>
+                Confirmações automáticas estão pausadas. Toque para reconectar.
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "oklch(48% 0.18 25)" }} />
+          </div>
+        </Link>
+      )}
 
       {/*  Header  */}
       <div className="flex items-start justify-between gap-3">

@@ -149,6 +149,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const naoLidas = (notificacoes?.filter(n => !n.lida).length ?? 0) + (notifPacotesCount?.total ?? 0);
 
+  // Status WhatsApp — poll a cada 30s para manter o ícone atualizado
+  const { data: waStatus } = trpc.whatsapp.getStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
+  const waConnected = waStatus?.status === "connected";
+  const waPhoneNumber = waStatus?.phoneNumber ?? null;
+
   const getPlanColor = (plan?: string) => {
     switch (plan) {
       case "PRO": return "oklch(45% 0.15 160)";
@@ -483,13 +492,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          {/* Ícone com dot pulsante para WhatsApp */}
+                          {item.href === "/admin/whatsapp" ? (
+                            <div className="relative flex-shrink-0">
+                              <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+                                style={{ color: waConnected ? "oklch(62% 0.22 145)" : undefined }} />
+                              <span
+                                className="absolute -bottom-0.5 -right-0.5 rounded-full"
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  background: waConnected ? "oklch(62% 0.22 145)" : "oklch(55% 0.18 25)",
+                                  boxShadow: "0 0 0 1.5px oklch(16% 0.018 255)",
+                                  animation: waConnected ? "wa-pulse 2.4s ease-in-out infinite" : "none",
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          )}
                           <span className="text-sm font-medium">{item.label}</span>
                         </div>
                         {item.href === "/admin/notificacoes" && naoLidas > 0 && (
                           <span className="text-[10px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold"
                             style={{ background: "oklch(62% 0.16 225)", color: "white" }}>
                             {naoLidas > 9 ? "9+" : naoLidas}
+                          </span>
+                        )}
+                        {/* Badge vermelho no WhatsApp quando desconectado */}
+                        {item.href === "/admin/whatsapp" && !waConnected && waStatus !== undefined && (
+                          <span className="text-[9px] rounded-full px-1.5 py-0.5 font-bold leading-none"
+                            style={{ background: "oklch(55% 0.18 25 / 20%)", color: "oklch(62% 0.20 25)" }}>
+                            OFF
                           </span>
                         )}
                       </div>
@@ -594,6 +628,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </Link>
             )}
+            {/* Ícone WhatsApp com status pulsante */}
+            <Link href="/admin/whatsapp" title={waConnected ? `WhatsApp conectado${waPhoneNumber ? ` — ${waPhoneNumber}` : ''}` : 'WhatsApp desconectado'}>
+              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                <MessageCircle className="w-5 h-5" style={{ color: waConnected ? "oklch(55% 0.22 145)" : "oklch(65% 0.015 255)" }} />
+                {/* Dot de status */}
+                <span
+                  className="absolute bottom-1 right-1 rounded-full"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    background: waConnected ? "oklch(62% 0.22 145)" : "oklch(55% 0.18 25)",
+                    boxShadow: waConnected ? "0 0 0 2px white" : "0 0 0 2px white",
+                    animation: waConnected ? "wa-pulse 2.4s ease-in-out infinite" : "none",
+                  }}
+                />
+              </div>
+            </Link>
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
                 <Bell className="w-5 h-5 text-foreground" />

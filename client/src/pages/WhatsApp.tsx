@@ -20,6 +20,8 @@ import {
   Loader2,
   MessageCircle,
   RotateCcw,
+  History,
+  Zap,
 } from "lucide-react";
 
 type WAStatus = "disconnected" | "connecting" | "qr_ready" | "connected" | "logged_out";
@@ -136,6 +138,28 @@ export default function WhatsAppPage() {
       toast.error("Erro ao resetar sessão", { description: err.message });
     },
   });
+
+  // Log de eventos de conexão
+  const { data: connectionLog } = trpc.whatsapp.getConnectionLog.useQuery(undefined, {
+    refetchInterval: 15000,
+    staleTime: 10000,
+  });
+
+  // Contagem regressiva para próxima reconexão automática
+  const [countdown, setCountdown] = useState<number | null>(null);
+  useEffect(() => {
+    if (!statusData?.nextReconnectAt) {
+      setCountdown(null);
+      return;
+    }
+    const update = () => {
+      const diff = Math.max(0, Math.round((new Date(statusData.nextReconnectAt!).getTime() - Date.now()) / 1000));
+      setCountdown(diff);
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [statusData?.nextReconnectAt]);
 
   const handleConnect = () => {
     setLocalConnecting(true);
@@ -281,6 +305,23 @@ export default function WhatsAppPage() {
                   Clique em "Conectar" para gerar o QR Code
                 </p>
               </div>
+              {/* Contagem regressiva para reconexão automática */}
+              {countdown !== null && countdown > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>Reconectando automaticamente em <strong>{countdown}s</strong></span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleConnect}
+                    disabled={connectMutation.isPending || localConnecting}
+                    className="h-6 px-2 text-xs text-blue-700 hover:bg-blue-100 gap-1 ml-1"
+                  >
+                    <Zap className="w-3 h-3" />
+                    Reconectar agora
+                  </Button>
+                </div>
+              )}
               {status === "logged_out" && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-left max-w-xs">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -380,6 +421,47 @@ export default function WhatsAppPage() {
                 )}
                 Testar
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Log de eventos de conexão */}
+      {connectionLog && connectionLog.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-base">Histórico de Conexão</CardTitle>
+            </div>
+            <CardDescription>Últimos eventos registrados</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {connectionLog.map((entry) => {
+                const eventConfig: Record<string, { label: string; color: string; dot: string }> = {
+                  connected:     { label: "Conectado",         color: "text-green-700",  dot: "bg-green-500" },
+                  disconnected:  { label: "Desconectado",      color: "text-gray-600",   dot: "bg-gray-400" },
+                  qr_ready:      { label: "QR Code gerado",    color: "text-blue-700",   dot: "bg-blue-500" },
+                  logged_out:    { label: "Sessão encerrada",  color: "text-red-700",    dot: "bg-red-500" },
+                  reconnecting:  { label: "Reconectando...",   color: "text-yellow-700", dot: "bg-yellow-500" },
+                };
+                const cfg = eventConfig[entry.event] ?? { label: entry.event, color: "text-muted-foreground", dot: "bg-gray-300" };
+                return (
+                  <div key={entry.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
+                      {entry.detail && (
+                        <span className="text-xs text-muted-foreground ml-2">{entry.detail}</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(entry.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

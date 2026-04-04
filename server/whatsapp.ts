@@ -12,8 +12,28 @@ import { Boom } from "@hapi/boom";
 import * as QRCode from "qrcode";
 import { EventEmitter } from "events";
 import { getDb } from "./db";
-import { waSession } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { waSession, waConnectionLog } from "../drizzle/schema";
+import { eq, desc } from "drizzle-orm";
+
+// ─── HELPER: registrar evento de conexão no banco ────────────────────────────
+async function logWaEvent(
+  event: "connected" | "disconnected" | "qr_ready" | "logged_out" | "reconnecting",
+  detail?: string
+): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.insert(waConnectionLog).values({ event, detail: detail ?? null });
+    // Manter apenas os últimos 50 registros
+    const rows = await db.select({ id: waConnectionLog.id }).from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(100);
+    if (rows.length > 50) {
+      const idsToDelete = rows.slice(50).map(r => r.id);
+      for (const id of idsToDelete) {
+        await db.delete(waConnectionLog).where(eq(waConnectionLog.id, id));
+      }
+    }
+  } catch { /* ignorar erros de log */ }
+}
 
 // ─── AUTH STATE PERSISTENTE NO BANCO ─────────────────────────────────────────
 
@@ -108,6 +128,7 @@ interface WAState {
   qrDataUrl: string | null;
   phoneNumber: string | null;
   connectedAt: Date | null;
+  nextReconnectAt: Date | null;  // timestamp da próxima tentativa automática
 }
 
 // ─── MANAGER ──────────────────────────────────────────────────────────────────
@@ -122,6 +143,7 @@ class WhatsAppManager extends EventEmitter {
     qrDataUrl: null,
     phoneNumber: null,
     connectedAt: null,
+    nextReconnectAt: null,
   };
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isShuttingDown = false;
@@ -207,9 +229,11 @@ class WhatsAppManager extends EventEmitter {
             qrDataUrl: null,
             phoneNumber,
             connectedAt: new Date(),
+            nextReconnectAt: null,
           });
           this.emit("connected", phoneNumber);
           console.log(`[WhatsApp] ✅ Conectado: ${phoneNumber}`);
+          logWaEvent("connected", phoneNumber ?? undefined).catch(() => {});
         }
 
         if (connection === "close") {
@@ -221,22 +245,26 @@ class WhatsAppManager extends EventEmitter {
           if (isLoggedOut) {
             // Usuário deslogou explicitamente no celular — única situação onde limpamos a sessão
             console.log("[WhatsApp] 🚪 Deslogado pelo dispositivo. Limpando sessão.");
-            this.setState({ status: "logged_out", qrDataUrl: null, phoneNumber: null, connectedAt: null });
+            this.setState({ status: "logged_out", qrDataUrl: null, phoneNumber: null, connectedAt: null, nextReconnectAt: null });
             await this.dbAuth?.clearSession();
             this.dbAuth = null;
             this.emit("logged_out");
+            logWaEvent("logged_out", "Deslogado pelo dispositivo").catch(() => {});
           } else if (!this.isShuttingDown) {
             // Qualquer outro motivo (rede, deploy, timeout) → reconectar com backoff exponencial
             this.reconnectCount++;
             const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);
             const delay = RECONNECT_DELAYS[delayIndex];
+            const nextAt = new Date(Date.now() + delay);
             console.log(`[WhatsApp] 🔄 Tentativa ${this.reconnectCount} de reconexão em ${delay / 1000}s...`);
-            this.setState({ status: "disconnected" });
+            this.setState({ status: "disconnected", nextReconnectAt: nextAt });
             this.emit("disconnected");
             this.scheduleReconnect(delay);
+            logWaEvent("disconnected", `Código ${statusCode} — reconectando em ${delay / 1000}s`).catch(() => {});
           } else {
-            this.setState({ status: "disconnected" });
+            this.setState({ status: "disconnected", nextReconnectAt: null });
             this.emit("disconnected");
+            logWaEvent("disconnected", `Código ${statusCode}`).catch(() => {});
           }
         }
       });

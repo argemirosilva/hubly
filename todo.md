@@ -905,3 +905,17 @@
 - [x] Backend: aguardar banco disponível antes de reconectar no init pós-deploy (retry por 30s)
 - [x] Frontend: exibir "Verificando conexão..." ao abrir a tela de WhatsApp
 - [x] Frontend: exibir feedback "Conectando..." imediato ao clicar em Conectar, bloqueando cliques duplos
+
+## WhatsApp: Alerta Dashboard + Reconexão Manual + Log de Eventos (04/04/2026)
+- [x] Backend: tabela wa_connection_log para registrar eventos de conexão/desconexão
+- [x] Backend: expor log de eventos via tRPC (últimos 30 eventos)
+- [x] Backend: expor nextReconnectAt (timestamp da próxima tentativa automática)
+- [x] Dashboard: banner/alerta quando WhatsApp estiver desconectado com link para a tela
+- [x] Menu lateral: badge OFF no item WhatsApp quando desconectado
+- [x] Tela WhatsApp: botão "Reconectar agora" com contagem regressiva até próxima tentativa automática
+- [x] Tela WhatsApp: histórico de eventos de conexão (conectado/desconectado com horário e motivo)
+
+## WhatsApp: Ícone de status no header (04/04/2026)
+- [x] Header: ícone MessageCircle com dot pulsante verde (conectado) ou cinza/vermelho (desconectado)
+- [x] Header: tooltip ao passar o mouse mostrando status e número conectado
+- [x] Header: clique no ícone navega para /admin/whatsapp
