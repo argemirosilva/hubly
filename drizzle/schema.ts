@@ -977,3 +977,24 @@ export const taxasParcela = mysqlTable("taxas_parcela", {
 });
 export type TaxaParcela = typeof taxasParcela.$inferSelect;
 export type InsertTaxaParcela = typeof taxasParcela.$inferInsert;
+
+// ─── DASHBOARD CONFIG (layout personalizado por usuário) ──────────────────────
+export const dashboardConfig = mysqlTable("dashboard_config", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  // JSON array de widgets: [{ id, visible, order, size }]
+  layout: json("layout").notNull().$type<DashboardWidget[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DashboardWidget = {
+  id: string;
+  visible: boolean;
+  order: number;
+  size: "sm" | "md" | "lg" | "full";
+};
+
+export type DashboardConfig = typeof dashboardConfig.$inferSelect;
+export type InsertDashboardConfig = typeof dashboardConfig.$inferInsert;

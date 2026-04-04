@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
@@ -1800,4 +1800,35 @@ export async function updateDescontoAgendamento(agendamentoId: number, desconto:
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(agendamentos).set({ desconto }).where(eq(agendamentos.id, agendamentoId));
+}
+
+// ─── DASHBOARD CONFIG ─────────────────────────────────────────────────────────
+export async function getDashboardConfig(userId: number, empresaId: number): Promise<DashboardWidget[] | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(dashboardConfig)
+    .where(and(eq(dashboardConfig.userId, userId), eq(dashboardConfig.empresaId, empresaId)))
+    .limit(1);
+  if (rows.length === 0) return null;
+  return rows[0].layout as DashboardWidget[];
+}
+
+export async function saveDashboardConfig(userId: number, empresaId: number, layout: DashboardWidget[]): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const existing = await db
+    .select({ id: dashboardConfig.id })
+    .from(dashboardConfig)
+    .where(and(eq(dashboardConfig.userId, userId), eq(dashboardConfig.empresaId, empresaId)))
+    .limit(1);
+  if (existing.length > 0) {
+    await db
+      .update(dashboardConfig)
+      .set({ layout: layout as any })
+      .where(eq(dashboardConfig.id, existing[0].id));
+  } else {
+    await db.insert(dashboardConfig).values({ userId, empresaId, layout: layout as any });
+  }
 }

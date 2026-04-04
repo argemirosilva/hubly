@@ -36,6 +36,7 @@ import {
   getComissoesPagarDetalhadas, marcarComissoesPagas,
   createAgendamentoItens, getItensByAgendamento, getItensByAgendamentos, deleteItensByAgendamento,
   getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento,
+  getDashboardConfig, saveDashboardConfig,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -150,6 +151,29 @@ export const appRouter = router({
   suporte: suporteRouter,
   portal: portalRouter,
   pacotes: pacotesRouter,
+
+  dashboardConfig: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return null;
+      const userId = ctx.systemUser?.id ?? ctx.user.id;
+      return getDashboardConfig(userId, empresa.id);
+    }),
+    save: protectedProcedure
+      .input(z.array(z.object({
+        id: z.string(),
+        visible: z.boolean(),
+        order: z.number(),
+        size: z.enum(["sm", "md", "lg", "full"]),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        const userId = ctx.systemUser?.id ?? ctx.user.id;
+        await saveDashboardConfig(userId, empresa.id, input);
+        return { ok: true };
+      }),
+  }),
 
   auth: router({
     me: publicProcedure.query(async opts => {

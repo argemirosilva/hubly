@@ -984,3 +984,14 @@
 - [x] Frontend Pipeline: ações "Ver agendamento" e "Ver cliente" no menu "..." do card
 - [x] Frontend Dashboard: widget de pipeline favorita com mini-kanban
 - [x] Frontend Dashboard: seletor de pipeline favorita (somente admin)
+
+## Dashboard Configurável por Usuário (04/04/2026)
+- [x] Schema: tabela dashboard_config (userId, empresaId, layout JSON)
+- [x] Backend: endpoint getDashboardConfig (carrega configuração do usuário)
+- [x] Backend: endpoint saveDashboardConfig (salva configuração do usuário)
+- [x] Frontend: definir catálogo de widgets disponíveis (id, título, tamanho padrão, permissão)
+- [x] Frontend: modo de edição do dashboard (botão "Personalizar")
+- [x] Frontend: drag-and-drop para reposicionar widgets
+- [x] Frontend: toggle para mostrar/ocultar widgets
+- [x] Frontend: botão "Salvar layout" e "Restaurar padrão"
+- [x] Frontend: carregar configuração salva automaticamente ao logar
