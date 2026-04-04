@@ -11,6 +11,8 @@ import {
   pacotesClientes, pacotesClientesItens,
   notificacoesPacotes,
   servicos, clientes,
+  agendamentos, agendamentoItens,
+  profissionais,
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
@@ -713,4 +715,148 @@ export const pacotesRouter = router({
 
       return { criadas, verificados: pacotesVencendo.length + pacotesAtivos.length };
     }),
+
+  // ── Histórico de sessões de um pacote (agendamentos que consumiram sessões) ──
+  historicoSessoes: protectedProcedure
+    .input(z.object({ pacoteClienteId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+
+      // Verificar que o pacote pertence à empresa
+      const [pacote] = await db.select({ id: pacotesClientes.id })
+        .from(pacotesClientes)
+        .where(and(
+          eq(pacotesClientes.id, input.pacoteClienteId),
+          eq(pacotesClientes.empresaId, empId),
+        ))
+        .limit(1);
+      if (!pacote) return [];
+
+      // Buscar itens do pacote
+      const itens = await db.select({ id: pacotesClientesItens.id })
+        .from(pacotesClientesItens)
+        .where(eq(pacotesClientesItens.pacoteClienteId, input.pacoteClienteId));
+
+      if (!itens.length) return [];
+      const itemIds = itens.map(i => i.id);
+
+      // Buscar agendamento_itens vinculados a esses itens de pacote
+      const agendItens = await db.select({
+        agendamentoItemId: agendamentoItens.id,
+        agendamentoId: agendamentoItens.agendamentoId,
+        pacoteClienteItemId: agendamentoItens.pacoteClienteItemId,
+        servicoId: agendamentoItens.servicoId,
+        valorUnitario: agendamentoItens.valorUnitario,
+        servicoNome: servicos.nome,
+      }).from(agendamentoItens)
+        .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+        .where(sql`${agendamentoItens.pacoteClienteItemId} IN (${itemIds.join(",")})`);
+
+      if (!agendItens.length) return [];
+      const agendIds = Array.from(new Set(agendItens.map(i => i.agendamentoId)));
+
+      // Buscar dados dos agendamentos
+      const agends = await db.select({
+        id: agendamentos.id,
+        data: agendamentos.data,
+        horaInicio: agendamentos.horaInicio,
+        status: agendamentos.status,
+        profissionalNome: profissionais.nome,
+      }).from(agendamentos)
+        .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+        .where(sql`${agendamentos.id} IN (${agendIds.join(",")})`);
+
+      // Montar resultado
+      return agendItens.map(ai => {
+        const ag = agends.find(a => a.id === ai.agendamentoId);
+        return {
+          agendamentoId: ai.agendamentoId,
+          pacoteClienteItemId: ai.pacoteClienteItemId,
+          servicoNome: ai.servicoNome,
+          valorUnitario: ai.valorUnitario,
+          data: ag?.data ?? null,
+          horaInicio: ag?.horaInicio ?? null,
+          status: ag?.status ?? null,
+          profissionalNome: ag?.profissionalNome ?? null,
+        };
+      }).sort((a, b) => {
+        if (!a.data || !b.data) return 0;
+        return new Date(b.data).getTime() - new Date(a.data).getTime();
+      });
+    }),
+
+  // ── Renovar pacote (reabrir concluído/vencido com novo valor e vencimento) ─
+  renovarPacote: protectedProcedure
+    .input(z.object({
+      pacoteClienteId: z.number(),
+      valorPago: z.number().min(0),
+      formaPagamento: z.string().optional(),
+      numeroParcelas: z.number().min(1).max(24).optional().default(1),
+      validadeDias: z.number().optional(), // null = sem vencimento
+      observacoes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+
+      // Verificar que o pacote pertence à empresa e está concluído ou vencido
+      const [pacote] = await db.select({
+        id: pacotesClientes.id,
+        nome: pacotesClientes.nome,
+        clienteId: pacotesClientes.clienteId,
+        status: pacotesClientes.status,
+      }).from(pacotesClientes)
+        .where(and(
+          eq(pacotesClientes.id, input.pacoteClienteId),
+          eq(pacotesClientes.empresaId, empId),
+        ))
+        .limit(1);
+
+      if (!pacote) throw new Error("Pacote não encontrado");
+      if (pacote.status === "ativo") throw new Error("Pacote já está ativo");
+      if (pacote.status === "cancelado") throw new Error("Pacote cancelado não pode ser renovado");
+
+      // Calcular novo vencimento
+      const novoVencimento = input.validadeDias
+        ? new Date(Date.now() + input.validadeDias * 24 * 60 * 60 * 1000)
+        : null;
+
+      // Calcular valor por parcela
+      const numeroParcelas = input.numeroParcelas ?? 1;
+      const valorParcela = numeroParcelas > 1 ? input.valorPago / numeroParcelas : null;
+
+      // Resetar sessões dos itens do pacote
+      await db.update(pacotesClientesItens)
+        .set({ quantidadeUsada: 0 })
+        .where(eq(pacotesClientesItens.pacoteClienteId, input.pacoteClienteId));
+
+      // Atualizar o pacote para ativo com novo valor e vencimento
+      await db.update(pacotesClientes).set({
+        status: "ativo",
+        valorPago: String(input.valorPago),
+        formaPagamento: input.formaPagamento,
+        numeroParcelas,
+        valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
+        dataAbertura: new Date(),
+        dataVencimento: novoVencimento,
+        observacoes: input.observacoes,
+      }).where(and(
+        eq(pacotesClientes.id, input.pacoteClienteId),
+        eq(pacotesClientes.empresaId, empId),
+      ));
+
+      // Notificar o admin
+      const [clienteRow] = await db.select({ nome: clientes.nome })
+        .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+      await notifyOwner({
+        title: "Pacote renovado!",
+        content: `O pacote "${pacote.nome}" de ${clienteRow?.nome ?? "cliente"} foi renovado com sucesso. Valor: R$ ${input.valorPago.toFixed(2)}.`,
+      });
+
+      return { ok: true };
+    }),
+
 });

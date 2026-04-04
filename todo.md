@@ -1150,3 +1150,12 @@
 - [x] Descontar automaticamente uma sessão do pacote ao vincular ao agendamento
 - [x] Atualizar status do pacote para "concluído" quando todas as sessões forem usadas
 - [ ] Exibir histórico de sessões usadas por pacote no perfil do cliente (próxima fase)
+
+## Fase 4 — Melhorias de Pacotes (Plano de Implantação)
+
+- [x] Backend: endpoint histórico de sessões por pacote (quais agendamentos consumiram cada sessão)
+- [x] Backend: notificação ao admin quando restar apenas 1-2 sessões em pacote ativo (já existia, confirmado)
+- [x] Backend: endpoint renovarPacote (reabrir pacote concluído/vencido com novo valor e vencimento)
+- [x] Frontend: seção "Histórico de Sessões" expansível no perfil do cliente (por pacote)
+- [x] Frontend: botão "Renovar Pacote" no card de pacote concluído/vencido na tela de Pacotes
+- [x] Frontend: modal de renovação (novo valor, forma de pagamento, vencimento, parcelamento)

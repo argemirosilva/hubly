@@ -18,11 +18,15 @@ import {
 import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
-  Pencil, Save, X, Trash2, MapPin, CreditCard,
+  Pencil, Save, X, Trash2, MapPin, CreditCard, History, RefreshCw, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const statusColor: Record<string, string> = {
   concluido: "bg-emerald-100 text-emerald-700",
@@ -44,6 +48,15 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const [modoEdicao, setModoEdicao] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [confirmarExcluir, setConfirmarExcluir] = useState(false);
+  const [pacoteHistoricoId, setPacoteHistoricoId] = useState<number | null>(null);
+  const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
+  const [renovarForm, setRenovarForm] = useState({
+    valorPago: "",
+    formaPagamento: "",
+    numeroParcelas: "1",
+    validadeDias: "",
+    observacoes: "",
+  });
 
   const { data: cliente, isLoading } = trpc.clientes.getById.useQuery({ id }, {
     enabled: !!id,
@@ -74,6 +87,22 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   );
 
   const utils = trpc.useUtils();
+
+  // Histórico de sessões do pacote selecionado
+  const { data: historicoSessoes = [], isLoading: loadingHistorico } = trpc.pacotes.historicoSessoes.useQuery(
+    { pacoteClienteId: pacoteHistoricoId! },
+    { enabled: !!pacoteHistoricoId }
+  );
+
+  // Mutação de renovação de pacote
+  const renovarMutation = trpc.pacotes.renovarPacote.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarPorCliente.invalidate();
+      setPacoteRenovarId(null);
+      toast.success("Pacote renovado com sucesso!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const consumirMutation = trpc.pacotes.consumirSessao.useMutation({
     onSuccess: () => {
@@ -528,6 +557,70 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                 </span>
                               </div>
                             )}
+
+                            {/* Botões de ação do pacote */}
+                            <div className="pt-2 border-t border-border flex items-center gap-2 flex-wrap">
+                              <button
+                                onClick={() => setPacoteHistoricoId(pacoteHistoricoId === pacote.id ? null : pacote.id)}
+                                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                <History className="w-3.5 h-3.5" />
+                                {pacoteHistoricoId === pacote.id ? "Ocultar histórico" : "Ver histórico"}
+                                {pacoteHistoricoId === pacote.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </button>
+                              {(pacote.status === "concluido" || pacote.status === "vencido") && (
+                                <button
+                                  onClick={() => {
+                                    setPacoteRenovarId(pacote.id);
+                                    setRenovarForm({
+                                      valorPago: String(pacote.valorPago ?? ""),
+                                      formaPagamento: pacote.formaPagamento ?? "",
+                                      numeroParcelas: String(pacote.numeroParcelas ?? 1),
+                                      validadeDias: "",
+                                      observacoes: "",
+                                    });
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-medium transition-colors ml-auto"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Renovar pacote
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Histórico expandido */}
+                            {pacoteHistoricoId === pacote.id && (
+                              <div className="pt-2 border-t border-border space-y-2">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sessões utilizadas</p>
+                                {loadingHistorico ? (
+                                  <p className="text-xs text-muted-foreground">Carregando...</p>
+                                ) : historicoSessoes.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground italic">Nenhuma sessão utilizada ainda.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {historicoSessoes.map((s: any, i: number) => (
+                                      <div key={i} className="flex items-center justify-between bg-slate-50 rounded-md px-3 py-2">
+                                        <div>
+                                          <p className="text-xs font-medium text-foreground">{s.servicoNome ?? "Serviço"}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {s.data ? new Date(s.data).toLocaleDateString("pt-BR") : ""}
+                                            {s.horaInicio ? ` · ${s.horaInicio.slice(0, 5)}` : ""}
+                                            {s.profissionalNome ? ` · ${s.profissionalNome}` : ""}
+                                          </p>
+                                        </div>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                          s.status === "concluido" ? "bg-emerald-100 text-emerald-700"
+                                          : s.status === "cancelado" ? "bg-red-100 text-red-600"
+                                          : "bg-blue-100 text-blue-700"
+                                        }`}>
+                                          {s.status ?? "agendado"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       );
@@ -539,6 +632,103 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           </div>
         </div>
       </div>
+
+      {/* ── Modal de renovação de pacote ── */}
+      <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-violet-600" />
+              Renovar Pacote
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Valor pago (R$)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Ex: 350.00"
+                value={renovarForm.valorPago}
+                onChange={e => setRenovarForm(f => ({ ...f, valorPago: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Forma de pagamento</Label>
+              <Select
+                value={renovarForm.formaPagamento}
+                onValueChange={v => setRenovarForm(f => ({ ...f, formaPagamento: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Número de parcelas</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={renovarForm.numeroParcelas}
+                  onChange={e => setRenovarForm(f => ({ ...f, numeroParcelas: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Validade (dias)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 90 (opcional)"
+                  value={renovarForm.validadeDias}
+                  onChange={e => setRenovarForm(f => ({ ...f, validadeDias: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observações (opcional)</Label>
+              <Textarea
+                placeholder="Anotações sobre a renovação..."
+                rows={2}
+                value={renovarForm.observacoes}
+                onChange={e => setRenovarForm(f => ({ ...f, observacoes: e.target.value }))}
+              />
+            </div>
+            {Number(renovarForm.numeroParcelas) > 1 && Number(renovarForm.valorPago) > 0 && (
+              <p className="text-xs text-muted-foreground bg-violet-50 rounded-md px-3 py-2">
+                Valor por parcela: <strong>{formatCurrency(Number(renovarForm.valorPago) / Number(renovarForm.numeroParcelas))}</strong>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPacoteRenovarId(null)}>Cancelar</Button>
+            <Button
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              disabled={!renovarForm.valorPago || renovarMutation.isPending}
+              onClick={() => {
+                if (!pacoteRenovarId) return;
+                renovarMutation.mutate({
+                  pacoteClienteId: pacoteRenovarId,
+                  valorPago: Number(renovarForm.valorPago),
+                  formaPagamento: renovarForm.formaPagamento || undefined,
+                  numeroParcelas: Number(renovarForm.numeroParcelas) || 1,
+                  validadeDias: renovarForm.validadeDias ? Number(renovarForm.validadeDias) : undefined,
+                  observacoes: renovarForm.observacoes || undefined,
+                });
+              }}
+            >
+              {renovarMutation.isPending ? "Renovando..." : "Renovar pacote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Confirmação de exclusão ── */}
       <AlertDialog open={confirmarExcluir} onOpenChange={setConfirmarExcluir}>

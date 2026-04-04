@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
-  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock,
+  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -555,10 +555,11 @@ function ModalAbrirPacote({
 
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onCancelar }: {
+function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
   onCancelar: (id: number) => void;
+  onRenovar?: (pacote: any) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const totalItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeTotal, 0);
@@ -623,6 +624,11 @@ function PacoteCard({ pacote, onConsumir, onCancelar }: {
                 <XCircle className="w-3 h-3" /> Cancelar
               </button>
             )}
+            {(pacote.status === "concluido" || pacote.status === "vencido") && onRenovar && (
+              <button onClick={() => onRenovar(pacote)} className="text-violet-600 hover:text-violet-800 flex items-center gap-1 font-medium">
+                <RefreshCw className="w-3 h-3" /> Renovar
+              </button>
+            )}
           </div>
           {/* Parcelamento */}
           {pacote.numeroParcelas > 1 && (
@@ -646,6 +652,14 @@ export default function Pacotes() {
   const [filtroStatus, setFiltroStatus] = useState<"ativo" | "concluido" | "vencido" | "cancelado" | "todos">("ativo");
   const [buscaCliente, setBuscaCliente] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
+  const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
+  const [renovarForm, setRenovarForm] = useState({
+    valorPago: "",
+    formaPagamento: "",
+    numeroParcelas: "1",
+    validadeDias: "",
+    observacoes: "",
+  });
 
   // Debounce da busca para evitar muitas requisições
   const buscaTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -682,6 +696,14 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const renovarMutation = trpc.pacotes.renovarPacote.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarTodos.invalidate();
+      setPacoteRenovarId(null);
+      toast.success("Pacote renovado com sucesso!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
   const desativarModeloMutation = trpc.pacotes.desativarModelo.useMutation({
     onSuccess: () => { utils.pacotes.listarModelos.invalidate(); toast.success("Modelo desativado."); },
     onError: (e) => toast.error(e.message),
@@ -764,6 +786,16 @@ export default function Pacotes() {
                     pacote={p}
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
+                    onRenovar={(pac) => {
+                      setPacoteRenovarId(pac.id);
+                      setRenovarForm({
+                        valorPago: String(pac.valorPago ?? ""),
+                        formaPagamento: pac.formaPagamento ?? "",
+                        numeroParcelas: String(pac.numeroParcelas ?? 1),
+                        validadeDias: "",
+                        observacoes: "",
+                      });
+                    }}
                   />
                 ))}
               </div>
@@ -871,6 +903,89 @@ export default function Pacotes() {
           servicos={servicosData}
         />
       )}
+
+      {/* Modal de renovação de pacote */}
+      <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-violet-600" />
+              Renovar Pacote
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Valor pago (R$)</Label>
+              <Input
+                type="number" min="0" step="0.01" placeholder="Ex: 350.00"
+                value={renovarForm.valorPago}
+                onChange={e => setRenovarForm(f => ({ ...f, valorPago: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Forma de pagamento</Label>
+              <Select value={renovarForm.formaPagamento} onValueChange={v => setRenovarForm(f => ({ ...f, formaPagamento: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Número de parcelas</Label>
+                <Input type="number" min="1" max="24"
+                  value={renovarForm.numeroParcelas}
+                  onChange={e => setRenovarForm(f => ({ ...f, numeroParcelas: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Validade (dias)</Label>
+                <Input type="number" min="1" placeholder="Ex: 90 (opcional)"
+                  value={renovarForm.validadeDias}
+                  onChange={e => setRenovarForm(f => ({ ...f, validadeDias: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observações (opcional)</Label>
+              <Textarea placeholder="Anotações sobre a renovação..." rows={2}
+                value={renovarForm.observacoes}
+                onChange={e => setRenovarForm(f => ({ ...f, observacoes: e.target.value }))}
+              />
+            </div>
+            {Number(renovarForm.numeroParcelas) > 1 && Number(renovarForm.valorPago) > 0 && (
+              <p className="text-xs text-muted-foreground bg-violet-50 rounded-md px-3 py-2">
+                Valor por parcela: <strong>{formatCurrency(Number(renovarForm.valorPago) / Number(renovarForm.numeroParcelas))}</strong>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPacoteRenovarId(null)}>Cancelar</Button>
+            <Button
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              disabled={!renovarForm.valorPago || renovarMutation.isPending}
+              onClick={() => {
+                if (!pacoteRenovarId) return;
+                renovarMutation.mutate({
+                  pacoteClienteId: pacoteRenovarId,
+                  valorPago: Number(renovarForm.valorPago),
+                  formaPagamento: renovarForm.formaPagamento || undefined,
+                  numeroParcelas: Number(renovarForm.numeroParcelas) || 1,
+                  validadeDias: renovarForm.validadeDias ? Number(renovarForm.validadeDias) : undefined,
+                  observacoes: renovarForm.observacoes || undefined,
+                });
+              }}
+            >
+              {renovarMutation.isPending ? "Renovando..." : "Renovar pacote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
