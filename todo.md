@@ -919,3 +919,7 @@
 - [x] Header: ícone MessageCircle com dot pulsante verde (conectado) ou cinza/vermelho (desconectado)
 - [x] Header: tooltip ao passar o mouse mostrando status e número conectado
 - [x] Header: clique no ícone navega para /admin/whatsapp
+
+## Redesign Cards de Serviços (04/04/2026)
+- [x] Remover ícones dos cards de serviços
+- [x] Cards menores e mais elegantes com nome da categoria/profissional no topo à esquerda em cor harmônica com a identidade visual

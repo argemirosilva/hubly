@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Layers, Clock, Percent, Pencil, Tag, Trash2, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { getServiceIcon } from "@/lib/serviceIcons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -246,46 +245,48 @@ export default function Servicos() {
               {isExpandido(grupo.label) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {(grupo.items ?? []).map(s => (
-                    <Card key={s.id} className="border-border shadow-none hover:shadow-sm transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          {(() => {
-                            const { icon: IconComp, color: iconColor } = getServiceIcon(s.nome);
-                            return (
-                              <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                style={{ backgroundColor: (iconColor ?? grupo.cor ?? "#7c3aed") + "18" }}
-                              >
-                                <IconComp className="w-4 h-4" style={{ color: iconColor ?? grupo.cor ?? "#7c3aed" }} />
-                              </div>
-                            );
-                          })()}
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${s.ativo ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                    <Card key={s.id} className="border-border shadow-none hover:shadow-sm transition-all duration-150 group">
+                      <CardContent className="p-3">
+                        {/* Linha topo: categoria + status + editar */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span
+                            className="text-[10px] font-semibold uppercase tracking-wider leading-none"
+                            style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}
+                          >
+                            {grupo.label === "Sem categoria" ? "Geral" : grupo.label}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none ${
+                              s.ativo ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+                            }`}>
                               {s.ativo ? "Ativo" : "Inativo"}
                             </span>
-                            {/* Botão de editar: apenas para admin ou profissional dono do serviço */}
                             {podeEditarServico(s.id) && (
-                              <button onClick={() => abrirEditar(s)} className="p-1 rounded hover:bg-secondary transition-colors">
-                                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                              <button
+                                onClick={() => abrirEditar(s)}
+                                className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all"
+                              >
+                                <Pencil className="w-3 h-3 text-muted-foreground" />
                               </button>
                             )}
                           </div>
                         </div>
-                        <h3 className="text-sm font-semibold text-foreground mb-1">{s.nome}</h3>
-                        {s.descricao && <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{s.descricao}</p>}
-                        <div className="flex items-center justify-between mt-2">
+
+                        {/* Nome do serviço */}
+                        <p className="text-sm font-semibold text-foreground leading-snug mb-2.5">{s.nome}</p>
+
+                        {/* Rodapé: duração + comissão + valor */}
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Clock className="w-3 h-3" />
                               {s.duracaoMinutos ?? 60} min
-                            </div>
-                            {/* % Comissão: apenas para admin ou profissional dono do serviço */}
+                            </span>
                             {podeVerDadosFinanceiros(s.id) && (s as any).percentualComissao && parseFloat(String((s as any).percentualComissao)) > 0 && (
-                              <div className="flex items-center gap-1 text-xs text-primary font-medium">
-                                <Percent className="w-3 h-3" />
+                              <span className="flex items-center gap-0.5 text-[11px] font-medium" style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}>
+                                <Percent className="w-2.5 h-2.5" />
                                 {parseFloat(String((s as any).percentualComissao)).toFixed(0)}%
-                              </div>
+                              </span>
                             )}
                           </div>
                           <span className="text-sm font-bold text-foreground">
