@@ -354,7 +354,8 @@ async function processarAutomacoesAgendadas() {
     const empresasDiasAntes = await getEmpresasComAutomacoes('dias_antes_agendamento');
     const empresasHorasAntes = await getEmpresasComAutomacoes('horas_antes_agendamento');
     const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
-    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos]));
+    const empresasDiasDepois = await getEmpresasComAutomacoes('dias_depois_agendamento');
+    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos, ...empresasDiasDepois]));
 
     console.log(`[Scheduler] Empresas com automações: dias_antes=${empresasDiasAntes.length}, horas_antes=${empresasHorasAntes.length}, horas_apos=${empresasHorasApos.length}, total=${todasEmpresas.length}`);
 
@@ -702,6 +703,109 @@ async function processarAutomacoesAgendadas() {
           console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
         }
       }
+
+      // ── Processar automações do tipo dias_depois_agendamento ──────────────────────────────────────────────
+      const automacoesDiasDepois = await getAutomacoesAtivasByTipo(empresaId, 'dias_depois_agendamento');
+
+      for (const automacao of automacoesDiasDepois) {
+        const diasDepois = automacao.diasAntesDepois ?? 1;
+        const horaDisparo = automacao.horaDisparo ?? '09:00';
+        const [hDisp, mDisp] = horaDisparo.split(':');
+
+        // Calcular a data alvo: agendamento + diasDepois dias
+        const JANELA_INICIO = agora.getTime() - JANELA_MS;
+        const JANELA_FIM = agora.getTime();
+
+        // Buscar agendamentos cujo dia + diasDepois = hoje
+        const dataAlvo = new Date(agora);
+        dataAlvo.setDate(dataAlvo.getDate() - diasDepois);
+        const dataAlvoStr = dataAlvo.toISOString().slice(0, 10);
+
+        const ags = await db
+          .select({
+            id: agendamentos.id,
+            empresaId: agendamentos.empresaId,
+            clienteId: agendamentos.clienteId,
+            data: agendamentos.data,
+            horaInicio: agendamentos.horaInicio,
+            valorTotal: agendamentos.valorTotal,
+            status: agendamentos.status,
+            clienteNome: clientes.nome,
+            clienteTelefone: clientes.telefone,
+            profissionalNome: profissionais.nome,
+            servicoNome: servicos.nome,
+            empresaNome: empresas.nome,
+          })
+          .from(agendamentos)
+          .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+          .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+          .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+          .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+          .where(and(
+            eq(agendamentos.empresaId, empresaId),
+            sql`${agendamentos.data} = ${dataAlvoStr}`,
+            sql`${agendamentos.status} IN ('concluido', 'confirmado', 'agendado')`,
+          ));
+
+        for (const ag of ags) {
+          if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
+
+          // Calcular o timestamp de disparo: data + diasDepois dias, na hora configurada
+          const agDataStr3 = getDataStr(ag.data);
+          const dataDisparo = new Date(`${agDataStr3}T${String(hDisp).padStart(2,'0')}:${String(mDisp).padStart(2,'0')}:00`);
+          dataDisparo.setDate(dataDisparo.getDate() + diasDepois);
+          const tsDisparo = dataDisparo.getTime();
+
+          if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
+
+          const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
+          if (jaEnviou) continue;
+
+          const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+          const dataFormatada = ag.data
+            ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '';
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: ag.clienteNome ?? '',
+            servico: ag.servicoNome ?? '',
+            data: dataFormatada,
+            hora: ag.horaInicio ?? '',
+            profissional: ag.profissionalNome ?? '',
+            empresa: ag.empresaNome ?? '',
+            valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            dias_depois: String(diasDepois),
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            mensagem =
+              `⭐ *Como foi sua experiência?*\n\n` +
+              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
+              `Faz ${diasDepois} dia(s) desde seu atendimento em *${ag.empresaNome ?? ''}*.\n\n` +
+              `Esperamos que tenha gostado! Adoraríamos receber seu feedback. 😊`;
+          }
+
+          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: ag.clienteId ?? undefined,
+            clienteNome: ag.clienteNome ?? undefined,
+            agendamentoId: ag.id,
+            telefone: ag.clienteTelefone,
+            canal: 'whatsapp',
+            mensagem,
+            status: enviado ? 'enviado' : 'falhou',
+            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+        }
+      }
     }
   } catch (err) {
     console.error('[Scheduler] Erro ao processar automações agendadas:', err);
@@ -725,7 +829,8 @@ async function preRegistrarEnviosPendentes() {
     const empresasDiasAntes = await getEmpresasComAutomacoes('dias_antes_agendamento');
     const empresasHorasAntes = await getEmpresasComAutomacoes('horas_antes_agendamento');
     const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
-    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos]));
+    const empresasDiasDepois = await getEmpresasComAutomacoes('dias_depois_agendamento');
+    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos, ...empresasDiasDepois]));
 
     if (todasEmpresas.length === 0) return;
 
@@ -766,7 +871,7 @@ async function preRegistrarEnviosPendentes() {
       const todasAutomacoes = await db.select().from(automacoes).where(and(
         eq(automacoes.empresaId, empresaId),
         eq(automacoes.ativo, true),
-        sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento', 'horas_apos_agendamento')`,
+        sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento', 'horas_apos_agendamento', 'dias_depois_agendamento')`,
       ));
 
       for (const automacao of todasAutomacoes) {
@@ -799,6 +904,13 @@ async function preRegistrarEnviosPendentes() {
             const [ano, mes, dia] = dataStr.split('-').map(Number);
             const tsAgendamento = Date.UTC(ano, mes - 1, dia, parseInt(hAg, 10), parseInt(mAg, 10), 0);
             enviarEm = new Date(tsAgendamento + delayMin * 60 * 1000);
+          } else if (automacao.tipoGatilho === 'dias_depois_agendamento') {
+            const dias = automacao.diasAntesDepois ?? 1;
+            const horaDisparo = automacao.horaDisparo ?? '09:00:00';
+            const [hStr, mStr] = horaDisparo.split(':');
+            const [ano, mes, dia] = dataStr.split('-').map(Number);
+            const dataDisparo = new Date(Date.UTC(ano, mes - 1, dia + dias, parseInt(hStr, 10), parseInt(mStr, 10), 0));
+            enviarEm = dataDisparo;
           }
 
           if (!enviarEm) continue;

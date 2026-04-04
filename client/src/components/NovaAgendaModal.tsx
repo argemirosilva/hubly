@@ -40,7 +40,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     horaFim: "10:00",
     observacoes: "",
     comReserva: false,
-    status: "agendado" as const,
+    status: "agendado" as "pre_agendado" | "agendado" | "confirmado" | "aguardando_reserva",
   });
 
   // Lista de serviços selecionados (múltiplos)
@@ -155,7 +155,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       horaInicio: form.horaInicio + ":00",
       horaFim: form.horaFim + ":00",
       valorTotal: valorTotal.toFixed(2),
-      status: form.comReserva ? "aguardando_reserva" : "agendado",
+      status: form.comReserva ? "aguardando_reserva" : form.status,
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
     });
@@ -329,6 +329,26 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                 rows={2}
               />
             </div>
+
+            {/* Status inicial */}
+            {!form.comReserva && (
+              <div className="sm:col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Status inicial</Label>
+                <Select
+                  value={form.status}
+                  onValueChange={v => setForm(f => ({ ...f, status: v as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pre_agendado">Pré-agendado</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Reserva */}
             <div className="sm:col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">

@@ -1066,3 +1066,10 @@
 - [ ] Backend: ao cancelar agendamento, atualizar status do card na pipeline
 - [x] Verificar deleteAgendamentoCompleto para incluir remocao de pipeline cards
 - [ ] Testes unitarios para novos endpoints
+
+## Melhorias v10 — Origem do Agendamento + Gatilhos
+
+- [ ] Regra de origem: portal → status pré_agendado automático
+- [ ] Regra de origem: plataforma → status selecionável na criação (pré-agendado, confirmado, agendado, etc.)
+- [ ] Corrigir gatilhos ausentes na UI de automações: horas_antes_agendamento e dias_depois_agendamento
+- [ ] Validar integração frontend ↔ backend dos gatilhos corrigidos

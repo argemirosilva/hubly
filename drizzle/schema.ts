@@ -300,6 +300,7 @@ export const automacoes = mysqlTable("automacoes", {
     "dias_antes_agendamento",
     "horas_antes_agendamento",
     "horas_apos_agendamento",
+    "dias_depois_agendamento",
   ]).notNull(),
   // Para tipo 'evento'
   evento: varchar("evento", { length: 100 }),

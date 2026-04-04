@@ -1314,7 +1314,7 @@ export const appRouter = router({
       .input(z.object({
         nome: z.string().min(1),
         descricao: z.string().optional(),
-        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_apos_agendamento"]),
+        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento"]),
         evento: z.string().optional(),
         delayMinutos: z.number().optional(),
         dataFixaDia: z.number().optional(),

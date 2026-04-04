@@ -267,6 +267,13 @@
       "when": 1775319688623,
       "tag": "0037_chilly_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1775322845442,
+      "tag": "0038_good_snowbird",
+      "breakpoints": true
     }
   ]
 }

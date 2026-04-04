@@ -52,7 +52,9 @@ const TRIGGER_OPTIONS = [
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
   { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
   { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },
+  { value: "horas_antes_agendamento", label: "Horas antes do agendamento", icon: AlarmClock, color: "#f97316" },
   { value: "horas_apos_agendamento", label: "Horas após o agendamento", icon: Clock, color: "#14b8a6" },
+  { value: "dias_depois_agendamento", label: "Dias depois do agendamento", icon: Clock, color: "#8b5cf6" },
 ];
 
 const ACTION_OPTIONS = [
@@ -315,8 +317,17 @@ function NodeConfigPanel({ node, onUpdate, onClose }: {
                 <div><Label className="text-xs text-gray-500 mb-1 block">Horário</Label><Input type="time" value={data.hora || "09:00"} onChange={e => set("hora", e.target.value)} className="text-sm" /></div>
               </div>
             )}
+            {data.tipo === "horas_antes_agendamento" && (
+              <div><Label className="text-xs text-gray-500 mb-1 block">Horas antes</Label><Input type="number" min={1} value={data.horas || 2} onChange={e => set("horas", Number(e.target.value))} className="text-sm" /></div>
+            )}
             {data.tipo === "horas_apos_agendamento" && (
               <div><Label className="text-xs text-gray-500 mb-1 block">Horas após</Label><Input type="number" min={1} value={data.horas || 2} onChange={e => set("horas", Number(e.target.value))} className="text-sm" /></div>
+            )}
+            {data.tipo === "dias_depois_agendamento" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label className="text-xs text-gray-500 mb-1 block">Dias depois</Label><Input type="number" min={1} value={data.dias || 1} onChange={e => set("dias", Number(e.target.value))} className="text-sm" /></div>
+                <div><Label className="text-xs text-gray-500 mb-1 block">Horário</Label><Input type="time" value={data.hora || "09:00"} onChange={e => set("hora", e.target.value)} className="text-sm" /></div>
+              </div>
             )}
             {data.tipo === "aniversario_mes" && (
               <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 text-xs text-pink-700">
@@ -744,6 +755,8 @@ export default function Automacoes() {
       : tipo === "aniversario_mes" ? "aniversario_mes"
       : tipo === "data_fixa" ? "data_fixa"
       : tipo === "dias_antes_agendamento" ? "dias_antes_agendamento"
+      : tipo === "horas_antes_agendamento" ? "horas_antes_agendamento"
+      : tipo === "dias_depois_agendamento" ? "dias_depois_agendamento"
       : "horas_apos_agendamento";
     const actionNode = nodes.find(n => n.type === "action");
     const flowJsonStr = JSON.stringify(nodes);
@@ -762,7 +775,12 @@ export default function Automacoes() {
         descricao: currentFlow.descricao,
         tipoGatilho,
         evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
-        diasAntesDepois: triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined,
+        diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
+          ? undefined
+          : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
+        delayMinutos: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
+          ? (triggerNode.data.horas ? Number(triggerNode.data.horas) * 60 : 60)
+          : undefined,
         horaDisparo: triggerNode.data.hora,
         dataFixaDia: triggerNode.data.dia ? Number(triggerNode.data.dia) : undefined,
         dataFixaMes: triggerNode.data.mes ? Number(triggerNode.data.mes) : undefined,
@@ -781,7 +799,9 @@ export default function Automacoes() {
       case "aniversario_mes": return "Aniversariante do mês";
       case "data_fixa": return `${a.dataFixaDia}/${a.dataFixaMes ? MESES_ABREV[a.dataFixaMes - 1] : "?"} às ${a.dataFixaHora || "09:00"}`;
       case "dias_antes_agendamento": return `${a.diasAntesDepois || 1} dia(s) antes`;
-      case "horas_apos_agendamento": return `${a.diasAntesDepois || 2}h após`;
+      case "horas_antes_agendamento": return `${a.delayMinutos ? Math.round(a.delayMinutos / 60) : 2}h antes`;
+      case "horas_apos_agendamento": return `${a.delayMinutos ? Math.round(a.delayMinutos / 60) : 2}h após`;
+      case "dias_depois_agendamento": return `${a.diasAntesDepois || 1} dia(s) depois`;
       default: return a.tipoGatilho;
     }
   };
