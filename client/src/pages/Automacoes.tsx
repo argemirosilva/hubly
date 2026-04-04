@@ -240,16 +240,25 @@ function PreviewMensagemModal({ open, onClose, mensagem, midiaUrl }: {
 
 //  Painel de configuração
 
-function NodeConfigPanel({ node, onUpdate, onClose }: {
+function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
   node: FlowNode;
   onUpdate: (id: string, data: Record<string, any>) => void;
   onClose: () => void;
+  onSaveFlow?: (updatedNodeData?: { id: string; data: Record<string, any> }) => void;
 }) {
   const [data, setData] = useState({ ...node.data });
   const [uploadingMidia, setUploadingMidia] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
-  const save = () => { onUpdate(node.id, data); toast.success("Nó atualizado!"); };
+  const save = () => {
+    onUpdate(node.id, data);
+    // Persistir no banco automaticamente após atualizar o nó
+    if (onSaveFlow) {
+      onSaveFlow({ id: node.id, data });
+    } else {
+      toast.success("Nó atualizado!");
+    }
+  };
   const insertVar = (v: string) => set("mensagem", (data.mensagem || "") + v);
   const utils = trpc.useUtils();
   const uploadMidiaMutation = trpc.automacoes.uploadMidia.useMutation({
@@ -747,10 +756,15 @@ export default function Automacoes() {
     setAddNodeMenu(false);
   };
 
-  const saveFlow = () => {
+  // saveFlow aceita opcionalmente um nó já atualizado (para salvar direto do painel do nó)
+  const saveFlow = (updatedNodeData?: { id: string; data: Record<string, any> }) => {
     if (!currentFlow.nome.trim()) { toast.error("Dê um nome à automação"); return; }
     if (nodes.length === 0) { toast.error("Adicione pelo menos um nó"); return; }
-    const triggerNode = nodes.find(n => n.type === "trigger");
+    // Aplicar dados atualizados do nó antes de serializar
+    const nodesParaSalvar = updatedNodeData
+      ? nodes.map(n => n.id === updatedNodeData.id ? { ...n, data: { ...n.data, ...updatedNodeData.data } } : n)
+      : nodes;
+    const triggerNode = nodesParaSalvar.find(n => n.type === "trigger");
     if (!triggerNode) { toast.error("Adicione um nó de gatilho"); return; }
     const tipo = triggerNode.data.tipo || "evento";
     const tipoGatilho: any = tipo.startsWith("evento_") ? "evento"
@@ -760,8 +774,8 @@ export default function Automacoes() {
       : tipo === "horas_antes_agendamento" ? "horas_antes_agendamento"
       : tipo === "dias_depois_agendamento" ? "dias_depois_agendamento"
       : "horas_apos_agendamento";
-    const actionNode = nodes.find(n => n.type === "action");
-    const flowJsonStr = JSON.stringify(nodes);
+    const actionNode = nodesParaSalvar.find(n => n.type === "action");
+    const flowJsonStr = JSON.stringify(nodesParaSalvar);
     if (currentFlow.id) {
       // Atualizar automação existente
       updateMutation.mutate({
@@ -769,7 +783,7 @@ export default function Automacoes() {
         nome: currentFlow.nome,
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
-      }, { onSuccess: () => setView("list") });
+      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); } });
     } else {
       // Criar nova automação
       createMutation.mutate({
@@ -791,7 +805,7 @@ export default function Automacoes() {
         tituloMensagem: actionNode?.data.titulo,
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
-      }, { onSuccess: () => setView("list") });
+      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); } });
     }
   };
 
@@ -1414,7 +1428,7 @@ export default function Automacoes() {
               <Switch checked={currentFlow.ativo} onCheckedChange={v => setCurrentFlow(p => ({ ...p, ativo: v }))} />
               <span className="text-xs text-gray-500">{currentFlow.ativo ? "Ativa" : "Pausada"}</span>
             </div>
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={saveFlow} disabled={createMutation.isPending}>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
               <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </div>
@@ -1431,6 +1445,7 @@ export default function Automacoes() {
                 node={selectedNode}
                 onUpdate={(id, data) => setNodes(prev => prev.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n))}
                 onClose={() => setSelectedNodeId(null)}
+                onSaveFlow={saveFlow}
               />
             </div>
           ) : nodes.length > 0 ? (

@@ -1102,3 +1102,6 @@
 - [x] Adicionar modal/painel de detalhes completos ao clicar em um item da fila: mensagem completa, horário de envio programado, automação vinculada, cliente, telefone, erro (se houver)
 - [x] Exibir horário de envio programado (enviarEm) na lista, não apenas criadoEm
 - [x] Botão de reenvio para itens com status falhou
+
+## Bugs (sessão atual)
+- [x] Bug: mensagem do nó de automação não está sendo salva ao clicar no botão salvar
