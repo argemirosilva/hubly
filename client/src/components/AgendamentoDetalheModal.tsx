@@ -2,8 +2,8 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2 } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,51 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Estado para pagamentos parciais
   const [showAddPagamento, setShowAddPagamento] = useState(false);
   const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", observacao: "" });
+  // Estado para leitura de comprovante
+  const comprovanteInputRef = useRef<HTMLInputElement>(null);
+  const lerComprovanteMutation = trpc.agendamentos.lerComprovante.useMutation({
+    onSuccess: (result) => {
+      if (!result.sucesso) {
+        toast.error('Imagem não reconhecida como comprovante válido. Tente outra imagem.');
+        return;
+      }
+      const { dados } = result;
+      // Pré-preencher o formulário de pagamento com os dados extraídos
+      setNovoPagamento({
+        valor: String(dados.valor),
+        meioPagamento: dados.tipo || 'PIX',
+        observacao: `Comprovante ${dados.banco ?? ''} - ${dados.data ?? ''}`.trim(),
+      });
+      setShowAddPagamento(true);
+      toast.success(`Comprovante lido! Valor: R$ ${dados.valor} — confirme e registre.`);
+    },
+    onError: () => toast.error('Erro ao ler comprovante. Tente novamente.'),
+  });
+
+  const handleComprovanteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Upload para S3 via endpoint existente
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload falhou');
+      const { url } = await res.json();
+      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: url });
+    } catch {
+      // Fallback: usar FileReader para base64 e enviar como data URL
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
+      };
+      reader.readAsDataURL(file);
+    }
+    // Limpar input para permitir re-upload do mesmo arquivo
+    e.target.value = '';
+  };
+
   // Estado para desconto
   const [editandoDesconto, setEditandoDesconto] = useState(false);
   const [descontoEdit, setDescontoEdit] = useState("");
@@ -579,13 +624,33 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       </div>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setShowAddPagamento(true)}
-                      className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Adicionar pagamento
-                    </button>
+                    <div className="flex flex-col gap-1.5">
+                      <button
+                        onClick={() => setShowAddPagamento(true)}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Adicionar pagamento
+                      </button>
+                      <button
+                        onClick={() => comprovanteInputRef.current?.click()}
+                        disabled={lerComprovanteMutation.isPending}
+                        className="flex items-center gap-1.5 text-xs text-violet-600 hover:underline font-medium disabled:opacity-50"
+                      >
+                        {lerComprovanteMutation.isPending ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lendo comprovante...</>
+                        ) : (
+                          <><ScanLine className="w-3.5 h-3.5" /> Ler comprovante (IA)</>
+                        )}
+                      </button>
+                      <input
+                        ref={comprovanteInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleComprovanteUpload}
+                      />
+                    </div>
                   )}
 
                   <Separator className="my-1" />

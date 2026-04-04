@@ -1089,6 +1089,47 @@ async function cancelarPreAgendamentosExpirados() {
           .where(eq(agendamentos.id, ag.id));
         totalCancelados++;
         console.log(`[Scheduler] Pré-agendamento ${ag.id} cancelado por expiração de reserva (${horasExpiracao}h)`);
+
+        // Disparar automação pre_agendamento_cancelado se existir
+        try {
+          const { getAutomacaoByEvento } = await import('./db');
+          const automacao = await getAutomacaoByEvento(empresa.id, 'pre_agendamento_cancelado');
+          if (automacao && ag.clienteId) {
+            // Buscar dados completos do agendamento para templateVars
+            const [agCompleto] = await db.select().from(agendamentos).where(eq(agendamentos.id, ag.id)).limit(1);
+            if (agCompleto) {
+              const { clientes: clientesTable } = await import('../drizzle/schema');
+              const [cliente] = await db.select().from(clientesTable).where(eq(clientesTable.id, ag.clienteId)).limit(1);
+              const telefone = cliente?.whatsapp || cliente?.telefone;
+              if (telefone) {
+                const nomeCliente = cliente?.nome || 'Cliente';
+                const templateVars: Record<string, string> = {
+                  nome_cliente: nomeCliente,
+                  primeiro_nome: nomeCliente.split(' ')[0],
+                  empresa: empresa.nome ?? '',
+                  data: agCompleto.data ?? '',
+                  hora: agCompleto.horaInicio ?? '',
+                };
+                let mensagem = automacao.corpoMensagem ?? '';
+                for (const [k, v] of Object.entries(templateVars)) {
+                  mensagem = mensagem.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
+                }
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  automacaoId: automacao.id,
+                  agendamentoId: ag.id,
+                  clienteId: ag.clienteId,
+                  telefone,
+                  mensagem,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`[Scheduler] Erro ao disparar automação pre_agendamento_cancelado para ag ${ag.id}:`, e);
+        }
       }
     }
 

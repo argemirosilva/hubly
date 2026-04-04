@@ -9,7 +9,7 @@ import {
   ArrowRight, X, Save, Sparkles, Filter,
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
-  GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp,
+  GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,8 @@ const TRIGGER_OPTIONS = [
   { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981" },
   { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444" },
   { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9" },
+  { value: "evento_cliente_criado", label: "Novo cliente cadastrado", icon: UserPlus, color: "#10b981" },
+  { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento cancelado (expiração)", icon: UserX, color: "#f97316" },
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
   { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
   { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },

@@ -443,6 +443,39 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const id = await createCliente({ ...input, empresaId: empresa.id });
+
+        // Disparar automação cliente_criado se existir e houver telefone
+        const telefoneContato = input.whatsapp || input.telefone;
+        if (telefoneContato) {
+          try {
+            const automacao = await getAutomacaoByEvento(empresa.id, 'cliente_criado');
+            if (automacao) {
+              const nomeCliente = input.nome || 'Cliente';
+              const templateVars = {
+                nome_cliente: nomeCliente,
+                primeiro_nome: nomeCliente.split(' ')[0],
+                empresa: empresa.nome ?? '',
+              };
+              let mensagem = automacao.corpoMensagem ?? '';
+              for (const [k, v] of Object.entries(templateVars)) {
+                mensagem = mensagem.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+              }
+              const enviarEm = new Date();
+              await registrarEnvioAutomacao({
+                empresaId: empresa.id,
+                automacaoId: automacao.id,
+                clienteId: id,
+                telefone: telefoneContato,
+                mensagem,
+                status: 'pendente',
+                enviarEm,
+              });
+            }
+          } catch (e) {
+            console.error('[clientes.create] Erro ao disparar automação cliente_criado:', e);
+          }
+        }
+
         return { id, success: true };
       }),
     update: protectedProcedure
@@ -1231,6 +1264,70 @@ export const appRouter = router({
         // Decrementar contador de uso do plano
         try { await decrementAgendamentosCount(empresa.id); } catch {}
         return { success: true };
+      }),
+
+    // Leitura de comprovante via IA
+    lerComprovante: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        imageUrl: z.string().url(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+
+        const { invokeLLM } = await import('./_core/llm');
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um assistente especializado em leitura de comprovantes de pagamento. Extraia as informações do comprovante e retorne JSON válido.',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: { url: input.imageUrl, detail: 'high' },
+                },
+                {
+                  type: 'text',
+                  text: 'Analise este comprovante de pagamento e extraia: valor transferido (apenas número decimal, ex: 150.00), data do pagamento (formato YYYY-MM-DD), banco/instituicao de origem, tipo de transferência (PIX, TED, DOC, etc). Retorne JSON com campos: valor (number), data (string), banco (string), tipo (string), valido (boolean indicando se é um comprovante válido).',
+                },
+              ],
+            },
+          ],
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'comprovante_info',
+              strict: true,
+              schema: {
+                type: 'object',
+                properties: {
+                  valor: { type: 'number', description: 'Valor transferido' },
+                  data: { type: 'string', description: 'Data do pagamento YYYY-MM-DD' },
+                  banco: { type: 'string', description: 'Banco ou instituição de origem' },
+                  tipo: { type: 'string', description: 'Tipo de transferência' },
+                  valido: { type: 'boolean', description: 'Se é um comprovante válido' },
+                },
+                required: ['valor', 'data', 'banco', 'tipo', 'valido'],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const rawContent = response.choices?.[0]?.message?.content;
+        if (!rawContent) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'IA não retornou resposta' });
+        const contentStr = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent);
+        const dados = JSON.parse(contentStr);
+
+        if (!dados.valido) {
+          return { sucesso: false, mensagem: 'Imagem não reconhecida como comprovante válido', dados };
+        }
+
+        return { sucesso: true, dados };
       }),
   }),
   // ─── BLOQUEIOS ─────────────────────────────────────────────────────────────

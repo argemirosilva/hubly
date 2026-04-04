@@ -1130,3 +1130,13 @@
 - [x] Visibilidade por role: profissionais não-admin veem apenas agendado/confirmado/cancelado/remarcado
 - [x] Visibilidade por role: ocultar informações financeiras, pre_agendado e dados admin para não-admin
 - [x] Automações: variável {{nome}} com fallback "Cliente" quando nome não estiver cadastrado
+
+## Fase 2 — Automações Avançadas (Plano de Implantação)
+
+- [x] Gatilho cliente_criado: disparar automação de saudação ao cadastrar novo cliente
+- [x] Gatilho cliente_criado: adicionar na UI de automações como evento disponível
+- [x] Leitura de comprovante via IA: botão no modal de agendamento para upload de imagem
+- [x] Leitura de comprovante via IA: endpoint que extrai valor, data e banco do comprovante
+- [x] Leitura de comprovante via IA: registrar pagamento automaticamente após extração
+- [x] Automação de cancelamento de pré-agendamento expirado: disparar gatilho pre_agendamento_cancelado com mensagem ao cliente
+- [x] Gatilho pre_agendamento_cancelado: adicionar na UI de automações como evento disponível
