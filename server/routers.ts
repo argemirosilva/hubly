@@ -264,6 +264,36 @@ export const appRouter = router({
         await updateEmpresa(empresa.id, input as any);
         return { success: true };
       }),
+    uploadLogo: protectedProcedure
+      .input(z.object({
+        imagemBase64: z.string(),
+        mimeType: z.string().default('image/jpeg'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error('Empresa não encontrada');
+        const buffer = Buffer.from(input.imagemBase64, 'base64');
+        const ext = input.mimeType.includes('png') ? 'png' : input.mimeType.includes('svg') ? 'svg' : input.mimeType.includes('webp') ? 'webp' : 'jpg';
+        const key = `empresa-logos/logo-${empresa.id}-${nanoid(8)}.${ext}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await updateEmpresa(empresa.id, { logoUrl: url } as any);
+        return { success: true, url };
+      }),
+    uploadCapa: protectedProcedure
+      .input(z.object({
+        imagemBase64: z.string(),
+        mimeType: z.string().default('image/jpeg'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error('Empresa não encontrada');
+        const buffer = Buffer.from(input.imagemBase64, 'base64');
+        const ext = input.mimeType.includes('png') ? 'png' : input.mimeType.includes('webp') ? 'webp' : 'jpg';
+        const key = `empresa-capas/capa-${empresa.id}-${nanoid(8)}.${ext}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await updateEmpresa(empresa.id, { portalHeaderUrl: url } as any);
+        return { success: true, url };
+      }),
   }),
 
   // ─── PROFISSIONAIS ────────────────────────────────────────────────────────

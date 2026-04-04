@@ -927,3 +927,11 @@
 ## Color Picker Visual para Grupos de Serviço (04/04/2026)
 - [x] Substituir input de cor nativo por paleta visual com swatches (24 cores) + input hex + seletor nativo no modal de Tipos de Profissional
 - [x] Preview em tempo real da cor escolhida aplicada ao nome do grupo (label colorida no canto superior direito)
+
+## Configurações Visuais + Upload de Imagem (04/04/2026)
+- [x] Unificar imagem de capa no mesmo card de configurações visuais (logo + capa juntos)
+- [x] Adicionar upload de arquivo para logo (além de URL) via S3
+- [x] Adicionar upload de arquivo para imagem de capa (além de URL) via S3
+
+## Stripe: Reconfigurações após renomear produtos (04/04/2026)
+- [x] Identificar price IDs desatualizados no código e orientar usuário sobre reconfiguração

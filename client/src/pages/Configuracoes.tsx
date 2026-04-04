@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image } from "lucide-react";
 import { toast } from "sonner";
 
 const DIAS_SEMANA = [
@@ -66,6 +66,16 @@ export default function Configuracoes() {
 
   const updateMutation = trpc.empresa.update.useMutation({
     onSuccess: () => { toast.success("Configurações salvas!"); utils.empresa.get.invalidate(); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const uploadLogoMutation = trpc.empresa.uploadLogo.useMutation({
+    onSuccess: () => utils.empresa.get.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const uploadCapaMutation = trpc.empresa.uploadCapa.useMutation({
+    onSuccess: () => utils.empresa.get.invalidate(),
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -191,7 +201,9 @@ export default function Configuracoes() {
           <Palette className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Identidade Visual</h3>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-5">
+
+          {/* Cores */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cor primária</Label>
@@ -213,26 +225,113 @@ export default function Configuracoes() {
                   className="font-mono text-sm" placeholder="#e0e7ff" />
               </div>
             </div>
-            <div className="sm:col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">URL do Logo</Label>
-              <Input value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))}
-                placeholder="https://..." />
-              <p className="text-xs text-muted-foreground mt-1">URL pública da imagem do logo (PNG ou SVG recomendado)</p>
-            </div>
           </div>
-          {/* Preview */}
+
+          {/* Preview das cores */}
           <div className="rounded-xl p-4 border" style={{ background: form.corPrimaria + "10", borderColor: form.corPrimaria + "30" }}>
             <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: form.corPrimaria }}>
               Preview das cores
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
-                style={{ background: form.corPrimaria }}>A</div>
+              {form.logoUrl
+                ? <img src={form.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-contain border" style={{ borderColor: form.corPrimaria + "40" }} />
+                : <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: form.corPrimaria }}>A</div>
+              }
               <div className="flex-1 h-3 rounded-full" style={{ background: form.corSecundaria }} />
-              <div className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold"
-                style={{ background: form.corPrimaria }}>Botão</div>
+              <div className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold" style={{ background: form.corPrimaria }}>Botão</div>
             </div>
           </div>
+
+          {/* Logo */}
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1">
+              <Image className="w-3 h-3" /> Logo da empresa
+            </Label>
+            <div className="space-y-2">
+              {/* Upload de arquivo */}
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground group-hover:text-foreground">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="text-xs">Enviar arquivo (PNG, SVG, JPG)</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 2MB.'); return; }
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      const base64 = (ev.target?.result as string).split(',')[1];
+                      try {
+                        const result = await uploadLogoMutation.mutateAsync({ imagemBase64: base64, mimeType: file.type });
+                        setForm(f => ({ ...f, logoUrl: result.url }));
+                        toast.success('Logo enviado com sucesso!');
+                      } catch { toast.error('Erro ao enviar logo'); }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+              {/* Ou URL */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">ou cole a URL:</span>
+                <Input value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))}
+                  placeholder="https://..." className="text-xs h-8" />
+              </div>
+              {uploadLogoMutation.isPending && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Enviando logo...</p>}
+            </div>
+          </div>
+
+          {/* Imagem de capa */}
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1">
+              <Image className="w-3 h-3" /> Imagem de capa do portal
+            </Label>
+            <p className="text-[11px] text-muted-foreground mb-2">Exibida no topo do portal de agendamento público (1200×400px recomendado)</p>
+            {form.portalHeaderUrl && (
+              <div className="mb-2 rounded-xl overflow-hidden border border-border" style={{ maxHeight: 100 }}>
+                <img src={form.portalHeaderUrl} alt="Capa" className="w-full h-24 object-cover" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground group-hover:text-foreground">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="text-xs">Enviar arquivo (JPG, PNG, WebP)</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 5MB.'); return; }
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      const base64 = (ev.target?.result as string).split(',')[1];
+                      try {
+                        const result = await uploadCapaMutation.mutateAsync({ imagemBase64: base64, mimeType: file.type });
+                        setForm(f => ({ ...f, portalHeaderUrl: result.url }));
+                        toast.success('Imagem de capa enviada!');
+                      } catch { toast.error('Erro ao enviar imagem de capa'); }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">ou cole a URL:</span>
+                <Input value={form.portalHeaderUrl} onChange={e => setForm(f => ({ ...f, portalHeaderUrl: e.target.value }))}
+                  placeholder="https://..." className="text-xs h-8" />
+              </div>
+              {uploadCapaMutation.isPending && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Enviando capa...</p>}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -365,13 +464,7 @@ export default function Configuracoes() {
             />
           </div>
 
-          {/* Header image */}
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">URL da imagem de capa (opcional)</Label>
-            <Input value={form.portalHeaderUrl} onChange={e => setForm(f => ({ ...f, portalHeaderUrl: e.target.value }))}
-              placeholder="https://..." />
-            <p className="text-xs text-muted-foreground mt-1">Imagem exibida no topo do portal (1200x400px recomendado)</p>
-          </div>
+
         </div>
       </div>
 
