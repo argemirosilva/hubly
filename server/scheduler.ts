@@ -12,10 +12,20 @@ import {
   agendamentos,
   profissionais,
   servicos,
+  historicoEnviosAutomacao,
+  automacoes,
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
+
+// Helper: normalizar campo data (Date object ou string) para formato YYYY-MM-DD
+function getDataStr(data: unknown): string {
+  if (data instanceof Date) {
+    return `${data.getUTCFullYear()}-${String(data.getUTCMonth()+1).padStart(2,'0')}-${String(data.getUTCDate()).padStart(2,'0')}`;
+  }
+  return String(data).slice(0, 10);
+}
 
 // ── Verificar pacotes vencendo para todas as empresas ─────────────────────────
 async function verificarPacotesVencendoGlobal() {
@@ -332,10 +342,12 @@ async function enviarLembretesAgendamentos() {
 // ─────────────────────────────────────────────────────────────────────────────
 async function processarAutomacoesAgendadas() {
   const db = await getDb();
-  if (!db) return;
+  if (!db) { console.log('[Scheduler] processarAutomacoesAgendadas: DB não disponível'); return; }
 
   const agora = new Date();
   const JANELA_MS = 15 * 60 * 1000; // janela de 15 minutos
+
+  console.log(`[Scheduler] processarAutomacoesAgendadas iniciado em ${agora.toISOString()}`);
 
   try {
     // Buscar todas as empresas que têm automações ativas dos tipos agendados
@@ -343,6 +355,8 @@ async function processarAutomacoesAgendadas() {
     const empresasHorasAntes = await getEmpresasComAutomacoes('horas_antes_agendamento');
     const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
     const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos]));
+
+    console.log(`[Scheduler] Empresas com automações: dias_antes=${empresasDiasAntes.length}, horas_antes=${empresasHorasAntes.length}, horas_apos=${empresasHorasApos.length}, total=${todasEmpresas.length}`);
 
     if (todasEmpresas.length === 0) return;
 
@@ -422,7 +436,7 @@ async function processarAutomacoesAgendadas() {
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const valorReserva = percentual > 0 ? (valorTotal * percentual / 100).toFixed(2) : '0.00';
           const dataFormatada = ag.data
-            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
           const horaFormatada = ag.horaInicio ?? '';
 
@@ -524,7 +538,8 @@ async function processarAutomacoesAgendadas() {
 
           // Calcular o timestamp exato do agendamento
           const [hAg, mAg] = ag.horaInicio.split(':');
-          const tsAgendamento = new Date(`${ag.data}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
+          const agDataStr1 = getDataStr(ag.data);
+          const tsAgendamento = new Date(`${agDataStr1}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
           const tsDisparo = tsAgendamento - delayMin * 60 * 1000; // ANTES do agendamento
 
           // Verificar se o disparo cai na janela atual
@@ -536,7 +551,7 @@ async function processarAutomacoesAgendadas() {
 
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatada = ag.data
-            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
           const templateVars: Record<string, string> = {
@@ -631,7 +646,8 @@ async function processarAutomacoesAgendadas() {
 
           // Calcular o timestamp exato do agendamento
           const [hAg, mAg] = ag.horaInicio.split(':');
-          const tsAgendamento = new Date(`${ag.data}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
+          const agDataStr2 = getDataStr(ag.data);
+          const tsAgendamento = new Date(`${agDataStr2}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
           const tsDisparo = tsAgendamento + delayMin * 60 * 1000;
 
           // Verificar se o disparo cai na janela atual
@@ -643,7 +659,7 @@ async function processarAutomacoesAgendadas() {
 
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatada = ag.data
-            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
           const templateVars: Record<string, string> = {
@@ -692,9 +708,142 @@ async function processarAutomacoesAgendadas() {
   }
 }
 
-// ── Verificar se é hora de executar tarefa (baseado em hora local) ────────────
-function deveExecutarNaHora(horaAlvo: number): boolean {
+// ── Pré-registrar envios futuros como pendentes na fila ────────────────────
+// Roda a cada hora e registra envios dos próximos 7 dias como 'pendente'
+// para que a tela de Fila de Automações exiba os envios futuros.
+async function preRegistrarEnviosPendentes() {
+  const db = await getDb();
+  if (!db) return;
+
   const agora = new Date();
+  const em7Dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  console.log(`[Scheduler] preRegistrarEnviosPendentes iniciado em ${agora.toISOString()}`);
+
+  try {
+    // Buscar todas as empresas com automações ativas
+    const empresasDiasAntes = await getEmpresasComAutomacoes('dias_antes_agendamento');
+    const empresasHorasAntes = await getEmpresasComAutomacoes('horas_antes_agendamento');
+    const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
+    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos]));
+
+    if (todasEmpresas.length === 0) return;
+
+    for (const empresaId of todasEmpresas) {
+      // Buscar agendamentos dos próximos 7 dias
+      const dataInicioStr = agora.toISOString().slice(0, 10);
+      const dataFimStr = em7Dias.toISOString().slice(0, 10);
+
+      const ags = await db
+        .select({
+          id: agendamentos.id,
+          empresaId: agendamentos.empresaId,
+          clienteId: agendamentos.clienteId,
+          data: agendamentos.data,
+          horaInicio: agendamentos.horaInicio,
+          status: agendamentos.status,
+          clienteNome: clientes.nome,
+          clienteTelefone: clientes.telefone,
+          profissionalNome: profissionais.nome,
+          servicoNome: servicos.nome,
+          empresaNome: empresas.nome,
+        })
+        .from(agendamentos)
+        .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+        .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+        .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+        .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+        .where(and(
+          eq(agendamentos.empresaId, empresaId),
+          sql`${agendamentos.data} >= ${dataInicioStr}`,
+          sql`${agendamentos.data} <= ${dataFimStr}`,
+          sql`${agendamentos.status} IN ('agendado', 'confirmado')`,
+        ));
+
+      if (ags.length === 0) continue;
+
+      // Para cada automação ativa, calcular quando cada agendamento será processado
+      const todasAutomacoes = await db.select().from(automacoes).where(and(
+        eq(automacoes.empresaId, empresaId),
+        eq(automacoes.ativo, true),
+        sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento', 'horas_apos_agendamento')`,
+      ));
+
+      for (const automacao of todasAutomacoes) {
+        for (const ag of ags) {
+          if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
+
+          // Normalizar o campo data (pode ser Date object ou string)
+          const dataStr = getDataStr(ag.data);
+
+          // Calcular quando este envio será disparado
+          let enviarEm: Date | null = null;
+
+          if (automacao.tipoGatilho === 'dias_antes_agendamento') {
+            const dias = automacao.diasAntesDepois ?? 1;
+            const horaDisparo = automacao.horaDisparo ?? '09:00:00';
+            const [hStr, mStr] = horaDisparo.split(':');
+            // Usar UTC para evitar problemas de timezone
+            const [ano, mes, dia] = dataStr.split('-').map(Number);
+            const dataDisparo = new Date(Date.UTC(ano, mes - 1, dia - dias, parseInt(hStr, 10), parseInt(mStr, 10), 0));
+            enviarEm = dataDisparo;
+          } else if (automacao.tipoGatilho === 'horas_antes_agendamento') {
+            const delayMin = automacao.delayMinutos ?? 60;
+            const [hAg, mAg] = ag.horaInicio.split(':');
+            const [ano, mes, dia] = dataStr.split('-').map(Number);
+            const tsAgendamento = Date.UTC(ano, mes - 1, dia, parseInt(hAg, 10), parseInt(mAg, 10), 0);
+            enviarEm = new Date(tsAgendamento - delayMin * 60 * 1000);
+          } else if (automacao.tipoGatilho === 'horas_apos_agendamento') {
+            const delayMin = automacao.delayMinutos ?? 60;
+            const [hAg, mAg] = ag.horaInicio.split(':');
+            const [ano, mes, dia] = dataStr.split('-').map(Number);
+            const tsAgendamento = Date.UTC(ano, mes - 1, dia, parseInt(hAg, 10), parseInt(mAg, 10), 0);
+            enviarEm = new Date(tsAgendamento + delayMin * 60 * 1000);
+          }
+
+          if (!enviarEm) continue;
+
+          // Só registrar se o envio é futuro
+          if (enviarEm.getTime() <= agora.getTime()) continue;
+
+          // Verificar se já existe registro (pendente ou enviado) para este agendamento+automação
+          const jaExiste = await db.select({ id: historicoEnviosAutomacao.id })
+            .from(historicoEnviosAutomacao)
+            .where(and(
+              eq(historicoEnviosAutomacao.empresaId, empresaId),
+              eq(historicoEnviosAutomacao.automacaoId, automacao.id),
+              eq(historicoEnviosAutomacao.agendamentoId, ag.id),
+            ))
+            .limit(1);
+
+          if (jaExiste.length > 0) continue;
+
+          // Registrar como pendente
+          await db.insert(historicoEnviosAutomacao).values({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: ag.clienteId ?? null,
+            clienteNome: ag.clienteNome ?? null,
+            agendamentoId: ag.id,
+            telefone: ag.clienteTelefone,
+            canal: (automacao.canalEnvio ?? 'whatsapp') as any,
+            mensagem: `[Pendente] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${ag.horaInicio}`,
+            status: 'pendente',
+            enviarEm,
+          }).catch(() => {}); // Ignorar erros de duplicata
+
+          console.log(`[Scheduler] Pré-registrado pendente: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao pré-registrar pendentes:', err);
+  }
+}
+
+// ── Verificar se é hora de executar tarefa (baseado em hora local) ────────────────────
+function deveExecutarNaHora(horaAlvo: number): boolean {const agora = new Date();
   return agora.getHours() === horaAlvo && agora.getMinutes() < 5; // janela de 5 minutos
 }
 
@@ -729,7 +878,17 @@ export function initScheduler() {
     }, AUTOMACAO_CHECK_MS);
   }, 60_000);
 
+  // NOVO: Pré-registrar envios futuros como pendentes a cada hora
+  // Executa após 90s do start e depois a cada hora
+  setTimeout(() => {
+    preRegistrarEnviosPendentes();
+    setInterval(() => {
+      preRegistrarEnviosPendentes();
+    }, 60 * 60 * 1000); // a cada 1 hora
+  }, 90_000);
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
   console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
+  console.log("[Scheduler] Pré-registro de envios pendentes inicializado (a cada 1h).");
 }

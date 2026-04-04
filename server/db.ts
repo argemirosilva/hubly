@@ -1574,6 +1574,33 @@ export async function registrarEnvioAutomacao(data: {
 }) {
   const db = await getDb();
   if (!db) return;
+
+  // Se há automacaoId + agendamentoId, verificar se já existe registro pendente para atualizar
+  if (data.automacaoId && data.agendamentoId && data.status && data.status !== 'pendente') {
+    const existente = await db.select({ id: historicoEnviosAutomacao.id })
+      .from(historicoEnviosAutomacao)
+      .where(and(
+        eq(historicoEnviosAutomacao.empresaId, data.empresaId),
+        eq(historicoEnviosAutomacao.automacaoId, data.automacaoId),
+        eq(historicoEnviosAutomacao.agendamentoId, data.agendamentoId),
+        eq(historicoEnviosAutomacao.status, 'pendente'),
+      ))
+      .limit(1);
+
+    if (existente.length > 0) {
+      // Atualizar o registro pendente existente
+      await db.update(historicoEnviosAutomacao)
+        .set({
+          status: data.status,
+          mensagem: data.mensagem ?? null,
+          erroDetalhe: data.erroDetalhe ?? null,
+        })
+        .where(eq(historicoEnviosAutomacao.id, existente[0].id));
+      return;
+    }
+  }
+
+  // Criar novo registro
   await db.insert(historicoEnviosAutomacao).values({
     empresaId: data.empresaId,
     automacaoId: data.automacaoId ?? null,
