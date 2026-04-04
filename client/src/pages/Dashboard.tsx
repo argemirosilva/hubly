@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
+import ReceitaDetalheModal from "@/components/ReceitaDetalheModal";
 import { usePermissoes } from "@/hooks/usePermissoes";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
@@ -158,6 +159,7 @@ function PlanStatusCard({ statusPlano }: { statusPlano: PlanoStatus }) {
 export default function Dashboard() {
   const { user } = useAuth();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
+  const [receitaDetalheOpen, setReceitaDetalheOpen] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
   // Permissões centralizadas
@@ -323,6 +325,7 @@ export default function Dashboard() {
             icon: DollarSign,
             iconBg: "oklch(62% 0.18 155 / 12%)",
             iconColor: "oklch(38% 0.14 155)",
+            onClick: () => setReceitaDetalheOpen(true),
           }] : []),
           {
             label: isProfissional ? "Clientes atendidos" : "Clientes",
@@ -342,8 +345,11 @@ export default function Dashboard() {
           },
         ].map((stat) => {
           const Icon = stat.icon;
+          const isClickable = !!(stat as any).onClick;
           return (
-            <div key={stat.label} className="stat-card">
+            <div key={stat.label}
+              className={`stat-card ${isClickable ? "cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" : ""}`}
+              onClick={(stat as any).onClick}>
               <div className="flex items-start justify-between mb-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{ background: stat.iconBg }}>
@@ -668,6 +674,13 @@ export default function Dashboard() {
         <NovaAgendaModal
           open={novaAgendaOpen}
           onClose={() => setNovaAgendaOpen(false)}
+        />
+      )}
+
+      {receitaDetalheOpen && (
+        <ReceitaDetalheModal
+          open={receitaDetalheOpen}
+          onClose={() => setReceitaDetalheOpen(false)}
         />
       )}
     </div>

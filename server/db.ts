@@ -243,11 +243,13 @@ export async function updateBloqueio(id: number, data: Partial<typeof bloqueiosA
 }
 
 // ─── COMISSÕES ────────────────────────────────────────────────────────────────
-export async function getComissoesByEmpresa(empresaId: number, profissionalId?: number) {
+export async function getComissoesByEmpresa(empresaId: number, profissionalId?: number, dataInicio?: Date, dataFim?: Date) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(comissoes.empresaId, empresaId)];
   if (profissionalId) conditions.push(eq(comissoes.profissionalId, profissionalId));
+  if (dataInicio) conditions.push(gte(comissoes.createdAt, dataInicio));
+  if (dataFim) conditions.push(lte(comissoes.createdAt, dataFim));
   return db.select().from(comissoes).where(and(...conditions)).orderBy(desc(comissoes.createdAt));
 }
 

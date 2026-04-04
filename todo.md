@@ -813,3 +813,9 @@
 - [x] Ocultar atalhos do Dashboard que o usuário não tem permissão de acessar
 - [x] Menu de IA no sidebar deve ser visível apenas para administradores
 - [x] Atalhos do Dashboard filtrados por permissão (clientes, automações, financeiro, equipe, plano)
+
+## Visualização Detalhada de Receitas (03/04/2026)
+- [x] Criar modal de detalhamento de receitas ao clicar no card "Receita do mês" no Dashboard
+- [x] Seletor de período (mês/ano com navegação)
+- [x] Exibir comissões do profissional logado
+- [x] Listar serviços realizados com valores e status (paga/pendente)

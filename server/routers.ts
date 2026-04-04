@@ -909,7 +909,11 @@ export const appRouter = router({
   // ─── FINANCEIRO / COMISSÕES ───────────────────────────────────────────────
   financeiro: router({
     comissoes: protectedProcedure
-      .input(z.object({ profissionalId: z.number().optional() }).optional())
+      .input(z.object({
+        profissionalId: z.number().optional(),
+        dataInicio: z.string().optional(),
+        dataFim: z.string().optional(),
+      }).optional())
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
@@ -925,7 +929,9 @@ export const appRouter = router({
         } else {
           profId = myProfId ?? undefined;
         }
-        return getComissoesByEmpresa(empresa.id, profId);
+        const dataInicio = input?.dataInicio ? new Date(input.dataInicio) : undefined;
+        const dataFim = input?.dataFim ? new Date(input.dataFim + "T23:59:59") : undefined;
+        return getComissoesByEmpresa(empresa.id, profId, dataInicio, dataFim);
       }),
     criarComissao: protectedProcedure
       .input(z.object({
