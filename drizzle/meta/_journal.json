@@ -281,6 +281,13 @@
       "when": 1775323314500,
       "tag": "0039_normal_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1775336440705,
+      "tag": "0040_sad_firebrand",
+      "breakpoints": true
     }
   ]
 }

@@ -687,6 +687,7 @@ export const appRouter = router({
         servicos: z.array(z.object({
           servicoId: z.number(),
           valorUnitario: z.string(),
+          pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote
         })).optional(),
         data: z.string(),
         horaInicio: z.string(),
@@ -696,6 +697,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
         observacoesInternas: z.string().optional(),
         comReserva: z.boolean().default(false),
+        pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote (serviço principal)
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -738,24 +740,71 @@ export const appRouter = router({
           reservaExpiracaoEm,
         } as any);
 
-        // ── Criar itens de agendamento (múltiplos serviços) ────────────────────────────────
+        // ── Criar itens de agendamento (múltiplos serviços) ────────────────────────────────────────────────
         if (servicosInput && servicosInput.length > 0) {
           await createAgendamentoItens(servicosInput.map(s => ({
             agendamentoId: id,
             servicoId: s.servicoId,
             valorUnitario: s.valorUnitario,
+            pacoteClienteItemId: s.pacoteClienteItemId,
           })));
+          // Descontar sessões de pacote para itens vinculados
+          const db = await getDb();
+          if (db) {
+            for (const s of servicosInput) {
+              if (s.pacoteClienteItemId) {
+                await db.update(pacotesClientesItens)
+                  .set({ quantidadeUsada: drizzleSql`quantidadeUsada + 1` })
+                  .where(eq(pacotesClientesItens.id, s.pacoteClienteItemId));
+                // Verificar se o pacote foi concluído
+                const [item] = await db.select().from(pacotesClientesItens)
+                  .where(eq(pacotesClientesItens.id, s.pacoteClienteItemId)).limit(1);
+                if (item) {
+                  const todosItens = await db.select().from(pacotesClientesItens)
+                    .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteClienteId));
+                  const pacoteConcluido = todosItens.every(i => i.quantidadeUsada >= i.quantidadeTotal);
+                  if (pacoteConcluido) {
+                    await db.update(pacotesClientes)
+                      .set({ status: "concluido" })
+                      .where(eq(pacotesClientes.id, item.pacoteClienteId));
+                  }
+                }
+              }
+            }
+          }
         } else {
           // Compatibilidade: criar item com o serviço principal
           await createAgendamentoItens([{
             agendamentoId: id,
             servicoId: rest.servicoId,
             valorUnitario: rest.valorTotal,
+            pacoteClienteItemId: rest.pacoteClienteItemId,
           }]);
+          // Descontar sessão de pacote se vinculado
+          if (rest.pacoteClienteItemId) {
+            const db = await getDb();
+            if (db) {
+              await db.update(pacotesClientesItens)
+                .set({ quantidadeUsada: drizzleSql`quantidadeUsada + 1` })
+                .where(eq(pacotesClientesItens.id, rest.pacoteClienteItemId));
+              // Verificar se o pacote foi concluído
+              const [item] = await db.select().from(pacotesClientesItens)
+                .where(eq(pacotesClientesItens.id, rest.pacoteClienteItemId)).limit(1);
+              if (item) {
+                const todosItens = await db.select().from(pacotesClientesItens)
+                  .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteClienteId));
+                const pacoteConcluido = todosItens.every(i => i.quantidadeUsada >= i.quantidadeTotal);
+                if (pacoteConcluido) {
+                  await db.update(pacotesClientes)
+                    .set({ status: "concluido" })
+                    .where(eq(pacotesClientes.id, item.pacoteClienteId));
+                }
+              }
+            }
+          }
         }
 
-        // ── Enfileirar envio automático de confirmação via WhatsApp (fila universal) ──
-        // Sempre enfileira como 'pendente', independente do WhatsApp estar conectado.
+      // ── Enfileirar envio automático de confirmação via WhatsApp (fila universal) ──       // Sempre enfileira como 'pendente', independente do WhatsApp estar conectado.
         // O worker de processamento (scheduler) enviará quando a conexão estiver disponível.
         try {
           const [cliente, profissional, servico] = await Promise.all([

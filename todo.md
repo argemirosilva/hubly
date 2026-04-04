@@ -1140,3 +1140,13 @@
 - [x] Leitura de comprovante via IA: registrar pagamento automaticamente após extração
 - [x] Automação de cancelamento de pré-agendamento expirado: disparar gatilho pre_agendamento_cancelado com mensagem ao cliente
 - [x] Gatilho pre_agendamento_cancelado: adicionar na UI de automações como evento disponível
+
+## Fase 3 — Módulo de Pacotes (Plano de Implantação)
+
+- [x] Busca de pacotes por cliente na tela de Pacotes (campo de busca por nome do cliente)
+- [x] Exibir saldo de sessões restantes na listagem de pacotes do cliente
+- [x] Adicionar parcelamento no cadastro de pacotes (número de parcelas + valor por parcela)
+- [x] Vincular sessão de pacote ao criar agendamento (select de pacote ativo do cliente)
+- [x] Descontar automaticamente uma sessão do pacote ao vincular ao agendamento
+- [x] Atualizar status do pacote para "concluído" quando todas as sessões forem usadas
+- [ ] Exibir histórico de sessões usadas por pacote no perfil do cliente (próxima fase)

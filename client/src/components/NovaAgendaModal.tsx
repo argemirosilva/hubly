@@ -15,6 +15,7 @@ import { Plus, Trash2, Zap } from "lucide-react";
 interface ServicoItem {
   servicoId: string;
   valorUnitario: string;
+  pacoteClienteItemId?: number; // vincular sessão de pacote
 }
 
 interface Props {
@@ -52,6 +53,13 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoItem[]>([
     { servicoId: "", valorUnitario: "" }
   ]);
+
+  // Buscar pacotes ativos do cliente com sessões disponíveis
+  const clienteIdNum = form.clienteId ? parseInt(form.clienteId) : null;
+  const { data: pacotesAtivos = [] } = trpc.pacotes.listarAtivosComSessoes.useQuery(
+    { clienteId: clienteIdNum! },
+    { enabled: !!clienteIdNum }
+  );
 
   // Buscar serviços vinculados ao profissional selecionado
   const profissionalIdNum = form.profissionalId ? parseInt(form.profissionalId) : null;
@@ -110,11 +118,17 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     const servico = servicos?.find(s => s.id === parseInt(servicoId));
     const novaLista = servicosSelecionados.map((item, i) =>
       i === index
-        ? { servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "" }
+        ? { servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "", pacoteClienteItemId: undefined }
         : item
     );
     setServicosSelecionados(novaLista);
     recalcularHoraFim(form.horaInicio, novaLista);
+  };
+
+  const handlePacoteChange = (index: number, pacoteClienteItemId: number | undefined) => {
+    setServicosSelecionados(prev => prev.map((item, i) =>
+      i === index ? { ...item, pacoteClienteItemId } : item
+    ));
   };
 
   const handleValorChange = (index: number, valor: string) => {
@@ -158,6 +172,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
         valorUnitario: s.valorUnitario || "0",
+        pacoteClienteItemId: s.pacoteClienteItemId,
       })),
       data: form.data,
       horaInicio: form.horaInicio + ":00",
@@ -167,6 +182,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       status: form.status,
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
+      pacoteClienteItemId: servicoPrincipal.pacoteClienteItemId,
     });
   };
 
@@ -265,6 +281,33 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                         ))}
                       </SelectContent>
                     </Select>
+                    {/* Linha 1.5: Vincular sessão de pacote */}
+                    {item.servicoId && (() => {
+                      const servicoIdNum = parseInt(item.servicoId);
+                      const pacotesDoServico = pacotesAtivos.filter(p => p.servicoId === servicoIdNum);
+                      if (pacotesDoServico.length === 0) return null;
+                      return (
+                        <div className="flex items-center gap-2 px-1">
+                          <span className="text-[11px] text-violet-600 font-medium whitespace-nowrap">📦 Usar pacote:</span>
+                          <Select
+                            value={item.pacoteClienteItemId ? String(item.pacoteClienteItemId) : "nenhum"}
+                            onValueChange={v => handlePacoteChange(index, v === "nenhum" ? undefined : parseInt(v))}
+                          >
+                            <SelectTrigger className="h-7 text-xs flex-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nenhum">Sem pacote</SelectItem>
+                              {pacotesDoServico.map(p => (
+                                <SelectItem key={p.pacoteClienteItemId} value={String(p.pacoteClienteItemId)}>
+                                  {p.pacoteNome} — {p.sessoesDisponiveis} sessões restantes
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })()}
                     {/* Linha 2: Valor + botão remover */}
                     <div className="flex gap-2 items-center">
                       <div className="relative flex-1">

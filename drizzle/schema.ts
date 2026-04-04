@@ -210,6 +210,7 @@ export const agendamentoItens = mysqlTable("agendamento_itens", {
   agendamentoId: int("agendamentoId").notNull(),
   servicoId: int("servicoId").notNull(),
   valorUnitario: decimal("valorUnitario", { precision: 10, scale: 2 }).notNull(),
+  pacoteClienteItemId: int("pacoteClienteItemId"), // null = sessão avulsa, preenchido = sessão de pacote
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -682,6 +683,8 @@ export const pacotesClientes = mysqlTable("pacotes_clientes", {
   nome: varchar("nome", { length: 150 }).notNull(), // cópia do nome do modelo
   valorPago: decimal("valorPago", { precision: 10, scale: 2 }).notNull().default("0.00"),
   formaPagamento: varchar("formaPagamento", { length: 60 }),
+  numeroParcelas: int("numeroParcelas").default(1).notNull(),
+  valorParcela: decimal("valorParcela", { precision: 10, scale: 2 }),
   status: mysqlEnum("status", ["ativo", "concluido", "vencido", "cancelado"]).default("ativo").notNull(),
   dataAbertura: timestamp("dataAbertura").defaultNow().notNull(),
   dataVencimento: timestamp("dataVencimento"), // null = sem vencimento

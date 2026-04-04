@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -374,8 +374,13 @@ function ModalAbrirPacote({
   const [nome, setNome] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<{ servicoId: number; quantidadeTotal: number }[]>([{ servicoId: 0, quantidadeTotal: 1 }]);
+
+  const numParcelas = parseInt(numeroParcelas) || 1;
+  const valorTotal = parseFloat(valorPago) || 0;
+  const valorPorParcela = numParcelas > 1 ? valorTotal / numParcelas : 0;
 
   function handleModeloChange(id: string) {
     setModeloId(id);
@@ -406,6 +411,7 @@ function ModalAbrirPacote({
       nome,
       valorPago: parseFloat(valorPago),
       formaPagamento: formaPagamento || undefined,
+      numeroParcelas: parseInt(numeroParcelas) || 1,
       observacoes: observacoes || undefined,
       itens: itens.filter(i => i.servicoId > 0),
     });
@@ -453,7 +459,7 @@ function ModalAbrirPacote({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Valor pago (R$) *</Label>
+              <Label>Valor total (R$) *</Label>
               <Input type="number" min="0" step="0.01" value={valorPago} onChange={e => setValorPago(e.target.value)} />
             </div>
             <div>
@@ -467,6 +473,28 @@ function ModalAbrirPacote({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Número de parcelas</Label>
+              <Select value={numeroParcelas} onValueChange={setNumeroParcelas}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                    <SelectItem key={n} value={String(n)}>{n === 1 ? "À vista" : `${n}x`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {numParcelas > 1 && valorTotal > 0 && (
+              <div className="flex flex-col justify-end">
+                <p className="text-xs text-slate-500 mb-1">Valor por parcela</p>
+                <p className="text-base font-semibold text-violet-700">
+                  {numParcelas}x de R$ {valorPorParcela.toFixed(2).replace('.', ',')}
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -596,6 +624,13 @@ function PacoteCard({ pacote, onConsumir, onCancelar }: {
               </button>
             )}
           </div>
+          {/* Parcelamento */}
+          {pacote.numeroParcelas > 1 && (
+            <div className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+              💳 {pacote.numeroParcelas}x de {pacote.valorParcela ? `R$ ${parseFloat(pacote.valorParcela).toFixed(2).replace('.', ',')}` : formatCurrency(parseFloat(pacote.valorPago) / pacote.numeroParcelas)}
+              {pacote.formaPagamento && ` · ${pacote.formaPagamento}`}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -609,9 +644,22 @@ export default function Pacotes() {
   const [editandoModelo, setEditandoModelo] = useState<any>(null);
   const [modalAbrirPacote, setModalAbrirPacote] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<"ativo" | "concluido" | "vencido" | "cancelado" | "todos">("ativo");
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
+
+  // Debounce da busca para evitar muitas requisições
+  const buscaTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  function handleBuscaChange(v: string) {
+    setBuscaCliente(v);
+    if (buscaTimer.current) clearTimeout(buscaTimer.current);
+    buscaTimer.current = setTimeout(() => setBuscaDebounced(v), 400);
+  }
 
   const { data: modelos = [], isLoading: loadingModelos } = trpc.pacotes.listarModelos.useQuery();
-  const { data: pacotesAtivos = [], isLoading: loadingPacotes } = trpc.pacotes.listarTodos.useQuery({ status: filtroStatus });
+  const { data: pacotesAtivos = [], isLoading: loadingPacotes } = trpc.pacotes.listarTodos.useQuery({
+    status: filtroStatus,
+    busca: buscaDebounced || undefined,
+  });
   const { data: clientesData = [] } = trpc.clientes.list.useQuery();
   const { data: servicosData = [] } = trpc.servicos.list.useQuery();
 
@@ -666,6 +714,19 @@ export default function Pacotes() {
 
           {/* ── Aba Pacotes ── */}
           <TabsContent value="pacotes" className="space-y-4">
+            {/* Busca por cliente */}
+            <div className="relative">
+              <input
+                type="text"
+                value={buscaCliente}
+                onChange={e => handleBuscaChange(e.target.value)}
+                placeholder="Buscar por nome do cliente..."
+                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <div className="flex gap-2 flex-wrap">
               {(["ativo", "concluido", "vencido", "cancelado", "todos"] as const).map(s => (
                 <button

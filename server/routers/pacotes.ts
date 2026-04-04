@@ -12,7 +12,7 @@ import {
   notificacoesPacotes,
   servicos, clientes,
 } from "../../drizzle/schema";
-import { eq, and, sql, lte, gt } from "drizzle-orm";
+import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
@@ -130,6 +130,7 @@ export const pacotesRouter = router({
   listarTodos: protectedProcedure
     .input(z.object({
       status: z.enum(["ativo", "concluido", "vencido", "cancelado", "todos"]).default("ativo"),
+      busca: z.string().optional(), // filtro por nome de cliente
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
@@ -141,6 +142,8 @@ export const pacotesRouter = router({
         status: pacotesClientes.status,
         valorPago: pacotesClientes.valorPago,
         formaPagamento: pacotesClientes.formaPagamento,
+        numeroParcelas: pacotesClientes.numeroParcelas,
+        valorParcela: pacotesClientes.valorParcela,
         dataAbertura: pacotesClientes.dataAbertura,
         dataVencimento: pacotesClientes.dataVencimento,
         clienteId: pacotesClientes.clienteId,
@@ -151,6 +154,7 @@ export const pacotesRouter = router({
         .where(and(
           eq(pacotesClientes.empresaId, empId),
           input.status !== "todos" ? eq(pacotesClientes.status, input.status) : sql`1=1`,
+          input.busca ? like(clientes.nome, `%${input.busca}%`) : sql`1=1`,
         ))
         .orderBy(sql`${pacotesClientes.criadoEm} DESC`);
 
@@ -207,6 +211,68 @@ export const pacotesRouter = router({
       }));
     }),
 
+  // ── Listar pacotes ativos com sessões disponíveis (para vincular ao agendamento) ─────────
+  listarAtivosComSessoes: protectedProcedure
+    .input(z.object({
+      clienteId: z.number(),
+      servicoId: z.number().optional(), // filtrar por serviço específico
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+
+      // Buscar pacotes ativos do cliente
+      const pacotes = await db.select({
+        id: pacotesClientes.id,
+        nome: pacotesClientes.nome,
+        dataVencimento: pacotesClientes.dataVencimento,
+      }).from(pacotesClientes)
+        .where(and(
+          eq(pacotesClientes.empresaId, empId),
+          eq(pacotesClientes.clienteId, input.clienteId),
+          eq(pacotesClientes.status, "ativo"),
+        ));
+
+      if (!pacotes.length) return [];
+
+      const ids = pacotes.map(p => p.id);
+      // Buscar itens com sessões disponíveis
+      const itens = await db.select({
+        id: pacotesClientesItens.id,
+        pacoteClienteId: pacotesClientesItens.pacoteClienteId,
+        servicoId: pacotesClientesItens.servicoId,
+        quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+        quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        servicoNome: servicos.nome,
+      }).from(pacotesClientesItens)
+        .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
+        .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(",")})`);
+
+      // Montar resultado com sessões disponíveis
+      const resultado = [];
+      for (const pacote of pacotes) {
+        const itensDoPacote = itens.filter(i => i.pacoteClienteId === pacote.id);
+        for (const item of itensDoPacote) {
+          const disponivel = item.quantidadeTotal - item.quantidadeUsada;
+          if (disponivel <= 0) continue;
+          if (input.servicoId && item.servicoId !== input.servicoId) continue;
+          resultado.push({
+            pacoteClienteItemId: item.id,
+            pacoteId: pacote.id,
+            pacoteNome: pacote.nome,
+            servicoId: item.servicoId,
+            servicoNome: item.servicoNome,
+            sessoesDisponiveis: disponivel,
+            sessoesTotal: item.quantidadeTotal,
+            sessoesUsadas: item.quantidadeUsada,
+            dataVencimento: pacote.dataVencimento,
+          });
+        }
+      }
+      return resultado;
+    }),
+
   // ── Abrir pacote para cliente ─────────────────────────────────────────────
   abrirPacote: protectedProcedure
     .input(z.object({
@@ -215,6 +281,7 @@ export const pacotesRouter = router({
       nome: z.string().min(2),
       valorPago: z.number().min(0),
       formaPagamento: z.string().optional(),
+      numeroParcelas: z.number().min(1).max(24).optional().default(1),
       validadeDias: z.number().optional(),
       observacoes: z.string().optional(),
       itens: z.array(z.object({
@@ -232,6 +299,9 @@ export const pacotesRouter = router({
         dataVencimento.setDate(dataVencimento.getDate() + input.validadeDias);
       }
 
+      const numeroParcelas = input.numeroParcelas ?? 1;
+      const valorParcela = numeroParcelas > 1 ? input.valorPago / numeroParcelas : null;
+
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const [result] = await db.insert(pacotesClientes).values({
         empresaId: empId,
@@ -240,6 +310,8 @@ export const pacotesRouter = router({
         nome: input.nome,
         valorPago: String(input.valorPago),
         formaPagamento: input.formaPagamento,
+        numeroParcelas,
+        valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
         dataVencimento,
         observacoes: input.observacoes,
       });
