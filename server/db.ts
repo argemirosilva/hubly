@@ -507,15 +507,18 @@ export async function getDashboardMetrics(empresaId: number, profissionalId?: nu
   const hojeStr = hoje.toISOString().split('T')[0];
 
   // Filtros base — quando profissionalId fornecido, restringe ao profissional
+  // Status financeiramente válidos (excluir cancelados, bloqueios e excluídos)
+  const statusFinanceiroValido = sql`${agendamentos.status} NOT IN ('cancelado', 'ocupado', 'excluido')`;
+
   const filtroHoje = profissionalId
-    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} = ${hojeStr}`)
-    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} = ${hojeStr}`);
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} = ${hojeStr}`, statusFinanceiroValido)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} = ${hojeStr}`, statusFinanceiroValido);
   const filtroMes = profissionalId
-    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`)
-    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`);
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`, statusFinanceiroValido)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMes}`, sql`${agendamentos.data} <= ${fimMes}`, statusFinanceiroValido);
   const filtroMesAnterior = profissionalId
-    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`)
-    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`);
+    ? and(eq(agendamentos.empresaId, empresaId), eq(agendamentos.profissionalId, profissionalId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`, statusFinanceiroValido)
+    : and(eq(agendamentos.empresaId, empresaId), sql`${agendamentos.data} >= ${inicioMesAnterior}`, sql`${agendamentos.data} <= ${fimMesAnterior}`, statusFinanceiroValido);
   const filtroComissoes = profissionalId
     ? and(eq(comissoes.empresaId, empresaId), eq(comissoes.profissionalId, profissionalId), gte(comissoes.createdAt, new Date(inicioMes)))
     : and(eq(comissoes.empresaId, empresaId), gte(comissoes.createdAt, new Date(inicioMes)));
@@ -1888,8 +1891,8 @@ export async function deleteAgendamentoCompleto(agendamentoId: number): Promise<
   await db.delete(comissoes).where(eq(comissoes.agendamentoId, agendamentoId));
   // 4. Remover prontuários vinculados
   await db.delete(prontuarios).where(eq(prontuarios.agendamentoId, agendamentoId));
-  // 5. Desvincular cartões de pipeline (setar agendamentoId = null)
-  await db.update(pipelineCartoes).set({ agendamentoId: null }).where(eq(pipelineCartoes.agendamentoId, agendamentoId));
+  // 5. Remover cartões de pipeline vinculados ao agendamento (evitar registros fantasma)
+  await db.delete(pipelineCartoes).where(eq(pipelineCartoes.agendamentoId, agendamentoId));
   // 6. Remover tokens de confirmação
   await db.delete(tokensConfirmacao).where(eq(tokensConfirmacao.agendamentoId, agendamentoId));
   // 7. Remover o agendamento em si

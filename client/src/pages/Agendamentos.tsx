@@ -1,7 +1,24 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Clock, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, Clock, SlidersHorizontal, X, CheckSquare, Square, ChevronDown, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -36,8 +53,56 @@ function formatCurrency(v: number) {
 
 export default function Agendamentos() {
   const { pode, isAdmin } = usePermissoes();
+  const utils = trpc.useUtils();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [agSelecionado, setAgSelecionado] = useState<number | null>(null);
+  // Seleção múltipla
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
+  const [confirmLote, setConfirmLote] = useState<{ status: string; label: string } | null>(null);
+
+  const bulkUpdateMutation = trpc.agendamentos.bulkUpdateStatus.useMutation({
+    onSuccess: (result) => {
+      utils.agendamentos.list.invalidate();
+      setSelecionados(new Set());
+      setModoSelecao(false);
+      setConfirmLote(null);
+      if (result.falhas > 0) {
+        toast.error(`${result.sucesso} atualizados, ${result.falhas} com erro`);
+      } else {
+        toast.success(`${result.sucesso} agendamento${result.sucesso !== 1 ? "s" : ""} atualizado${result.sucesso !== 1 ? "s" : ""}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Erro ao atualizar: ${err.message}`);
+    },
+  });
+
+  function toggleSelecao(id: number) {
+    setSelecionados(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function selecionarTodos() {
+    if (selecionados.size === filtrados.length) {
+      setSelecionados(new Set());
+    } else {
+      setSelecionados(new Set(filtrados.map(ag => ag.id)));
+    }
+  }
+
+  function confirmarAcaoLote(status: string, label: string) {
+    if (selecionados.size === 0) return;
+    setConfirmLote({ status, label });
+  }
+
+  function executarAcaoLote() {
+    if (!confirmLote) return;
+    bulkUpdateMutation.mutate({ ids: Array.from(selecionados), status: confirmLote.status as any });
+  }
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [busca, setBusca] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
@@ -97,11 +162,22 @@ export default function Agendamentos() {
             {filtrados.length} resultado{filtrados.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary py-2 px-3 text-xs">
-          <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Novo Agendamento</span>
-          <span className="sm:hidden">Novo</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => { setModoSelecao(!modoSelecao); setSelecionados(new Set()); }}
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${modoSelecao ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{modoSelecao ? "Cancelar" : "Selecionar"}</span>
+            </button>
+          )}
+          <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary py-2 px-3 text-xs">
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Novo Agendamento</span>
+            <span className="sm:hidden">Novo</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Filtros ─────────────────────────────────────────────────────── */}
@@ -199,6 +275,45 @@ export default function Agendamentos() {
         )}
       </div>
 
+      {/* ── Barra de ações em lote ─────────────────────────────────────── */}
+      {modoSelecao && (
+        <div className="flex items-center gap-3 p-3 rounded-xl border bg-primary/5 border-primary/20">
+          <button
+            onClick={selecionarTodos}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            {selecionados.size === filtrados.length && filtrados.length > 0
+              ? <CheckSquare className="w-4 h-4" />
+              : <Square className="w-4 h-4" />}
+            {selecionados.size === 0 ? "Selecionar todos" : `${selecionados.size} selecionado${selecionados.size !== 1 ? "s" : ""}`}
+          </button>
+          {selecionados.size > 0 && (
+            <>
+              <div className="w-px h-4 bg-border" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                    disabled={bulkUpdateMutation.isPending}
+                  >
+                    {bulkUpdateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    Alterar status
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => confirmarAcaoLote("confirmado", "Confirmado")}>Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmarAcaoLote("concluido", "Concluído")}>Concluir</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmarAcaoLote("cancelado", "Cancelado")}>Cancelar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmarAcaoLote("faltou", "Faltou")}>Marcar como Faltou</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmarAcaoLote("agendado", "Agendado")}>Voltar para Agendado</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Lista ───────────────────────────────────────────────────────── */}
       <div className="card-elegant overflow-hidden">
         {filtrados.length === 0 ? (
@@ -220,13 +335,26 @@ export default function Agendamentos() {
               return (
                 <div
                   key={ag.id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => setAgSelecionado(ag.id)}
+                  className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer ${modoSelecao && selecionados.has(ag.id) ? "bg-primary/5" : ""}`}
+                  onClick={() => {
+                    if (modoSelecao) { toggleSelecao(ag.id); return; }
+                    setAgSelecionado(ag.id);
+                  }}
                 >
+                  {/* Checkbox de seleção */}
+                  {modoSelecao && (
+                    <div className="flex-shrink-0" onClick={e => { e.stopPropagation(); toggleSelecao(ag.id); }}>
+                      {selecionados.has(ag.id)
+                        ? <CheckSquare className="w-4 h-4 text-primary" />
+                        : <Square className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                  )}
                   {/* Ícone do serviço — oculto em telas muito pequenas */}
-                  <div className="hidden sm:block flex-shrink-0">
-                    <ServiceIcon serviceName={servicoNome} size="md" showBackground />
-                  </div>
+                  {!modoSelecao && (
+                    <div className="hidden sm:block flex-shrink-0">
+                      <ServiceIcon serviceName={servicoNome} size="md" showBackground />
+                    </div>
+                  )}
 
                   {/* Barra colorida do profissional (mobile) */}
                   <div className="sm:hidden w-1 h-10 rounded-full flex-shrink-0"
@@ -284,6 +412,25 @@ export default function Agendamentos() {
           onClose={() => setAgSelecionado(null)}
         />
       )}
+
+      {/* Dialog de confirmação de ação em lote */}
+      <AlertDialog open={!!confirmLote} onOpenChange={open => { if (!open) setConfirmLote(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar ação em lote</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar o status de <strong>{selecionados.size} agendamento{selecionados.size !== 1 ? "s" : ""}</strong> para <strong>{confirmLote?.label}</strong>.
+              Esta ação não pode ser desfeita automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={executarAcaoLote} disabled={bulkUpdateMutation.isPending}>
+              {bulkUpdateMutation.isPending ? "Atualizando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

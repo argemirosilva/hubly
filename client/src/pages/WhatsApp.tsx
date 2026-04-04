@@ -438,13 +438,12 @@ export default function WhatsAppPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {connectionLog.map((entry) => {
+              {connectionLog.filter(entry => !['reconnecting', 'connecting'].includes(entry.event)).map((entry) => {
                 const eventConfig: Record<string, { label: string; color: string; dot: string }> = {
                   connected:     { label: "Conectado",         color: "text-green-700",  dot: "bg-green-500" },
                   disconnected:  { label: "Desconectado",      color: "text-gray-600",   dot: "bg-gray-400" },
                   qr_ready:      { label: "QR Code gerado",    color: "text-blue-700",   dot: "bg-blue-500" },
                   logged_out:    { label: "Sessão encerrada",  color: "text-red-700",    dot: "bg-red-500" },
-                  reconnecting:  { label: "Reconectando...",   color: "text-yellow-700", dot: "bg-yellow-500" },
                 };
                 const cfg = eventConfig[entry.event] ?? { label: entry.event, color: "text-muted-foreground", dot: "bg-gray-300" };
                 return (

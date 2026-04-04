@@ -298,6 +298,7 @@ export const automacoes = mysqlTable("automacoes", {
     "data_fixa",
     "aniversario_mes",
     "dias_antes_agendamento",
+    "horas_antes_agendamento",
     "horas_apos_agendamento",
   ]).notNull(),
   // Para tipo 'evento'
@@ -336,6 +337,7 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   mensagem: text("mensagem"),
   status: mysqlEnum("status", ["enviado", "falhou", "pendente"]).default("enviado").notNull(),
   erroDetalhe: text("erroDetalhe"),
+  enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
 

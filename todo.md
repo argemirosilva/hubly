@@ -1024,3 +1024,45 @@
 - [x] Verificar como tarefas "X horas antes" são calculadas e armazenadas
 - [x] Verificar se o cron está rodando e processando tarefas pendentes
 - [x] Corrigir a lógica de disparo para delays longos (24h, 48h, etc.)
+
+## Melhorias v9 — Fila de Automações, Ações em Lote, Consistência de Pipelines (04/04/2026)
+### 1. Fila de envios de automações
+- [ ] Backend: endpoint para listar fila de envios pendentes/enviados/falhos com filtros
+- [x] Frontend: tela FilaAutomacoes.tsx com cards de status, tempo restante, filtros
+- [ ] Frontend: atualização automática da lista (polling a cada 30s)
+- [ ] Frontend: ordenação por próximos envios / mais recentes
+- [ ] Frontend: filtros por status, período e tipo de automação
+- [ ] Frontend: rota /admin/automacoes/fila e link no menu de Automações
+
+### 2. Ações em lote em agendamentos
+- [ ] Backend: endpoint bulkUpdateStatus para atualizar múltiplos agendamentos
+- [ ] Frontend: checkboxes de seleção múltipla na tela de Agendamentos
+- [ ] Frontend: barra de ações em lote (alterar status, cancelar)
+- [ ] Frontend: modal de confirmação antes de executar ação em lote
+- [ ] Frontend: feedback de sucesso/erro parcial após execução
+
+### 3. Consistência de pipelines ao excluir/ocultar agendamentos
+- [x] Backend: ao excluir agendamento, remover de todos os cards de pipeline vinculados
+- [ ] Backend: ao cancelar agendamento, atualizar status do card na pipeline
+- [ ] Frontend: garantir que cards de pipeline sem agendamento sejam removidos/atualizados
+- [ ] Verificar deleteAgendamentoCompleto para incluir remoção de pipeline cards
+
+### 4. Compatibilidade geral
+- [ ] Garantir que nenhuma funcionalidade existente seja quebrada
+- [ ] Testes unitários para novos endpoints
+
+## Melhorias v9 - Fila de Automacoes, Acoes em Lote, Consistencia de Pipelines (04/04/2026)
+- [x] Backend: endpoint listar fila de envios pendentes/enviados/falhos com filtros
+- [x] Frontend: tela FilaAutomacoes.tsx com cards de status, tempo restante, filtros
+- [x] Frontend: atualizacao automatica da lista (polling a cada 30s)
+- [x] Frontend: filtros por status, periodo e tipo de automacao
+- [x] Frontend: rota /admin/automacoes/fila e link no menu de Automacoes
+- [x] Backend: endpoint bulkUpdateStatus para atualizar multiplos agendamentos
+- [x] Frontend: checkboxes de selecao multipla na tela de Agendamentos
+- [x] Frontend: barra de acoes em lote (alterar status, cancelar)
+- [x] Frontend: modal de confirmacao antes de executar acao em lote
+- [x] Frontend: feedback de sucesso/erro parcial apos execucao
+- [x] Backend: ao excluir agendamento, remover de todos os cards de pipeline vinculados
+- [ ] Backend: ao cancelar agendamento, atualizar status do card na pipeline
+- [x] Verificar deleteAgendamentoCompleto para incluir remocao de pipeline cards
+- [ ] Testes unitarios para novos endpoints

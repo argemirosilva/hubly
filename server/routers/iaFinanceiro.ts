@@ -75,8 +75,9 @@ async function calcularScoreFinanceiro(empresaId: number): Promise<{
   const contasVencidas = 15 - penalidade;
 
   // ── Fator 3: Fluxo de caixa (0-20) ────────────────────────────────────────
+  const statusInvalido = ['cancelado', 'ocupado', 'excluido'];
   const receitaMesAtual = agds
-    .filter(a => a.data >= inicioMesAtual.toISOString().split("T")[0] && a.status !== "cancelado")
+    .filter(a => a.data >= inicioMesAtual.toISOString().split("T")[0] && !statusInvalido.includes(a.status ?? ''))
     .reduce((acc, a) => acc + parseFloat(String(a.valorTotal ?? "0")), 0);
   const totalComissoesPendentesValor = comissoesAll
     .filter(c => !c.paga)
@@ -86,7 +87,7 @@ async function calcularScoreFinanceiro(empresaId: number): Promise<{
 
   // ── Fator 4: Estabilidade da receita (0-15) ────────────────────────────────
   const receitaMesAnterior = agds
-    .filter(a => a.data >= inicioMesAnterior.toISOString().split("T")[0] && a.data <= fimMesAnterior.toISOString().split("T")[0] && a.status !== "cancelado")
+    .filter(a => a.data >= inicioMesAnterior.toISOString().split("T")[0] && a.data <= fimMesAnterior.toISOString().split("T")[0] && !statusInvalido.includes(a.status ?? ''))
     .reduce((acc, a) => acc + parseFloat(String(a.valorTotal ?? "0")), 0);
   const variacaoReceita = receitaMesAnterior > 0
     ? Math.abs((receitaMesAtual - receitaMesAnterior) / receitaMesAnterior)
@@ -95,7 +96,7 @@ async function calcularScoreFinanceiro(empresaId: number): Promise<{
 
   // ── Fator 5: Concentração de receita (0-10) ────────────────────────────────
   const receitaPorCliente: Record<number, number> = {};
-  agds.filter(a => a.status !== "cancelado").forEach(a => {
+  agds.filter(a => !statusInvalido.includes(a.status ?? '')).forEach(a => {
     if (a.clienteId) receitaPorCliente[a.clienteId] = (receitaPorCliente[a.clienteId] ?? 0) + parseFloat(String(a.valorTotal ?? "0"));
   });
   const totalReceita = Object.values(receitaPorCliente).reduce((a, b) => a + b, 0);

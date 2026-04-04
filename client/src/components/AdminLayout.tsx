@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -56,10 +56,20 @@ const navGroups: NavGroup[] = [
           { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText, permissao: "financeiroVer" },
           { href: "/admin/contas-receber", label: "Contas a Receber", icon: ArrowDownCircle, permissao: "financeiroVer" },
           { href: "/admin/comissoes-pagar", label: "Comissões a Pagar", icon: DollarSign, permissao: "financeiroVer" },
+          { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, permissao: "financeiroVer" },
           { href: "/admin/meios-pagamento", label: "Meios de Pagamento", icon: Wallet, permissao: "configuracoesVer" },
         ],
       },
-      { href: "/admin/automacoes", label: "Automações", icon: MessageSquare, permissao: "automacoesVer" },
+      {
+        href: "/admin/automacoes",
+        label: "Automações",
+        icon: MessageSquare,
+        permissao: "automacoesVer",
+        children: [
+          { href: "/admin/automacoes", label: "Configurar", icon: MessageSquare, permissao: "automacoesVer" },
+          { href: "/admin/automacoes/fila", label: "Fila de Envios", icon: Send, permissao: "automacoesVer" },
+        ],
+      },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle, permissao: "automacoesVer" },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
       { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock, permissao: "agendamentosVer" },

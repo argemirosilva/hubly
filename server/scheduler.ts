@@ -340,8 +340,9 @@ async function processarAutomacoesAgendadas() {
   try {
     // Buscar todas as empresas que têm automações ativas dos tipos agendados
     const empresasDiasAntes = await getEmpresasComAutomacoes('dias_antes_agendamento');
+    const empresasHorasAntes = await getEmpresasComAutomacoes('horas_antes_agendamento');
     const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
-    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasApos]));
+    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasAntes, ...empresasHorasApos]));
 
     if (todasEmpresas.length === 0) return;
 
@@ -475,7 +476,113 @@ async function processarAutomacoesAgendadas() {
         }
       }
 
-      // ── Processar automações do tipo horas_apos_agendamento ──────────────────
+      // ── Processar automações do tipo horas_antes_agendamento ──────────────────────────────────────────────
+      const automacoesHorasAntes = await getAutomacoesAtivasByTipo(empresaId, 'horas_antes_agendamento');
+
+      for (const automacao of automacoesHorasAntes) {
+        // delayMinutos indica quantas horas antes do agendamento disparar
+        const delayMin = automacao.delayMinutos ?? 60;
+        const JANELA_INICIO = agora.getTime() - JANELA_MS;
+        const JANELA_FIM = agora.getTime();
+
+        // Buscar agendamentos cujo horário - delay cai na janela atual
+        const dataMin = new Date(JANELA_INICIO + delayMin * 60 * 1000);
+        const dataMax = new Date(JANELA_FIM + delayMin * 60 * 1000);
+        const dataMinStr = dataMin.toISOString().slice(0, 10);
+        const dataMaxStr = dataMax.toISOString().slice(0, 10);
+
+        const ags = await db
+          .select({
+            id: agendamentos.id,
+            empresaId: agendamentos.empresaId,
+            clienteId: agendamentos.clienteId,
+            data: agendamentos.data,
+            horaInicio: agendamentos.horaInicio,
+            valorTotal: agendamentos.valorTotal,
+            status: agendamentos.status,
+            clienteNome: clientes.nome,
+            clienteTelefone: clientes.telefone,
+            profissionalNome: profissionais.nome,
+            servicoNome: servicos.nome,
+            empresaNome: empresas.nome,
+            reservaPercentual: empresas.reservaPercentual,
+          })
+          .from(agendamentos)
+          .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+          .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+          .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+          .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+          .where(and(
+            eq(agendamentos.empresaId, empresaId),
+            sql`${agendamentos.data} >= ${dataMinStr}`,
+            sql`${agendamentos.data} <= ${dataMaxStr}`,
+            sql`${agendamentos.status} IN ('agendado', 'confirmado')`,
+          ));
+
+        for (const ag of ags) {
+          if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
+
+          // Calcular o timestamp exato do agendamento
+          const [hAg, mAg] = ag.horaInicio.split(':');
+          const tsAgendamento = new Date(`${ag.data}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
+          const tsDisparo = tsAgendamento - delayMin * 60 * 1000; // ANTES do agendamento
+
+          // Verificar se o disparo cai na janela atual
+          if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
+
+          // Deduplicação
+          const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
+          if (jaEnviou) continue;
+
+          const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+          const dataFormatada = ag.data
+            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '';
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: ag.clienteNome ?? '',
+            servico: ag.servicoNome ?? '',
+            data: dataFormatada,
+            hora: ag.horaInicio ?? '',
+            profissional: ag.profissionalNome ?? '',
+            empresa: ag.empresaNome ?? '',
+            valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            horas_antes: String(Math.round(delayMin / 60)),
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            mensagem =
+              `⏰ *Lembrete de agendamento!*\n\n` +
+              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
+              `Você tem um agendamento em *${Math.round(delayMin / 60)}h*:\n` +
+              `📌 *${ag.servicoNome ?? ''}* com *${ag.profissionalNome ?? ''}*\n` +
+              `📅 *${dataFormatada}* às *${ag.horaInicio ?? ''}*\n\n` +
+              `Nos vemos em breve! 😊`;
+          }
+
+          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: ag.clienteId ?? undefined,
+            clienteNome: ag.clienteNome ?? undefined,
+            agendamentoId: ag.id,
+            telefone: ag.clienteTelefone,
+            canal: 'whatsapp',
+            mensagem,
+            status: enviado ? 'enviado' : 'falhou',
+            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+        }
+      }
+
+      // ── Processar automações do tipo horas_apos_agendamento ──────────────────────────────────────────────
       const automacoesApos = await getAutomacoesAtivasByTipo(empresaId, 'horas_apos_agendamento');
 
       for (const automacao of automacoesApos) {

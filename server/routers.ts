@@ -50,10 +50,11 @@ import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
 import { portalRouter } from "./routers/portal";
 import { pacotesRouter } from "./routers/pacotes";
+import { relatoriosRouter } from "./routers/relatorios";
 import { nanoid } from "nanoid";
 import { getDb } from "./db";
-import { pacotesClientes, pacotesClientesItens } from "../drizzle/schema";
-import { eq, and, sql as drizzleSql } from "drizzle-orm";
+import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao } from "../drizzle/schema";
+import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
 
 /**
  * Processa variáveis de template em mensagens de WhatsApp/automações.
@@ -152,6 +153,7 @@ export const appRouter = router({
   suporte: suporteRouter,
   portal: portalRouter,
   pacotes: pacotesRouter,
+  relatorios: relatoriosRouter,
 
   dashboardConfig: router({
     get: protectedProcedure.query(async ({ ctx }) => {
@@ -1092,6 +1094,43 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Atualização em lote de status de agendamentos
+    bulkUpdateStatus: protectedProcedure
+      .input(z.object({
+        ids: z.array(z.number()).min(1).max(100),
+        status: z.enum(["agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Banco de dados indisponível' });
+
+        const { agendamentos: agendamentosTable } = await import('../drizzle/schema.js');
+        const updates: Record<string, any> = { status: input.status };
+        if (input.status === 'confirmado') updates.confirmadoEm = new Date();
+        if (input.status === 'concluido') updates.concluidoEm = new Date();
+
+        let sucesso = 0;
+        let falhas = 0;
+        for (const id of input.ids) {
+          try {
+            const ag = await getAgendamentoById(id);
+            if (ag && ag.empresaId === empresa.id) {
+              await db.update(agendamentosTable).set(updates).where(eq(agendamentosTable.id, id));
+              sucesso++;
+            } else {
+              falhas++;
+            }
+          } catch {
+            falhas++;
+          }
+        }
+
+        return { sucesso, falhas, total: input.ids.length };
+      }),
+
     // Excluir agendamento completamente (cascade: itens, pagamentos, comissões, prontuários, tokens)
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -1404,6 +1443,68 @@ export const appRouter = router({
         const totalFalhas = rows.filter(r => r.status === "falhou").length;
 
         return { metricas, feed, totalFalhas };
+      }),
+
+    getFilaEnvios: protectedProcedure
+      .input(z.object({
+        status: z.enum(["pendente", "enviado", "falhou", "todos"]).default("todos"),
+        periodo: z.enum(["hoje", "semana", "mes", "todos"]).default("todos"),
+        tipoAutomacao: z.string().optional(),
+        ordenacao: z.enum(["proximos", "recentes"]).default("proximos"),
+        limit: z.number().min(1).max(200).default(100),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { rows: [], total: 0 };
+
+        const db = await getDb();
+        if (!db) return { rows: [], total: 0 };
+
+        const conditions: any[] = [eq(historicoEnviosAutomacao.empresaId, empresa.id)];
+
+        if (input.status !== "todos") {
+          conditions.push(eq(historicoEnviosAutomacao.status, input.status));
+        }
+
+        // Filtro de período
+        if (input.periodo !== "todos") {
+          const agora = new Date();
+          let desde: Date;
+          if (input.periodo === "hoje") desde = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+          else if (input.periodo === "semana") desde = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          else desde = new Date(agora.getFullYear(), agora.getMonth(), 1);
+          conditions.push(gte(historicoEnviosAutomacao.criadoEm, desde));
+        }
+
+        const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+        const rows = await db.select().from(historicoEnviosAutomacao)
+          .where(where)
+          .orderBy(
+            input.ordenacao === "proximos"
+              ? desc(historicoEnviosAutomacao.enviarEm)
+              : desc(historicoEnviosAutomacao.criadoEm)
+          )
+          .limit(input.limit);
+
+        const agora = new Date();
+        const result = rows.map(r => {
+          let tempoRestante: string | null = null;
+          if (r.status === 'pendente' && r.enviarEm) {
+            const diff = r.enviarEm.getTime() - agora.getTime();
+            if (diff > 0) {
+              const horas = Math.floor(diff / (1000 * 60 * 60));
+              const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              if (horas > 0) tempoRestante = `Envia em ${horas}h ${minutos}min`;
+              else tempoRestante = `Envia em ${minutos}min`;
+            } else {
+              tempoRestante = 'Processando...';
+            }
+          }
+          return { ...r, tempoRestante };
+        });
+
+        return { rows: result, total: result.length };
       }),
 
     getFalhasRecentes: protectedProcedure
