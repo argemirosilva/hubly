@@ -1006,3 +1006,7 @@
 - [x] Investigar logs e código de gerenciamento de reconexão
 - [x] Corrigir lógica: parar tentativas de reconexão quando já conectado
 - [x] Ajustar intervalo de verificação de status para valor adequado
+
+## Bug: Botão "Alterar Status" do agendamento não clicável (04/04/2026)
+- [x] Investigar sobreposição/z-index no modal de agendamento
+- [x] Corrigir o problema para o botão ser clicável

@@ -272,47 +272,6 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           </button>
         </div>
 
-        {/* Barra fixa de pagamento no rodapé */}
-        {(() => {
-          const totalItens = parseFloat(String(ag.valorTotal ?? 0));
-          const desconto = parseFloat(String((ag as any).desconto ?? 0));
-          const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
-          const emAberto = Math.max(0, totalItens - desconto - totalPago);
-          const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-          return (
-            <div className="border-t px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0"
-              style={{ borderColor: "oklch(91% 0.010 250)", background: "oklch(97% 0.006 250)" }}>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground">Total</span>
-                <span className="font-bold">{fmt(totalItens)}</span>
-                {desconto > 0 && <span className="text-amber-600 text-[11px]">- {fmt(desconto)}</span>}
-                {totalPago > 0 && <span className="text-green-600 text-[11px]">pago {fmt(totalPago)}</span>}
-              </div>
-              <div className="flex items-center gap-2">
-                {emAberto > 0 && (
-                  <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                    {fmt(emAberto)} em aberto
-                  </span>
-                )}
-                {emAberto <= 0 && totalPago > 0 && (
-                  <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
-                    Quitado
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
-                  onClick={() => setShowAddPagamento(true)}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Pagamento
-                </Button>
-              </div>
-            </div>
-          );
-        })()}
-
         {/* Corpo */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Info block */}
@@ -789,6 +748,47 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             </div>
           )}
         </div>
+        {/* Barra fixa de pagamento no rodapé */}
+        {(() => {
+          const totalItens = parseFloat(String(ag.valorTotal ?? 0));
+          const desconto = parseFloat(String((ag as any).desconto ?? 0));
+          const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+          const emAberto = Math.max(0, totalItens - desconto - totalPago);
+          const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+          return (
+            <div className="border-t px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0"
+              style={{ borderColor: "oklch(91% 0.010 250)", background: "oklch(97% 0.006 250)" }}>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-bold">{fmt(totalItens)}</span>
+                {desconto > 0 && <span className="text-amber-600 text-[11px]">- {fmt(desconto)}</span>}
+                {totalPago > 0 && <span className="text-green-600 text-[11px]">pago {fmt(totalPago)}</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                {emAberto > 0 && (
+                  <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                    {fmt(emAberto)} em aberto
+                  </span>
+                )}
+                {emAberto <= 0 && totalPago > 0 && (
+                  <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                    Quitado
+                  </span>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  onClick={() => setShowAddPagamento(true)}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Pagamento
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+
       </DialogContent>
     </Dialog>
 
