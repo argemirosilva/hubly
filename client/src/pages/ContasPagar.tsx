@@ -248,9 +248,13 @@ function ModalConta({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="semanal">Semanal</SelectItem>
-                  <SelectItem value="mensal">Mensal</SelectItem>
-                  <SelectItem value="anual">Anual</SelectItem>
+                  <SelectItem value="semanal">Semanal (toda semana)</SelectItem>
+                  <SelectItem value="quinzenal">Quinzenal (a cada 15 dias)</SelectItem>
+                  <SelectItem value="mensal">Mensal (todo mês)</SelectItem>
+                  <SelectItem value="bimestral">Bimestral (a cada 2 meses)</SelectItem>
+                  <SelectItem value="trimestral">Trimestral (a cada 3 meses)</SelectItem>
+                  <SelectItem value="semestral">Semestral (a cada 6 meses)</SelectItem>
+                  <SelectItem value="anual">Anual (uma vez por ano)</SelectItem>
                 </SelectContent>
               </Select>
             )}

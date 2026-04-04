@@ -2008,8 +2008,7 @@ export const appRouter = router({
         dataVencimento: z.string(),
         categoriaId: z.number().optional(),
         recorrente: z.boolean().optional(),
-        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional(),
-        observacoes: z.string().optional(),
+        recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional(),
         fornecedor: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -2033,7 +2032,7 @@ export const appRouter = router({
         categoriaId: z.number().optional().nullable(),
         status: z.enum(["pendente", "pago", "vencido", "cancelado"]).optional(),
         recorrente: z.boolean().optional(),
-        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional().nullable(),
+        recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional().nullable(),
         observacoes: z.string().optional().nullable(),
         fornecedor: z.string().optional().nullable(),
       }))
@@ -2091,7 +2090,7 @@ export const appRouter = router({
         tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
         observacoes: z.string().optional(),
         recorrente: z.boolean().default(false),
-        recorrenciaTipo: z.enum(["semanal", "mensal", "anual"]).optional(),
+        recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

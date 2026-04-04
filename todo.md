@@ -828,3 +828,7 @@
 - [x] Módulo Meios de Pagamento: cadastro (nome, tipo, parcelamento, taxa fixa, taxas por parcela)
 - [x] Página "Comissões a Pagar" no menu financeiro com filtro por profissional e período
 - [x] Meios de Pagamento integrados nos formulários de Contas a Pagar e Contas a Receber
+
+## Melhorias Contas a Pagar/Receber (04/04/2026 - Lote 2)
+- [x] Adicionar opções de recorrência: Quinzenal, Bimestral, Trimestral, Semestral (além de Semanal, Mensal, Anual)
+- [x] Atualizar enum de recorrenciaTipo no backend e banco de dados para aceitar novos valores

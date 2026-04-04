@@ -770,7 +770,7 @@ export const contasPagar = mysqlTable("contas_pagar", {
   categoriaId: int("categoriaId"),
   status: mysqlEnum("status_conta", ["pendente", "pago", "vencido", "cancelado"]).default("pendente").notNull(),
   recorrente: boolean("recorrente").default(false).notNull(),
-  recorrenciaTipo: mysqlEnum("recorrencia_tipo", ["semanal", "mensal", "anual"]),
+  recorrenciaTipo: mysqlEnum("recorrencia_tipo", ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]),
   observacoes: text("observacoes"),
   fornecedor: varchar("fornecedor", { length: 150 }),
   comprovante: varchar("comprovante", { length: 500 }),
@@ -804,7 +804,7 @@ export const contasReceber = mysqlTable("contas_receber", {
   tipoPagamento: mysqlEnum("tipo_pagamento_receber", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
   observacoes: text("observacoes"),
   recorrente: boolean("recorrente").default(false).notNull(),
-  recorrenciaTipo: mysqlEnum("recorrencia_tipo_receber", ["semanal", "mensal", "anual"]),
+  recorrenciaTipo: mysqlEnum("recorrencia_tipo_receber", ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
