@@ -494,14 +494,14 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   {/* Formulário adicionar pagamento */}
                   {showAddPagamento ? (
                     <div className="space-y-2 p-3 rounded-lg" style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
                         <div>
                           <Label className="text-[10px] text-muted-foreground mb-1 block">Valor (R$) *</Label>
                           <Input
                             type="number" step="0.01" min="0.01" placeholder="0,00"
                             value={novoPagamento.valor}
                             onChange={e => setNovoPagamento(p => ({ ...p, valor: e.target.value }))}
-                            className="h-8 text-xs"
+                            className="h-9 text-sm"
                             autoFocus
                           />
                         </div>
@@ -511,7 +511,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                             value={novoPagamento.meioPagamento}
                             onValueChange={v => setNovoPagamento(p => ({ ...p, meioPagamento: v }))}
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger className="h-9 text-sm">
                               <SelectValue placeholder="Selecionar" />
                             </SelectTrigger>
                             <SelectContent>

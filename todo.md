@@ -879,3 +879,9 @@
 
 ## Bug: Rebarba branca no logo da sidebar (04/04/2026)
 - [x] Removida rebarba branca do logo: processamento Python removeu 94 pixels quase-brancos de anti-aliasing, novo arquivo CDN sem rebarba aplicado em AdminLayout e PortalCliente
+
+## Bug: Desalinhamento mobile no NovaAgendaModal (04/04/2026)
+- [x] Linha de serviços: cada serviço agora em card próprio (select em linha 1, valor + lixeira em linha 2)
+- [x] Botão "+ Adicionar serviço" mantido no header da seção (sem deslocamento)
+- [x] Campos Início/Fim: movidos para linha própria com sm:col-span-2, sempre 2 colunas dentro do grid
+- [x] Formulário de adicionar pagamento: campos empilhados (space-y-2) ao invés de grid-cols-2 apertado

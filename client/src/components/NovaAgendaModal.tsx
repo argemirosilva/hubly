@@ -233,32 +233,32 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
               <div className="space-y-2">
                 {servicosSelecionados.map((item, index) => (
-                  <div key={index} className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <Select
-                        value={item.servicoId}
-                        onValueChange={(v) => handleServicoChange(index, v)}
-                        disabled={!form.profissionalId && servicosFiltrados.length === 0}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder={
-                            !form.profissionalId
-                              ? "Selecione o profissional primeiro"
-                              : "Selecionar serviço"
-                          } />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {servicosFiltrados.map(s => (
-                            <SelectItem key={s.id} value={String(s.id)}>
-                              {s.nome}
-                              {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-28">
-                      <div className="relative">
+                  <div key={index} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
+                    {/* Linha 1: Select do serviço */}
+                    <Select
+                      value={item.servicoId}
+                      onValueChange={(v) => handleServicoChange(index, v)}
+                      disabled={!form.profissionalId && servicosFiltrados.length === 0}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder={
+                          !form.profissionalId
+                            ? "Selecione o profissional primeiro"
+                            : "Selecionar serviço"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {servicosFiltrados.map(s => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.nome}
+                            {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Linha 2: Valor + botão remover */}
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                         <Input
                           type="number"
@@ -270,24 +270,24 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                           placeholder="0,00"
                         />
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removerServico(index)}
+                        disabled={servicosSelecionados.length === 1}
+                        className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removerServico(index)}
-                      disabled={servicosSelecionados.length === 1}
-                      className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Data */}
-            <div>
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
               <Input
                 type="date"
@@ -296,8 +296,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            {/* Horários */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Horários — linha própria, sempre 2 colunas */}
+            <div className="sm:col-span-2 grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
                 <Input
