@@ -1313,6 +1313,51 @@ export const appRouter = router({
           status: input.status,
         });
       }),
+
+    getMetricasJornada: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { metricas: [], feed: [] };
+
+        // Buscar histórico dos últimos 7 dias
+        const historico = await getHistoricoEnvios(empresa.id, { limit: 200 });
+        const rows = historico.rows;
+
+        // Métricas agregadas por status
+        const contadores: Record<string, number> = {};
+        for (const row of rows) {
+          const key = row.status ?? "desconhecido";
+          contadores[key] = (contadores[key] ?? 0) + 1;
+        }
+
+        const LABELS: Record<string, { label: string; cor: string; emoji: string }> = {
+          enviado:    { label: "Enviados",    cor: "#22c55e", emoji: "✅" },
+          pendente:   { label: "Pendentes",   cor: "#f59e0b", emoji: "⏳" },
+          falhou:     { label: "Com falha",   cor: "#ef4444", emoji: "❌" },
+          desconhecido: { label: "Outros",   cor: "#a78bfa", emoji: "❓" },
+        };
+
+        const metricas = Object.entries(contadores).map(([status, total]) => ({
+          status,
+          total,
+          label: LABELS[status]?.label ?? status,
+          cor: LABELS[status]?.cor ?? "#6b7280",
+          emoji: LABELS[status]?.emoji ?? "•",
+        }));
+
+        // Feed dos 30 eventos mais recentes
+        const feed = rows.slice(0, 30).map((row) => ({
+          id: row.id,
+          clienteNome: row.clienteNome ?? "Cliente",
+          automacaoNome: row.automacaoNome ?? "Automação",
+          canal: row.canal ?? "whatsapp",
+          status: row.status ?? "desconhecido",
+          criadoEm: row.criadoEm,
+          emoji: LABELS[row.status ?? "desconhecido"]?.emoji ?? "•",
+        }));
+
+        return { metricas, feed };
+      }),
   }),
 
   // ─── CORES / CONFIGURAÇÕES ────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import {
   ArrowRight, X, Save, Sparkles, Filter,
   AlarmClock, Users, Tag, Check, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
-  GitBranch, Loader2, ExternalLink,
+  GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -670,11 +670,16 @@ export default function Automacoes() {
     onError: (e: any) => toast.error(e.message),
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"automacoes" | "historico">("automacoes");
+  const [activeTab, setActiveTab] = useState<"automacoes" | "historico" | "jornada">("automacoes");
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
   const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
   const HISTORICO_LIMIT = 20;
+
+  const { data: jornadaData, isLoading: jornadaLoading, refetch: jornadaRefetch } = trpc.automacoes.getMetricasJornada.useQuery(
+    undefined,
+    { enabled: activeTab === "jornada", refetchInterval: 30000 }
+  );
 
   const { data: historicoData, isLoading: historicoLoading, refetch: historicoRefetch } = trpc.automacoes.getHistorico.useQuery({
     limit: HISTORICO_LIMIT,
@@ -819,6 +824,11 @@ export default function Automacoes() {
                 <RefreshCw size={13} className="mr-1" />Atualizar
               </Button>
             )}
+            {activeTab === "jornada" && (
+              <Button variant="outline" size="sm" onClick={() => jornadaRefetch()} disabled={jornadaLoading}>
+                <RefreshCw size={13} className={`mr-1 ${jornadaLoading ? "animate-spin" : ""}`} />Atualizar
+              </Button>
+            )}
           </div>
 
           {/* Abas de navegação */}
@@ -842,6 +852,16 @@ export default function Automacoes() {
               }`}
             >
               <History size={13} />Histórico de Envios
+            </button>
+            <button
+              onClick={() => setActiveTab("jornada")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "jornada"
+                  ? "bg-white shadow-sm text-gray-900"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Activity size={13} />Jornada ao Vivo
             </button>
           </div>
 
@@ -968,6 +988,118 @@ export default function Automacoes() {
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ABA JORNADA AO VIVO */}
+          {activeTab === "jornada" && (
+            <div>
+              {jornadaLoading ? (
+                <div className="space-y-3">
+                  {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
+                </div>
+              ) : (
+                <>
+                  {/* Métricas de status */}
+                  <div className="mb-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp size={14} className="text-indigo-500" />
+                      <h3 className="text-sm font-semibold text-gray-700">Resumo dos envios (200 mais recentes)</h3>
+                    </div>
+                    {(!jornadaData?.metricas || jornadaData.metricas.length === 0) ? (
+                      <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
+                        <Activity size={32} className="mx-auto text-gray-300 mb-2" />
+                        <p className="text-sm text-gray-500">Nenhum envio registrado ainda</p>
+                        <p className="text-xs text-gray-400 mt-1">Os dados aparecerão aqui conforme as automações forem disparadas</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {jornadaData.metricas.map((m: any) => (
+                          <div key={m.status} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xl">{m.emoji}</span>
+                              <span className="text-2xl font-bold" style={{ color: m.cor }}>{m.total}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">{m.label}</p>
+                            {jornadaData.metricas.reduce((acc: number, x: any) => acc + x.total, 0) > 0 && (
+                              <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${Math.round((m.total / jornadaData.metricas.reduce((acc: number, x: any) => acc + x.total, 0)) * 100)}%`,
+                                    backgroundColor: m.cor,
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Feed ao vivo */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Radio size={14} className="text-emerald-500" />
+                      <h3 className="text-sm font-semibold text-gray-700">Feed ao vivo</h3>
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Atualiza a cada 30s
+                      </span>
+                    </div>
+                    {(!jornadaData?.feed || jornadaData.feed.length === 0) ? (
+                      <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
+                        <Send size={28} className="mx-auto text-gray-300 mb-2" />
+                        <p className="text-sm text-gray-500">Nenhum evento recente</p>
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="divide-y divide-gray-50">
+                          {jornadaData.feed.map((item: any) => (
+                            <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                              <span className="text-base flex-shrink-0">{item.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-medium text-gray-900 truncate">{item.clienteNome}</span>
+                                  <span className="text-xs text-gray-400">•</span>
+                                  <span className="text-xs text-gray-500 truncate">{item.automacaoNome}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                                    {item.canal === "whatsapp" ? "WhatsApp" : item.canal === "email" ? "E-mail" : item.canal}
+                                  </span>
+                                  <span className="text-[10px] text-gray-300">•</span>
+                                  <span className="text-[10px] text-gray-400">
+                                    {new Date(item.criadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              </div>
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor:
+                                    item.status === "enviado" ? "#dcfce7" :
+                                    item.status === "falhou" ? "#fee2e2" :
+                                    item.status === "pendente" ? "#fef9c3" : "#f3f4f6",
+                                  color:
+                                    item.status === "enviado" ? "#16a34a" :
+                                    item.status === "falhou" ? "#dc2626" :
+                                    item.status === "pendente" ? "#ca8a04" : "#6b7280",
+                                }}
+                              >
+                                {item.status === "enviado" ? "Enviado" :
+                                 item.status === "falhou" ? "Falhou" :
+                                 item.status === "pendente" ? "Pendente" : item.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}

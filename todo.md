@@ -960,3 +960,10 @@
 - [x] Excluído we_1THskRLUFOvpH4vDfhIM8Tpe (agendei-app-bkct9rps.manus.space)
 - [x] Excluído we_1THpThLUFOvpH4vDBaQi7Xee (agendei-app.manus.space)
 - [x] Único webhook ativo: we_1TIU6YLUFOvpH4vDqjJljS8F (hubly.orizontech.com.br)
+
+## IA + Pipeline + Automações (04/04/2026)
+- [x] Backend: endpoint gerarPipelinePorIA (IA analisa automações e cria colunas + cartões)
+- [x] Frontend: botão "Gerar com IA" + modal na tela de Automações
+- [x] Frontend: redirecionamento automático para Pipeline após geração
+- [x] Backend: endpoint getMetricasJornada (métricas agregadas por fase)
+- [x] Frontend: aba "Jornada ao Vivo" na tela de Automações com activity feed em tempo real

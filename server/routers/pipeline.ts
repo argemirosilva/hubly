@@ -116,7 +116,7 @@ export const pipelineRouter = router({
   // ── Gerador de Pipeline por IA ────────────────────────────────────────────
   gerarPipelinePorIA: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
       if (!empresa) throw new Error("Empresa não encontrada");
       const empresaId = empresa.id;
 
@@ -185,7 +185,8 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
           responseFormat: { type: "json_object" },
         });
 
-        const conteudo = resposta.choices[0]?.message?.content ?? "{}";
+        const rawContent = resposta.choices[0]?.message?.content;
+        const conteudo = typeof rawContent === "string" ? rawContent : "{}";
         estruturaIA = JSON.parse(conteudo);
 
         // Validação básica da resposta
@@ -268,7 +269,7 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
       const cartoesOrdem: Record<number, number> = {}; // colunaId → contador
       let cartoesGerados = 0;
 
-      for (const [, cliente] of ultimaEtapaPorCliente) {
+      for (const [, cliente] of Array.from(ultimaEtapaPorCliente)) {
         // Encontrar a coluna correta via mapeamento da IA
         const mapeado = estruturaIA.mapeamento?.find(
           (m) => m.automacaoId === cliente.automacaoId
