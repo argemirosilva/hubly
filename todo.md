@@ -923,3 +923,7 @@
 ## Redesign Cards de Serviços (04/04/2026)
 - [x] Remover ícones dos cards de serviços
 - [x] Cards menores e mais elegantes com nome da categoria/profissional no topo à esquerda em cor harmônica com a identidade visual
+
+## Color Picker Visual para Grupos de Serviço (04/04/2026)
+- [x] Substituir input de cor nativo por paleta visual com swatches (24 cores) + input hex + seletor nativo no modal de Tipos de Profissional
+- [x] Preview em tempo real da cor escolhida aplicada ao nome do grupo (label colorida no canto superior direito)

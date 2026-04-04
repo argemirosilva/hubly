@@ -19,8 +19,18 @@ const emptyForm = { nome: "", descricao: "", valor: "", duracaoMinutos: "60", ca
 const emptyTipoForm = { nome: "", cor: "#7c3aed" };
 
 const COR_PRESETS = [
-  "#7c3aed", "#2563eb", "#16a34a", "#dc2626", "#d97706",
-  "#0891b2", "#be185d", "#7c3aed", "#059669", "#9333ea",
+  // Roxos / Violetas
+  "#7c3aed", "#9333ea", "#a855f7", "#c026d3",
+  // Azuis
+  "#2563eb", "#0891b2", "#0284c7", "#6366f1",
+  // Verdes
+  "#16a34a", "#059669", "#0d9488", "#65a30d",
+  // Vermelhos / Rosas
+  "#dc2626", "#e11d48", "#be185d", "#db2777",
+  // Laranjas / Amarelos
+  "#d97706", "#ea580c", "#ca8a04", "#84cc16",
+  // Neutros elegantes
+  "#475569", "#64748b", "#78716c", "#292524",
 ];
 
 export default function Servicos() {
@@ -438,17 +448,67 @@ export default function Servicos() {
                 </Button>
               )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">Cor</p>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Cor do grupo</p>
+                {/* Preview da cor escolhida */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
+                    style={{ color: tipoForm.cor, background: tipoForm.cor + "18" }}
+                  >
+                    {tipoForm.nome || "Prévia"}
+                  </span>
+                  <div
+                    className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: tipoForm.cor }}
+                  />
+                </div>
+              </div>
+
+              {/* Paleta de swatches */}
+              <div className="grid grid-cols-8 gap-1.5">
                 {COR_PRESETS.map(cor => (
                   <button
                     key={cor}
+                    type="button"
                     onClick={() => setTipoForm(f => ({ ...f, cor }))}
-                    className={`w-6 h-6 rounded-full border-2 transition-all ${tipoForm.cor === cor ? "border-foreground scale-110" : "border-transparent"}`}
+                    title={cor}
+                    className={`w-7 h-7 rounded-lg transition-all hover:scale-110 ${
+                      tipoForm.cor === cor
+                        ? "ring-2 ring-offset-1 ring-foreground scale-110"
+                        : "ring-1 ring-transparent hover:ring-border"
+                    }`}
                     style={{ backgroundColor: cor }}
                   />
                 ))}
+              </div>
+
+              {/* Input hex personalizado */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg border border-border flex-shrink-0 cursor-pointer relative overflow-hidden"
+                  style={{ backgroundColor: tipoForm.cor }}
+                  title="Clique para abrir o seletor de cor"
+                >
+                  <input
+                    type="color"
+                    value={tipoForm.cor}
+                    onChange={e => setTipoForm(f => ({ ...f, cor: e.target.value }))}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                </div>
+                <Input
+                  value={tipoForm.cor}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setTipoForm(f => ({ ...f, cor: val }));
+                  }}
+                  placeholder="#7c3aed"
+                  className="font-mono text-xs h-8 flex-1"
+                  maxLength={7}
+                />
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">ou cole um hex</span>
               </div>
             </div>
           </div>
