@@ -688,6 +688,9 @@ export const appRouter = router({
         const { comReserva, servicos: servicosInput, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
+        // statusOriginal preserva o status escolhido pelo usuário (pre_agendado, agendado, etc.)
+        // antes de ser sobrescrito por aguardando_reserva quando comReserva=true
+        const statusOriginal = rest.status;
         let status = rest.status;
         if (comReserva) {
           const percentual = parseFloat(String(empresa.reservaPercentual)) / 100;
@@ -752,12 +755,13 @@ export const appRouter = router({
                 valor_reserva: valorReservaCalc,
               };
               // ── Lógica de prioridade de automação por status inicial ────────────────
+              // Usa statusOriginal (não o status final) pois comReserva pode sobrescrever para 'aguardando_reserva'
               // pre_agendado → busca agendamento_pre_agendado primeiro; fallback: agendamento_criado
               // agendado (ou qualquer outro) → busca apenas agendamento_criado
               let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
               let nomeEventoUsado = 'Confirmação de Agendamento';
 
-              if (status === 'pre_agendado') {
+              if (statusOriginal === 'pre_agendado') {
                 // Tenta automação específica de pré-agendamento
                 automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_pre_agendado');
                 nomeEventoUsado = automacaoAtiva ? 'Pré-agendamento' : 'Confirmação de Agendamento';
@@ -803,7 +807,7 @@ export const appRouter = router({
 
               const mensagem = automacaoAtiva?.corpoMensagem
                 ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
-                : (status === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
+                : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
 
               await waManager.sendMessage(telefone, mensagem);
               // Registrar no histórico de envios
