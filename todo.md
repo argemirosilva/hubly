@@ -861,3 +861,8 @@
 - [x] Portal: PortalCliente com seleção múltipla de serviços (checkboxes + resumo)
 - [x] Portal: endpoint criarAgendamento aceita array de serviços e cria itens
 - [x] Exibição: Agendamentos.tsx, Dashboard.tsx e ClienteDetalhe.tsx usam servicoNome do backend
+
+## Edição de Valores dos Serviços no Agendamento (04/04/2026)
+- [x] Backend: endpoint updateValores que atualiza valorUnitario de cada item e recalcula valorTotal
+- [x] Admin: AgendamentoDetalheModal com campos de valor editáveis inline por serviço (nome fixo, só valor editável)
+- [x] Recalcular valorTotal do agendamento ao salvar os valores editados

@@ -36,6 +36,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
   const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; valorUnitario: string }[]>([]);
+  // Estado para edição inline de valores
+  const [valoresEdit, setValoresEdit] = useState<Record<number, string>>({});
+  const [editandoValores, setEditandoValores] = useState(false);
 
   const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
     onSuccess: () => {
@@ -47,6 +50,32 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
+
+  const updateValoresMutation = trpc.agendamentos.updateValores.useMutation({
+    onSuccess: (data) => {
+      toast.success("Valores atualizados!");
+      utils.agendamentos.getItens.invalidate({ agendamentoId });
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.agendamentos.list.invalidate();
+      setEditandoValores(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  function iniciarEdicaoValores() {
+    const map: Record<number, string> = {};
+    servicosDoAgendamento.forEach(s => { map[s.servicoId] = s.valor.toFixed(2); });
+    setValoresEdit(map);
+    setEditandoValores(true);
+  }
+
+  function salvarValores() {
+    const itens = servicosDoAgendamento.map(s => ({
+      servicoId: s.servicoId,
+      valorUnitario: valoresEdit[s.servicoId] ?? s.valor.toFixed(2),
+    }));
+    updateValoresMutation.mutate({ agendamentoId, itens });
+  }
 
   const [comissaoModal, setComissaoModal] = useState(false);
   const [linkConfirmacao, setLinkConfirmacao] = useState<string | null>(null);
@@ -215,103 +244,134 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               </div>
             </div>
 
-            {/* Serviços (múltiplos) */}
+            {/* Serviços (múltiplos) com edição inline de valores */}
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                 style={{ background: profissional?.corCalendario ? `${profissional.corCalendario}20` : "oklch(60% 0.20 300 / 10%)" }}>
                 <Sparkles className="w-3.5 h-3.5" style={{ color: profissional?.corCalendario ?? "oklch(42% 0.16 300)" }} />
               </div>
               <div className="flex-1 min-w-0">
-                {!editandoServicos ? (
-                  <>
-                    {servicosDoAgendamento.length > 1 ? (
-                      <div className="space-y-0.5">
-                        {servicosDoAgendamento.map((s, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <p className="text-sm font-semibold">{s.nome}</p>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(s.valor)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-semibold">{servicosDoAgendamento[0]?.nome ?? servico?.nome ?? "—"}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
-                      {!(["concluido", "cancelado", "faltou"].includes(ag.status)) && (
-                        <button
-                          onClick={iniciarEdicaoServicos}
-                          className="text-[10px] text-primary hover:underline"
-                        >
-                          editar serviços
-                        </button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-semibold text-foreground">Editar serviços</p>
-                      <button
-                        onClick={() => {
-                          setServicosEdit(prev => [...prev, { servicoId: "", valorUnitario: "" }]);
-                        }}
-                        className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> adicionar
-                      </button>
-                    </div>
-                    {servicosEdit.map((item, index) => (
-                      <div key={index} className="flex gap-1.5 items-center">
-                        <Select
-                          value={item.servicoId}
-                          onValueChange={(v) => {
-                            const s = servicos?.find(sv => sv.id === parseInt(v));
-                            setServicosEdit(prev => prev.map((it, i) => i === index
-                              ? { servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
-                              : it
-                            ));
-                          }}
-                        >
-                          <SelectTrigger className="h-8 text-xs flex-1">
-                            <SelectValue placeholder="Serviço" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {servicos?.filter(s => s.ativo).map(s => (
-                              <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="relative w-24">
+                {/* Lista de serviços com valor editável inline */}
+                <div className="space-y-1.5">
+                  {servicosDoAgendamento.length === 0 && (
+                    <p className="text-sm font-semibold">{servico?.nome ?? "—"}</p>
+                  )}
+                  {servicosDoAgendamento.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold truncate flex-1">{s.nome}</p>
+                      {editandoValores ? (
+                        <div className="relative w-28 flex-shrink-0">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
                           <Input
                             type="number" step="0.01" min="0"
-                            value={item.valorUnitario}
-                            onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, valorUnitario: e.target.value } : it))}
-                            className="pl-7 h-8 text-xs"
+                            value={valoresEdit[s.servicoId] ?? s.valor.toFixed(2)}
+                            onChange={e => setValoresEdit(prev => ({ ...prev, [s.servicoId]: e.target.value }))}
+                            className="pl-7 h-7 text-xs"
+                            autoFocus={i === 0}
                           />
                         </div>
-                        <button
-                          onClick={() => setServicosEdit(prev => prev.filter((_, i) => i !== index))}
-                          disabled={servicosEdit.length === 1}
-                          className="text-muted-foreground hover:text-destructive disabled:opacity-30"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditandoServicos(false)}>Cancelar</Button>
-                      <Button size="sm" className="h-7 text-xs" onClick={salvarEdicaoServicos} disabled={updateServicosMutation.isPending}>
-                        {updateServicosMutation.isPending ? "Salvando..." : "Salvar"}
-                      </Button>
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground flex-shrink-0">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(s.valor)}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
+                  {!editandoValores ? (
+                    servicosDoAgendamento.length > 0 && (
+                      <button
+                        onClick={iniciarEdicaoValores}
+                        className="text-[10px] text-primary hover:underline"
+                      >
+                        editar valores
+                      </button>
+                    )
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setEditandoValores(false)}
+                        className="text-[10px] text-muted-foreground hover:underline"
+                      >
+                        cancelar
+                      </button>
+                      <button
+                        onClick={salvarValores}
+                        disabled={updateValoresMutation.isPending}
+                        className="text-[10px] text-primary font-semibold hover:underline disabled:opacity-50"
+                      >
+                        {updateValoresMutation.isPending ? "salvando..." : "salvar valores"}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Edição completa de serviços (trocar serviço) */}
+            {editandoServicos && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-foreground">Trocar serviços</p>
+                    <button
+                      onClick={() => setServicosEdit(prev => [...prev, { servicoId: "", valorUnitario: "" }])}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                    >
+                      <Plus className="w-3 h-3" /> adicionar
+                    </button>
+                  </div>
+                  {servicosEdit.map((item, index) => (
+                    <div key={index} className="flex gap-1.5 items-center">
+                      <Select
+                        value={item.servicoId}
+                        onValueChange={(v) => {
+                          const s = servicos?.find(sv => sv.id === parseInt(v));
+                          setServicosEdit(prev => prev.map((it, i) => i === index
+                            ? { servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
+                            : it
+                          ));
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs flex-1">
+                          <SelectValue placeholder="Serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {servicos?.filter(s => s.ativo).map(s => (
+                            <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="relative w-24">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                        <Input
+                          type="number" step="0.01" min="0"
+                          value={item.valorUnitario}
+                          onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, valorUnitario: e.target.value } : it))}
+                          className="pl-7 h-8 text-xs"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setServicosEdit(prev => prev.filter((_, i) => i !== index))}
+                        disabled={servicosEdit.length === 1}
+                        className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditandoServicos(false)}>Cancelar</Button>
+                    <Button size="sm" className="h-7 text-xs" onClick={salvarEdicaoServicos} disabled={updateServicosMutation.isPending}>
+                      {updateServicosMutation.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"

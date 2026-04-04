@@ -942,6 +942,32 @@ export const appRouter = router({
         })));
         return { success: true };
       }),
+    updateValores: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        itens: z.array(z.object({
+          servicoId: z.number(),
+          valorUnitario: z.string(),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        // Recalcular valor total
+        const valorTotal = input.itens.reduce((acc, s) => acc + (parseFloat(s.valorUnitario) || 0), 0).toFixed(2);
+        // Atualizar valorTotal do agendamento
+        await updateAgendamento(input.agendamentoId, { valorTotal });
+        // Substituir os itens mantendo os mesmos servicoIds mas com novos valores
+        await deleteItensByAgendamento(input.agendamentoId);
+        if (input.itens.length > 0) {
+          await createAgendamentoItens(input.itens.map(s => ({
+            agendamentoId: input.agendamentoId,
+            servicoId: s.servicoId,
+            valorUnitario: s.valorUnitario,
+          })));
+        }
+        return { success: true, valorTotal };
+      }),
   }),
 
   // ─── BLOQUEIOS ────────────────────────────────────────────────────────────
