@@ -1050,6 +1050,56 @@ export async function processarFilaPendente() {
   }
 }
 
+// ── Cancelar pré-agendamentos com reserva expirada ──────────────────────────
+async function cancelarPreAgendamentosExpirados() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+
+  try {
+    // Buscar todas as empresas com reservaHorasExpiracao configurado
+    const todasEmpresas = await db.select({
+      id: empresas.id,
+      nome: empresas.nome,
+      reservaHorasExpiracao: empresas.reservaHorasExpiracao,
+    }).from(empresas);
+
+    let totalCancelados = 0;
+
+    for (const empresa of todasEmpresas) {
+      const horasExpiracao = empresa.reservaHorasExpiracao ?? 24;
+
+      // Buscar pré-agendamentos com reserva que passaram do prazo de expiração
+      // Critério: status = 'pre_agendado' E reservaPaga = false E criadoEm + horasExpiracao < agora
+      const expirados = await db
+        .select({ id: agendamentos.id, clienteId: agendamentos.clienteId })
+        .from(agendamentos)
+        .where(and(
+          eq(agendamentos.empresaId, empresa.id),
+          eq(agendamentos.status, 'pre_agendado'),
+          sql`${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL`,
+          sql`${agendamentos.valorReserva} IS NOT NULL AND ${agendamentos.valorReserva} > 0`,
+          sql`${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR)`,
+        ));
+
+      for (const ag of expirados) {
+        await db.update(agendamentos)
+          .set({ status: 'cancelado' })
+          .where(eq(agendamentos.id, ag.id));
+        totalCancelados++;
+        console.log(`[Scheduler] Pré-agendamento ${ag.id} cancelado por expiração de reserva (${horasExpiracao}h)`);
+      }
+    }
+
+    if (totalCancelados > 0) {
+      console.log(`[Scheduler] ${totalCancelados} pré-agendamento(s) cancelado(s) por expiração de reserva`);
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao cancelar pré-agendamentos expirados:', err);
+  }
+}
+
 // ── Inicializar agendamento ────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
@@ -1098,6 +1148,14 @@ export function initScheduler() {
       processarFilaPendente();
     }, 60 * 1000); // a cada 1 minuto
   }, 15_000); // aguarda 15s para o DB estar pronto
+
+  // NOVO: Cancelar pré-agendamentos com reserva expirada a cada 30 minutos
+  setTimeout(() => {
+    cancelarPreAgendamentosExpirados();
+    setInterval(() => {
+      cancelarPreAgendamentosExpirados();
+    }, 30 * 60 * 1000); // a cada 30 minutos
+  }, 45_000); // aguarda 45s para o DB estar pronto
 
   // NOVO: Ao reconectar WhatsApp, processar fila imediatamente
   waManager.on('connected', () => {

@@ -1108,3 +1108,8 @@
 
 ## Melhorias (sessão atual)
 - [x] Toggle "Solicitar valor de reserva" habilitado por padrão no modal de nova agenda
+
+## Funcionalidades de Pré-agendamento (sessão atual)
+- [x] Botão "Reserva recebida" no detalhe do agendamento pré-agendado para confirmar pagamento e mudar status para agendado
+- [x] Cancelamento automático de pré-agendamentos não confirmados após prazo configurável (ex: 24h ou 48h)
+- [x] Card de taxa de conversão de pré-agendamentos no Dashboard

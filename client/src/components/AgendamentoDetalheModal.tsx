@@ -144,6 +144,15 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const confirmarReservaMutation = trpc.agendamentos.confirmarReserva.useMutation({
+    onSuccess: () => {
+      toast.success("✅ Reserva confirmada! Agendamento atualizado para Agendado.");
+      utils.agendamentos.list.invalidate();
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const gerarLinkMutation = trpc.confirmacao.gerarLink.useMutation({
     onSuccess: (data) => {
       setLinkConfirmacao(data.link);
@@ -665,16 +674,16 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               Alterar status
             </p>
             <div className="flex flex-wrap gap-2">
-              {/* Confirmar reserva: para pre_agendado com comReserva */}
+              {/* Reserva Recebida: para pre_agendado com valorReserva configurado */}
               {ag.status === "pre_agendado" && ag.valorReserva && (
                 <ActionBtn
-                  label="Reserva paga"
+                  label={confirmarReservaMutation.isPending ? "Confirmando..." : "Reserva Recebida"}
                   icon={CheckCircle2}
-                  bg="oklch(62% 0.18 155 / 10%)"
-                  color="oklch(35% 0.14 155)"
-                  border="oklch(62% 0.18 155 / 25%)"
-                  onClick={() => handleStatus("agendado")}
-                  loading={updateMutation.isPending}
+                  bg="oklch(55% 0.22 155 / 14%)"
+                  color="oklch(28% 0.14 155)"
+                  border="oklch(55% 0.22 155 / 35%)"
+                  onClick={() => confirmarReservaMutation.mutate({ id: ag.id })}
+                  loading={confirmarReservaMutation.isPending}
                 />
               )}
               {/* Confirmar: não mostrar se já está confirmado ou mais avançado */}

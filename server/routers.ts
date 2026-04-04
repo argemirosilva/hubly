@@ -1162,6 +1162,43 @@ export const appRouter = router({
         return { sucesso, falhas, total: input.ids.length };
       }),
 
+    // Métricas de conversão de pré-agendamentos
+    metricasPreAgendamento: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { total: 0, convertidos: 0, cancelados: 0, pendentes: 0, taxaConversao: 0 };
+
+      const db = await getDb();
+      if (!db) return { total: 0, convertidos: 0, cancelados: 0, pendentes: 0, taxaConversao: 0 };
+
+      const { agendamentos: agTable } = await import('../drizzle/schema.js');
+
+      // Buscar pré-agendamentos do mês atual
+      const agora = new Date();
+      const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString().slice(0, 10);
+      const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+      // Total criados como pre_agendado no mês (incluindo os que já foram convertidos)
+      // Usamos o histórico de envios para identificar os que tiveram evento agendamento_pre_agendado
+      // Mas mais simples: buscar todos os agendamentos do mês que têm valorReserva > 0
+      const todos = await db
+        .select({ id: agTable.id, status: agTable.status, reservaPaga: agTable.reservaPaga })
+        .from(agTable)
+        .where(and(
+          eq(agTable.empresaId, empresa.id),
+          drizzleSql`${agTable.data} >= ${inicioMes}`,
+          drizzleSql`${agTable.data} <= ${fimMes}`,
+          drizzleSql`${agTable.valorReserva} IS NOT NULL AND ${agTable.valorReserva} > 0`,
+        ));
+
+      const total = todos.length;
+      const convertidos = todos.filter(a => ['agendado', 'confirmado', 'em_andamento', 'concluido'].includes(a.status) && a.reservaPaga).length;
+      const cancelados = todos.filter(a => a.status === 'cancelado').length;
+      const pendentes = todos.filter(a => a.status === 'pre_agendado').length;
+      const taxaConversao = total > 0 ? Math.round((convertidos / total) * 100) : 0;
+
+      return { total, convertidos, cancelados, pendentes, taxaConversao };
+    }),
+
     // Excluir agendamento completamente (cascade: itens, pagamentos, comissões, prontuários, tokens)
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))

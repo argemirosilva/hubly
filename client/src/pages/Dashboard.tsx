@@ -260,6 +260,7 @@ export default function Dashboard() {
 
   const { data: empresa } = trpc.empresa.get.useQuery();
   const { data: metrics } = trpc.financeiro.dashboard.useQuery(undefined);
+  const { data: metricasPreAg } = trpc.agendamentos.metricasPreAgendamento.useQuery();
   const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
   const { data: alertasIA } = trpc.iaFinanceiro.getAlertas.useQuery({ apenasNaoLidos: true });
   const alertasNaoLidos = (alertasIA ?? []).length;
@@ -389,6 +390,7 @@ export default function Dashboard() {
               ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{ label: isProfissional ? "Minha receita" : "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs anterior` : "Mês atual", trend: variacaoReceita, icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)", onClick: () => setReceitaDetalheOpen(true) }] : []),
               { label: isProfissional ? "Clientes atendidos" : "Clientes", value: String(metrics?.totalClientes ?? 0), sub: isProfissional ? "no mês" : "cadastrados", icon: Users, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
               { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: isProfissional ? "meus concluídos" : "concluídos / total", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
+              ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0} de ${metricasPreAg?.total ?? 0} confirmados`, icon: CalendarCheck, iconBg: "oklch(60% 0.20 220 / 12%)", iconColor: "oklch(40% 0.16 220)" }] : []),
             ].map((stat) => {
               const Icon = stat.icon;
               const isClickable = !!(stat as any).onClick;
