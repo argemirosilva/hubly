@@ -190,6 +190,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   reservaPagaEm: timestamp("reservaPagaEm"),
   reservaExpiracaoEm: timestamp("reservaExpiracaoEm"),
   tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  desconto: decimal("desconto", { precision: 10, scale: 2 }).default("0"),
   observacoes: text("observacoes"),
   observacoesInternas: text("observacoesInternas"),
   confirmadoEm: timestamp("confirmadoEm"),
@@ -210,6 +211,18 @@ export const agendamentoItens = mysqlTable("agendamento_itens", {
 });
 
 export type AgendamentoItem = typeof agendamentoItens.$inferSelect;
+
+// ─── PAGAMENTOS DE AGENDAMENTO ────────────────────────────────────────────────
+export const agendamentoPagamentos = mysqlTable("agendamento_pagamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId").notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  meioPagamento: varchar("meioPagamento", { length: 100 }),
+  observacao: text("observacao"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AgendamentoPagamento = typeof agendamentoPagamentos.$inferSelect;
 
 // ─── BLOQUEIOS DE AGENDA ──────────────────────────────────────────────────────
 export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {

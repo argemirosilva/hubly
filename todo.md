@@ -866,3 +866,13 @@
 - [x] Backend: endpoint updateValores que atualiza valorUnitario de cada item e recalcula valorTotal
 - [x] Admin: AgendamentoDetalheModal com campos de valor editáveis inline por serviço (nome fixo, só valor editável)
 - [x] Recalcular valorTotal do agendamento ao salvar os valores editados
+
+## Pagamentos Parciais e Desconto no Agendamento (04/04/2026)
+- [x] Banco: tabela agendamento_pagamentos (agendamentoId, valor, meioPagamento, observacao, criadoEm)
+- [x] Banco: campo desconto (decimal) na tabela agendamentos
+- [x] Backend: endpoints addPagamento, removePagamento, getPagamentos, updateDesconto
+- [x] Frontend: seção "Pagamento" no modal com lista de pagamentos + botão "+ Adicionar pagamento"
+- [x] Frontend: campo de desconto editável com botões editar/salvar/cancelar
+- [x] Frontend: rodapé com Itens / Desconto / Pago / Em aberto calculado automaticamente
+- [x] Badge "Em aberto" (laranja) ou "Quitado" (verde) no header da seção
+- [x] Meios de pagamento cadastrados aparecem no select além das opções padrão

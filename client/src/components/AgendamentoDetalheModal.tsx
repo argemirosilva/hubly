@@ -1,8 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle } from "lucide-react";
 import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,9 +31,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const utils = trpc.useUtils();
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
   const { data: itens } = trpc.agendamentos.getItens.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
+  const { data: pagamentos, refetch: refetchPagamentos } = trpc.agendamentos.getPagamentos.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+  const { data: meiosPagamento } = trpc.meiosPagamento.list.useQuery();
 
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
@@ -39,6 +43,12 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Estado para edição inline de valores
   const [valoresEdit, setValoresEdit] = useState<Record<number, string>>({});
   const [editandoValores, setEditandoValores] = useState(false);
+  // Estado para pagamentos parciais
+  const [showAddPagamento, setShowAddPagamento] = useState(false);
+  const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", observacao: "" });
+  // Estado para desconto
+  const [editandoDesconto, setEditandoDesconto] = useState(false);
+  const [descontoEdit, setDescontoEdit] = useState("");
 
   const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
     onSuccess: () => {
@@ -52,12 +62,42 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   });
 
   const updateValoresMutation = trpc.agendamentos.updateValores.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Valores atualizados!");
       utils.agendamentos.getItens.invalidate({ agendamentoId });
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
       utils.agendamentos.list.invalidate();
       setEditandoValores(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const addPagamentoMutation = trpc.agendamentos.addPagamento.useMutation({
+    onSuccess: () => {
+      toast.success("Pagamento registrado!");
+      utils.agendamentos.getPagamentos.invalidate({ agendamentoId });
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      setNovoPagamento({ valor: "", meioPagamento: "", observacao: "" });
+      setShowAddPagamento(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const removePagamentoMutation = trpc.agendamentos.removePagamento.useMutation({
+    onSuccess: () => {
+      toast.success("Pagamento removido!");
+      utils.agendamentos.getPagamentos.invalidate({ agendamentoId });
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const updateDescontoMutation = trpc.agendamentos.updateDesconto.useMutation({
+    onSuccess: () => {
+      toast.success("Desconto atualizado!");
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.agendamentos.list.invalidate();
+      setEditandoDesconto(false);
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -394,6 +434,210 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               </p>
             </div>
           </div>
+
+          {/* ─── Seção Pagamentos e Desconto ─── */}
+          {(() => {
+            const totalItens = parseFloat(String(ag.valorTotal ?? 0));
+            const desconto = parseFloat(String((ag as any).desconto ?? 0));
+            const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+            const emAberto = Math.max(0, totalItens - desconto - totalPago);
+            const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+            return (
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+                {/* Header da seção */}
+                <div className="flex items-center justify-between px-4 py-2.5"
+                  style={{ background: "oklch(97% 0.006 250)", borderBottom: "1px solid oklch(91% 0.010 250)" }}>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pagamento</span>
+                  </div>
+                  {emAberto > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-amber-400 text-amber-600 bg-amber-50">
+                      Em aberto
+                    </Badge>
+                  )}
+                  {emAberto <= 0 && totalPago > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-green-400 text-green-600 bg-green-50">
+                      Quitado
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="p-4 space-y-3">
+                  {/* Pagamentos registrados */}
+                  {(pagamentos ?? []).length > 0 && (
+                    <div className="space-y-1.5">
+                      {(pagamentos ?? []).map((p) => (
+                        <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground truncate">
+                              {p.meioPagamento || "Pagamento"}
+                              {p.observacao && <span className="ml-1 opacity-60">· {p.observacao}</span>}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-xs font-semibold text-green-600">{fmt(parseFloat(String(p.valor)))}</span>
+                            <button
+                              onClick={() => removePagamentoMutation.mutate({ id: p.id })}
+                              disabled={removePagamentoMutation.isPending}
+                              className="text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Formulário adicionar pagamento */}
+                  {showAddPagamento ? (
+                    <div className="space-y-2 p-3 rounded-lg" style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground mb-1 block">Valor (R$) *</Label>
+                          <Input
+                            type="number" step="0.01" min="0.01" placeholder="0,00"
+                            value={novoPagamento.valor}
+                            onChange={e => setNovoPagamento(p => ({ ...p, valor: e.target.value }))}
+                            className="h-8 text-xs"
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground mb-1 block">Meio de Pagamento</Label>
+                          <Select
+                            value={novoPagamento.meioPagamento}
+                            onValueChange={v => setNovoPagamento(p => ({ ...p, meioPagamento: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="PIX">PIX</SelectItem>
+                              <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
+                              <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
+                              {(meiosPagamento ?? []).filter(m => m.ativo).map(m => (
+                                <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                              ))}
+                              <SelectItem value="Outro">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground mb-1 block">Observação <span className="opacity-60">(opcional)</span></Label>
+                        <Input
+                          placeholder="Ex: sinal, parcela 1..."
+                          value={novoPagamento.observacao}
+                          onChange={e => setNovoPagamento(p => ({ ...p, observacao: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => setShowAddPagamento(false)}>Cancelar</Button>
+                        <Button
+                          size="sm" className="h-7 text-xs flex-1"
+                          disabled={!novoPagamento.valor || addPagamentoMutation.isPending}
+                          onClick={() => {
+                            if (!novoPagamento.valor) return;
+                            addPagamentoMutation.mutate({
+                              agendamentoId,
+                              valor: novoPagamento.valor,
+                              meioPagamento: novoPagamento.meioPagamento || undefined,
+                              observacao: novoPagamento.observacao || undefined,
+                            });
+                          }}
+                        >
+                          {addPagamentoMutation.isPending ? "Salvando..." : "Registrar"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowAddPagamento(true)}
+                      className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Adicionar pagamento
+                    </button>
+                  )}
+
+                  <Separator className="my-1" />
+
+                  {/* Resumo financeiro */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Itens</span>
+                      <span className="font-medium">{fmt(totalItens)}</span>
+                    </div>
+
+                    {/* Desconto */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Desconto</span>
+                      </div>
+                      {editandoDesconto ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                            <Input
+                              type="number" step="0.01" min="0"
+                              value={descontoEdit}
+                              onChange={e => setDescontoEdit(e.target.value)}
+                              className="pl-7 h-6 text-xs w-24"
+                              autoFocus
+                            />
+                          </div>
+                          <button onClick={() => setEditandoDesconto(false)} className="text-[10px] text-muted-foreground hover:underline">cancelar</button>
+                          <button
+                            onClick={() => updateDescontoMutation.mutate({ agendamentoId, desconto: descontoEdit || "0" })}
+                            disabled={updateDescontoMutation.isPending}
+                            className="text-[10px] text-primary font-semibold hover:underline disabled:opacity-50"
+                          >
+                            {updateDescontoMutation.isPending ? "..." : "salvar"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-medium ${desconto > 0 ? "text-amber-600" : ""}`}>
+                            {desconto > 0 ? `- ${fmt(desconto)}` : fmt(0)}
+                          </span>
+                          <button
+                            onClick={() => { setDescontoEdit(String(desconto || "")); setEditandoDesconto(true); }}
+                            className="text-[10px] text-muted-foreground hover:text-primary"
+                          >
+                            editar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {totalPago > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Pago</span>
+                        <span className="font-medium text-green-600">- {fmt(totalPago)}</span>
+                      </div>
+                    )}
+
+                    <Separator className="my-0.5" />
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">Em aberto</span>
+                      <span className={`text-sm font-bold ${
+                        emAberto <= 0 ? "text-green-600" : "text-amber-600"
+                      }`}>
+                        {emAberto <= 0 ? "Quitado" : fmt(emAberto)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {ag.observacoes && (
             <div className="rounded-xl p-3.5"

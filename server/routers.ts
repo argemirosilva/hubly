@@ -35,6 +35,7 @@ import {
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
   createAgendamentoItens, getItensByAgendamento, getItensByAgendamentos, deleteItensByAgendamento,
+  getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -967,6 +968,53 @@ export const appRouter = router({
           })));
         }
         return { success: true, valorTotal };
+      }),
+
+    // Buscar pagamentos de um agendamento
+    getPagamentos: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        return getPagamentosByAgendamento(input.agendamentoId);
+      }),
+
+    // Adicionar pagamento parcial
+    addPagamento: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        valor: z.string(),
+        meioPagamento: z.string().optional(),
+        observacao: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await addPagamentoAgendamento(input);
+        return { success: true };
+      }),
+
+    // Remover pagamento parcial
+    removePagamento: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await removePagamentoAgendamento(input.id);
+        return { success: true };
+      }),
+
+    // Atualizar desconto do agendamento
+    updateDesconto: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        desconto: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateDescontoAgendamento(input.agendamentoId, input.desconto);
+        return { success: true };
       }),
   }),
 

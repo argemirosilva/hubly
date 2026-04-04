@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela } from "../drizzle/schema";
+import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1669,4 +1670,41 @@ export async function marcarComissoesPagas(ids: number[], dataPagamento: Date) {
   for (const id of ids) {
     await db.update(comissoes).set({ paga: true, pagaEm: dataPagamento }).where(eq(comissoes.id, id));
   }
+}
+
+// ─── PAGAMENTOS DE AGENDAMENTO ────────────────────────────────────────────────
+export async function getPagamentosByAgendamento(agendamentoId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agendamentoPagamentos)
+    .where(eq(agendamentoPagamentos.agendamentoId, agendamentoId))
+    .orderBy(agendamentoPagamentos.createdAt);
+}
+
+export async function addPagamentoAgendamento(data: {
+  agendamentoId: number;
+  valor: string;
+  meioPagamento?: string;
+  observacao?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.insert(agendamentoPagamentos).values({
+    agendamentoId: data.agendamentoId,
+    valor: data.valor,
+    meioPagamento: data.meioPagamento ?? null,
+    observacao: data.observacao ?? null,
+  });
+}
+
+export async function removePagamentoAgendamento(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(agendamentoPagamentos).where(eq(agendamentoPagamentos.id, id));
+}
+
+export async function updateDescontoAgendamento(agendamentoId: number, desconto: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(agendamentos).set({ desconto }).where(eq(agendamentos.id, agendamentoId));
 }
