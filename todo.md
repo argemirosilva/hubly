@@ -876,3 +876,6 @@
 - [x] Frontend: rodapé com Itens / Desconto / Pago / Em aberto calculado automaticamente
 - [x] Badge "Em aberto" (laranja) ou "Quitado" (verde) no header da seção
 - [x] Meios de pagamento cadastrados aparecem no select além das opções padrão
+
+## Bug: Rebarba branca no logo da sidebar (04/04/2026)
+- [x] Removida rebarba branca do logo: processamento Python removeu 94 pixels quase-brancos de anti-aliasing, novo arquivo CDN sem rebarba aplicado em AdminLayout e PortalCliente

@@ -207,7 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png"
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
               />
@@ -242,7 +242,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-full max-w-sm">
             <div className="flex items-center gap-2.5 mb-10 lg:hidden">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png"
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-8 w-auto object-contain"
               />
@@ -329,7 +329,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ borderBottom: "1px solid oklch(22% 0.015 255)" }}>
           <div className="flex items-center gap-2">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
               style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
@@ -580,7 +580,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
           <div className="flex items-center gap-2">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-7 w-auto object-contain"
             />

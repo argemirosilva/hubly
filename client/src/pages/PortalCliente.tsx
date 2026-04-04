@@ -805,7 +805,7 @@ export default function PortalCliente() {
 }
 
 const HUBLY_LOGO_COMPLETO = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png";
-const HUBLY_LOGO_TRANSPARENTE = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-transparent_56686235.png";
+const HUBLY_LOGO_TRANSPARENTE = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png";
 
 function HublyFooter() {
   return (
