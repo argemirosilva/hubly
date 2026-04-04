@@ -56,15 +56,30 @@ export default function WhatsAppPage() {
   const { pode } = usePermissoes();
   const [testPhone, setTestPhone] = useState("");
   const [pollingInterval, setPollingInterval] = useState(3000);
+  // Estado local para feedback imediato ao clicar em Conectar
+  const [localConnecting, setLocalConnecting] = useState(false);
 
   // Polling do status do WhatsApp
-  const { data: statusData, refetch: refetchStatus } = trpc.whatsapp.getStatus.useQuery(undefined, {
+  const { data: statusData, isLoading: statusLoading, refetch: refetchStatus } = trpc.whatsapp.getStatus.useQuery(undefined, {
     refetchInterval: pollingInterval,
     refetchIntervalInBackground: false,
   });
 
+  // Enquanto a primeira query não retornou, mostramos "verificando"
+  const isVerifying = statusLoading && statusData === undefined;
   const status = (statusData?.status ?? "disconnected") as WAStatus;
-  const config = statusConfig[status];
+  // Mostrar "connecting" tanto quando o servidor reporta quanto quando clicamos localmente
+  const effectiveStatus: WAStatus = localConnecting && status !== "connecting" && status !== "connected" && status !== "qr_ready"
+    ? "connecting"
+    : status;
+  const config = statusConfig[effectiveStatus];
+
+  // Limpar localConnecting quando o servidor confirmar o estado
+  useEffect(() => {
+    if (status === "connecting" || status === "connected" || status === "qr_ready") {
+      setLocalConnecting(false);
+    }
+  }, [status]);
 
   // Parar polling quando conectado
   useEffect(() => {
@@ -122,8 +137,15 @@ export default function WhatsAppPage() {
     },
   });
 
-  const handleConnect = () => connectMutation.mutate();
-  const handleDisconnect = () => disconnectMutation.mutate();
+  const handleConnect = () => {
+    setLocalConnecting(true);
+    setPollingInterval(2000);
+    connectMutation.mutate();
+  };
+  const handleDisconnect = () => {
+    setLocalConnecting(false);
+    disconnectMutation.mutate();
+  };
   const handleResetSession = () => resetSessionMutation.mutate();
   const handleSendTest = () => {
     if (!testPhone.trim()) return;
@@ -181,8 +203,16 @@ export default function WhatsAppPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Estado: verificando conexão ao abrir a tela */}
+          {isVerifying && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="w-10 h-10 text-muted-foreground/40 animate-spin" />
+              <p className="text-sm text-muted-foreground">Verificando conexão...</p>
+            </div>
+          )}
+
           {/* QR Code */}
-          {status === "qr_ready" && statusData?.qrDataUrl && (
+          {!isVerifying && effectiveStatus === "qr_ready" && statusData?.qrDataUrl && (
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="p-3 bg-white rounded-xl border-2 border-green-200 shadow-sm">
                 <img
@@ -213,7 +243,7 @@ export default function WhatsAppPage() {
           )}
 
           {/* QR Code aguardando (sem imagem ainda) */}
-          {status === "qr_ready" && !statusData?.qrDataUrl && (
+          {!isVerifying && effectiveStatus === "qr_ready" && !statusData?.qrDataUrl && (
             <div className="flex flex-col items-center gap-3 py-6">
               <QrCode className="w-10 h-10 text-blue-400 animate-pulse" />
               <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
@@ -221,7 +251,7 @@ export default function WhatsAppPage() {
           )}
 
           {/* Connecting state */}
-          {status === "connecting" && (
+          {!isVerifying && effectiveStatus === "connecting" && (
             <div className="flex flex-col items-center gap-3 py-6">
               <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
               <p className="text-sm text-muted-foreground">Iniciando conexão, aguarde...</p>
@@ -229,7 +259,7 @@ export default function WhatsAppPage() {
           )}
 
           {/* Connected state */}
-          {status === "connected" && (
+          {!isVerifying && effectiveStatus === "connected" && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100">
               <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
               <div>
@@ -242,7 +272,7 @@ export default function WhatsAppPage() {
           )}
 
           {/* Disconnected / logged out state */}
-          {(status === "disconnected" || status === "logged_out") && (
+          {!isVerifying && (effectiveStatus === "disconnected" || effectiveStatus === "logged_out") && (
             <div className="flex flex-col items-center gap-3 py-4">
               <WifiOff className="w-10 h-10 text-gray-300" />
               <div className="text-center">
@@ -263,23 +293,24 @@ export default function WhatsAppPage() {
           )}
 
           {/* Actions */}
+          {!isVerifying && (
           <div className="flex flex-col gap-2 pt-2">
             <div className="flex gap-2">
-              {status !== "connected" && (
+              {effectiveStatus !== "connected" && (
                 <Button
                   onClick={handleConnect}
-                  disabled={connectMutation.isPending || status === "connecting" || status === "qr_ready"}
+                  disabled={connectMutation.isPending || localConnecting || effectiveStatus === "connecting" || effectiveStatus === "qr_ready"}
                   className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
                 >
-                  {connectMutation.isPending || status === "connecting" ? (
+                  {connectMutation.isPending || localConnecting || effectiveStatus === "connecting" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Wifi className="w-4 h-4" />
                   )}
-                  {status === "qr_ready" ? "Aguardando escaneamento..." : "Conectar WhatsApp"}
+                  {effectiveStatus === "connecting" ? "Conectando..." : effectiveStatus === "qr_ready" ? "Aguardando escaneamento..." : "Conectar WhatsApp"}
                 </Button>
               )}
-              {(status === "connected" || status === "qr_ready" || status === "connecting") && (
+              {(effectiveStatus === "connected" || effectiveStatus === "qr_ready" || effectiveStatus === "connecting") && (
                 <Button
                   variant="outline"
                   onClick={handleDisconnect}
@@ -295,7 +326,7 @@ export default function WhatsAppPage() {
                 </Button>
               )}
             </div>
-            {(status === "disconnected" || status === "logged_out") && (
+            {(effectiveStatus === "disconnected" || effectiveStatus === "logged_out") && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -312,11 +343,12 @@ export default function WhatsAppPage() {
               </Button>
             )}
           </div>
+        )}
         </CardContent>
       </Card>
 
       {/* Test Message */}
-      {status === "connected" && (
+      {effectiveStatus === "connected" && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Enviar Mensagem de Teste</CardTitle>

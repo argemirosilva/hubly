@@ -898,3 +898,10 @@
 - [x] Remover X duplicado do AgendamentoDetalheModal: adicionado showCloseButton={false} no DialogContent para desativar o X nativo do Radix (o header customizado já tem seu próprio botão X)
 - [x] Modal de Permissões (Equipe): adicionado showCloseButton={false} no DialogContent com p-0 e header customizado
 - [x] NovaAgendaModal e ReceitaDetalheModal: adicionado pr-12 no DialogHeader para evitar sobrepôr o título com o X nativo
+
+## WhatsApp: Resiliência e UX (04/04/2026)
+- [x] Backend: remover limpeza automática de sessão por tentativas — só limpar em loggedOut explícito
+- [x] Backend: backoff exponencial entre tentativas de reconexão (5s → 15s → 30s → 60s → 120s, sem limite)
+- [x] Backend: aguardar banco disponível antes de reconectar no init pós-deploy (retry por 30s)
+- [x] Frontend: exibir "Verificando conexão..." ao abrir a tela de WhatsApp
+- [x] Frontend: exibir feedback "Conectando..." imediato ao clicar em Conectar, bloqueando cliques duplos

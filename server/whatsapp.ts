@@ -112,6 +112,9 @@ interface WAState {
 
 // ─── MANAGER ──────────────────────────────────────────────────────────────────
 
+// Delays de backoff exponencial: 5s, 15s, 30s, 60s, 120s, 120s, ...
+const RECONNECT_DELAYS = [5_000, 15_000, 30_000, 60_000, 120_000];
+
 class WhatsAppManager extends EventEmitter {
   private sock: WASocket | null = null;
   private state: WAState = {
@@ -124,7 +127,6 @@ class WhatsAppManager extends EventEmitter {
   private isShuttingDown = false;
   private dbAuth: Awaited<ReturnType<typeof useDbAuthState>> | null = null;
   private reconnectCount = 0;
-  private readonly MAX_RECONNECT_BEFORE_CLEAR = 5;
 
   getState(): WAState {
     return { ...this.state };
@@ -136,6 +138,11 @@ class WhatsAppManager extends EventEmitter {
     }
 
     this.isShuttingDown = false;
+    // Fechar socket anterior se existir (evita vazamento de listeners)
+    if (this.sock) {
+      try { this.sock.end(undefined); } catch { /* ignorar */ }
+      this.sock = null;
+    }
     this.setState({ status: "connecting", qrDataUrl: null });
 
     try {
@@ -207,31 +214,26 @@ class WhatsAppManager extends EventEmitter {
 
         if (connection === "close") {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
-          console.log(`[WhatsApp] Conexão fechada. Código: ${statusCode}. Reconectar: ${shouldReconnect}`);
+          console.log(`[WhatsApp] Conexão fechada. Código: ${statusCode}. LoggedOut: ${isLoggedOut}`);
 
-          if (statusCode === DisconnectReason.loggedOut) {
-            // Usuário deslogou — limpar sessão do banco
+          if (isLoggedOut) {
+            // Usuário deslogou explicitamente no celular — única situação onde limpamos a sessão
+            console.log("[WhatsApp] 🚪 Deslogado pelo dispositivo. Limpando sessão.");
             this.setState({ status: "logged_out", qrDataUrl: null, phoneNumber: null, connectedAt: null });
             await this.dbAuth?.clearSession();
             this.dbAuth = null;
             this.emit("logged_out");
-          } else if (shouldReconnect && !this.isShuttingDown) {
+          } else if (!this.isShuttingDown) {
+            // Qualquer outro motivo (rede, deploy, timeout) → reconectar com backoff exponencial
             this.reconnectCount++;
-            if (this.reconnectCount >= this.MAX_RECONNECT_BEFORE_CLEAR) {
-              console.log(`[WhatsApp] ⚠️ Muitas tentativas de reconexão (${this.reconnectCount}). Limpando sessão corrompida...`);
-              this.reconnectCount = 0;
-              await this.dbAuth?.clearSession();
-              this.dbAuth = null;
-              this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
-              this.emit("disconnected");
-              return;
-            }
+            const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);
+            const delay = RECONNECT_DELAYS[delayIndex];
+            console.log(`[WhatsApp] 🔄 Tentativa ${this.reconnectCount} de reconexão em ${delay / 1000}s...`);
             this.setState({ status: "disconnected" });
             this.emit("disconnected");
-            // Reconectar automaticamente após 5 segundos
-            this.scheduleReconnect();
+            this.scheduleReconnect(delay);
           } else {
             this.setState({ status: "disconnected" });
             this.emit("disconnected");
@@ -242,7 +244,9 @@ class WhatsAppManager extends EventEmitter {
       console.error("[WhatsApp] Erro ao conectar:", err);
       this.setState({ status: "disconnected" });
       if (!this.isShuttingDown) {
-        this.scheduleReconnect(10_000);
+        this.reconnectCount++;
+        const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);
+        this.scheduleReconnect(RECONNECT_DELAYS[delayIndex]);
       }
     }
   }
@@ -251,7 +255,7 @@ class WhatsAppManager extends EventEmitter {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       if (!this.isShuttingDown) {
-        console.log("[WhatsApp] Tentando reconectar...");
+        console.log(`[WhatsApp] ⏱ Reconectando agora (tentativa ${this.reconnectCount})...`);
         this.connect().catch(console.error);
       }
     }, delay);
@@ -368,23 +372,35 @@ class WhatsAppManager extends EventEmitter {
    * Se houver credenciais salvas no banco, reconecta automaticamente.
    */
   async init(): Promise<void> {
-    try {
-      const db = await getDb();
-      if (!db) {
-        console.log("[WhatsApp] Banco não disponível. Aguardando conexão manual.");
-        return;
+    // Aguardar o banco estar disponível (retry por até 30s após deploy)
+    let db = await getDb();
+    if (!db) {
+      console.log("[WhatsApp] Banco não disponível. Aguardando até 30s...");
+      for (let i = 0; i < 6; i++) {
+        await new Promise(r => setTimeout(r, 5_000));
+        db = await getDb();
+        if (db) break;
       }
+    }
 
+    if (!db) {
+      console.log("[WhatsApp] Banco indisponível após 30s. Aguardando conexão manual.");
+      return;
+    }
+
+    try {
       // Verificar se há credenciais salvas
       const rows = await db.select().from(waSession).where(eq(waSession.id, "creds")).limit(1);
       if (rows.length > 0) {
-        console.log("[WhatsApp] Sessão encontrada no banco. Reconectando automaticamente...");
+        console.log("[WhatsApp] ✅ Sessão encontrada no banco. Reconectando automaticamente...");
         await this.connect();
       } else {
         console.log("[WhatsApp] Nenhuma sessão salva. Aguardando conexão manual via QR Code.");
       }
     } catch (err) {
       console.error("[WhatsApp] Erro ao verificar sessão no banco:", err);
+      // Tentar reconectar após 10s caso seja erro transitório
+      setTimeout(() => this.init().catch(console.error), 10_000);
     }
   }
 }
