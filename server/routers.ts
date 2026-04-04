@@ -659,7 +659,7 @@ export const appRouter = router({
         horaInicio: z.string(),
         horaFim: z.string(),
         valorTotal: z.string(),
-        status: z.enum(["pre_agendado", "aguardando_reserva", "agendado", "confirmado"]).default("agendado"),
+        status: z.enum(["pre_agendado", "agendado", "confirmado"]).default("pre_agendado"),
         observacoes: z.string().optional(),
         observacoesInternas: z.string().optional(),
         comReserva: z.boolean().default(false),
@@ -688,15 +688,14 @@ export const appRouter = router({
         const { comReserva, servicos: servicosInput, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
-        // statusOriginal preserva o status escolhido pelo usuário (pre_agendado, agendado, etc.)
-        // antes de ser sobrescrito por aguardando_reserva quando comReserva=true
+        // statusOriginal = status escolhido pelo usuário (pre_agendado, agendado, etc.)
+        // Não sobrescrevemos mais para 'aguardando_reserva' — o status original é mantido
         const statusOriginal = rest.status;
-        let status = rest.status;
+        const status = rest.status;
         if (comReserva) {
           const percentual = parseFloat(String(empresa.reservaPercentual)) / 100;
           valorReserva = (parseFloat(rest.valorTotal) * percentual).toFixed(2);
           reservaExpiracaoEm = new Date(Date.now() + (empresa.reservaHorasExpiracao ?? 24) * 60 * 60 * 1000);
-          status = "aguardando_reserva";
         }
         const id = await createAgendamento({
           ...rest,
@@ -755,7 +754,6 @@ export const appRouter = router({
                 valor_reserva: valorReservaCalc,
               };
               // ── Lógica de prioridade de automação por status inicial ────────────────
-              // Usa statusOriginal (não o status final) pois comReserva pode sobrescrever para 'aguardando_reserva'
               // pre_agendado → busca agendamento_pre_agendado primeiro; fallback: agendamento_criado
               // agendado (ou qualquer outro) → busca apenas agendamento_criado
               let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
@@ -854,7 +852,7 @@ export const appRouter = router({
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
-        status: z.enum(["pre_agendado", "aguardando_reserva", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]).optional(),
+        status: z.enum(["pre_agendado", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]).optional(),
         data: z.string().optional(),
         horaInicio: z.string().optional(),
         horaFim: z.string().optional(),

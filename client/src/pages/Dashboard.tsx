@@ -125,8 +125,7 @@ const DEFAULT_LAYOUT: WidgetConfig[] = WIDGET_CATALOG.map((w, i) => ({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
-  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
-  aguardando_reserva: { label: "Aguard. Reserva", bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
+  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
   agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
   confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
@@ -374,7 +373,7 @@ export default function Dashboard() {
     : 0;
 
   const dataFormatada = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
-  const pendentes = agendamentosOrdenados.filter(a => a.status === "aguardando_reserva" || a.status === "pre_agendado").length;
+  const pendentes = agendamentosOrdenados.filter(a => a.status === "pre_agendado").length;
 
   // Widgets ordenados e visíveis
   const sortedLayout = useMemo(() => [...layout].sort((a, b) => a.order - b.order), [layout]);

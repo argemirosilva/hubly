@@ -27,7 +27,6 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
-  aguardando_reserva: "Aguard. Reserva",
   agendado: "Agendado",
   confirmado: "Confirmado",
   em_andamento: "Em andamento",
@@ -37,8 +36,7 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusStyle: Record<string, { bg: string; color: string }> = {
-  pre_agendado:       { bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
-  aguardando_reserva: { bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
+  pre_agendado:       { bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
   agendado:           { bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
   confirmado:         { bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },

@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
-  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
-  aguardando_reserva: { label: "Aguard. Reserva", bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
+  pre_agendado:       { label: "Pré-agendado",    bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
   agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
   confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
@@ -666,10 +665,10 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               Alterar status
             </p>
             <div className="flex flex-wrap gap-2">
-              {/* Confirmar reserva: apenas para aguardando_reserva */}
-              {ag.status === "aguardando_reserva" && (
+              {/* Confirmar reserva: para pre_agendado com comReserva */}
+              {ag.status === "pre_agendado" && ag.valorReserva && (
                 <ActionBtn
-                  label="Confirmar reserva"
+                  label="Reserva paga"
                   icon={CheckCircle2}
                   bg="oklch(62% 0.18 155 / 10%)"
                   color="oklch(35% 0.14 155)"

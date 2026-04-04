@@ -1084,3 +1084,10 @@
 ## Lógica de disparo por status inicial
 - [ ] Adicionar evento agendamento_pre_agendado na UI de Automações
 - [ ] Corrigir lógica de disparo no agendamentos.create: pre_agendado → busca agendamento_pre_agendado primeiro, fallback agendamento_criado; agendado → só agendamento_criado
+
+## Modal Novo Agendamento — Melhorias (sessão atual)
+- [x] Status padrão pre_agendado no select de status inicial
+- [x] Exibir valor do sinal calculado com percentual real da empresa
+- [x] Registrar automação na fila ao salvar pré-agendamento
+- [x] Remover status aguardando_reserva: manter sempre status original (pre_agendado) quando comReserva=true
+- [x] Variável {{valor_reserva}} nas automações: valor calculado com percentual da empresa (ex: 30% de R\$ 200 = R\$ 60,00)

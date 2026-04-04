@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Zap } from "lucide-react";
 
 interface ServicoItem {
   servicoId: string;
@@ -29,8 +29,12 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+  const { data: empresa } = trpc.empresa.get.useQuery();
   const { pode, profissionalId: meuProfissionalId, isOwner } = usePermissoes();
   const podeAgendarParaOutros = isOwner || pode('agendamentosVerTodos');
+
+  // Percentual de reserva configurado na empresa (padrão 30%)
+  const percentualReserva = parseFloat(String(empresa?.reservaPercentual ?? 30));
 
   const [form, setForm] = useState({
     clienteId: "",
@@ -40,7 +44,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     horaFim: "10:00",
     observacoes: "",
     comReserva: false,
-    status: "agendado" as "pre_agendado" | "agendado" | "confirmado" | "aguardando_reserva",
+    // Padrão: pré-agendado
+    status: "pre_agendado" as "pre_agendado" | "agendado" | "confirmado",
   });
 
   // Lista de serviços selecionados (múltiplos)
@@ -132,6 +137,9 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     return acc + (parseFloat(item.valorUnitario) || 0);
   }, 0);
 
+  // Valor do sinal calculado com percentual real da empresa
+  const valorSinal = percentualReserva > 0 ? valorTotal * (percentualReserva / 100) : 0;
+
   const handleSubmit = () => {
     if (!form.clienteId || !form.profissionalId) {
       toast.error("Preencha cliente e profissional");
@@ -155,7 +163,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       horaInicio: form.horaInicio + ":00",
       horaFim: form.horaFim + ":00",
       valorTotal: valorTotal.toFixed(2),
-      status: form.comReserva ? "aguardando_reserva" : form.status,
+      // Status sempre é o escolhido pelo usuário (pre_agendado por padrão)
+      status: form.status,
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
     });
@@ -266,7 +275,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                           min="0"
                           value={item.valorUnitario}
                           onChange={e => handleValorChange(index, e.target.value)}
-                          className="pl-8 h-9 text-sm"
+                          className="pl-8"
                           placeholder="0,00"
                         />
                       </div>
@@ -331,30 +340,34 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Status inicial */}
-            {!form.comReserva && (
-              <div className="sm:col-span-2">
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Status inicial</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={v => setForm(f => ({ ...f, status: v as any }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pre_agendado">Pré-agendado</SelectItem>
-                    <SelectItem value="agendado">Agendado</SelectItem>
-                    <SelectItem value="confirmado">Confirmado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="sm:col-span-2">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Status inicial</Label>
+              <Select
+                value={form.status}
+                onValueChange={v => setForm(f => ({ ...f, status: v as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pre_agendado">Pré-agendado</SelectItem>
+                  <SelectItem value="agendado">Agendado</SelectItem>
+                  <SelectItem value="confirmado">Confirmado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Reserva */}
+            {/* Reserva (sinal) */}
             <div className="sm:col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-foreground">Exigir reserva (pré-agendamento)</p>
-                <p className="text-xs text-muted-foreground">Envia mensagem de reserva e aguarda pagamento</p>
+                <p className="text-sm font-medium text-foreground">Solicitar sinal / reserva</p>
+                <p className="text-xs text-muted-foreground">
+                  Envia mensagem solicitando pagamento antecipado de{" "}
+                  <span className="font-semibold text-amber-600">{percentualReserva}%</span>
+                  {valorTotal > 0 && valorSinal > 0 && (
+                    <> = <span className="font-semibold text-amber-600">R$ {valorSinal.toFixed(2).replace(".", ",")}</span></>
+                  )}
+                </p>
               </div>
               <Switch
                 checked={form.comReserva}
@@ -372,17 +385,30 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                       : "Valor do serviço"}
                   </span>
                   <span className="text-base font-bold text-foreground">
-                    R$ {valorTotal.toFixed(2)}
+                    R$ {valorTotal.toFixed(2).replace(".", ",")}
                   </span>
                 </div>
-                {form.comReserva && (
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-muted-foreground">Reserva (30%)</span>
-                    <span className="text-sm font-medium text-amber-600">
-                      R$ {(valorTotal * 0.3).toFixed(2)}
+                {form.comReserva && valorSinal > 0 && (
+                  <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-border/40">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Zap className="h-3 w-3 text-amber-500" />
+                      Sinal ({percentualReserva}%) — variável <code className="text-[10px] bg-muted px-1 rounded">{"{{valor_reserva}}"}</code>
+                    </span>
+                    <span className="text-sm font-semibold text-amber-600">
+                      R$ {valorSinal.toFixed(2).replace(".", ",")}
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Aviso de automação */}
+            {form.comReserva && (
+              <div className="sm:col-span-2 flex items-start gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40">
+                <Zap className="h-4 w-4 text-violet-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-violet-700 dark:text-violet-300">
+                  A automação <strong>"Pré-agendamento criado"</strong> será disparada ao salvar, enviando a mensagem de sinal configurada.
+                </p>
               </div>
             )}
           </div>
