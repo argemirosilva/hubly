@@ -7,8 +7,9 @@ import { subscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 
-// Webhook Secret LIVE injetado diretamente
-const STRIPE_WEBHOOK_LIVE = "whsec_SBQMnwGkruzwOcxHV8Tern6V3kPSpdsv";
+// Webhook Secret LIVE para hubly.orizontech.com.br
+// Webhook ID: we_1TIU6YLUFOvpH4vDqjJljS8F — criado em 2026-04-04
+const STRIPE_WEBHOOK_LIVE = "whsec_gxGiPOgr2qbnRoU1AEpdhiAxaTRr2Bdh";
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_") ? process.env.STRIPE_WEBHOOK_SECRET : STRIPE_WEBHOOK_LIVE;
 
 /**

@@ -944,3 +944,8 @@
 ## Stripe: Atualizar Price IDs (04/04/2026)
 - [x] Identificado conflito: servidor usa chave LIVE mas stripe-products.ts tinha IDs do ambiente TEST
 - [x] Buscados os Price IDs corretos do ambiente LIVE e atualizado stripe-products.ts
+
+## Stripe: Configurar Webhook LIVE (04/04/2026)
+- [x] Verificar webhooks existentes no Stripe LIVE (havia 2 webhooks antigos para domínios obsoletos)
+- [x] Criar webhook para hubly.orizontech.com.br/api/stripe/webhook (ID: we_1TIU6YLUFOvpH4vDqjJljS8F)
+- [x] Atualizar STRIPE_WEBHOOK_LIVE no stripe-webhook.ts com o novo signing secret
