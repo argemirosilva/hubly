@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,20 @@ export default function Pipeline() {
   const { data: pipelines = [], isLoading } = trpc.pipeline.listar.useQuery();
 
   const [pipelineAtivo, setPipelineAtivo] = useState<number | null>(null);
+
+  // Ao carregar a página, verificar se há um pipeline gerado pela IA para selecionar
+  useEffect(() => {
+    if (pipelines.length === 0) return;
+    const pipelineIdSalvo = localStorage.getItem("hubly_pipeline_ativo");
+    if (pipelineIdSalvo) {
+      const id = parseInt(pipelineIdSalvo, 10);
+      const existe = pipelines.find((p) => p.id === id);
+      if (existe) {
+        setPipelineAtivo(id);
+        localStorage.removeItem("hubly_pipeline_ativo");
+      }
+    }
+  }, [pipelines]);
   const [modalNovoPipeline, setModalNovoPipeline] = useState(false);
   const [nomePipeline, setNomePipeline] = useState("");
   const [modalNovaColuna, setModalNovaColuna] = useState(false);

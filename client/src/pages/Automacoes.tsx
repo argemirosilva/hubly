@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import {
   ArrowRight, X, Save, Sparkles, Filter,
   AlarmClock, Users, Tag, Check, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
+  GitBranch, Loader2, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -644,6 +646,17 @@ const TEMPLATES = [
 export default function Automacoes() {
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
+  const [, setLocation] = useLocation();
+  const [showGerarPipelineModal, setShowGerarPipelineModal] = useState(false);
+  const [pipelineGerado, setPipelineGerado] = useState<{ pipelineId: number; nomePipeline: string; totalColunas: number; totalCartoes: number } | null>(null);
+  const gerarPipelineMutation = trpc.pipeline.gerarPipelinePorIA.useMutation({
+    onSuccess: (data) => {
+      setPipelineGerado(data);
+      toast.success(`Pipeline "${data.nomePipeline}" criado com sucesso!`);
+      utils.pipeline.listar.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao gerar pipeline"),
+  });
   const { data: automacoesSalvas = [], isLoading } = trpc.automacoes.list.useQuery();
   const createMutation = trpc.automacoes.create.useMutation({
     onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); },
@@ -778,6 +791,18 @@ export default function Automacoes() {
             </div>
             {activeTab === "automacoes" && (
               <div className="flex gap-2">
+                {pode("admin") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+                    onClick={() => { setPipelineGerado(null); setShowGerarPipelineModal(true); }}
+                  >
+                    <GitBranch size={14} className="mr-1" />
+                    <span className="hidden sm:inline">Gerar Pipeline com IA</span>
+                    <span className="sm:hidden">Pipeline IA</span>
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
                   <Sparkles size={14} className="mr-1" />
                   <span className="hidden sm:inline">Templates</span>
@@ -1032,6 +1057,89 @@ export default function Automacoes() {
                 {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Gerar Pipeline com IA */}
+        <Dialog open={showGerarPipelineModal} onOpenChange={(open) => { if (!gerarPipelineMutation.isPending) { setShowGerarPipelineModal(open); if (!open) setPipelineGerado(null); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-purple-700">
+                <GitBranch size={18} className="text-purple-600" />
+                Gerar Pipeline com IA
+              </DialogTitle>
+            </DialogHeader>
+
+            {!pipelineGerado ? (
+              <div className="space-y-4 mt-1">
+                <p className="text-sm text-gray-600">
+                  A IA vai analisar todas as suas <strong>automações ativas</strong>, identificar a jornada do cliente e criar automaticamente um <strong>Pipeline Kanban</strong> com:
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1.5 pl-1">
+                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Colunas representando cada etapa da jornada</li>
+                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cartões com clientes reais dos últimos 30 dias</li>
+                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cores e nomes gerados de acordo com o seu negócio</li>
+                </ul>
+                <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-xs text-purple-700">
+                  <strong>Nota:</strong> Um novo pipeline será criado na tela de Pipeline. Você poderá editá-lo livremente após a geração.
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button variant="outline" size="sm" onClick={() => setShowGerarPipelineModal(false)} disabled={gerarPipelineMutation.isPending}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => gerarPipelineMutation.mutate()}
+                    disabled={gerarPipelineMutation.isPending}
+                  >
+                    {gerarPipelineMutation.isPending ? (
+                      <><Loader2 size={14} className="mr-1.5 animate-spin" />Gerando com IA...</>
+                    ) : (
+                      <><GitBranch size={14} className="mr-1.5" />Gerar Pipeline</>  
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 mt-1">
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <Check size={20} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-green-800 text-sm">Pipeline criado com sucesso!</p>
+                    <p className="text-xs text-green-600 mt-0.5">{pipelineGerado.nomePipeline}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-purple-600">{pipelineGerado.totalColunas}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Colunas criadas</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-indigo-600">{pipelineGerado.totalCartoes}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Cartões com clientes</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button variant="outline" size="sm" onClick={() => { setShowGerarPipelineModal(false); setPipelineGerado(null); }}>
+                    Fechar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => {
+                      localStorage.setItem("hubly_pipeline_ativo", String(pipelineGerado.pipelineId));
+                      setLocation("/admin/pipeline");
+                    }}
+                  >
+                    <ExternalLink size={14} className="mr-1.5" />
+                    Ver Pipeline
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
