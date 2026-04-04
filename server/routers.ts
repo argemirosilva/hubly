@@ -14,7 +14,7 @@ import {
   getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
-  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao,
+  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
@@ -719,10 +719,13 @@ export const appRouter = router({
                 valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
                 valor_reserva: valorReservaCalc,
               };
-              // Usar template personalizado da empresa se configurado, senão usar mensagem padrão
-              const templateConfirmacao = (empresa as any).waMsgConfirmacao;
-              const mensagem = templateConfirmacao
-                ? processarVariaveisTemplate(templateConfirmacao, templateVars)
+              // Buscar automação configurada para o evento 'agendamento_criado'
+              const automacaoCriado = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+              // Fallback: automação para evento genérico de confirmação
+              const automacaoConfirmado = !automacaoCriado ? await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado') : null;
+              const automacaoAtiva = automacaoCriado ?? automacaoConfirmado;
+              const mensagem = automacaoAtiva?.corpoMensagem
+                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
                 : [
                     `✅ *Agendamento Confirmado!*`,
                     ``,
@@ -742,7 +745,8 @@ export const appRouter = router({
               // Registrar no histórico de envios
               registrarEnvioAutomacao({
                 empresaId: empresa.id,
-                automacaoNome: 'Confirmação de Agendamento',
+                automacaoId: automacaoAtiva?.id,
+                automacaoNome: automacaoAtiva?.nome ?? 'Confirmação de Agendamento',
                 clienteId: cliente.id,
                 clienteNome: cliente.nome,
                 telefone,
@@ -886,10 +890,12 @@ export const appRouter = router({
                     valor_reserva: valorReservaCalc2,
                   };
                   let mensagem: string;
+                  let automacaoUsada: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
                   if (data.status === 'confirmado') {
-                    const templateConf = (empresa as any).waMsgConfirmacao;
-                    mensagem = templateConf
-                      ? processarVariaveisTemplate(templateConf, templateVars2)
+                    // Buscar automação configurada para 'agendamento_confirmado'
+                    automacaoUsada = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
+                    mensagem = automacaoUsada?.corpoMensagem
+                      ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
                       : [
                           `✅ *Agendamento Confirmado!*`,
                           ``,
@@ -904,9 +910,10 @@ export const appRouter = router({
                           `_${empresa.nome}_`,
                         ].filter(Boolean).join('\n');
                   } else {
-                    const templateCanc = (empresa as any).waMsgCancelamento;
-                    mensagem = templateCanc
-                      ? processarVariaveisTemplate(templateCanc, templateVars2)
+                    // Buscar automação configurada para 'agendamento_cancelado'
+                    automacaoUsada = await getAutomacaoByEvento(empresa.id, 'agendamento_cancelado');
+                    mensagem = automacaoUsada?.corpoMensagem
+                      ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
                       : [
                           `❌ *Agendamento Cancelado*`,
                           ``,
@@ -921,6 +928,19 @@ export const appRouter = router({
                         ].filter(Boolean).join('\n');
                   }
                   await waManager.sendMessage(telefone, mensagem);
+                  // Registrar no histórico de envios
+                  registrarEnvioAutomacao({
+                    empresaId: empresa.id,
+                    automacaoId: automacaoUsada?.id,
+                    automacaoNome: automacaoUsada?.nome ?? (data.status === 'confirmado' ? 'Confirmação de Agendamento' : 'Cancelamento de Agendamento'),
+                    clienteId: cliente.id,
+                    clienteNome: cliente.nome,
+                    telefone,
+                    canal: 'whatsapp',
+                    mensagem,
+                    status: 'enviado',
+                  }).catch(() => {});
+                  try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
                 }
               }
             }

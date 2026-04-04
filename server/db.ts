@@ -399,6 +399,53 @@ export async function getAutomacoesByEmpresa(empresaId: number) {
   return db.select().from(automacoes).where(eq(automacoes.empresaId, empresaId));
 }
 
+/**
+ * Busca a primeira automação ativa de uma empresa para um evento específico.
+ * Usado pelo scheduler e pelos handlers de agendamento para obter o corpoMensagem configurado.
+ * @param empresaId ID da empresa
+ * @param evento Nome do evento (ex: 'agendamento_criado', 'agendamento_confirmado', 'agendamento_cancelado')
+ */
+export async function getAutomacaoByEvento(empresaId: number, evento: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db
+    .select()
+    .from(automacoes)
+    .where(
+      and(
+        eq(automacoes.empresaId, empresaId),
+        eq(automacoes.tipoGatilho, 'evento'),
+        eq(automacoes.evento, evento),
+        eq(automacoes.ativo, true),
+      )
+    )
+    .limit(1);
+  return result ?? null;
+}
+
+/**
+ * Busca a primeira automação ativa de uma empresa por tipo de gatilho.
+ * Usado pelo scheduler para gatilhos como 'dias_antes_agendamento'.
+ * @param empresaId ID da empresa
+ * @param tipoGatilho Tipo do gatilho (ex: 'dias_antes_agendamento', 'aniversario_mes')
+ */
+export async function getAutomacaoByTipoGatilho(empresaId: number, tipoGatilho: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db
+    .select()
+    .from(automacoes)
+    .where(
+      and(
+        eq(automacoes.empresaId, empresaId),
+        eq(automacoes.tipoGatilho, tipoGatilho as any),
+        eq(automacoes.ativo, true),
+      )
+    )
+    .limit(1);
+  return result ?? null;
+}
+
 export async function createAutomacao(data: typeof automacoes.$inferInsert & { flowJson?: string }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");

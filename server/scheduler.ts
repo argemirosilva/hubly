@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb, registrarEnvioAutomacao } from "./db";
+import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho } from "./db";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -239,10 +239,38 @@ async function enviarLembretesAgendamentos() {
         : '';
       const horaFormatada = ag.horaInicio ?? '';
 
-      // Montar mensagem usando template da empresa ou mensagem padrão
+      // Buscar automação configurada para lembrete (dias_antes_agendamento) da empresa
+      const automacaoLembrete = await getAutomacaoByTipoGatilho(ag.empresaId, 'dias_antes_agendamento');
+
+      // Montar variáveis de template
+      const templateVarsLembrete = {
+        nome_cliente: ag.clienteNome ?? '',
+        servico: ag.servicoNome ?? '',
+        data: dataFormatada,
+        hora: horaFormatada,
+        profissional: ag.profissionalNome ?? '',
+        empresa: ag.empresaNome ?? '',
+        valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+        valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
+        link_confirmacao: linkConfirmacao,
+      };
+
+      // Montar mensagem: usar corpoMensagem da automação configurada, ou fallback no campo waMsgLembrete da empresa, ou mensagem padrão
       let mensagem: string;
-      if (ag.waMsgLembrete) {
-        // Substituir variáveis no template
+      if (automacaoLembrete?.corpoMensagem) {
+        // Usar template da automação configurada pelo usuário
+        mensagem = automacaoLembrete.corpoMensagem
+          .replace(/\{\{nome_cliente\}\}/g, templateVarsLembrete.nome_cliente)
+          .replace(/\{\{servico\}\}/g, templateVarsLembrete.servico)
+          .replace(/\{\{data\}\}/g, templateVarsLembrete.data)
+          .replace(/\{\{hora\}\}/g, templateVarsLembrete.hora)
+          .replace(/\{\{profissional\}\}/g, templateVarsLembrete.profissional)
+          .replace(/\{\{empresa\}\}/g, templateVarsLembrete.empresa)
+          .replace(/\{\{valor\}\}/g, templateVarsLembrete.valor)
+          .replace(/\{\{valor_reserva\}\}/g, templateVarsLembrete.valor_reserva)
+          .replace(/\{\{link_confirmacao\}\}/g, templateVarsLembrete.link_confirmacao);
+      } else if (ag.waMsgLembrete) {
+        // Fallback: campo waMsgLembrete da empresa (legado)
         mensagem = ag.waMsgLembrete
           .replace(/\{\{nome_cliente\}\}/g, ag.clienteNome ?? '')
           .replace(/\{\{servico\}\}/g, ag.servicoNome ?? '')
@@ -276,7 +304,8 @@ async function enviarLembretesAgendamentos() {
       // Registrar no histórico de envios
       await registrarEnvioAutomacao({
         empresaId: ag.empresaId,
-        automacaoNome: 'Lembrete Automático',
+        automacaoId: automacaoLembrete?.id,
+        automacaoNome: automacaoLembrete?.nome ?? 'Lembrete Automático',
         clienteId: ag.clienteId ?? undefined,
         clienteNome: ag.clienteNome ?? undefined,
         telefone: ag.clienteTelefone,
