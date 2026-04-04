@@ -65,6 +65,7 @@ export const empresas = mysqlTable("empresas", {
   intervaloMinutos: int("intervaloMinutos").default(30),
   ownerId: int("ownerId").notNull(),
   pipelineFavoritaId: int("pipelineFavoritaId"),
+  onboardingConcluido: boolean("onboardingConcluido").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -90,6 +91,7 @@ export const profissionais = mysqlTable("profissionais", {
   grupoId: int("grupoId"),                                            // grupo de permissões
   ultimoAcesso: timestamp("ultimoAcesso"),
   criadoPorId: int("criadoPorId"),
+  isOwner: boolean("isOwner").default(false).notNull(),
   percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"), // comissão padrão do profissional
   // ─────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("createdAt").defaultNow().notNull(),

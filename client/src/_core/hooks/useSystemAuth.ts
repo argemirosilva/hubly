@@ -5,6 +5,7 @@ type SystemUser = {
   nome: string;
   email: string;
   empresaId: number;
+  onboardingConcluido?: boolean;
 };
 
 type SystemAuthState = {
@@ -38,6 +39,25 @@ export function useSystemAuth() {
     checkAuth();
   }, [checkAuth]);
 
+  const register = useCallback(async (nome: string, email: string, senha: string): Promise<{ success: boolean; error?: string; onboardingPendente?: boolean }> => {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ nome, email, senha }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setState({ user: { ...data.user, onboardingConcluido: false }, loading: false, isAuthenticated: true });
+        return { success: true, onboardingPendente: true };
+      }
+      return { success: false, error: data.error || "Erro ao criar conta" };
+    } catch {
+      return { success: false, error: "Erro de conexão. Tente novamente." };
+    }
+  }, []);
+
   const login = useCallback(async (email: string, senha: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch("/api/auth/login", {
@@ -68,6 +88,7 @@ export function useSystemAuth() {
     ...state,
     login,
     logout,
+    register,
     refresh: checkAuth,
   };
 }

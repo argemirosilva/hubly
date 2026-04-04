@@ -1073,3 +1073,10 @@
 - [ ] Regra de origem: plataforma → status selecionável na criação (pré-agendado, confirmado, agendado, etc.)
 - [ ] Corrigir gatilhos ausentes na UI de automações: horas_antes_agendamento e dias_depois_agendamento
 - [ ] Validar integração frontend ↔ backend dos gatilhos corrigidos
+
+## Onboarding e Cadastro
+- [ ] Botão "Criar conta" na tela de login
+- [ ] Detecção de novo usuário (sem empresa vinculada) após login OAuth
+- [ ] Tela de onboarding wizard multi-etapas (nome empresa, tipo, horários, profissional, serviço)
+- [ ] Redirecionamento automático para onboarding após primeiro login
+- [ ] Marcar onboarding como concluído e redirecionar para dashboard

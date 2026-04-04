@@ -106,15 +106,22 @@ const bottomNav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
-  const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout } = useSystemAuth();
+  const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout, register: systemRegister } = useSystemAuth();
   const { pode, isOwner, permissoes: permsObj } = usePermissoes();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [showSenha, setShowSenha] = useState(false);
+  const [modoLogin, setModoLogin] = useState<"login" | "cadastro">("login");
+  const [cadastroNome, setCadastroNome] = useState("");
+  const [cadastroEmail, setCadastroEmail] = useState("");
+  const [cadastroSenha, setCadastroSenha] = useState("");
+  const [cadastroConfirma, setCadastroConfirma] = useState("");
+  const [cadastroLoading, setCadastroLoading] = useState(false);
+  const [cadastroError, setCadastroError] = useState("");
 
   const isAuthenticated = oauthAuth || systemAuth;
   const loading = oauthLoading || systemLoading;
@@ -141,6 +148,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!result.success) {
       setLoginError(result.error || "Erro ao fazer login");
     }
+  };
+
+  const handleCadastro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCadastroError("");
+    if (cadastroSenha !== cadastroConfirma) {
+      setCadastroError("As senhas não coincidem");
+      return;
+    }
+    if (cadastroSenha.length < 6) {
+      setCadastroError("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setCadastroLoading(true);
+    const result = await systemRegister(cadastroNome, cadastroEmail, cadastroSenha);
+    setCadastroLoading(false);
+    if (!result.success) {
+      setCadastroError(result.error || "Erro ao criar conta");
+    }
+    // Se sucesso, o useSystemAuth já atualiza o estado e o redirect para onboarding acontece abaixo
   };
 
   const { data: notificacoes } = trpc.notificacoes.list.useQuery(undefined, {
@@ -221,6 +248,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // Redirect para onboarding se o usuário acabou de se cadastrar
+  if (isAuthenticated && systemUser?.onboardingConcluido === false) {
+    navigate("/onboarding");
+    return null;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex bg-background">
@@ -274,54 +307,143 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 className="h-8 w-auto object-contain"
               />
             </div>
-            <div className="space-y-2 mb-8">
-              <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
-                Bem-vindo de volta
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Acesse o painel com seu e-mail e senha
-              </p>
-            </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">E-mail</label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={e => setLoginEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Senha</label>
-                <div className="relative">
-                  <input
-                    type={showSenha ? "text" : "password"}
-                    value={loginSenha}
-                    onChange={e => setLoginSenha(e.target.value)}
-                    placeholder="Sua senha"
-                    required
-                    className="w-full px-4 py-3 pr-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                  />
-                  <button type="button" onClick={() => setShowSenha(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {modoLogin === "login" ? (
+              <>
+                <div className="space-y-2 mb-8">
+                  <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
+                    Bem-vindo de volta
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Acesse o painel com seu e-mail e senha
+                  </p>
                 </div>
-              </div>
-              {loginError && (
-                <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">{loginError}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="btn-primary w-full justify-center py-3 text-sm rounded-xl"
-                style={{ display: "flex" }}>
-                {loginLoading ? "Entrando..." : "Entrar"}
-              </button>
-            </form>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">E-mail</label>
+                    <input
+                      type="email"
+                      value={loginEmail}
+                      onChange={e => setLoginEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Senha</label>
+                    <div className="relative">
+                      <input
+                        type={showSenha ? "text" : "password"}
+                        value={loginSenha}
+                        onChange={e => setLoginSenha(e.target.value)}
+                        placeholder="Sua senha"
+                        required
+                        className="w-full px-4 py-3 pr-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      />
+                      <button type="button" onClick={() => setShowSenha(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  {loginError && (
+                    <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">{loginError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={loginLoading}
+                    className="btn-primary w-full justify-center py-3 text-sm rounded-xl"
+                    style={{ display: "flex" }}>
+                    {loginLoading ? "Entrando..." : "Entrar"}
+                  </button>
+                </form>
+                <p className="text-center text-sm text-muted-foreground mt-6">
+                  Ainda não tem conta?{" "}
+                  <button
+                    type="button"
+                    onClick={() => { setModoLogin("cadastro"); setLoginError(""); }}
+                    className="text-primary font-medium hover:underline">
+                    Criar conta grátis
+                  </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2 mb-8">
+                  <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
+                    Criar conta
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Configure sua plataforma em minutos
+                  </p>
+                </div>
+                <form onSubmit={handleCadastro} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Seu nome</label>
+                    <input
+                      type="text"
+                      value={cadastroNome}
+                      onChange={e => setCadastroNome(e.target.value)}
+                      placeholder="Nome completo"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">E-mail</label>
+                    <input
+                      type="email"
+                      value={cadastroEmail}
+                      onChange={e => setCadastroEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Senha</label>
+                    <input
+                      type="password"
+                      value={cadastroSenha}
+                      onChange={e => setCadastroSenha(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Confirmar senha</label>
+                    <input
+                      type="password"
+                      value={cadastroConfirma}
+                      onChange={e => setCadastroConfirma(e.target.value)}
+                      placeholder="Repita a senha"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                    />
+                  </div>
+                  {cadastroError && (
+                    <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">{cadastroError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={cadastroLoading}
+                    className="btn-primary w-full justify-center py-3 text-sm rounded-xl"
+                    style={{ display: "flex" }}>
+                    {cadastroLoading ? "Criando conta..." : "Criar conta"}
+                  </button>
+                </form>
+                <p className="text-center text-sm text-muted-foreground mt-6">
+                  Já tem conta?{" "}
+                  <button
+                    type="button"
+                    onClick={() => { setModoLogin("login"); setCadastroError(""); }}
+                    className="text-primary font-medium hover:underline">
+                    Fazer login
+                  </button>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

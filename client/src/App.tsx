@@ -39,6 +39,7 @@ import MeiosPagamento from "./pages/MeiosPagamento";
 import ComissoesPagar from "./pages/ComissoesPagar";
 import Relatorios from "./pages/Relatorios";
 import FilaAutomacoes from "./pages/FilaAutomacoes";
+import Onboarding from "./pages/Onboarding";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/agendar/:slug" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
       <Route path="/confirmar/:token" component={ConfirmarAgendamento} />
+      <Route path="/onboarding" component={Onboarding} />
 
       {/* Rotas admin — todas no mesmo Switch para garantir matching correto */}
       <Route path="/admin/clientes/:id">{(p) => <WithAdmin><ClienteDetalhe id={Number(p.id)} /></WithAdmin>}</Route>

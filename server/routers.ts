@@ -51,6 +51,7 @@ import { suporteRouter } from "./routers/suporte";
 import { portalRouter } from "./routers/portal";
 import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
+import { onboardingRouter } from "./routers/onboarding";
 import { nanoid } from "nanoid";
 import { getDb } from "./db";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao } from "../drizzle/schema";
@@ -154,6 +155,7 @@ export const appRouter = router({
   portal: portalRouter,
   pacotes: pacotesRouter,
   relatorios: relatoriosRouter,
+  onboarding: onboardingRouter,
 
   dashboardConfig: router({
     get: protectedProcedure.query(async ({ ctx }) => {
