@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1467,4 +1467,125 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   ]);
 
   return { rows, total: Number(countResult[0]?.count ?? 0) };
+}
+
+// ─── MEIOS DE PAGAMENTO ───────────────────────────────────────────────────────
+export async function getMeiosPagamentoByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(meiosPagamento)
+    .where(eq(meiosPagamento.empresaId, empresaId))
+    .orderBy(meiosPagamento.nome);
+}
+
+export async function getMeioPagamentoById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(meiosPagamento).where(eq(meiosPagamento.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function createMeioPagamento(data: typeof meiosPagamento.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(meiosPagamento).values(data);
+  return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function updateMeioPagamento(id: number, data: Partial<typeof meiosPagamento.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(meiosPagamento).set(data).where(eq(meiosPagamento.id, id));
+}
+
+export async function deleteMeioPagamento(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Remover taxas por parcela primeiro
+  await db.delete(taxasParcela).where(eq(taxasParcela.meioPagamentoId, id));
+  await db.delete(meiosPagamento).where(eq(meiosPagamento.id, id));
+}
+
+export async function getTaxasParcelaByMeio(meioPagamentoId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(taxasParcela)
+    .where(eq(taxasParcela.meioPagamentoId, meioPagamentoId))
+    .orderBy(taxasParcela.parcela);
+}
+
+export async function upsertTaxasParcela(meioPagamentoId: number, taxas: { parcela: number; taxa: string }[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Remover taxas existentes e reinserir
+  await db.delete(taxasParcela).where(eq(taxasParcela.meioPagamentoId, meioPagamentoId));
+  if (taxas.length > 0) {
+    await db.insert(taxasParcela).values(
+      taxas.map((t) => ({ meioPagamentoId, parcela: t.parcela, taxa: t.taxa }))
+    );
+  }
+}
+
+export async function getMeiosPagamentoComTaxas(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const meios = await db.select().from(meiosPagamento)
+    .where(and(eq(meiosPagamento.empresaId, empresaId), eq(meiosPagamento.ativo, true)))
+    .orderBy(meiosPagamento.nome);
+  const result = await Promise.all(
+    meios.map(async (meio) => {
+      const taxas = await db.select().from(taxasParcela)
+        .where(eq(taxasParcela.meioPagamentoId, meio.id))
+        .orderBy(taxasParcela.parcela);
+      return { ...meio, taxas };
+    })
+  );
+  return result;
+}
+
+// ─── COMISSÕES A PAGAR (com detalhes) ────────────────────────────────────────
+export async function getComissoesPagarDetalhadas(
+  empresaId: number,
+  profissionalId?: number,
+  dataInicio?: Date,
+  dataFim?: Date
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(comissoes.empresaId, empresaId)];
+  if (profissionalId) conditions.push(eq(comissoes.profissionalId, profissionalId));
+  if (dataInicio) conditions.push(gte(comissoes.createdAt, dataInicio));
+  if (dataFim) conditions.push(lte(comissoes.createdAt, dataFim));
+  const rows = await db.select().from(comissoes).where(and(...conditions)).orderBy(desc(comissoes.createdAt));
+  const enriched = await Promise.all(rows.map(async (c) => {
+    const prof = await db.select({ nome: profissionais.nome }).from(profissionais).where(eq(profissionais.id, c.profissionalId)).limit(1);
+    const ag = await db.select({ clienteId: agendamentos.clienteId, servicoId: agendamentos.servicoId, data: agendamentos.data }).from(agendamentos).where(eq(agendamentos.id, c.agendamentoId)).limit(1);
+    let clienteNome: string | null = null;
+    let servicoNome: string | null = null;
+    if (ag[0]) {
+      const cl = await db.select({ nome: clientes.nome }).from(clientes).where(eq(clientes.id, ag[0].clienteId)).limit(1);
+      const sv = await db.select({ nome: servicos.nome }).from(servicos).where(eq(servicos.id, ag[0].servicoId)).limit(1);
+      clienteNome = cl[0]?.nome ?? null;
+      servicoNome = sv[0]?.nome ?? null;
+    }
+    return {
+      ...c,
+      profissionalNome: prof[0]?.nome ?? null,
+      clienteNome,
+      servicoNome,
+      dataAgendamento: ag[0]?.data ?? null,
+      status: c.paga ? "pago" as const : "pendente" as const,
+      valor: c.valorComissao,
+      dataPagamento: c.pagaEm,
+    };
+  }));
+  return enriched;
+}
+
+export async function marcarComissoesPagas(ids: number[], dataPagamento: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  for (const id of ids) {
+    await db.update(comissoes).set({ paga: true, pagaEm: dataPagamento }).where(eq(comissoes.id, id));
+  }
 }

@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -55,6 +55,8 @@ const navGroups: NavGroup[] = [
           { href: "/admin/financeiro", label: "Visão Geral", icon: TrendingUp, permissao: "financeiroVer" },
           { href: "/admin/contas-pagar", label: "Contas a Pagar", icon: ReceiptText, permissao: "financeiroVer" },
           { href: "/admin/contas-receber", label: "Contas a Receber", icon: ArrowDownCircle, permissao: "financeiroVer" },
+          { href: "/admin/comissoes-pagar", label: "Comissões a Pagar", icon: DollarSign, permissao: "financeiroVer" },
+          { href: "/admin/meios-pagamento", label: "Meios de Pagamento", icon: Wallet, permissao: "configuracoesVer" },
         ],
       },
       { href: "/admin/automacoes", label: "Automações", icon: MessageSquare, permissao: "automacoesVer" },

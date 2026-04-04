@@ -915,3 +915,30 @@ export const permissoesIndividuais = mysqlTable("permissoes_individuais", {
 });
 export type PermissoesIndividuais = typeof permissoesIndividuais.$inferSelect;
 export type InsertPermissoesIndividuais = typeof permissoesIndividuais.$inferInsert;
+
+// ─── Meios de Pagamento ───────────────────────────────────────────────────────
+export const meiosPagamento = mysqlTable("meios_pagamento", {
+  id: int("id").primaryKey().autoincrement(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  tipo: varchar("tipo", { length: 30 }).notNull(), // "pix" | "debito" | "credito" | "dinheiro" | "outro"
+  parcelamentoMaximo: int("parcelamentoMaximo").default(1).notNull(),
+  taxaFixa: decimal("taxaFixa", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  descontarDoVendedor: boolean("descontarDoVendedor").default(false).notNull(),
+  descontarDoAtendente: boolean("descontarDoAtendente").default(false).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type MeioPagamento = typeof meiosPagamento.$inferSelect;
+export type InsertMeioPagamento = typeof meiosPagamento.$inferInsert;
+
+// Taxas por parcela (para cartão de crédito)
+export const taxasParcela = mysqlTable("taxas_parcela", {
+  id: int("id").primaryKey().autoincrement(),
+  meioPagamentoId: int("meioPagamentoId").notNull(),
+  parcela: int("parcela").notNull(),
+  taxa: decimal("taxa", { precision: 5, scale: 2 }).notNull(),
+});
+export type TaxaParcela = typeof taxasParcela.$inferSelect;
+export type InsertTaxaParcela = typeof taxasParcela.$inferInsert;

@@ -197,6 +197,13 @@
       "when": 1775253387165,
       "tag": "0027_sparkling_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1775268224462,
+      "tag": "0028_sturdy_leader",
+      "breakpoints": true
     }
   ]
 }

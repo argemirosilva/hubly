@@ -35,6 +35,8 @@ import PlanosSuccesso from "./pages/PlanosSuccesso";
 import Assinatura from "./pages/Assinatura";
 import ConfirmarAgendamento from "./pages/ConfirmarAgendamento";
 import Perfil from "./pages/Perfil";
+import MeiosPagamento from "./pages/MeiosPagamento";
+import ComissoesPagar from "./pages/ComissoesPagar";
 import { SupportChat } from "./components/SupportChat";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
@@ -86,6 +88,8 @@ function Router() {
       <Route path="/admin/planos/sucesso">{() => <WithAdmin><PlanosSuccesso /></WithAdmin>}</Route>
       <Route path="/admin/assinatura">{() => <WithAdmin><Assinatura /></WithAdmin>}</Route>
       <Route path="/admin/perfil">{() => <WithAdmin><Perfil /></WithAdmin>}</Route>
+      <Route path="/admin/meios-pagamento">{() => <WithAdmin><MeiosPagamento /></WithAdmin>}</Route>
+      <Route path="/admin/comissoes-pagar">{() => <WithAdmin><ComissoesPagar /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/404" component={NotFound} />

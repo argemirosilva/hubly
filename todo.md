@@ -819,3 +819,12 @@
 - [x] Seletor de período (mês/ano com navegação)
 - [x] Exibir comissões do profissional logado
 - [x] Listar serviços realizados com valores e status (paga/pendente)
+
+## Melhorias Mobile e UX (04/04/2026)
+- [x] Contas a Pagar: botão "Nova conta" reposicionado no header (sempre visível no mobile)
+- [ ] Contas a Receber: mesma correção de responsividade mobile
+- [ ] Financeiro: revisar responsividade geral no mobile
+- [ ] Equipe: ocultar membros desativados da interface
+- [x] Módulo Meios de Pagamento: cadastro (nome, tipo, parcelamento, taxa fixa, taxas por parcela)
+- [x] Página "Comissões a Pagar" no menu financeiro com filtro por profissional e período
+- [x] Meios de Pagamento integrados nos formulários de Contas a Pagar e Contas a Receber

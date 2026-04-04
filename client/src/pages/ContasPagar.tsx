@@ -96,10 +96,13 @@ function ModalConta({
   const [valor, setValor] = useState(conta ? String(parseFloat(String(conta.valor))) : "");
   const [dataVencimento, setDataVencimento] = useState(conta?.dataVencimento ?? new Date().toISOString().split("T")[0]);
   const [categoriaId, setCategoriaId] = useState<string>(conta?.categoriaId ? String(conta.categoriaId) : "none");
+  const [meioPagamentoId, setMeioPagamentoId] = useState<string>("none");
   const [recorrente, setRecorrente] = useState(conta?.recorrente ?? false);
   const [recorrenciaTipo, setRecorrenciaTipo] = useState<string>(conta?.recorrenciaTipo ?? "mensal");
   const [observacoes, setObservacoes] = useState(conta?.observacoes ?? "");
   const [fornecedor, setFornecedor] = useState(conta?.fornecedor ?? "");
+
+  const { data: meiosPagamento = [] } = trpc.meiosPagamento.listAtivos.useQuery();
 
   const criar = trpc.contasPagar.criar.useMutation({
     onSuccess: () => {
@@ -204,6 +207,22 @@ function ModalConta({
                       {c.nome}
                     </span>
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Meio de Pagamento */}
+          <div className="space-y-1">
+            <Label>Meio de Pagamento</Label>
+            <Select value={meioPagamentoId} onValueChange={setMeioPagamentoId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o meio de pagamento (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem especificar</SelectItem>
+                {meiosPagamento.map((m: any) => (
+                  <SelectItem key={m.id} value={String(m.id)}>{m.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -518,24 +537,34 @@ export default function ContasPagar() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ReceiptText className="w-6 h-6 text-primary" />
-            Contas a Pagar
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <ReceiptText className="w-5 h-5 md:w-6 md:h-6 text-primary shrink-0" />
+            <span className="truncate">Contas a Pagar</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Controle suas despesas e vencimentos</p>
+          <p className="text-muted-foreground text-sm mt-0.5 hidden sm:block">Controle suas despesas e vencimentos</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setModalCategorias(true)}>
+        {/* Botões sempre visíveis — adaptados por tamanho de tela */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden sm:flex"
+            onClick={() => setModalCategorias(true)}
+          >
             <Tag className="w-4 h-4 mr-1.5" />
             Categorias
           </Button>
-          <Button onClick={() => { setContaEditando(null); setModalConta(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Nova Conta
+          <Button
+            size="sm"
+            className="gap-1.5 font-semibold shadow-sm"
+            onClick={() => { setContaEditando(null); setModalConta(true); }}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Conta</span>
           </Button>
         </div>
       </div>
@@ -701,6 +730,16 @@ export default function ContasPagar() {
         />
       )}
       <ModalCategorias open={modalCategorias} onClose={() => setModalCategorias(false)} />
+
+      {/* FAB mobile — Categorias (apenas no mobile, já que Nova Conta está no header) */}
+      <button
+        className="fixed bottom-20 right-4 z-50 sm:hidden flex items-center gap-2 px-4 h-12 rounded-full bg-muted text-muted-foreground shadow-md border active:scale-95 transition-transform text-sm font-medium"
+        onClick={() => setModalCategorias(true)}
+        aria-label="Categorias"
+      >
+        <Tag className="w-4 h-4" />
+        Categorias
+      </button>
     </div>
   );
 }

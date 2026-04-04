@@ -31,6 +31,9 @@ import {
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
   getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
   registrarEnvioAutomacao, getHistoricoEnvios,
+  getMeiosPagamentoByEmpresa, getMeioPagamentoById, createMeioPagamento, updateMeioPagamento, deleteMeioPagamento,
+  getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
+  getComissoesPagarDetalhadas, marcarComissoesPagas,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -2243,6 +2246,115 @@ export const appRouter = router({
         if (tokenRow.usadoEm) return { status: 'ja_confirmado' as const, usadoEm: tokenRow.usadoEm };
         if (tokenRow.expiresAt < agora) return { status: 'expirado' as const };
         return { status: 'pendente' as const };
+      }),
+  }),
+
+  // ─── COMISSÕES A PAGAR ────────────────────────────────────────────────────────
+  comissoesPagar: router({
+    /** Lista comissões com detalhes (nome do profissional, cliente, serviço) */
+    list: protectedProcedure
+      .input(z.object({
+        dataInicio: z.date().optional(),
+        dataFim: z.date().optional(),
+        profissionalId: z.number().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        const { isAdmin, profId: myProfId } = await resolveAdminContext(ctx, empresa, 'financeiroVer');
+        const profId = !isAdmin && myProfId ? myProfId : (input?.profissionalId ?? undefined);
+        return getComissoesPagarDetalhadas(empresa.id, profId, input?.dataInicio, input?.dataFim);
+      }),
+    /** Marca múltiplas comissões como pagas */
+    marcarPago: protectedProcedure
+      .input(z.object({
+        ids: z.array(z.number()).min(1),
+        dataPagamento: z.date().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'financeiroMarcarPago');
+        await marcarComissoesPagas(input.ids, input.dataPagamento ?? new Date());
+        return { success: true };
+      }),
+  }),
+
+  // ─── MEIOS DE PAGAMENTO ───────────────────────────────────────────────────────
+  meiosPagamento: router({
+    /** Lista todos os meios de pagamento da empresa com suas taxas por parcela */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      return getMeiosPagamentoComTaxas(empresa.id);
+    }),
+    /** Lista apenas meios ativos (para seletores em formulários) */
+    listAtivos: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      return getMeiosPagamentoComTaxas(empresa.id);
+    }),
+    /** Cria um novo meio de pagamento */
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1, 'Nome é obrigatório'),
+        tipo: z.enum(['pix', 'debito', 'credito', 'dinheiro', 'outro']),
+        parcelamentoMaximo: z.number().int().min(1).max(24).default(1),
+        taxaFixa: z.string().default('0.00'),
+        descontarDoVendedor: z.boolean().default(false),
+        descontarDoAtendente: z.boolean().default(false),
+        taxasParcela: z.array(z.object({
+          parcela: z.number().int().min(1),
+          taxa: z.string(),
+        })).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'configuracoesEditar');
+        const { taxasParcela: taxas, ...meioDados } = input;
+        const id = await createMeioPagamento({ ...meioDados, empresaId: empresa.id });
+        if (taxas && taxas.length > 0) {
+          await upsertTaxasParcela(id, taxas);
+        }
+        return { id };
+      }),
+    /** Atualiza um meio de pagamento existente */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().min(1).optional(),
+        tipo: z.enum(['pix', 'debito', 'credito', 'dinheiro', 'outro']).optional(),
+        parcelamentoMaximo: z.number().int().min(1).max(24).optional(),
+        taxaFixa: z.string().optional(),
+        descontarDoVendedor: z.boolean().optional(),
+        descontarDoAtendente: z.boolean().optional(),
+        ativo: z.boolean().optional(),
+        taxasParcela: z.array(z.object({
+          parcela: z.number().int().min(1),
+          taxa: z.string(),
+        })).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'configuracoesEditar');
+        const { id, taxasParcela: taxas, ...dados } = input;
+        await updateMeioPagamento(id, dados);
+        if (taxas !== undefined) {
+          await upsertTaxasParcela(id, taxas);
+        }
+        return { success: true };
+      }),
+    /** Remove um meio de pagamento */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'configuracoesEditar');
+        await deleteMeioPagamento(input.id);
+        return { success: true };
       }),
   }),
 });

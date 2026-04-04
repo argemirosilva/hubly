@@ -1288,6 +1288,7 @@ export default function Equipe() {
   const { pode } = usePermissoes();
   const [busca, setBusca] = useState("");
   const [filtroAba, setFiltroAba] = useState<FiltroAba>("todos");
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [membroEditando, setMembroEditando] = useState<MembroEquipe | null>(null);
   const [modalResetSenha, setModalResetSenha] = useState(false);
@@ -1311,6 +1312,11 @@ export default function Equipe() {
   const membrosFiltrados = useMemo(() => {
     let lista = membros as MembroEquipe[];
 
+    // Por padrão, ocultar inativos (a menos que mostrarInativos esteja ativo)
+    if (!mostrarInativos) {
+      lista = lista.filter((m) => m.ativo !== false);
+    }
+
     if (filtroAba === "profissionais") {
       lista = lista.filter((m) => m.isProfissional);
     } else if (filtroAba === "acesso") {
@@ -1329,9 +1335,10 @@ export default function Equipe() {
     }
 
     return lista;
-  }, [membros, filtroAba, busca]);
+  }, [membros, filtroAba, busca, mostrarInativos]);
 
   const totalAtivos = (membros as MembroEquipe[]).filter((m) => m.ativo).length;
+  const totalInativos = (membros as MembroEquipe[]).filter((m) => m.ativo === false).length;
   const totalProfissionais = (membros as MembroEquipe[]).filter((m) => m.isProfissional).length;
   const totalComAcesso = (membros as MembroEquipe[]).filter((m) => m.temAcesso).length;
 
@@ -1423,6 +1430,20 @@ export default function Equipe() {
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
+        {/* Toggle para mostrar inativos */}
+        {totalInativos > 0 && filtroAba !== "grupos" && (
+          <button
+            onClick={() => setMostrarInativos(!mostrarInativos)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors shrink-0 ${
+              mostrarInativos
+                ? "bg-muted text-foreground border-border"
+                : "bg-transparent text-muted-foreground border-border hover:bg-muted/50"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/50 inline-block" />
+            {mostrarInativos ? "Ocultar" : "Ver"} inativos ({totalInativos})
+          </button>
+        )}
         <Tabs value={filtroAba} onValueChange={(v) => { setFiltroAba(v as FiltroAba); setBusca(""); }}>
           <TabsList>
             <TabsTrigger value="todos" className="gap-1.5">

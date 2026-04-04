@@ -104,6 +104,8 @@ function ModalConta({
   const utils = trpc.useUtils();
   const [form, setForm] = useState<ContaForm>(FORM_VAZIO);
   const [mostrarAvancado, setMostrarAvancado] = useState(false);
+  const [meioPagamentoId, setMeioPagamentoId] = useState<string>("none");
+  const { data: meiosPagamento = [] } = trpc.meiosPagamento.listAtivos.useQuery();
 
   // Preencher form ao editar
   useState(() => {
@@ -271,6 +273,24 @@ function ModalConta({
               </Select>
             </div>
           </div>
+
+          {/* Meio de Pagamento Cadastrado */}
+          {meiosPagamento.length > 0 && (
+            <div className="space-y-1">
+              <Label>Meio de Pagamento</Label>
+              <Select value={meioPagamentoId} onValueChange={setMeioPagamentoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o meio de pagamento (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem especificar</SelectItem>
+                  {meiosPagamento.map((m: any) => (
+                    <SelectItem key={m.id} value={String(m.id)}>{m.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Cliente + Profissional */}
           <div className="grid grid-cols-2 gap-3">
@@ -506,14 +526,15 @@ export default function ContasReceber() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 pb-24 md:pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Contas a Receber</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Contas a Receber</h1>
           <p className="text-sm text-muted-foreground">Controle de recebimentos manuais e automáticos</p>
         </div>
-        <div className="flex gap-2">
+        {/* Botões desktop */}
+        <div className="hidden sm:flex gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -525,6 +546,23 @@ export default function ContasReceber() {
           </Button>
           <Button onClick={() => setModalAberto(true)}>
             <Plus className="w-4 h-4 mr-2" />
+            Nova Conta
+          </Button>
+        </div>
+        {/* Botões mobile */}
+        <div className="flex sm:hidden gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => importarMutation.mutate()}
+            disabled={importarMutation.isPending}
+          >
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${importarMutation.isPending ? "animate-spin" : ""}`} />
+            Importar
+          </Button>
+          <Button className="flex-1" onClick={() => setModalAberto(true)}>
+            <Plus className="w-4 h-4 mr-1.5" />
             Nova Conta
           </Button>
         </div>
@@ -694,6 +732,15 @@ export default function ContasReceber() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* FAB mobile — Nova Conta fixo no canto inferior direito */}
+      <button
+        className="fixed bottom-20 right-4 z-50 sm:hidden flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+        onClick={() => setModalAberto(true)}
+        aria-label="Nova Conta"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
     </div>
   );
 }
