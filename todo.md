@@ -1010,3 +1010,11 @@
 ## Bug: Botão "Alterar Status" do agendamento não clicável (04/04/2026)
 - [x] Investigar sobreposição/z-index no modal de agendamento
 - [x] Corrigir o problema para o botão ser clicável
+
+## Bug: Alterar status bloqueado em concluídos/cancelados (04/04/2026)
+- [x] Investigar condição que bloqueia botões de status para agendamentos finalizados
+- [x] Permitir alterar status mesmo em agendamentos concluídos/cancelados
+
+## Feature: Exclusão completa de agendamento (04/04/2026)
+- [x] Backend: endpoint deleteAgendamento com cascade (pagamentos, comissões, histórico, vínculos pipeline)
+- [x] Frontend: botão "Excluir agendamento" no modal com confirmação

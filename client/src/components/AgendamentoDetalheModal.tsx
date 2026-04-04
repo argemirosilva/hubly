@@ -119,6 +119,15 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   const [comissaoModal, setComissaoModal] = useState(false);
   const [resumoConclusaoModal, setResumoConclusaoModal] = useState(false);
+  const [confirmarExclusaoModal, setConfirmarExclusaoModal] = useState(false);
+  const deleteMutation = trpc.agendamentos.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Agendamento excluído com sucesso!");
+      utils.agendamentos.list.invalidate();
+      onClose();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
   const [linkConfirmacao, setLinkConfirmacao] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [comissaoForm, setComissaoForm] = useState({
@@ -657,6 +666,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               Alterar status
             </p>
             <div className="flex flex-wrap gap-2">
+              {/* Confirmar reserva: apenas para aguardando_reserva */}
               {ag.status === "aguardando_reserva" && (
                 <ActionBtn
                   label="Confirmar reserva"
@@ -668,7 +678,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
-              {["agendado", "pre_agendado"].includes(ag.status) && (
+              {/* Confirmar: não mostrar se já está confirmado ou mais avançado */}
+              {!["confirmado", "concluido", "faltou"].includes(ag.status) && (
                 <ActionBtn
                   label="Confirmar"
                   icon={CheckCircle2}
@@ -679,18 +690,18 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
-              {["agendado", "pre_agendado", "confirmado"].includes(ag.status) && (
-                <ActionBtn
-                  label={gerarLinkMutation.isPending ? "Gerando..." : linkCopiado ? "Copiado!" : "Link Confirm."}
-                  icon={linkCopiado ? Check : Link2}
-                  bg="oklch(55% 0.22 264 / 10%)"
-                  color="oklch(45% 0.18 264)"
-                  border="oklch(55% 0.22 264 / 25%)"
-                  onClick={() => gerarLinkMutation.mutate({ agendamentoId: ag.id, origin: window.location.origin })}
-                  loading={gerarLinkMutation.isPending}
-                />
-              )}
-              {["agendado", "confirmado"].includes(ag.status) && (
+              {/* Link de confirmação: sempre disponível */}
+              <ActionBtn
+                label={gerarLinkMutation.isPending ? "Gerando..." : linkCopiado ? "Copiado!" : "Link Confirm."}
+                icon={linkCopiado ? Check : Link2}
+                bg="oklch(55% 0.22 264 / 10%)"
+                color="oklch(45% 0.18 264)"
+                border="oklch(55% 0.22 264 / 25%)"
+                onClick={() => gerarLinkMutation.mutate({ agendamentoId: ag.id, origin: window.location.origin })}
+                loading={gerarLinkMutation.isPending}
+              />
+              {/* Concluído: não mostrar se já está concluído */}
+              {ag.status !== "concluido" && (
                 <ActionBtn
                   label="Concluído"
                   icon={CheckCircle2}
@@ -701,7 +712,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
-              {["agendado", "confirmado"].includes(ag.status) && (
+              {/* Faltou: não mostrar se já está faltou */}
+              {ag.status !== "faltou" && (
                 <ActionBtn
                   label="Faltou"
                   icon={XCircle}
@@ -712,7 +724,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
-              {!["cancelado", "concluido"].includes(ag.status) && (
+              {/* Cancelar: não mostrar se já está cancelado */}
+              {ag.status !== "cancelado" && (
                 <ActionBtn
                   label="Cancelar"
                   icon={XCircle}
@@ -724,6 +737,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                 />
               )}
             </div>
+          </div>
+
+          {/* Zona de perigo: excluir agendamento */}
+          <div className="border-t pt-4 mt-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
+              Zona de perigo
+            </p>
+            <button
+              onClick={() => setConfirmarExclusaoModal(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir agendamento
+            </button>
           </div>
           {/* Link de confirmação gerado */}
           {linkConfirmacao && (
@@ -860,6 +887,40 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           <Button variant="outline" onClick={() => setComissaoModal(false)}>Pular</Button>
           <Button onClick={salvarComissao} disabled={criarComissaoMutation.isPending}>
             {criarComissaoMutation.isPending ? "Salvando..." : "Registrar Comissão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Confirmação de Exclusão */}
+    <Dialog open={confirmarExclusaoModal} onOpenChange={setConfirmarExclusaoModal}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2 text-red-600">
+            <Trash2 className="w-4 h-4" />
+            Excluir Agendamento
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-2 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Esta ação é <strong className="text-foreground">permanente e irreversível</strong>. Todos os dados vinculados serão removidos:
+          </p>
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+            <li>Itens e serviços do agendamento</li>
+            <li>Pagamentos registrados</li>
+            <li>Comissões vinculadas</li>
+            <li>Prontuários e anotações</li>
+            <li>Vínculos com pipeline</li>
+          </ul>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setConfirmarExclusaoModal(false)}>Cancelar</Button>
+          <Button
+            onClick={() => deleteMutation.mutate({ id: agendamentoId })}
+            disabled={deleteMutation.isPending}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {deleteMutation.isPending ? "Excluindo..." : "Excluir permanentemente"}
           </Button>
         </DialogFooter>
       </DialogContent>

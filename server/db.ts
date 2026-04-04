@@ -1832,3 +1832,24 @@ export async function saveDashboardConfig(userId: number, empresaId: number, lay
     await db.insert(dashboardConfig).values({ userId, empresaId, layout: layout as any });
   }
 }
+
+// ─── DELETE AGENDAMENTO (cascade completo) ────────────────────────────────────
+export async function deleteAgendamentoCompleto(agendamentoId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const { tokensConfirmacao } = await import("../drizzle/schema");
+  // 1. Remover itens do agendamento
+  await db.delete(agendamentoItens).where(eq(agendamentoItens.agendamentoId, agendamentoId));
+  // 2. Remover pagamentos
+  await db.delete(agendamentoPagamentos).where(eq(agendamentoPagamentos.agendamentoId, agendamentoId));
+  // 3. Remover comissões vinculadas
+  await db.delete(comissoes).where(eq(comissoes.agendamentoId, agendamentoId));
+  // 4. Remover prontuários vinculados
+  await db.delete(prontuarios).where(eq(prontuarios.agendamentoId, agendamentoId));
+  // 5. Desvincular cartões de pipeline (setar agendamentoId = null)
+  await db.update(pipelineCartoes).set({ agendamentoId: null }).where(eq(pipelineCartoes.agendamentoId, agendamentoId));
+  // 6. Remover tokens de confirmação
+  await db.delete(tokensConfirmacao).where(eq(tokensConfirmacao.agendamentoId, agendamentoId));
+  // 7. Remover o agendamento em si
+  await db.delete(agendamentos).where(eq(agendamentos.id, agendamentoId));
+}

@@ -37,6 +37,7 @@ import {
   createAgendamentoItens, getItensByAgendamento, getItensByAgendamentos, deleteItensByAgendamento,
   getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento,
   getDashboardConfig, saveDashboardConfig,
+  deleteAgendamentoCompleto,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1090,9 +1091,23 @@ export const appRouter = router({
         await updateDescontoAgendamento(input.agendamentoId, input.desconto);
         return { success: true };
       }),
-  }),
 
-  // ─── BLOQUEIOS ────────────────────────────────────────────────────────────
+    // Excluir agendamento completamente (cascade: itens, pagamentos, comissões, prontuários, tokens)
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        // Verificar se o agendamento pertence à empresa
+        const ag = await getAgendamentoById(input.id);
+        if (!ag || ag.empresaId !== empresa.id) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
+        await deleteAgendamentoCompleto(input.id);
+        // Decrementar contador de uso do plano
+        try { await decrementAgendamentosCount(empresa.id); } catch {}
+        return { success: true };
+      }),
+  }),
+  // ─── BLOQUEIOS ─────────────────────────────────────────────────────────────
   bloqueios: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
