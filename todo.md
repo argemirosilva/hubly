@@ -955,3 +955,8 @@
 - [x] Remover whsec hardcoded de server/stripe-webhook.ts → usa exclusivamente process.env.STRIPE_WEBHOOK_SECRET
 - [x] Plataforma Manus injeta STRIPE_SECRET_KEY (sk_test) e STRIPE_WEBHOOK_SECRET automaticamente
 - [x] Para produção LIVE: usuário deve atualizar em Settings → Payment com sk_live e whsec do webhook we_1TIU6YLUFOvpH4vDqjJljS8F
+
+## Stripe: Desativar webhooks obsoletos (04/04/2026)
+- [x] Excluído we_1THskRLUFOvpH4vDfhIM8Tpe (agendei-app-bkct9rps.manus.space)
+- [x] Excluído we_1THpThLUFOvpH4vDBaQi7Xee (agendei-app.manus.space)
+- [x] Único webhook ativo: we_1TIU6YLUFOvpH4vDqjJljS8F (hubly.orizontech.com.br)

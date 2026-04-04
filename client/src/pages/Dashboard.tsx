@@ -274,21 +274,11 @@ export default function Dashboard() {
       {/* Alerta WhatsApp desconectado */}
       {waDesconectado && (
         <Link href="/admin/whatsapp">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-            style={{ background: "oklch(55% 0.18 25 / 10%)", border: "1px solid oklch(55% 0.18 25 / 25%)" }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "oklch(55% 0.18 25 / 15%)" }}>
-              <MessageCircle className="w-4 h-4" style={{ color: "oklch(48% 0.18 25)" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: "oklch(38% 0.18 25)" }}>
-                WhatsApp desconectado
-              </p>
-              <p className="text-xs" style={{ color: "oklch(50% 0.12 25)" }}>
-                Confirmações automáticas estão pausadas. Toque para reconectar.
-              </p>
-            </div>
-            <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "oklch(48% 0.18 25)" }} />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+            style={{ background: "oklch(55% 0.18 25 / 10%)", border: "1px solid oklch(55% 0.18 25 / 25%)", color: "oklch(42% 0.18 25)" }}>
+            <MessageCircle className="w-3 h-3 shrink-0" />
+            <span>WhatsApp desconectado</span>
+            <ArrowRight className="w-3 h-3 shrink-0" />
           </div>
         </Link>
       )}
