@@ -847,3 +847,6 @@
 - [x] Botão Excluir com confirmação: remove o cliente com diálogo de confirmação e redireciona para a lista
 - [x] Botão Cancelar: descarta alterações e volta ao modo de visualização
 - [x] Exibe CPF, WhatsApp e endereço na visualização (campos que antes não apareciam)
+
+## Bug: Erro ao clicar em Editar na ficha do cliente (04/04/2026)
+- [x] Corrigido erro removeChild: removido TooltipTrigger asChild + Link do wouter (incompatibilidade de ref no React 19), substituido por Button com navigate()

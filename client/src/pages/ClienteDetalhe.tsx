@@ -20,7 +20,7 @@ import {
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
   Pencil, Save, X, Trash2, MapPin, CreditCard,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -155,23 +155,23 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/admin/clientes">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>Voltar para Clientes</TooltipContent>
-            </Tooltip>
+            {/* Usar button com navigate para evitar erro de removeChild com Tooltip+Link+asChild */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigate("/admin/clientes")}
+              title="Voltar para Clientes"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <h1 className="text-xl lg:text-2xl font-bold tracking-tight">
               {modoEdicao ? "Editando cliente" : c.nome}
             </h1>
           </div>
 
           {/* Botões de ação */}
-          <div className="flex items-center gap-2">
+          <div key={modoEdicao ? "edit" : "view"} className="flex items-center gap-2">
             {modoEdicao ? (
               <>
                 <Button variant="outline" size="sm" onClick={cancelarEdicao} className="gap-1.5">
