@@ -721,112 +721,104 @@ export const appRouter = router({
           }]);
         }
 
-        // ── Envio automático de confirmação via WhatsApp ────────────────────────────
+        // ── Enfileirar envio automático de confirmação via WhatsApp (fila universal) ──
+        // Sempre enfileira como 'pendente', independente do WhatsApp estar conectado.
+        // O worker de processamento (scheduler) enviará quando a conexão estiver disponível.
         try {
-          const { waManager } = await import('./whatsapp');
-          const waState = waManager.getState();
-          if (waState.status === 'connected') {
-            // Buscar dados do cliente e profissional para montar a mensagem
-            const [cliente, profissional, servico] = await Promise.all([
-              getClienteById(rest.clienteId),
-              getProfissionalById(rest.profissionalId),
-              (async () => {
-                const servicos = await getServicosByEmpresa(empresa.id);
-                return servicos.find(s => s.id === rest.servicoId);
-              })(),
-            ]);
-            const telefone = cliente?.whatsapp || cliente?.telefone;
-            if (telefone && cliente) {
-              const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              // Calcular valor_reserva: percentual da empresa × valor do serviço
-              const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
-              const valorServico = parseFloat(rest.valorTotal ?? '0');
-              const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
-              const templateVars = {
-                nome_cliente: cliente.nome,
-                primeiro_nome: cliente.nome.split(' ')[0],
-                servico: servico?.nome ?? '',
-                data: dataFormatada,
-                hora: `${rest.horaInicio} – ${rest.horaFim}`,
-                profissional: profissional?.nome ?? '',
-                empresa: empresa.nome,
-                valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
-                valor_reserva: valorReservaCalc,
-              };
-              // ── Lógica de prioridade de automação por status inicial ────────────────
-              // pre_agendado → busca agendamento_pre_agendado primeiro; fallback: agendamento_criado
-              // agendado (ou qualquer outro) → busca apenas agendamento_criado
-              let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
-              let nomeEventoUsado = 'Confirmação de Agendamento';
+          const [cliente, profissional, servico] = await Promise.all([
+            getClienteById(rest.clienteId),
+            getProfissionalById(rest.profissionalId),
+            (async () => {
+              const servicos = await getServicosByEmpresa(empresa.id);
+              return servicos.find(s => s.id === rest.servicoId);
+            })(),
+          ]);
+          const telefone = cliente?.whatsapp || cliente?.telefone;
+          if (telefone && cliente) {
+            const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+            // Calcular valor_reserva: percentual da empresa × valor do serviço
+            const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+            const valorServico = parseFloat(rest.valorTotal ?? '0');
+            const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
+            const templateVars = {
+              nome_cliente: cliente.nome,
+              primeiro_nome: cliente.nome.split(' ')[0],
+              servico: servico?.nome ?? '',
+              data: dataFormatada,
+              hora: `${rest.horaInicio} – ${rest.horaFim}`,
+              profissional: profissional?.nome ?? '',
+              empresa: empresa.nome,
+              valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+              valor_reserva: valorReservaCalc,
+            };
+            // ── Lógica de prioridade de automação por status inicial ────────────────
+            let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
+            let nomeEventoUsado = 'Confirmação de Agendamento';
 
-              if (statusOriginal === 'pre_agendado') {
-                // Tenta automação específica de pré-agendamento
-                automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_pre_agendado');
-                nomeEventoUsado = automacaoAtiva ? 'Pré-agendamento' : 'Confirmação de Agendamento';
-                // Fallback: agendamento_criado (somente se não houver automação de pré-agendamento)
-                if (!automacaoAtiva) {
-                  automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
-                }
-              } else {
-                // status agendado, confirmado, etc. → apenas agendamento_criado
+            if (statusOriginal === 'pre_agendado') {
+              automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_pre_agendado');
+              nomeEventoUsado = automacaoAtiva ? 'Pré-agendamento' : 'Confirmação de Agendamento';
+              if (!automacaoAtiva) {
                 automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
               }
-
-              // Mensagem padrão de fallback varia por status
-              const mensagemPadraoPreAgendado = [
-                `⏳ *Pré-agendamento Recebido!*`,
-                ``,
-                `Olá, *${cliente.nome}*!`,
-                `Recebemos seu pedido de agendamento. Em breve confirmaremos sua disponibilidade.`,
-                ``,
-                `📅 *Data solicitada:* ${dataFormatada}`,
-                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                ``,
-                `_${empresa.nome}_`,
-              ].filter(Boolean).join('\n');
-
-              const mensagemPadraoCriado = [
-                `✅ *Agendamento Confirmado!*`,
-                ``,
-                `Olá, *${cliente.nome}*!`,
-                `Seu agendamento foi confirmado com sucesso.`,
-                ``,
-                `📅 *Data:* ${dataFormatada}`,
-                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
-                valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
-                ``,
-                `_${empresa.nome}_`,
-              ].filter(Boolean).join('\n');
-
-              const mensagem = automacaoAtiva?.corpoMensagem
-                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
-                : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
-
-              await waManager.sendMessage(telefone, mensagem);
-              // Registrar no histórico de envios
-              registrarEnvioAutomacao({
-                empresaId: empresa.id,
-                automacaoId: automacaoAtiva?.id,
-                automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
-                clienteId: cliente.id,
-                clienteNome: cliente.nome,
-                telefone,
-                canal: 'whatsapp',
-                mensagem,
-                status: 'enviado',
-              }).catch(() => {});
-              // Incrementar contador de notificações WhatsApp
-              try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+            } else {
+              automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
             }
+
+            // Mensagem padrão de fallback varia por status
+            const mensagemPadraoPreAgendado = [
+              `⏳ *Pré-agendamento Recebido!*`,
+              ``,
+              `Olá, *${cliente.nome}*!`,
+              `Recebemos seu pedido de agendamento. Em breve confirmaremos sua disponibilidade.`,
+              ``,
+              `📅 *Data solicitada:* ${dataFormatada}`,
+              `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+              profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+              ``,
+              `_${empresa.nome}_`,
+            ].filter(Boolean).join('\n');
+
+            const mensagemPadraoCriado = [
+              `✅ *Agendamento Confirmado!*`,
+              ``,
+              `Olá, *${cliente.nome}*!`,
+              `Seu agendamento foi confirmado com sucesso.`,
+              ``,
+              `📅 *Data:* ${dataFormatada}`,
+              `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+              profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+              `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+              valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
+              ``,
+              `_${empresa.nome}_`,
+            ].filter(Boolean).join('\n');
+
+            const mensagem = automacaoAtiva?.corpoMensagem
+              ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
+              : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
+
+            // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+            await registrarEnvioAutomacao({
+              empresaId: empresa.id,
+              automacaoId: automacaoAtiva?.id,
+              automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
+              clienteId: cliente.id,
+              clienteNome: cliente.nome,
+              agendamentoId: id,
+              telefone,
+              canal: 'whatsapp',
+              mensagem,
+              status: 'pendente',
+              enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
+            });
+            console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
           }
         } catch (e) {
-          // Não bloquear o fluxo principal se o WhatsApp falhar
-          console.error('[WhatsApp] Erro ao enviar confirmação:', e);
+          // Não bloquear o fluxo principal se o enfileiramento falhar
+          console.error('[Fila] Erro ao enfileirar confirmação:', e);
         }
 
         // ── Verificar limites e enviar alerta se necessário ─────────────────────

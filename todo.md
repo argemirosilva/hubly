@@ -1091,3 +1091,9 @@
 - [x] Registrar automação na fila ao salvar pré-agendamento
 - [x] Remover status aguardando_reserva: manter sempre status original (pre_agendado) quando comReserva=true
 - [x] Variável {{valor_reserva}} nas automações: valor calculado com percentual da empresa (ex: 30% de R\$ 200 = R\$ 60,00)
+## Fila Universal de Envios (sessão atual)
+- [x] Criação de agendamento: enfileirar como pendente em vez de enviar direto (independente do WhatsApp estar conectado)
+- [x] Worker de processamento: a cada 1 minuto, processar pendentes com enviarEm <= agora
+- [x] Expiração: remover/marcar como expirado itens pendentes com enviarEm + 4h < agora (vale para envios imediatos e programados como 2h, 4h, 24h antes)
+- [x] Lembretes agendados (dias_antes, horas_antes, horas_apos): também enfileirar como pendente em vez de enviar direto
+- [x] Ao reconectar WhatsApp: processar fila imediatamente sem esperar o próximo ciclo de 1 minuto

@@ -15,7 +15,7 @@ import {
   historicoEnviosAutomacao,
   automacoes,
 } from "../drizzle/schema";
-import { eq, and, lte, gt, sql, gte, lt } from "drizzle-orm";
+import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
 
@@ -474,7 +474,7 @@ async function processarAutomacoesAgendadas() {
               confirmacaoTexto;
           }
 
-          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -485,11 +485,11 @@ async function processarAutomacoesAgendadas() {
             telefone: ag.clienteTelefone,
             canal: 'whatsapp',
             mensagem,
-            status: enviado ? 'enviado' : 'falhou',
-            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+            status: 'pendente',
+            enviarEm: new Date(), // deve ser enviado agora
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
         }
       }
 
@@ -582,7 +582,7 @@ async function processarAutomacoesAgendadas() {
               `Nos vemos em breve! 😊`;
           }
 
-          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -593,11 +593,11 @@ async function processarAutomacoesAgendadas() {
             telefone: ag.clienteTelefone,
             canal: 'whatsapp',
             mensagem,
-            status: enviado ? 'enviado' : 'falhou',
-            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+            status: 'pendente',
+            enviarEm: new Date(), // deve ser enviado agora
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
         }
       }
 
@@ -689,7 +689,7 @@ async function processarAutomacoesAgendadas() {
               `Até a próxima! 😊`;
           }
 
-          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -700,11 +700,11 @@ async function processarAutomacoesAgendadas() {
             telefone: ag.clienteTelefone,
             canal: 'whatsapp',
             mensagem,
-            status: enviado ? 'enviado' : 'falhou',
-            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+            status: 'pendente',
+            enviarEm: new Date(), // deve ser enviado agora
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
         }
       }
 
@@ -793,7 +793,7 @@ async function processarAutomacoesAgendadas() {
               `Esperamos que tenha gostado! Adoraríamos receber seu feedback. 😊`;
           }
 
-          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -804,11 +804,11 @@ async function processarAutomacoesAgendadas() {
             telefone: ag.clienteTelefone,
             canal: 'whatsapp',
             mensagem,
-            status: enviado ? 'enviado' : 'falhou',
-            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+            status: 'pendente',
+            enviarEm: new Date(), // deve ser enviado agora
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
         }
       }
     }
@@ -964,7 +964,93 @@ function deveExecutarNaHora(horaAlvo: number): boolean {const agora = new Date()
   return agora.getHours() === horaAlvo && agora.getMinutes() < 5; // janela de 5 minutos
 }
 
-// ── Inicializar agendamento ───────────────────────────────────────────────────
+// // ── Worker: processar fila de envios pendentes ────────────────────────────────────────────────
+// Processa todos os pendentes com enviarEm <= agora.
+// Expira itens com enviarEm + 4h < agora (remove da fila).
+let _filaProcessando = false;
+export async function processarFilaPendente() {
+  if (_filaProcessando) return;
+  _filaProcessando = true;
+  try {
+    const db = await getDb();
+    if (!db) return;
+
+    const agora = new Date();
+    const expiracaoLimite = new Date(agora.getTime() - 4 * 60 * 60 * 1000); // agora - 4h
+
+    // 1. Expirar itens pendentes com enviarEm + 4h < agora
+    const expirados = await db
+      .select({ id: historicoEnviosAutomacao.id })
+      .from(historicoEnviosAutomacao)
+      .where(and(
+        eq(historicoEnviosAutomacao.status, 'pendente'),
+        lte(historicoEnviosAutomacao.enviarEm, expiracaoLimite),
+      ));
+
+    if (expirados.length > 0) {
+      for (const item of expirados) {
+        await db.update(historicoEnviosAutomacao)
+          .set({ status: 'falhou', erroDetalhe: 'Expirado: passou mais de 4h do horário de envio' })
+          .where(eq(historicoEnviosAutomacao.id, item.id));
+      }
+      console.log(`[Fila] ${expirados.length} item(ns) expirado(s) e marcado(s) como falhou`);
+    }
+
+    // 2. Verificar se WhatsApp está conectado antes de tentar enviar
+    const waState = waManager.getState();
+    if (waState.status !== 'connected') return;
+
+    // 3. Buscar pendentes com enviarEm <= agora
+    const pendentes = await db
+      .select()
+      .from(historicoEnviosAutomacao)
+      .where(and(
+        eq(historicoEnviosAutomacao.status, 'pendente'),
+        lte(historicoEnviosAutomacao.enviarEm, agora),
+      ))
+      .limit(50); // processar até 50 por ciclo
+
+    if (pendentes.length === 0) return;
+
+    console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)...`);
+
+    for (const item of pendentes) {
+      if (!item.telefone || !item.mensagem) {
+        await db.update(historicoEnviosAutomacao)
+          .set({ status: 'falhou', erroDetalhe: 'Telefone ou mensagem ausente' })
+          .where(eq(historicoEnviosAutomacao.id, item.id));
+        continue;
+      }
+
+      try {
+        const enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+        await db.update(historicoEnviosAutomacao)
+          .set({
+            status: enviado ? 'enviado' : 'falhou',
+            erroDetalhe: enviado ? null : 'Falha ao enviar via WhatsApp',
+          })
+          .where(eq(historicoEnviosAutomacao.id, item.id));
+
+        if (enviado) {
+          // Incrementar contador de uso
+          try { await (await import('./db-plans')).incrementWhatsappCount(item.empresaId); } catch {}
+          console.log(`[Fila] ✅ Enviado para ${item.clienteNome ?? item.telefone} (${item.automacaoNome ?? 'manual'})`);
+        } else {
+          console.log(`[Fila] ❌ Falhou para ${item.clienteNome ?? item.telefone}`);
+        }
+      } catch (err) {
+        await db.update(historicoEnviosAutomacao)
+          .set({ status: 'falhou', erroDetalhe: String(err) })
+          .where(eq(historicoEnviosAutomacao.id, item.id));
+        console.error(`[Fila] Erro ao enviar item ${item.id}:`, err);
+      }
+    }
+  } finally {
+    _filaProcessando = false;
+  }
+}
+
+// ── Inicializar agendamento ────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
   setTimeout(() => {
@@ -1004,8 +1090,24 @@ export function initScheduler() {
     }, 60 * 60 * 1000); // a cada 1 hora
   }, 90_000);
 
+  // NOVO: Worker de fila universal — processa pendentes a cada 1 minuto
+  // Também expira itens com enviarEm + 4h < agora
+  setTimeout(() => {
+    processarFilaPendente();
+    setInterval(() => {
+      processarFilaPendente();
+    }, 60 * 1000); // a cada 1 minuto
+  }, 15_000); // aguarda 15s para o DB estar pronto
+
+  // NOVO: Ao reconectar WhatsApp, processar fila imediatamente
+  waManager.on('connected', () => {
+    console.log('[Fila] WhatsApp reconectado — processando fila pendente imediatamente...');
+    setTimeout(() => processarFilaPendente(), 3_000); // aguarda 3s para estabilizar
+  });
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
   console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
   console.log("[Scheduler] Pré-registro de envios pendentes inicializado (a cada 1h).");
+  console.log("[Scheduler] Worker de fila universal inicializado (a cada 1min + ao reconectar WhatsApp).");
 }

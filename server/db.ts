@@ -1571,6 +1571,7 @@ export async function registrarEnvioAutomacao(data: {
   mensagem?: string;
   status?: "enviado" | "falhou" | "pendente";
   erroDetalhe?: string;
+  enviarEm?: Date; // Data/hora programada para envio (para status pendente)
 }) {
   const db = await getDb();
   if (!db) return;
@@ -1613,6 +1614,7 @@ export async function registrarEnvioAutomacao(data: {
     mensagem: data.mensagem ?? null,
     status: data.status ?? "enviado",
     erroDetalhe: data.erroDetalhe ?? null,
+    enviarEm: data.enviarEm ?? null,
   });
 }
 
