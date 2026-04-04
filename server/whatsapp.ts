@@ -133,8 +133,11 @@ interface WAState {
 
 // ─── MANAGER ──────────────────────────────────────────────────────────────────
 
-// Delays de backoff exponencial: 5s, 15s, 30s, 60s, 120s, 120s, ...
-const RECONNECT_DELAYS = [5_000, 15_000, 30_000, 60_000, 120_000];
+// Delays de backoff exponencial: 15s, 30s, 60s, 120s, 300s
+// Começa em 15s para dar tempo ao servidor reiniciar sem spam de reconexão
+const RECONNECT_DELAYS = [15_000, 30_000, 60_000, 120_000, 300_000];
+// Máximo de tentativas automáticas antes de parar (evita loop infinito)
+const MAX_RECONNECT_ATTEMPTS = 10;
 
 class WhatsAppManager extends EventEmitter {
   private sock: WASocket | null = null;
@@ -149,21 +152,41 @@ class WhatsAppManager extends EventEmitter {
   private isShuttingDown = false;
   private dbAuth: Awaited<ReturnType<typeof useDbAuthState>> | null = null;
   private reconnectCount = 0;
+  // Flag para evitar que dois connect() rodem simultaneamente
+  private isConnecting = false;
 
   getState(): WAState {
     return { ...this.state };
   }
 
-  async connect(): Promise<void> {
+   async connect(): Promise<void> {
+    // Evitar dupla execução simultânea do connect()
+    if (this.isConnecting) {
+      console.log("[WhatsApp] connect() ignorado — já há uma tentativa em andamento.");
+      return;
+    }
     if (this.state.status === "connected" || this.state.status === "connecting") {
       return;
     }
-
+    // Parar se atingiu o limite de tentativas (requer reconexão manual)
+    if (this.reconnectCount >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn(`[WhatsApp] ⛔ Limite de ${MAX_RECONNECT_ATTEMPTS} tentativas atingido. Aguardando reconexão manual.`);
+      this.setState({ status: "disconnected", nextReconnectAt: null });
+      return;
+    }
+    this.isConnecting = true;
     this.isShuttingDown = false;
-    // Fechar socket anterior se existir (evita vazamento de listeners)
+    // Fechar socket anterior com pequeno delay para garantir cleanup completo
     if (this.sock) {
-      try { this.sock.end(undefined); } catch { /* ignorar */ }
+      try {
+        // Remover listeners de eventos específicos (Baileys requer evento como argumento)
+        this.sock.ev.removeAllListeners("connection.update");
+        this.sock.ev.removeAllListeners("creds.update");
+        this.sock.end(new Error("Reconexão solicitada"));
+      } catch { /* ignorar */ }
       this.sock = null;
+      // Aguardar 1s para garantir que o socket anterior foi destruído
+      await new Promise(r => setTimeout(r, 1_000));
     }
     this.setState({ status: "connecting", qrDataUrl: null });
 
@@ -223,6 +246,7 @@ class WhatsAppManager extends EventEmitter {
 
         if (connection === "open") {
           this.reconnectCount = 0; // Reset contador ao conectar com sucesso
+          this.isConnecting = false; // Liberar flag de conexão
           const phoneNumber = this.sock?.user?.id?.split(":")[0] ?? null;
           this.setState({
             status: "connected",
@@ -236,12 +260,11 @@ class WhatsAppManager extends EventEmitter {
           logWaEvent("connected", phoneNumber ?? undefined).catch(() => {});
         }
 
-        if (connection === "close") {
+          if (connection === "close") {
+          this.isConnecting = false; // Liberar flag ao fechar
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
           const isLoggedOut = statusCode === DisconnectReason.loggedOut;
-
           console.log(`[WhatsApp] Conexão fechada. Código: ${statusCode}. LoggedOut: ${isLoggedOut}`);
-
           if (isLoggedOut) {
             // Usuário deslogou explicitamente no celular — única situação onde limpamos a sessão
             console.log("[WhatsApp] 🚪 Deslogado pelo dispositivo. Limpando sessão.");
@@ -251,16 +274,23 @@ class WhatsAppManager extends EventEmitter {
             this.emit("logged_out");
             logWaEvent("logged_out", "Deslogado pelo dispositivo").catch(() => {});
           } else if (!this.isShuttingDown) {
+            // Verificar se atingiu o limite de tentativas
+            if (this.reconnectCount >= MAX_RECONNECT_ATTEMPTS) {
+              console.warn(`[WhatsApp] ⛔ Limite de ${MAX_RECONNECT_ATTEMPTS} tentativas atingido. Aguardando reconexão manual.`);
+              this.setState({ status: "disconnected", nextReconnectAt: null });
+              this.emit("disconnected");
+              return;
+            }
             // Qualquer outro motivo (rede, deploy, timeout) → reconectar com backoff exponencial
             this.reconnectCount++;
             const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);
             const delay = RECONNECT_DELAYS[delayIndex];
             const nextAt = new Date(Date.now() + delay);
-            console.log(`[WhatsApp] 🔄 Tentativa ${this.reconnectCount} de reconexão em ${delay / 1000}s...`);
+            console.log(`[WhatsApp] 🔄 Tentativa ${this.reconnectCount}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s...`);
             this.setState({ status: "disconnected", nextReconnectAt: nextAt });
             this.emit("disconnected");
             this.scheduleReconnect(delay);
-            logWaEvent("disconnected", `Código ${statusCode} — reconectando em ${delay / 1000}s`).catch(() => {});
+            logWaEvent("disconnected", `Código ${statusCode} — reconectando em ${delay / 1000}s (tentativa ${this.reconnectCount}/${MAX_RECONNECT_ATTEMPTS})`).catch(() => {});
           } else {
             this.setState({ status: "disconnected", nextReconnectAt: null });
             this.emit("disconnected");
@@ -270,8 +300,9 @@ class WhatsAppManager extends EventEmitter {
       });
     } catch (err) {
       console.error("[WhatsApp] Erro ao conectar:", err);
+      this.isConnecting = false; // Liberar flag em caso de erro
       this.setState({ status: "disconnected" });
-      if (!this.isShuttingDown) {
+      if (!this.isShuttingDown && this.reconnectCount < MAX_RECONNECT_ATTEMPTS) {
         this.reconnectCount++;
         const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);
         this.scheduleReconnect(RECONNECT_DELAYS[delayIndex]);
@@ -291,6 +322,7 @@ class WhatsAppManager extends EventEmitter {
 
   async disconnect(): Promise<void> {
     this.isShuttingDown = true;
+    this.isConnecting = false;
     this.reconnectCount = 0;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

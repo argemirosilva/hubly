@@ -1001,3 +1001,8 @@
 - [x] Layout "Foco Financeiro": Métricas, Contas a Pagar, Resumo Financeiro, Score IA, Pipeline, Plano e Uso
 - [x] Layout "Agenda do Dia": Métricas, Agenda de Hoje, Ações Rápidas, Equipe
 - [x] Seletor visual com cards clicáveis no modo de edição do Dashboard
+
+## Bug: WhatsApp reconexão contínua (04/04/2026)
+- [x] Investigar logs e código de gerenciamento de reconexão
+- [x] Corrigir lógica: parar tentativas de reconexão quando já conectado
+- [x] Ajustar intervalo de verificação de status para valor adequado
