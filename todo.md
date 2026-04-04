@@ -940,3 +940,7 @@
 - [x] Portal público: logo já exibido no cabeçalho (PortalHeader já tinha a lógica, faltava apenas o upload que foi implementado)
 - [x] Upload de imagem: compressão via canvas antes de enviar ao S3 (max 800x800 logo, 1200x400 capa)
 - [x] Página /planos: preços dinâmicos via trpc.planos.getStripePrices (busca do Stripe, fallback local)
+
+## Stripe: Atualizar Price IDs (04/04/2026)
+- [x] Identificado conflito: servidor usa chave LIVE mas stripe-products.ts tinha IDs do ambiente TEST
+- [x] Buscados os Price IDs corretos do ambiente LIVE e atualizado stripe-products.ts
