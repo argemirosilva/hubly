@@ -4,11 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "todos";
 type Periodo = "hoje" | "semana" | "mes" | "todos";
 type Ordenacao = "proximos" | "recentes";
+
+type FilaRow = {
+  id: number;
+  automacaoNome: string | null;
+  clienteNome: string | null;
+  telefone: string | null;
+  canal: string;
+  mensagem: string | null;
+  status: string;
+  erroDetalhe: string | null;
+  enviarEm: string | null;
+  criadoEm: string;
+  tempoRestante: string | null;
+  agendamentoId: number | null;
+};
 
 function StatusBadge({ status, tempoRestante }: { status: string; tempoRestante?: string | null }) {
   if (status === "pendente") {
@@ -48,16 +65,151 @@ function CanalIcon({ canal }: { canal: string }) {
   return <Send className="w-3.5 h-3.5 text-muted-foreground" />;
 }
 
+function formatDateTime(dt: string | null | undefined) {
+  if (!dt) return "—";
+  return new Date(dt).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+}
+
+function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading }: {
+  row: FilaRow | null;
+  open: boolean;
+  onClose: () => void;
+  onReenviar: (id: number) => void;
+  reenviarLoading: boolean;
+}) {
+  if (!row) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <CanalIcon canal={row.canal} />
+            Detalhes do Envio #{row.id}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Status</span>
+            <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
+          </div>
+
+          {/* Automação */}
+          <div className="flex items-start gap-2">
+            <Bot className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs text-muted-foreground">Automação</p>
+              <p className="text-sm font-medium">{row.automacaoNome ?? "—"}</p>
+            </div>
+          </div>
+
+          {/* Cliente e telefone */}
+          <div className="flex items-start gap-2">
+            <Phone className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs text-muted-foreground">Cliente</p>
+              <p className="text-sm font-medium">{row.clienteNome ?? "—"}</p>
+              {row.telefone && (
+                <p className="text-xs text-muted-foreground mt-0.5">{row.telefone}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Horários */}
+          <div className="flex items-start gap-2">
+            <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Horário programado de envio</p>
+              <p className="text-sm font-medium">{formatDateTime(row.enviarEm)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Criado em: {formatDateTime(row.criadoEm)}
+              </p>
+            </div>
+          </div>
+
+          {/* Agendamento vinculado */}
+          {row.agendamentoId && (
+            <div className="text-xs text-muted-foreground">
+              Agendamento #{row.agendamentoId}
+            </div>
+          )}
+
+          {/* Mensagem completa */}
+          {row.mensagem && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Mensagem completa</p>
+              <div className="bg-muted/50 rounded-lg p-3 border">
+                <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground">
+                  {row.mensagem}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Erro */}
+          {row.erroDetalhe && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-red-700">Detalhe do erro</p>
+                <p className="text-xs text-red-600 mt-0.5">{row.erroDetalhe}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Botão reenviar */}
+          {row.status === "falhou" && (
+            <Button
+              className="w-full gap-2"
+              variant="outline"
+              onClick={() => onReenviar(row.id)}
+              disabled={reenviarLoading}
+            >
+              <RotateCcw className="w-4 h-4" />
+              {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function FilaAutomacoes() {
   const [status, setStatus] = useState<StatusFila>("todos");
   const [periodo, setPeriodo] = useState<Periodo>("semana");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recentes");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
+  const [reenviarLoading, setReenviarLoading] = useState(false);
 
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
     { status, periodo, ordenacao, limit: 100 },
-    { refetchInterval: autoRefresh ? 30000 : false }
+    { refetchInterval: autoRefresh ? 15000 : false }
   );
+
+  const reenviarMutation = trpc.automacoes.reenviarItem.useMutation({
+    onSuccess: () => {
+      toast.success("Item reenfileirado com sucesso!");
+      setSelectedRow(null);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleReenviar = async (id: number) => {
+    setReenviarLoading(true);
+    try {
+      await reenviarMutation.mutateAsync({ id });
+    } finally {
+      setReenviarLoading(false);
+    }
+  };
 
   const pendentes = data?.rows.filter(r => r.status === "pendente").length ?? 0;
   const enviados = data?.rows.filter(r => r.status === "enviado").length ?? 0;
@@ -94,21 +246,21 @@ export default function FilaAutomacoes() {
 
       <div className="grid grid-cols-3 gap-3">
         <button
-          onClick={() => setStatus("pendente")}
+          onClick={() => setStatus(status === "pendente" ? "todos" : "pendente")}
           className={`rounded-xl border p-3 text-left transition-all ${status === "pendente" ? "border-yellow-400 bg-yellow-50" : "bg-card hover:bg-muted/50"}`}
         >
           <p className="text-xs text-muted-foreground">Pendentes</p>
           <p className="text-2xl font-bold text-yellow-600">{pendentes}</p>
         </button>
         <button
-          onClick={() => setStatus("enviado")}
+          onClick={() => setStatus(status === "enviado" ? "todos" : "enviado")}
           className={`rounded-xl border p-3 text-left transition-all ${status === "enviado" ? "border-green-400 bg-green-50" : "bg-card hover:bg-muted/50"}`}
         >
           <p className="text-xs text-muted-foreground">Enviados</p>
           <p className="text-2xl font-bold text-green-600">{enviados}</p>
         </button>
         <button
-          onClick={() => setStatus("falhou")}
+          onClick={() => setStatus(status === "falhou" ? "todos" : "falhou")}
           className={`rounded-xl border p-3 text-left transition-all ${status === "falhou" ? "border-red-400 bg-red-50" : "bg-card hover:bg-muted/50"}`}
         >
           <p className="text-xs text-muted-foreground">Falhas</p>
@@ -171,7 +323,11 @@ export default function FilaAutomacoes() {
           <CardContent className="p-0">
             <div className="divide-y">
               {data.rows.map((row) => (
-                <div key={row.id} className="flex items-start gap-3 px-4 py-3">
+                <button
+                  key={row.id}
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left group"
+                  onClick={() => setSelectedRow(row as unknown as FilaRow)}
+                >
                   <div className="mt-0.5 shrink-0"><CanalIcon canal={row.canal} /></div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -180,33 +336,49 @@ export default function FilaAutomacoes() {
                       <span className="text-xs text-muted-foreground truncate">{row.automacaoNome ?? "Automação"}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-muted-foreground capitalize">{row.canal}</span>
                       {row.telefone && (
+                        <span className="text-xs text-muted-foreground">{row.telefone}</span>
+                      )}
+                      {row.enviarEm && (
                         <>
                           <span className="text-xs text-muted-foreground">·</span>
-                          <span className="text-xs text-muted-foreground">{row.telefone}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <CalendarClock className="w-3 h-3" />
+                            {formatDateTime(String(row.enviarEm))}
+                          </span>
                         </>
                       )}
                     </div>
                     {row.mensagem && (
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">
-                        "{row.mensagem.slice(0, 80)}{row.mensagem.length > 80 ? "..." : ""}"
+                        "{row.mensagem.slice(0, 90)}{row.mensagem.length > 90 ? "..." : ""}"
                       </p>
                     )}
-                    {row.erroDetalhe && <p className="text-xs text-red-500 mt-1">{row.erroDetalhe}</p>}
+                    {row.erroDetalhe && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {row.erroDetalhe.slice(0, 60)}{row.erroDetalhe.length > 60 ? "..." : ""}
+                      </p>
+                    )}
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1">
                     <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(row.criadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+
+      <DetalheModal
+        row={selectedRow}
+        open={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        onReenviar={handleReenviar}
+        reenviarLoading={reenviarLoading}
+      />
     </div>
   );
 }

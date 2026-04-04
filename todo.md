@@ -1097,3 +1097,8 @@
 - [x] Expiração: remover/marcar como expirado itens pendentes com enviarEm + 4h < agora (vale para envios imediatos e programados como 2h, 4h, 24h antes)
 - [x] Lembretes agendados (dias_antes, horas_antes, horas_apos): também enfileirar como pendente em vez de enviar direto
 - [x] Ao reconectar WhatsApp: processar fila imediatamente sem esperar o próximo ciclo de 1 minuto
+
+## Fila de Envios - Detalhes (sessão atual)
+- [x] Adicionar modal/painel de detalhes completos ao clicar em um item da fila: mensagem completa, horário de envio programado, automação vinculada, cliente, telefone, erro (se houver)
+- [x] Exibir horário de envio programado (enviarEm) na lista, não apenas criadoEm
+- [x] Botão de reenvio para itens com status falhou

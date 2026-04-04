@@ -1546,6 +1546,32 @@ export const appRouter = router({
         return { total };
       }),
 
+    reenviarItem: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        const db = await import('./db').then(m => m.getDb());
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+        const { historicoEnviosAutomacao: tbl } = await import('../drizzle/schema');
+        const { eq, and } = await import('drizzle-orm');
+
+        // Verificar que o item pertence à empresa
+        const rows = await db.select().from(tbl)
+          .where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)))
+          .limit(1);
+        if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item não encontrado" });
+
+        // Colocar de volta na fila como pendente com enviarEm = agora
+        await db.update(tbl)
+          .set({ status: 'pendente', enviarEm: new Date(), erroDetalhe: null })
+          .where(eq(tbl.id, input.id));
+
+        return { success: true };
+      }),
+
     reenviarMensagem: protectedProcedure
       .input(z.object({ envioId: z.number() }))
       .mutation(async ({ ctx, input }) => {
