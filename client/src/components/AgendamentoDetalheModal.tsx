@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle } from "lucide-react";
@@ -28,6 +29,7 @@ interface Props {
 
 export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }: Props) {
   const utils = trpc.useUtils();
+  const { isAdmin } = usePermissoes();
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
   const { data: itens } = trpc.agendamentos.getItens.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
   const { data: pagamentos, refetch: refetchPagamentos } = trpc.agendamentos.getPagamentos.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
@@ -456,8 +458,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             </div>
           </div>
 
-          {/* ─── Seção Pagamentos e Desconto ─── */}
-          {(() => {
+          {/* ─── Seção Pagamentos e Desconto (apenas admin) ─── */}
+          {isAdmin && (() => {
             const totalItens = parseFloat(String(ag.valorTotal ?? 0));
             const desconto = parseFloat(String((ag as any).desconto ?? 0));
             const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
@@ -783,8 +785,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             </div>
           )}
         </div>
-        {/* Barra fixa de pagamento no rodapé */}
-        {(() => {
+         {/* Barra fixa de pagamento no rodé (apenas admin) */}
+        {isAdmin && (() => {
           const totalItens = parseFloat(String(ag.valorTotal ?? 0));
           const desconto = parseFloat(String((ag as any).desconto ?? 0));
           const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);

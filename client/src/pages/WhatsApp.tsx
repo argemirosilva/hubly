@@ -24,9 +24,14 @@ import {
   Zap,
 } from "lucide-react";
 
-type WAStatus = "disconnected" | "connecting" | "qr_ready" | "connected" | "logged_out";
+type WAStatus = "disconnected" | "connecting" | "qr_ready" | "scanning" | "connected" | "logged_out";
 
 const statusConfig: Record<WAStatus, { label: string; color: string; icon: React.ReactNode }> = {
+  scanning: {
+    label: "QR Code lido...",
+    color: "bg-purple-100 text-purple-700 border-purple-200",
+    icon: <Loader2 className="w-4 h-4 animate-spin" />,
+  },
   disconnected: {
     label: "Desconectado",
     color: "bg-gray-100 text-gray-700 border-gray-200",
@@ -71,14 +76,14 @@ export default function WhatsAppPage() {
   const isVerifying = statusLoading && statusData === undefined;
   const status = (statusData?.status ?? "disconnected") as WAStatus;
   // Mostrar "connecting" tanto quando o servidor reporta quanto quando clicamos localmente
-  const effectiveStatus: WAStatus = localConnecting && status !== "connecting" && status !== "connected" && status !== "qr_ready"
+  const effectiveStatus: WAStatus = localConnecting && status !== "connecting" && status !== "connected" && status !== "qr_ready" && status !== "scanning"
     ? "connecting"
     : status;
   const config = statusConfig[effectiveStatus];
 
   // Limpar localConnecting quando o servidor confirmar o estado
   useEffect(() => {
-    if (status === "connecting" || status === "connected" || status === "qr_ready") {
+    if (status === "connecting" || status === "connected" || status === "qr_ready" || status === "scanning") {
       setLocalConnecting(false);
     }
   }, [status]);
@@ -87,7 +92,7 @@ export default function WhatsAppPage() {
   useEffect(() => {
     if (status === "connected") {
       setPollingInterval(30000); // Polling lento quando conectado
-    } else if (status === "qr_ready" || status === "connecting") {
+    } else if (status === "qr_ready" || status === "connecting" || status === "scanning") {
       setPollingInterval(2000); // Polling rápido para QR
     } else {
       setPollingInterval(10000);
@@ -282,6 +287,20 @@ export default function WhatsAppPage() {
             </div>
           )}
 
+          {/* Scanning state (QR lido, aguardando confirmação) */}
+          {!isVerifying && effectiveStatus === "scanning" && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="relative">
+                <Smartphone className="w-12 h-12 text-purple-400" />
+                <Loader2 className="w-5 h-5 text-purple-600 animate-spin absolute -bottom-1 -right-1" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-purple-800">QR Code lido com sucesso!</p>
+                <p className="text-xs text-muted-foreground">Aguardando confirmação no seu celular...</p>
+              </div>
+            </div>
+          )}
+
           {/* Connected state */}
           {!isVerifying && effectiveStatus === "connected" && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100">
@@ -351,7 +370,7 @@ export default function WhatsAppPage() {
                   {effectiveStatus === "connecting" ? "Conectando..." : effectiveStatus === "qr_ready" ? "Aguardando escaneamento..." : "Conectar WhatsApp"}
                 </Button>
               )}
-              {(effectiveStatus === "connected" || effectiveStatus === "qr_ready" || effectiveStatus === "connecting") && (
+              {(effectiveStatus === "connected" || effectiveStatus === "qr_ready" || effectiveStatus === "connecting" || effectiveStatus === "scanning") && (
                 <Button
                   variant="outline"
                   onClick={handleDisconnect}

@@ -1122,3 +1122,11 @@
 - [x] Bug: evento agendamento_concluido não está implementado (UI não tem, backend não dispara ao mudar para concluido)
 - [x] Bug: evento agendamento_confirmado não está na lista de eventos da UI (apenas no backend)
 - [x] Melhoria: adicionar evento agendamento_concluido na UI e no backend (disparar ao mudar status para concluido)
+
+## Fase 1 — Correções Críticas (Plano de Implantação)
+
+- [x] WhatsApp: fluxo guiado com 6 estados visuais (aguarde, gerando QR, QR disponível, conectando, conectado, erro)
+- [x] WhatsApp: bloquear múltiplos cliques simultâneos (apenas 1 tentativa ativa por vez)
+- [x] Visibilidade por role: profissionais não-admin veem apenas agendado/confirmado/cancelado/remarcado
+- [x] Visibilidade por role: ocultar informações financeiras, pre_agendado e dados admin para não-admin
+- [x] Automações: variável {{nome}} com fallback "Cliente" quando nome não estiver cadastrado

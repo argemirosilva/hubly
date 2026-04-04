@@ -254,8 +254,8 @@ async function enviarLembretesAgendamentos() {
 
       // Montar variáveis de template
       const templateVarsLembrete = {
-        nome_cliente: ag.clienteNome ?? '',
-        primeiro_nome: (ag.clienteNome ?? '').split(' ')[0],
+        nome_cliente: ag.clienteNome || 'Cliente',
+        primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
         servico: ag.servicoNome ?? '',
         data: dataFormatada,
         hora: horaFormatada,
@@ -443,8 +443,8 @@ async function processarAutomacoesAgendadas() {
           const horaFormatada = ag.horaInicio ?? '';
 
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome ?? '',
-            primeiro_nome: (ag.clienteNome ?? '').split(' ')[0],
+            nome_cliente: ag.clienteNome || 'Cliente',
+            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: horaFormatada,
@@ -558,8 +558,8 @@ async function processarAutomacoesAgendadas() {
             : '';
 
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome ?? '',
-            primeiro_nome: (ag.clienteNome ?? '').split(' ')[0],
+            nome_cliente: ag.clienteNome || 'Cliente',
+            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: ag.horaInicio ?? '',
@@ -667,8 +667,8 @@ async function processarAutomacoesAgendadas() {
             : '';
 
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome ?? '',
-            primeiro_nome: (ag.clienteNome ?? '').split(' ')[0],
+            nome_cliente: ag.clienteNome || 'Cliente',
+            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: ag.horaInicio ?? '',
@@ -771,8 +771,8 @@ async function processarAutomacoesAgendadas() {
             : '';
 
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome ?? '',
-            primeiro_nome: (ag.clienteNome ?? '').split(' ')[0],
+            nome_cliente: ag.clienteNome || 'Cliente',
+            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: ag.horaInicio ?? '',

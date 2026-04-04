@@ -741,8 +741,8 @@ export const appRouter = router({
             const valorServico = parseFloat(rest.valorTotal ?? '0');
             const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
             const templateVars = {
-              nome_cliente: cliente.nome,
-              primeiro_nome: cliente.nome.split(' ')[0],
+              nome_cliente: cliente.nome || 'Cliente',
+              primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
               servico: servico?.nome ?? '',
               data: dataFormatada,
               hora: `${rest.horaInicio} – ${rest.horaFim}`,

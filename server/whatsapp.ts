@@ -120,6 +120,7 @@ export type WAStatus =
   | "disconnected"
   | "connecting"
   | "qr_ready"
+  | "scanning"
   | "connected"
   | "logged_out";
 
@@ -242,6 +243,12 @@ class WhatsAppManager extends EventEmitter {
           } catch (err) {
             console.error("[WhatsApp] Erro ao gerar QR Code:", err);
           }
+        }
+
+        // Detectar quando o QR foi lido (isNewLogin = true e connection ainda não é 'open')
+        if (update.isNewLogin && connection !== 'open') {
+          this.setState({ status: "scanning", qrDataUrl: null });
+          console.log('[WhatsApp] QR Code lido — aguardando confirmação no celular...');
         }
 
         if (connection === "open") {
