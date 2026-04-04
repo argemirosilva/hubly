@@ -34,6 +34,7 @@ import {
   getMeiosPagamentoByEmpresa, getMeioPagamentoById, createMeioPagamento, updateMeioPagamento, deleteMeioPagamento,
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
+  createAgendamentoItens, getItensByAgendamento, getItensByAgendamentos, deleteItensByAgendamento,
 } from "./db";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -575,11 +576,23 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         return getAgendamentoById(input.id);
       }),
+    getItens: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        return getItensByAgendamento(input.agendamentoId);
+      }),
     create: protectedProcedure
       .input(z.object({
         clienteId: z.number(),
         profissionalId: z.number(),
         servicoId: z.number(),
+        // Lista de serviços adicionais (múltiplos serviços por agendamento)
+        servicos: z.array(z.object({
+          servicoId: z.number(),
+          valorUnitario: z.string(),
+        })).optional(),
         data: z.string(),
         horaInicio: z.string(),
         horaFim: z.string(),
@@ -610,7 +623,7 @@ export const appRouter = router({
             message: 'Limite de agendamentos do plano atingido. Faça upgrade para continuar agendando.',
           });
         }
-        const { comReserva, ...rest } = input;
+        const { comReserva, servicos: servicosInput, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
         let status = rest.status;
@@ -627,6 +640,22 @@ export const appRouter = router({
           valorReserva,
           reservaExpiracaoEm,
         } as any);
+
+        // ── Criar itens de agendamento (múltiplos serviços) ────────────────────────────────
+        if (servicosInput && servicosInput.length > 0) {
+          await createAgendamentoItens(servicosInput.map(s => ({
+            agendamentoId: id,
+            servicoId: s.servicoId,
+            valorUnitario: s.valorUnitario,
+          })));
+        } else {
+          // Compatibilidade: criar item com o serviço principal
+          await createAgendamentoItens([{
+            agendamentoId: id,
+            servicoId: rest.servicoId,
+            valorUnitario: rest.valorTotal,
+          }]);
+        }
 
         // ── Envio automático de confirmação via WhatsApp ────────────────────────────
         try {
@@ -881,6 +910,36 @@ export const appRouter = router({
           reservaPaga: true,
           reservaPagaEm: new Date(),
         });
+        return { success: true };
+      }),
+    updateServicos: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        servicoIdPrincipal: z.number(),
+        servicos: z.array(z.object({
+          servicoId: z.number(),
+          valorUnitario: z.string(),
+        })),
+        valorTotal: z.string(),
+        horaFim: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        // Atualizar o agendamento principal
+        const updates: Record<string, any> = {
+          servicoId: input.servicoIdPrincipal,
+          valorTotal: input.valorTotal,
+        };
+        if (input.horaFim) updates.horaFim = input.horaFim;
+        await updateAgendamento(input.agendamentoId, updates);
+        // Substituir os itens
+        await deleteItensByAgendamento(input.agendamentoId);
+        await createAgendamentoItens(input.servicos.map(s => ({
+          agendamentoId: input.agendamentoId,
+          servicoId: s.servicoId,
+          valorUnitario: s.valorUnitario,
+        })));
         return { success: true };
       }),
   }),

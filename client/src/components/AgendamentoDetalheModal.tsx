@@ -1,8 +1,8 @@
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,9 +28,25 @@ interface Props {
 export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }: Props) {
   const utils = trpc.useUtils();
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
+  const { data: itens } = trpc.agendamentos.getItens.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
+
+  // Estado para edição de serviços
+  const [editandoServicos, setEditandoServicos] = useState(false);
+  const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; valorUnitario: string }[]>([]);
+
+  const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
+    onSuccess: () => {
+      toast.success("Serviços atualizados!");
+      utils.agendamentos.getItens.invalidate({ agendamentoId });
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.agendamentos.list.invalidate();
+      setEditandoServicos(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
 
   const [comissaoModal, setComissaoModal] = useState(false);
   const [linkConfirmacao, setLinkConfirmacao] = useState<string | null>(null);
@@ -76,6 +92,45 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
   const profissional = profissionais?.find(p => p.id === ag?.profissionalId);
   const servico = servicos?.find(s => s.id === ag?.servicoId);
+
+  // Serviços do agendamento: usar itens se disponíveis, senão fallback para servicoId
+  const servicosDoAgendamento = useMemo(() => {
+    if (itens && itens.length > 0) {
+      return itens.map(item => ({
+        servicoId: item.servicoId,
+        nome: servicos?.find(s => s.id === item.servicoId)?.nome ?? "Serviço",
+        valor: parseFloat(String(item.valorUnitario)),
+      }));
+    }
+    if (servico) {
+      return [{ servicoId: servico.id, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)) }];
+    }
+    return [];
+  }, [itens, servico, servicos, ag]);
+
+  const iniciarEdicaoServicos = () => {
+    if (servicosDoAgendamento.length > 0) {
+      setServicosEdit(servicosDoAgendamento.map(s => ({
+        servicoId: String(s.servicoId),
+        valorUnitario: s.valor.toFixed(2),
+      })));
+    } else {
+      setServicosEdit([{ servicoId: "", valorUnitario: "" }]);
+    }
+    setEditandoServicos(true);
+  };
+
+  const salvarEdicaoServicos = () => {
+    const validos = servicosEdit.filter(s => s.servicoId);
+    if (validos.length === 0) { toast.error("Selecione pelo menos um serviço"); return; }
+    const total = validos.reduce((acc, s) => acc + (parseFloat(s.valorUnitario) || 0), 0);
+    updateServicosMutation.mutate({
+      agendamentoId,
+      servicoIdPrincipal: parseInt(validos[0].servicoId),
+      servicos: validos.map(s => ({ servicoId: parseInt(s.servicoId), valorUnitario: s.valorUnitario || "0" })),
+      valorTotal: total.toFixed(2),
+    });
+  };
 
   const handleStatus = (status: string) => {
     if (status === "concluido") {
@@ -160,14 +215,101 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            {/* Serviços (múltiplos) */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                 style={{ background: profissional?.corCalendario ? `${profissional.corCalendario}20` : "oklch(60% 0.20 300 / 10%)" }}>
                 <Sparkles className="w-3.5 h-3.5" style={{ color: profissional?.corCalendario ?? "oklch(42% 0.16 300)" }} />
               </div>
-              <div>
-                <p className="text-sm font-semibold">{servico?.nome ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
+              <div className="flex-1 min-w-0">
+                {!editandoServicos ? (
+                  <>
+                    {servicosDoAgendamento.length > 1 ? (
+                      <div className="space-y-0.5">
+                        {servicosDoAgendamento.map((s, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <p className="text-sm font-semibold">{s.nome}</p>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(s.valor)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold">{servicosDoAgendamento[0]?.nome ?? servico?.nome ?? "—"}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
+                      {!(["concluido", "cancelado", "faltou"].includes(ag.status)) && (
+                        <button
+                          onClick={iniciarEdicaoServicos}
+                          className="text-[10px] text-primary hover:underline"
+                        >
+                          editar serviços
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-semibold text-foreground">Editar serviços</p>
+                      <button
+                        onClick={() => {
+                          setServicosEdit(prev => [...prev, { servicoId: "", valorUnitario: "" }]);
+                        }}
+                        className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" /> adicionar
+                      </button>
+                    </div>
+                    {servicosEdit.map((item, index) => (
+                      <div key={index} className="flex gap-1.5 items-center">
+                        <Select
+                          value={item.servicoId}
+                          onValueChange={(v) => {
+                            const s = servicos?.find(sv => sv.id === parseInt(v));
+                            setServicosEdit(prev => prev.map((it, i) => i === index
+                              ? { servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
+                              : it
+                            ));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs flex-1">
+                            <SelectValue placeholder="Serviço" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {servicos?.filter(s => s.ativo).map(s => (
+                              <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative w-24">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                          <Input
+                            type="number" step="0.01" min="0"
+                            value={item.valorUnitario}
+                            onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, valorUnitario: e.target.value } : it))}
+                            className="pl-7 h-8 text-xs"
+                          />
+                        </div>
+                        <button
+                          onClick={() => setServicosEdit(prev => prev.filter((_, i) => i !== index))}
+                          disabled={servicosEdit.length === 1}
+                          className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditandoServicos(false)}>Cancelar</Button>
+                      <Button size="sm" className="h-7 text-xs" onClick={salvarEdicaoServicos} disabled={updateServicosMutation.isPending}>
+                        {updateServicosMutation.isPending ? "Salvando..." : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

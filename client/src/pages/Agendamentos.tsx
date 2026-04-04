@@ -200,7 +200,8 @@ export default function Agendamentos() {
         ) : (
           <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
             {filtrados.map(ag => {
-              const servicoNome = servicoMap[ag.servicoId] ?? "";
+              // Suporte a múltiplos serviços: usar servicoNome do backend se disponível
+              const servicoNome = (ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "";
               const prof = profMap[ag.profissionalId];
               const st = statusStyle[ag.status] ?? statusStyle.agendado;
               return (

@@ -200,6 +200,17 @@ export const agendamentos = mysqlTable("agendamentos", {
 
 export type Agendamento = typeof agendamentos.$inferSelect;
 
+// ─── ITENS DE AGENDAMENTO (múltiplos serviços) ───────────────────────────────
+export const agendamentoItens = mysqlTable("agendamento_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId").notNull(),
+  servicoId: int("servicoId").notNull(),
+  valorUnitario: decimal("valorUnitario", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AgendamentoItem = typeof agendamentoItens.$inferSelect;
+
 // ─── BLOQUEIOS DE AGENDA ──────────────────────────────────────────────────────
 export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {
   id: int("id").autoincrement().primaryKey(),

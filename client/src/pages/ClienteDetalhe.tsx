@@ -390,7 +390,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         {agendamentosCliente.map(ag => (
                           <div key={ag.id} className="flex items-center justify-between px-5 py-3">
                             <div>
-                              <p className="text-sm font-medium">{servicoMap[ag.servicoId] ?? "Serviço"}</p>
+                              <p className="text-sm font-medium">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}</p>
                               <p className="text-xs text-muted-foreground">
                                 {ag.data.split("-").reverse().join("/")} · {ag.horaInicio.slice(0, 5)}
                               </p>

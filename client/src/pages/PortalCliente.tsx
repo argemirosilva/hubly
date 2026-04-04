@@ -91,11 +91,20 @@ export default function PortalCliente() {
   const [buscandoTelefone, setBuscandoTelefone] = useState(false);
   const [validandoCpf, setValidandoCpf] = useState(false);
 
-  const [servicoId, setServicoId] = useState<number | null>(null);
+  const [servicosIds, setServicosIds] = useState<number[]>([]);
+  // Compatibilidade: servicoId = primeiro serviço selecionado
+  const servicoId = servicosIds[0] ?? null;
   const [profissionalId, setProfissionalId] = useState<number | null>(null);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [observacoes, setObservacoes] = useState("");
+
+  // Toggle serviço na seleção múltipla
+  const toggleServico = (id: number) => {
+    setServicosIds(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
 
   const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId });
   const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId });
@@ -176,6 +185,9 @@ export default function PortalCliente() {
   });
 
   const servicoSelecionado = servicos?.find(s => s.id === servicoId);
+  const servicosSelecionados = servicos?.filter(s => servicosIds.includes(s.id)) ?? [];
+  const valorTotalServicos = servicosSelecionados.reduce((acc, s) => acc + parseFloat(String(s.valor ?? 0)), 0);
+  const duracaoTotalServicos = servicosSelecionados.reduce((acc, s) => acc + (s.duracaoMinutos ?? 60), 0);
   const profSelecionado = profissionais?.find(p => p.id === profissionalId);
   const diasFuncionamento = (empresa?.diasFuncionamento as number[]) ?? [1, 2, 3, 4, 5];
   const datasDisponiveis = useMemo(
@@ -300,7 +312,7 @@ export default function PortalCliente() {
             </div>
             <button
               onClick={() => {
-                setStep("identificacao"); setServicoId(null); setProfissionalId(null);
+                setStep("identificacao"); setServicosIds([]); setProfissionalId(null);
                 setData(""); setHora(""); setObservacoes("");
               }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-md"
@@ -512,35 +524,64 @@ export default function PortalCliente() {
         )}
 
         {step === "servico" && (
-          <StepCard title="Qual serviço?" subtitle="Escolha o serviço desejado">
+          <StepCard title="Qual serviço?" subtitle="Selecione um ou mais serviços">
             <div className="space-y-2">
-              {servicos?.map(s => (
-                <button key={s.id} onClick={() => { setServicoId(s.id); setStep("profissional"); }}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
-                  style={{
-                    borderColor: servicoId === s.id ? corPrimaria : "#e2e8f0",
-                    background: servicoId === s.id ? corSecundaria + "50" : "white",
-                  }}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: s.cor ?? corPrimaria }}>
-                    <Scissors className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-slate-800">{s.nome}</p>
-                    {s.descricao && <p className="text-xs text-slate-500 truncate">{s.descricao}</p>}
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {s.duracaoMinutos} min
+              {servicos?.map(s => {
+                const selecionado = servicosIds.includes(s.id);
+                return (
+                  <button key={s.id} onClick={() => toggleServico(s.id)}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                    style={{
+                      borderColor: selecionado ? corPrimaria : "#e2e8f0",
+                      background: selecionado ? corSecundaria + "50" : "white",
+                    }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: s.cor ?? corPrimaria }}>
+                      {selecionado
+                        ? <CheckCircle2 className="w-5 h-5 text-white" />
+                        : <Scissors className="w-5 h-5 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-slate-800">{s.nome}</p>
+                      {s.descricao && <p className="text-xs text-slate-500 truncate">{s.descricao}</p>}
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {s.duracaoMinutos} min
+                      </p>
+                    </div>
+                    <p className="font-bold text-sm flex-shrink-0" style={{ color: corPrimaria }}>
+                      {formatCurrency(s.valor)}
                     </p>
-                  </div>
-                  <p className="font-bold text-sm flex-shrink-0" style={{ color: corPrimaria }}>
-                    {formatCurrency(s.valor)}
-                  </p>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
-            <BtnSecundario onClick={() => setStep("identificacao")} cor={corPrimaria}>
-              <ChevronLeft className="w-4 h-4" /> Voltar
-            </BtnSecundario>
+
+            {/* Resumo dos serviços selecionados */}
+            {servicosIds.length > 0 && (
+              <div className="rounded-xl p-3 border-2 mt-1"
+                style={{ borderColor: corPrimaria + "40", background: corSecundaria + "30" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: corPrimaria }}>
+                  {servicosIds.length} serviço{servicosIds.length > 1 ? "s" : ""} selecionado{servicosIds.length > 1 ? "s" : ""}
+                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-600 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {duracaoTotalServicos} min no total
+                  </p>
+                  <p className="font-bold text-sm" style={{ color: corPrimaria }}>
+                    {formatCurrency(valorTotalServicos)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <BtnSecundario onClick={() => setStep("identificacao")} cor={corPrimaria}>
+                <ChevronLeft className="w-4 h-4" /> Voltar
+              </BtnSecundario>
+              <BtnPrimary disabled={servicosIds.length === 0} onClick={() => setStep("profissional")} cor={corPrimaria}>
+                Continuar <ChevronRight className="w-4 h-4" />
+              </BtnPrimary>
+            </div>
           </StepCard>
         )}
 
@@ -664,17 +705,35 @@ export default function PortalCliente() {
             <div className="space-y-4">
               <div className="rounded-xl p-4 space-y-3 border"
                 style={{ background: corSecundaria + "30", borderColor: corPrimaria + "25" }}>
-                <ResumoItem icon={Scissors} label="Serviço" value={servicoSelecionado?.nome ?? ""} cor={corPrimaria} />
+                {servicosSelecionados.length > 1 ? (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ background: corPrimaria + "20" }}>
+                      <Scissors className="w-4 h-4" style={{ color: corPrimaria }} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-500 mb-1">Serviços</p>
+                      {servicosSelecionados.map(s => (
+                        <div key={s.id} className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-slate-800">{s.nome}</p>
+                          <p className="text-xs text-slate-500 ml-2">{formatCurrency(s.valor)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <ResumoItem icon={Scissors} label="Serviço" value={servicoSelecionado?.nome ?? ""} cor={corPrimaria} />
+                )}
                 <ResumoItem icon={User} label="Profissional"
                   value={profSelecionado?.nome ?? (profissionalId ? "—" : "Qualquer disponível")} cor={corPrimaria} />
                 <ResumoItem icon={Calendar} label="Data" value={formatarData(data)} cor={corPrimaria} />
                 <ResumoItem icon={Clock} label="Horário"
-                  value={`${hora} · ${servicoSelecionado?.duracaoMinutos ?? 60} min`} cor={corPrimaria} />
+                  value={`${hora} · ${duracaoTotalServicos} min`} cor={corPrimaria} />
                 <ResumoItem icon={User} label="Cliente" value={`${nome} · ${telefone}`} cor={corPrimaria} />
                 <div className="pt-2 border-t" style={{ borderColor: corPrimaria + "20" }}>
                   <p className="text-xs text-slate-500">Valor total</p>
                   <p className="font-bold text-lg" style={{ color: corPrimaria }}>
-                    {formatCurrency(servicoSelecionado?.valor ?? "0")}
+                    {formatCurrency(valorTotalServicos)}
                   </p>
                 </div>
               </div>
@@ -716,6 +775,10 @@ export default function PortalCliente() {
                     agendarMutation.mutate({
                       empresaId,
                       servicoId: servicoId!,
+                      servicos: servicosSelecionados.map(s => ({
+                        servicoId: s.id,
+                        valorUnitario: String(parseFloat(String(s.valor ?? 0)).toFixed(2)),
+                      })),
                       profissionalId: profFinalId,
                       data,
                       horaInicio: hora,

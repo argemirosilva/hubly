@@ -6,7 +6,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
 import {
-  empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda,
+  empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda, agendamentoItens,
 } from "../../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { checkAgendamentoLimit, incrementAgendamentosCount } from "../db-plans";
@@ -230,6 +230,10 @@ export const portalRouter = router({
     .input(z.object({
       empresaId: z.number(),
       servicoId: z.number(),
+      servicos: z.array(z.object({
+        servicoId: z.number(),
+        valorUnitario: z.string(),
+      })).optional(),
       profissionalId: z.number(),
       data: z.string(), // YYYY-MM-DD
       horaInicio: z.string(), // HH:MM
@@ -251,15 +255,27 @@ export const portalRouter = router({
       if (limitError) {
         throw new Error("LIMITE_ATINGIDO: A agenda desta empresa atingiu o limite de agendamentos do mês. Por favor, entre em contato diretamente com o estabelecimento.");
       }
-      // Buscar serviço para calcular horaFim e valorTotall
+      // Buscar serviço principal para calcular horaFim
       const servicoResult = await db.select().from(servicos)
         .where(and(eq(servicos.id, input.servicoId), eq(servicos.empresaId, input.empresaId))).limit(1);
       const servico = servicoResult[0];
       if (!servico) throw new Error("Serviço não encontrado");
 
+      // Calcular duração total (soma de todos os serviços se múltiplos)
+      let duracaoTotal = servico.duracaoMinutos ?? 60;
+      let valorTotal = parseFloat(String(servico.valor ?? 0));
+      if (input.servicos && input.servicos.length > 1) {
+        // Buscar durações de todos os serviços
+        const servicosIds = input.servicos.map(s => s.servicoId);
+        const servicosData = await db.select({ id: servicos.id, duracaoMinutos: servicos.duracaoMinutos })
+          .from(servicos).where(sql`${servicos.id} IN (${sql.join(servicosIds.map(id => sql`${id}`), sql`, `)})`);
+        duracaoTotal = servicosData.reduce((acc, s) => acc + (s.duracaoMinutos ?? 60), 0);
+        valorTotal = input.servicos.reduce((acc, s) => acc + parseFloat(s.valorUnitario), 0);
+      }
+
       // Calcular horaFim
       const [h, m] = input.horaInicio.split(":").map(Number);
-      const fimMin = h * 60 + m + (servico.duracaoMinutos ?? 60);
+      const fimMin = h * 60 + m + duracaoTotal;
       const horaFim = `${String(Math.floor(fimMin / 60)).padStart(2, "0")}:${String(fimMin % 60).padStart(2, "0")}`;
 
       // Verificar conflito de horário
@@ -309,10 +325,21 @@ export const portalRouter = router({
         horaInicio: input.horaInicio,
         horaFim,
         status,
-        valorTotal: String(servico.valor ?? "0"),
+        valorTotal: String(valorTotal),
         observacoes: input.observacoes ?? null,
       });
       const agendamentoId = (novoAg as any)[0]?.insertId ?? (novoAg as any).insertId;
+
+      // Criar itens de agendamento se múltiplos serviços
+      if (input.servicos && input.servicos.length > 0 && agendamentoId) {
+        await db.insert(agendamentoItens).values(
+          input.servicos.map(s => ({
+            agendamentoId,
+            servicoId: s.servicoId,
+            valorUnitario: s.valorUnitario,
+          }))
+        );
+      }
 
        // ── Incrementar contador de uso ────────────────────────────────────────
       try {

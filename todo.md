@@ -850,3 +850,14 @@
 
 ## Bug: Erro ao clicar em Editar na ficha do cliente (04/04/2026)
 - [x] Corrigido erro removeChild: removido TooltipTrigger asChild + Link do wouter (incompatibilidade de ref no React 19), substituido por Button com navigate()
+
+## Múltiplos Serviços por Agendamento (04/04/2026)
+- [x] Banco: criar tabela agendamento_itens (agendamentoId, servicoId, valorUnitario)
+- [x] Backend: funções createAgendamentoItens, getItensByAgendamento, deleteItensByAgendamento no db.ts
+- [x] Backend: atualizar endpoints create/update/list/getById de agendamentos
+- [x] Backend: getAgendamentosByEmpresa retorna servicoNome (nome concatenado para múltiplos) e itens
+- [x] Admin: NovaAgendaModal com lista dinâmica de serviços (+ Adicionar / remover), cálculo automático de valor e duração
+- [x] Admin: AgendamentoDetalheModal exibindo lista de serviços com endpoint getItens
+- [x] Portal: PortalCliente com seleção múltipla de serviços (checkboxes + resumo)
+- [x] Portal: endpoint criarAgendamento aceita array de serviços e cria itens
+- [x] Exibição: Agendamentos.tsx, Dashboard.tsx e ClienteDetalhe.tsx usam servicoNome do backend

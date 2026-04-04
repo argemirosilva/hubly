@@ -501,7 +501,7 @@ export default function Dashboard() {
                         {clienteMap[ag.clienteId] ?? "Cliente"}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {servicoMap[ag.servicoId] ?? "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
+                        {(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
                       </p>
                     </div>
 

@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela } from "../drizzle/schema";
+import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -202,7 +202,47 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
   if (dataFim) conditions.push(sql`${agendamentos.data} <= ${dataFim}`);
   // Filtro por profissional — apenas quando vinculado (não aplica para administradores)
   if (profissionalId) conditions.push(eq(agendamentos.profissionalId, profissionalId));
-  return db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
+  const rows = await db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
+  if (rows.length === 0) return rows;
+
+  // Enriquecer com servicoNome e itens (múltiplos serviços)
+  const agIds = rows.map(r => r.id);
+  const { inArray } = await import('drizzle-orm');
+
+  // Buscar todos os itens de uma vez
+  const itensRows = await db
+    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
+    .from(agendamentoItens)
+    .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+    .where(inArray(agendamentoItens.agendamentoId, agIds));
+
+  // Buscar nomes dos serviços principais (servicoId da tabela agendamentos)
+  const servicoIds = Array.from(new Set(rows.map(r => r.servicoId).filter(Boolean) as number[]));
+  const servicosMap: Record<number, string> = {};
+  if (servicoIds.length > 0) {
+    const sRows = await db.select({ id: servicos.id, nome: servicos.nome }).from(servicos).where(inArray(servicos.id, servicoIds));
+    sRows.forEach(s => { servicosMap[s.id] = s.nome; });
+  }
+
+  // Agrupar itens por agendamento
+  const itensPorAg: Record<number, typeof itensRows> = {};
+  itensRows.forEach(item => {
+    if (!itensPorAg[item.agendamentoId]) itensPorAg[item.agendamentoId] = [];
+    itensPorAg[item.agendamentoId].push(item);
+  });
+
+  return rows.map(ag => {
+    const itens = itensPorAg[ag.id] ?? [];
+    let servicoNome: string;
+    if (itens.length > 1) {
+      servicoNome = itens.map(i => i.servicoNome ?? `Serviço`).join(', ');
+    } else if (itens.length === 1) {
+      servicoNome = itens[0].servicoNome ?? servicosMap[ag.servicoId ?? 0] ?? '';
+    } else {
+      servicoNome = servicosMap[ag.servicoId ?? 0] ?? '';
+    }
+    return { ...ag, servicoNome, itens };
+  });
 }
 
 export async function getAgendamentoById(id: number) {
@@ -223,6 +263,33 @@ export async function updateAgendamento(id: number, data: Partial<typeof agendam
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(agendamentos).set(data).where(eq(agendamentos.id, id));
+}
+
+// ─── ITENS DE AGENDAMENTO (múltiplos serviços) ───────────────────────────────
+export async function createAgendamentoItens(itens: (typeof agendamentoItens.$inferInsert)[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  if (itens.length === 0) return;
+  await db.insert(agendamentoItens).values(itens);
+}
+
+export async function getItensByAgendamento(agendamentoId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agendamentoItens).where(eq(agendamentoItens.agendamentoId, agendamentoId));
+}
+
+export async function getItensByAgendamentos(agendamentoIds: number[]) {
+  const db = await getDb();
+  if (!db || agendamentoIds.length === 0) return [];
+  const { inArray } = await import('drizzle-orm');
+  return db.select().from(agendamentoItens).where(inArray(agendamentoItens.agendamentoId, agendamentoIds));
+}
+
+export async function deleteItensByAgendamento(agendamentoId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(agendamentoItens).where(eq(agendamentoItens.agendamentoId, agendamentoId));
 }
 
 export async function getAgendamentosExpirados() {

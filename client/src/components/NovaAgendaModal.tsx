@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import { Plus, Trash2 } from "lucide-react";
+
+interface ServicoItem {
+  servicoId: string;
+  valorUnitario: string;
+}
 
 interface Props {
   open: boolean;
@@ -24,13 +30,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { pode, profissionalId: meuProfissionalId, isOwner } = usePermissoes();
-  // Não-admin: forçar profissionalId para o próprio
   const podeAgendarParaOutros = isOwner || pode('agendamentosVerTodos');
 
   const [form, setForm] = useState({
     clienteId: "",
     profissionalId: profissionalIdInicial ? String(profissionalIdInicial) : (meuProfissionalId && !podeAgendarParaOutros ? String(meuProfissionalId) : ""),
-    servicoId: "",
     data: dataInicial ?? new Date().toISOString().split("T")[0],
     horaInicio: "09:00",
     horaFim: "10:00",
@@ -39,6 +43,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     status: "agendado" as const,
   });
 
+  // Lista de serviços selecionados (múltiplos)
+  const [servicosSelecionados, setServicosSelecionados] = useState<ServicoItem[]>([
+    { servicoId: "", valorUnitario: "" }
+  ]);
+
   // Buscar serviços vinculados ao profissional selecionado
   const profissionalIdNum = form.profissionalId ? parseInt(form.profissionalId) : null;
   const { data: servicosVinculados } = trpc.profissionalServicos.getByProfissional.useQuery(
@@ -46,12 +55,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     { enabled: !!profissionalIdNum }
   );
 
-  // Filtrar serviços: se o profissional tem vínculos, mostrar apenas esses; senão, mostrar todos
+  // Filtrar serviços disponíveis para o profissional
   const servicosFiltrados = useMemo(() => {
     if (!servicos) return [];
     if (!profissionalIdNum) return servicos.filter(s => s.ativo);
     if (!servicosVinculados || servicosVinculados.length === 0) {
-      // Profissional sem vínculos configurados → mostrar todos os serviços ativos
       return servicos.filter(s => s.ativo);
     }
     const idsVinculados = new Set(servicosVinculados.map(v => v.servicoId));
@@ -64,43 +72,89 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       utils.agendamentos.list.invalidate();
       utils.financeiro.dashboard.invalidate();
       onClose();
+      // Reset form
+      setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
     },
     onError: (err) => toast.error(err.message),
   });
 
-  const servicoSelecionado = servicos?.find(s => s.id === parseInt(form.servicoId));
-
-  const handleProfissionalChange = (id: string) => {
-    // Ao trocar de profissional, limpar o serviço selecionado
-    setForm(f => ({ ...f, profissionalId: id, servicoId: "" }));
-  };
-
-  const handleServicoChange = (id: string) => {
-    const servico = servicos?.find(s => s.id === parseInt(id));
-    if (servico) {
-      const [h, m] = form.horaInicio.split(":").map(Number);
-      const totalMin = h * 60 + m + (servico.duracaoMinutos ?? 60);
+  // Recalcular horaFim com base na soma das durações de todos os serviços
+  const recalcularHoraFim = (horaInicio: string, itens: ServicoItem[]) => {
+    if (!servicos) return;
+    const [h, m] = horaInicio.split(":").map(Number);
+    let totalMin = h * 60 + m;
+    for (const item of itens) {
+      if (item.servicoId) {
+        const s = servicos.find(sv => sv.id === parseInt(item.servicoId));
+        totalMin += s?.duracaoMinutos ?? 0;
+      }
+    }
+    if (totalMin > h * 60 + m) {
       const hFim = Math.floor(totalMin / 60).toString().padStart(2, "0");
       const mFim = (totalMin % 60).toString().padStart(2, "0");
-      setForm(f => ({ ...f, servicoId: id, horaFim: `${hFim}:${mFim}` }));
-    } else {
-      setForm(f => ({ ...f, servicoId: id }));
+      setForm(f => ({ ...f, horaFim: `${hFim}:${mFim}` }));
     }
   };
 
+  const handleProfissionalChange = (id: string) => {
+    setForm(f => ({ ...f, profissionalId: id }));
+    setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
+  };
+
+  const handleServicoChange = (index: number, servicoId: string) => {
+    const servico = servicos?.find(s => s.id === parseInt(servicoId));
+    const novaLista = servicosSelecionados.map((item, i) =>
+      i === index
+        ? { servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "" }
+        : item
+    );
+    setServicosSelecionados(novaLista);
+    recalcularHoraFim(form.horaInicio, novaLista);
+  };
+
+  const handleValorChange = (index: number, valor: string) => {
+    setServicosSelecionados(prev => prev.map((item, i) => i === index ? { ...item, valorUnitario: valor } : item));
+  };
+
+  const adicionarServico = () => {
+    setServicosSelecionados(prev => [...prev, { servicoId: "", valorUnitario: "" }]);
+  };
+
+  const removerServico = (index: number) => {
+    if (servicosSelecionados.length === 1) return; // manter pelo menos 1
+    const novaLista = servicosSelecionados.filter((_, i) => i !== index);
+    setServicosSelecionados(novaLista);
+    recalcularHoraFim(form.horaInicio, novaLista);
+  };
+
+  // Valor total calculado
+  const valorTotal = servicosSelecionados.reduce((acc, item) => {
+    return acc + (parseFloat(item.valorUnitario) || 0);
+  }, 0);
+
   const handleSubmit = () => {
-    if (!form.clienteId || !form.profissionalId || !form.servicoId) {
-      toast.error("Preencha todos os campos obrigatórios");
+    if (!form.clienteId || !form.profissionalId) {
+      toast.error("Preencha cliente e profissional");
       return;
     }
+    const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
+    if (servicosValidos.length === 0) {
+      toast.error("Selecione pelo menos um serviço");
+      return;
+    }
+    const servicoPrincipal = servicosValidos[0];
     criarMutation.mutate({
       clienteId: parseInt(form.clienteId),
       profissionalId: parseInt(form.profissionalId),
-      servicoId: parseInt(form.servicoId),
+      servicoId: parseInt(servicoPrincipal.servicoId),
+      servicos: servicosValidos.map(s => ({
+        servicoId: parseInt(s.servicoId),
+        valorUnitario: s.valorUnitario || "0",
+      })),
       data: form.data,
       horaInicio: form.horaInicio + ":00",
       horaFim: form.horaFim + ":00",
-      valorTotal: servicoSelecionado ? String(servicoSelecionado.valor) : "0",
+      valorTotal: valorTotal.toFixed(2),
       status: form.comReserva ? "aguardando_reserva" : "agendado",
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
@@ -120,6 +174,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Cliente */}
             <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
               <ClienteAutocomplete
@@ -130,7 +185,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            <div>
+            {/* Profissional */}
+            <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional *</Label>
               {podeAgendarParaOutros ? (
                 <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
@@ -152,61 +208,118 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               )}
             </div>
 
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Serviço *
-                {temVinculos && (
-                  <span className="ml-1.5 text-[10px] text-primary font-normal">
-                    ({servicosFiltrados.length} disponível{servicosFiltrados.length !== 1 ? "is" : ""})
-                  </span>
-                )}
-              </Label>
-              <Select
-                value={form.servicoId}
-                onValueChange={handleServicoChange}
-                disabled={!form.profissionalId && servicosFiltrados.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    !form.profissionalId
-                      ? "Selecione o profissional primeiro"
-                      : servicosFiltrados.length === 0
-                      ? "Nenhum serviço disponível"
-                      : "Selecionar serviço"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {servicosFiltrados.map(s => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.nome} — R$ {parseFloat(String(s.valor)).toFixed(2)}
-                      {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
-                    </SelectItem>
-                  ))}
-                  {servicosFiltrados.length === 0 && form.profissionalId && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      Nenhum serviço vinculado a este profissional.
-                    </div>
+            {/* Serviços (múltiplos) */}
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs text-muted-foreground">
+                  Serviços *
+                  {temVinculos && (
+                    <span className="ml-1.5 text-[10px] text-primary font-normal">
+                      ({servicosFiltrados.length} disponível{servicosFiltrados.length !== 1 ? "is" : ""})
+                    </span>
                   )}
-                </SelectContent>
-              </Select>
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={adicionarServico}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  Adicionar serviço
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {servicosSelecionados.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Select
+                        value={item.servicoId}
+                        onValueChange={(v) => handleServicoChange(index, v)}
+                        disabled={!form.profissionalId && servicosFiltrados.length === 0}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={
+                            !form.profissionalId
+                              ? "Selecione o profissional primeiro"
+                              : "Selecionar serviço"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {servicosFiltrados.map(s => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.nome}
+                              {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-28">
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.valorUnitario}
+                          onChange={e => handleValorChange(index, e.target.value)}
+                          className="pl-8 h-9 text-sm"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removerServico(index)}
+                      disabled={servicosSelecionados.length === 1}
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
+            {/* Data */}
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
-              <Input type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
+              <Input
+                type="date"
+                value={form.data}
+                onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+              />
             </div>
 
+            {/* Horários */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
-                <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
+                <Input
+                  type="time"
+                  value={form.horaInicio}
+                  onChange={e => {
+                    setForm(f => ({ ...f, horaInicio: e.target.value }));
+                    recalcularHoraFim(e.target.value, servicosSelecionados);
+                  }}
+                />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
-                <Input type="time" value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} />
+                <Input
+                  type="time"
+                  value={form.horaFim}
+                  onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
+                />
               </div>
             </div>
 
+            {/* Observações */}
             <div className="sm:col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
               <Textarea
@@ -217,6 +330,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
+            {/* Reserva */}
             <div className="sm:col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-foreground">Exigir reserva (pré-agendamento)</p>
@@ -228,19 +342,24 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            {servicoSelecionado && (
+            {/* Resumo do valor total */}
+            {valorTotal > 0 && (
               <div className="sm:col-span-2 p-3 bg-secondary/50 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Valor do serviço</span>
+                  <span className="text-sm text-muted-foreground">
+                    {servicosSelecionados.filter(s => s.servicoId).length > 1
+                      ? `Total (${servicosSelecionados.filter(s => s.servicoId).length} serviços)`
+                      : "Valor do serviço"}
+                  </span>
                   <span className="text-base font-bold text-foreground">
-                    R$ {parseFloat(String(servicoSelecionado.valor)).toFixed(2)}
+                    R$ {valorTotal.toFixed(2)}
                   </span>
                 </div>
                 {form.comReserva && (
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-muted-foreground">Reserva (30%)</span>
                     <span className="text-sm font-medium text-amber-600">
-                      R$ {(parseFloat(String(servicoSelecionado.valor)) * 0.3).toFixed(2)}
+                      R$ {(valorTotal * 0.3).toFixed(2)}
                     </span>
                   </div>
                 )}
