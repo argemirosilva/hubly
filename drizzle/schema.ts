@@ -330,6 +330,7 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   automacaoNome: varchar("automacaoNome", { length: 255 }),
   clienteId: int("clienteId"),
   clienteNome: varchar("clienteNome", { length: 255 }),
+  agendamentoId: int("agendamentoId"), // Para deduplicação de lembretes por agendamento
   telefone: varchar("telefone", { length: 30 }),
   canal: mysqlEnum("canal", ["whatsapp", "email", "sms", "lembrete"]).default("whatsapp").notNull(),
   mensagem: text("mensagem"),

@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho } from "./db";
+import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -325,6 +325,266 @@ async function enviarLembretesAgendamentos() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NOVO: Processar automações configuradas (dias_antes_agendamento / horas_apos_agendamento)
+// Roda a cada 15 minutos e dispara para cada automação ativa baseado nos campos
+// diasAntesDepois e horaDisparo configurados pelo usuário.
+// ─────────────────────────────────────────────────────────────────────────────
+async function processarAutomacoesAgendadas() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  const JANELA_MS = 15 * 60 * 1000; // janela de 15 minutos
+
+  try {
+    // Buscar todas as empresas que têm automações ativas dos tipos agendados
+    const empresasDiasAntes = await getEmpresasComAutomacoes('dias_antes_agendamento');
+    const empresasHorasApos = await getEmpresasComAutomacoes('horas_apos_agendamento');
+    const todasEmpresas = Array.from(new Set([...empresasDiasAntes, ...empresasHorasApos]));
+
+    if (todasEmpresas.length === 0) return;
+
+    const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+
+    for (const empresaId of todasEmpresas) {
+      // ── Processar automações do tipo dias_antes_agendamento ──────────────────
+      const automacoesAntes = await getAutomacoesAtivasByTipo(empresaId, 'dias_antes_agendamento');
+
+      for (const automacao of automacoesAntes) {
+        const dias = automacao.diasAntesDepois ?? 1;
+        const horaDisparo = automacao.horaDisparo ?? '09:00:00';
+        const [hStr, mStr] = horaDisparo.split(':');
+        const horaAlvo = parseInt(hStr, 10);
+        const minAlvo = parseInt(mStr, 10);
+
+        // Calcular a data alvo do agendamento: hoje + dias
+        const dataAlvo = new Date(agora);
+        dataAlvo.setDate(dataAlvo.getDate() + dias);
+        const dataAlvoStr = dataAlvo.toISOString().slice(0, 10);
+
+        // Verificar se estamos na janela de disparo (hora atual ≈ horaDisparo)
+        const horaAtual = agora.getHours();
+        const minAtual = agora.getMinutes();
+        const minutosAgora = horaAtual * 60 + minAtual;
+        const minutosAlvo = horaAlvo * 60 + minAlvo;
+        const dentroJanela = Math.abs(minutosAgora - minutosAlvo) <= 15;
+        if (!dentroJanela) continue;
+
+        // Buscar agendamentos da data alvo
+        const ags = await db
+          .select({
+            id: agendamentos.id,
+            empresaId: agendamentos.empresaId,
+            clienteId: agendamentos.clienteId,
+            data: agendamentos.data,
+            horaInicio: agendamentos.horaInicio,
+            valorTotal: agendamentos.valorTotal,
+            status: agendamentos.status,
+            clienteNome: clientes.nome,
+            clienteTelefone: clientes.telefone,
+            profissionalNome: profissionais.nome,
+            servicoNome: servicos.nome,
+            empresaNome: empresas.nome,
+            waMsgLembrete: empresas.waMsgLembrete,
+            reservaPercentual: empresas.reservaPercentual,
+          })
+          .from(agendamentos)
+          .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+          .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+          .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+          .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+          .where(and(
+            eq(agendamentos.empresaId, empresaId),
+            sql`${agendamentos.data} = ${dataAlvoStr}`,
+            sql`${agendamentos.status} IN ('agendado', 'confirmado')`,
+          ));
+
+        for (const ag of ags) {
+          if (!ag.clienteTelefone) continue;
+
+          // Deduplicação: verificar se já enviou para este agendamento+automação
+          const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
+          if (jaEnviou) continue;
+
+          // Gerar link de confirmação
+          let linkConfirmacao = '';
+          try {
+            const token = await gerarTokenConfirmacao(ag.id, ag.empresaId);
+            linkConfirmacao = `${origin}/confirmar/${token}`;
+          } catch (e) {
+            console.error(`[Scheduler] Erro ao gerar token para agendamento ${ag.id}:`, e);
+          }
+
+          // Montar mensagem
+          const percentual = parseFloat(String(ag.reservaPercentual ?? '0'));
+          const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+          const valorReserva = percentual > 0 ? (valorTotal * percentual / 100).toFixed(2) : '0.00';
+          const dataFormatada = ag.data
+            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '';
+          const horaFormatada = ag.horaInicio ?? '';
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: ag.clienteNome ?? '',
+            servico: ag.servicoNome ?? '',
+            data: dataFormatada,
+            hora: horaFormatada,
+            profissional: ag.profissionalNome ?? '',
+            empresa: ag.empresaNome ?? '',
+            valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
+            link_confirmacao: linkConfirmacao,
+            dias_antes: String(dias),
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            const confirmacaoTexto = linkConfirmacao ? `\n\n✅ *Confirme seu agendamento:*\n${linkConfirmacao}` : '';
+            mensagem =
+              `🔔 *Lembrete de Agendamento*\n\n` +
+              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
+              `Você tem um agendamento em ${dias} dia${dias !== 1 ? 's' : ''}:\n\n` +
+              `📋 *Detalhes:*\n` +
+              `• Serviço: ${ag.servicoNome ?? ''}\n` +
+              `• Profissional: ${ag.profissionalNome ?? ''}\n` +
+              `• Data: ${dataFormatada}\n` +
+              `• Horário: ${horaFormatada}\n` +
+              `\n📍 *${ag.empresaNome ?? ''}*` +
+              confirmacaoTexto;
+          }
+
+          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: ag.clienteId ?? undefined,
+            clienteNome: ag.clienteNome ?? undefined,
+            agendamentoId: ag.id,
+            telefone: ag.clienteTelefone,
+            canal: 'whatsapp',
+            mensagem,
+            status: enviado ? 'enviado' : 'falhou',
+            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+        }
+      }
+
+      // ── Processar automações do tipo horas_apos_agendamento ──────────────────
+      const automacoesApos = await getAutomacoesAtivasByTipo(empresaId, 'horas_apos_agendamento');
+
+      for (const automacao of automacoesApos) {
+        // delayMinutos indica quantos minutos após o horário do agendamento disparar
+        const delayMin = automacao.delayMinutos ?? 60;
+        const JANELA_INICIO = agora.getTime() - JANELA_MS;
+        const JANELA_FIM = agora.getTime();
+
+        // Buscar agendamentos cujo horário + delay cai na janela atual
+        // Como data e horaInicio são strings, calculamos no JS após buscar
+        const dataMin = new Date(JANELA_INICIO - delayMin * 60 * 1000);
+        const dataMax = new Date(JANELA_FIM - delayMin * 60 * 1000);
+        const dataMinStr = dataMin.toISOString().slice(0, 10);
+        const dataMaxStr = dataMax.toISOString().slice(0, 10);
+
+        const ags = await db
+          .select({
+            id: agendamentos.id,
+            empresaId: agendamentos.empresaId,
+            clienteId: agendamentos.clienteId,
+            data: agendamentos.data,
+            horaInicio: agendamentos.horaInicio,
+            valorTotal: agendamentos.valorTotal,
+            status: agendamentos.status,
+            clienteNome: clientes.nome,
+            clienteTelefone: clientes.telefone,
+            profissionalNome: profissionais.nome,
+            servicoNome: servicos.nome,
+            empresaNome: empresas.nome,
+            reservaPercentual: empresas.reservaPercentual,
+          })
+          .from(agendamentos)
+          .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+          .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+          .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+          .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+          .where(and(
+            eq(agendamentos.empresaId, empresaId),
+            sql`${agendamentos.data} >= ${dataMinStr}`,
+            sql`${agendamentos.data} <= ${dataMaxStr}`,
+            sql`${agendamentos.status} IN ('concluido', 'confirmado', 'agendado')`,
+          ));
+
+        for (const ag of ags) {
+          if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
+
+          // Calcular o timestamp exato do agendamento
+          const [hAg, mAg] = ag.horaInicio.split(':');
+          const tsAgendamento = new Date(`${ag.data}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
+          const tsDisparo = tsAgendamento + delayMin * 60 * 1000;
+
+          // Verificar se o disparo cai na janela atual
+          if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
+
+          // Deduplicação
+          const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
+          if (jaEnviou) continue;
+
+          const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+          const dataFormatada = ag.data
+            ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '';
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: ag.clienteNome ?? '',
+            servico: ag.servicoNome ?? '',
+            data: dataFormatada,
+            hora: ag.horaInicio ?? '',
+            profissional: ag.profissionalNome ?? '',
+            empresa: ag.empresaNome ?? '',
+            valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            horas_apos: String(Math.round(delayMin / 60)),
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            mensagem =
+              `⭐ *Obrigado pela visita!*\n\n` +
+              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
+              `Esperamos que tenha gostado do atendimento em *${ag.empresaNome ?? ''}*.\n\n` +
+              `Até a próxima! 😊`;
+          }
+
+          const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: ag.clienteId ?? undefined,
+            clienteNome: ag.clienteNome ?? undefined,
+            agendamentoId: ag.id,
+            telefone: ag.clienteTelefone,
+            canal: 'whatsapp',
+            mensagem,
+            status: enviado ? 'enviado' : 'falhou',
+            erroDetalhe: enviado ? undefined : 'Falha ao enviar via WhatsApp',
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): ${enviado ? 'enviado' : 'falhou'} para ${ag.clienteNome} (ag. ${ag.id})`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao processar automações agendadas:', err);
+  }
+}
+
 // ── Verificar se é hora de executar tarefa (baseado em hora local) ────────────
 function deveExecutarNaHora(horaAlvo: number): boolean {
   const agora = new Date();
@@ -344,7 +604,7 @@ export function initScheduler() {
     verificarPacotesVencendoGlobal();
   }, INTERVAL_MS);
 
-  // Verificar a cada 5 minutos se é hora de enviar lembretes (às 9h)
+  // Verificar a cada 5 minutos se é hora de enviar lembretes legados (às 9h)
   const LEMBRETE_CHECK_MS = 5 * 60 * 1000;
   setInterval(() => {
     if (deveExecutarNaHora(9)) {
@@ -352,6 +612,17 @@ export function initScheduler() {
     }
   }, LEMBRETE_CHECK_MS);
 
+  // NOVO: Processar automações configuradas a cada 15 minutos
+  const AUTOMACAO_CHECK_MS = 15 * 60 * 1000;
+  // Executar após 60s do start para garantir que o DB está pronto
+  setTimeout(() => {
+    processarAutomacoesAgendadas();
+    setInterval(() => {
+      processarAutomacoesAgendadas();
+    }, AUTOMACAO_CHECK_MS);
+  }, 60_000);
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
+  console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
 }

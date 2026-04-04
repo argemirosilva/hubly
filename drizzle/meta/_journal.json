@@ -246,6 +246,13 @@
       "when": 1775312490391,
       "tag": "0034_third_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1775315953898,
+      "tag": "0035_certain_dazzler",
+      "breakpoints": true
     }
   ]
 }

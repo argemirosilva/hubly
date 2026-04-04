@@ -1562,6 +1562,7 @@ export async function registrarEnvioAutomacao(data: {
   automacaoNome?: string;
   clienteId?: number;
   clienteNome?: string;
+  agendamentoId?: number;
   telefone?: string;
   canal?: "whatsapp" | "email" | "sms" | "lembrete";
   mensagem?: string;
@@ -1576,12 +1577,53 @@ export async function registrarEnvioAutomacao(data: {
     automacaoNome: data.automacaoNome ?? null,
     clienteId: data.clienteId ?? null,
     clienteNome: data.clienteNome ?? null,
+    agendamentoId: data.agendamentoId ?? null,
     telefone: data.telefone ?? null,
     canal: data.canal ?? "whatsapp",
     mensagem: data.mensagem ?? null,
     status: data.status ?? "enviado",
     erroDetalhe: data.erroDetalhe ?? null,
   });
+}
+
+// Verificar se já foi enviado lembrete para este agendamento+automação (deduplicação)
+export async function jaEnviouLembrete(empresaId: number, automacaoId: number, agendamentoId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select({ id: historicoEnviosAutomacao.id })
+    .from(historicoEnviosAutomacao)
+    .where(and(
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+      eq(historicoEnviosAutomacao.automacaoId, automacaoId),
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      eq(historicoEnviosAutomacao.status, 'enviado'),
+    ))
+    .limit(1);
+  return result.length > 0;
+}
+
+// Buscar todas as automações ativas de uma empresa por tipo de gatilho
+export async function getAutomacoesAtivasByTipo(empresaId: number, tipoGatilho: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(automacoes).where(and(
+    eq(automacoes.empresaId, empresaId),
+    eq(automacoes.tipoGatilho, tipoGatilho as any),
+    eq(automacoes.ativo, true),
+  ));
+}
+
+// Buscar todas as empresas com automações ativas do tipo especificado
+export async function getEmpresasComAutomacoes(tipoGatilho: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ empresaId: automacoes.empresaId })
+    .from(automacoes)
+    .where(and(
+      eq(automacoes.tipoGatilho, tipoGatilho as any),
+      eq(automacoes.ativo, true),
+    ));
+  return Array.from(new Set(rows.map(r => r.empresaId)));
 }
 
 export async function getHistoricoEnvios(empresaId: number, opts?: {

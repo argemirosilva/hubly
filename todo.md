@@ -1018,3 +1018,9 @@
 ## Feature: Exclusão completa de agendamento (04/04/2026)
 - [x] Backend: endpoint deleteAgendamento com cascade (pagamentos, comissões, histórico, vínculos pipeline)
 - [x] Frontend: botão "Excluir agendamento" no modal com confirmação
+
+## Bug: Automações com delay longo não disparam (04/04/2026)
+- [x] Investigar scheduler de automações (cron, lógica de agendamento)
+- [x] Verificar como tarefas "X horas antes" são calculadas e armazenadas
+- [x] Verificar se o cron está rodando e processando tarefas pendentes
+- [x] Corrigir a lógica de disparo para delays longos (24h, 48h, etc.)
