@@ -1,13 +1,19 @@
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 
-// Chave Stripe LIVE injetada diretamente
-const STRIPE_LIVE_KEY = "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";
-const stripeKey = process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") ? process.env.STRIPE_SECRET_KEY : STRIPE_LIVE_KEY;
+const stripeKey = process.env.STRIPE_SECRET_KEY;
 
-export const stripe = new Stripe(stripeKey);
+if (!stripeKey) {
+  console.warn("[Stripe] ⚠️ STRIPE_SECRET_KEY não definida. Configure em Settings → Payment.");
+}
 
-console.log("[Stripe] Inicializado com chave:", stripeKey.substring(0, 30) + "...", stripeKey.startsWith("sk_live_") ? "(LIVE)" : "(TESTE)");
+export const stripe = new Stripe(stripeKey ?? "");
+
+console.log(
+  "[Stripe] Inicializado com chave:",
+  stripeKey ? stripeKey.substring(0, 14) + "..." : "(não configurada)",
+  stripeKey?.startsWith("sk_live_") ? "(LIVE)" : stripeKey?.startsWith("sk_test_") ? "(TEST)" : "(inválida)"
+);
 
 /**
  * Cria ou recupera um Customer do Stripe para a empresa.

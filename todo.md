@@ -949,3 +949,9 @@
 - [x] Verificar webhooks existentes no Stripe LIVE (havia 2 webhooks antigos para domínios obsoletos)
 - [x] Criar webhook para hubly.orizontech.com.br/api/stripe/webhook (ID: we_1TIU6YLUFOvpH4vDqjJljS8F)
 - [x] Atualizar STRIPE_WEBHOOK_LIVE no stripe-webhook.ts com o novo signing secret
+
+## Segurança: Remover chaves Stripe hardcoded (04/04/2026)
+- [x] Remover sk_live hardcoded de server/stripe.ts → usa exclusivamente process.env.STRIPE_SECRET_KEY
+- [x] Remover whsec hardcoded de server/stripe-webhook.ts → usa exclusivamente process.env.STRIPE_WEBHOOK_SECRET
+- [x] Plataforma Manus injeta STRIPE_SECRET_KEY (sk_test) e STRIPE_WEBHOOK_SECRET automaticamente
+- [x] Para produção LIVE: usuário deve atualizar em Settings → Payment com sk_live e whsec do webhook we_1TIU6YLUFOvpH4vDqjJljS8F
