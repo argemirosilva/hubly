@@ -885,3 +885,8 @@
 - [x] Botão "+ Adicionar serviço" mantido no header da seção (sem deslocamento)
 - [x] Campos Início/Fim: movidos para linha própria com sm:col-span-2, sempre 2 colunas dentro do grid
 - [x] Formulário de adicionar pagamento: campos empilhados (space-y-2) ao invés de grid-cols-2 apertado
+
+## Melhorias Modal Agendamento - Lote 3 (04/04/2026)
+- [x] Botão "Adicionar pagamento" fixo no rodapé do modal de detalhes (sem precisar rolar)
+- [x] Resumo de pagamento ao concluir agendamento (serviços, total, pago, saldo em aberto)
+- [x] Filtro "Com saldo em aberto" na lista de agendamentos

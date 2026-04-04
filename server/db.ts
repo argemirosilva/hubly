@@ -232,6 +232,17 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
     itensPorAg[item.agendamentoId].push(item);
   });
 
+  // Buscar pagamentos de todos os agendamentos de uma vez
+  const pagamentosRows = await db
+    .select({ agendamentoId: agendamentoPagamentos.agendamentoId, valor: agendamentoPagamentos.valor })
+    .from(agendamentoPagamentos)
+    .where(inArray(agendamentoPagamentos.agendamentoId, agIds));
+
+  const pagamentosPorAg: Record<number, number> = {};
+  pagamentosRows.forEach(p => {
+    pagamentosPorAg[p.agendamentoId] = (pagamentosPorAg[p.agendamentoId] ?? 0) + parseFloat(String(p.valor));
+  });
+
   return rows.map(ag => {
     const itens = itensPorAg[ag.id] ?? [];
     let servicoNome: string;
@@ -242,7 +253,11 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
     } else {
       servicoNome = servicosMap[ag.servicoId ?? 0] ?? '';
     }
-    return { ...ag, servicoNome, itens };
+    const totalPago = pagamentosPorAg[ag.id] ?? 0;
+    const desconto = parseFloat(String((ag as any).desconto ?? 0));
+    const valorTotal = parseFloat(String(ag.valorTotal ?? 0));
+    const emAberto = Math.max(0, valorTotal - desconto - totalPago);
+    return { ...ag, servicoNome, itens, totalPago, emAberto };
   });
 }
 

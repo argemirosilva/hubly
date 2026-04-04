@@ -42,6 +42,7 @@ export default function Agendamentos() {
   const [busca, setBusca] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [filtroProfissional, setFiltroProfissional] = useState<string>("todos");
+  const [filtroSaldoAberto, setFiltroSaldoAberto] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const [dataInicio, setDataInicio] = useState(today);
@@ -76,13 +77,14 @@ export default function Agendamentos() {
       const matchStatus = filtroStatus === "todos" || ag.status === filtroStatus;
       const nomeCliente = clienteMap[ag.clienteId] ?? "";
       const matchBusca = !busca || nomeCliente.toLowerCase().includes(busca.toLowerCase());
-      // Filtro por profissional: admin pode filtrar por profissional específico via select
       const matchProfissional = filtroProfissional === "todos" || ag.profissionalId === parseInt(filtroProfissional);
-      return matchStatus && matchBusca && matchProfissional;
+      const emAberto = (ag as any).emAberto ?? 0;
+      const matchSaldo = !filtroSaldoAberto || emAberto > 0;
+      return matchStatus && matchBusca && matchProfissional && matchSaldo;
     }).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-  }, [agendamentos, filtroStatus, busca, clienteMap, filtroProfissional]);
+  }, [agendamentos, filtroStatus, busca, clienteMap, filtroProfissional, filtroSaldoAberto]);
 
-  const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today || filtroProfissional !== "todos";
+  const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today || filtroProfissional !== "todos" || filtroSaldoAberto;
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto animate-in-up">
@@ -176,9 +178,20 @@ export default function Agendamentos() {
             </SelectContent>
           </Select>
         )}
+        {/* Filtro saldo em aberto */}
+        <button
+          onClick={() => setFiltroSaldoAberto(v => !v)}
+          className="flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all"
+          style={{
+            background: filtroSaldoAberto ? "oklch(72% 0.16 80 / 14%)" : "transparent",
+            borderColor: filtroSaldoAberto ? "oklch(62% 0.14 75)" : "oklch(88% 0.010 250)",
+            color: filtroSaldoAberto ? "oklch(38% 0.14 75)" : "oklch(45% 0.010 260)",
+          }}>
+          Com saldo em aberto
+        </button>
         {filtrosAtivos && (
           <button
-            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); setFiltroProfissional("todos"); }}
+            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); setFiltroProfissional("todos"); setFiltroSaldoAberto(false); }}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors h-9 px-2">
             <X className="w-3.5 h-3.5" />
             Limpar
@@ -245,11 +258,17 @@ export default function Agendamentos() {
                     {statusLabel[ag.status] ?? ag.status}
                   </span>
 
-                  {/* Valor — oculto em mobile pequeno */}
-                  <span className="hidden sm:block text-sm font-bold flex-shrink-0 tabular-nums"
-                    style={{ color: "oklch(35% 0.14 155)" }}>
-                    {formatCurrency(parseFloat(String(ag.valorTotal)))}
-                  </span>
+                  {/* Valor e saldo em aberto */}
+                  <div className="hidden sm:flex flex-col items-end flex-shrink-0">
+                    <span className="text-sm font-bold tabular-nums" style={{ color: "oklch(35% 0.14 155)" }}>
+                      {formatCurrency(parseFloat(String(ag.valorTotal)))}
+                    </span>
+                    {(ag as any).emAberto > 0 && (
+                      <span className="text-[10px] font-medium tabular-nums" style={{ color: "oklch(50% 0.14 75)" }}>
+                        em aberto: {formatCurrency((ag as any).emAberto)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

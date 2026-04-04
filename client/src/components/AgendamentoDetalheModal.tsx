@@ -118,6 +118,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   }
 
   const [comissaoModal, setComissaoModal] = useState(false);
+  const [resumoConclusaoModal, setResumoConclusaoModal] = useState(false);
   const [linkConfirmacao, setLinkConfirmacao] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [comissaoForm, setComissaoForm] = useState({
@@ -203,27 +204,30 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   const handleStatus = (status: string) => {
     if (status === "concluido") {
-      // Pré-preencher percentual: prioridade serviço > profissional
-      const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
-      const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
-      const pct = pctServico > 0 ? pctServico : pctProfissional;
-      // Pré-preencher custo de reposição com custoFixo do serviço
-      const custoServico = (servico as any)?.custoFixo ? parseFloat(String((servico as any).custoFixo)) : 0;
-      setComissaoForm(f => ({
-        ...f,
-        percentualComissao: pct > 0 ? String(pct) : "",
-        custoReposicao: custoServico > 0 ? String(custoServico) : "",
-      }));
-      // Primeiro atualiza status
-      updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
-        onSuccess: () => {
-          // Depois abre modal de comissão se tiver profissional
-          if (ag?.profissionalId) setComissaoModal(true);
-        }
-      });
+      // Abre modal de resumo de conclusão antes de confirmar
+      setResumoConclusaoModal(true);
       return;
     }
     updateMutation.mutate({ id: agendamentoId, status: status as Parameters<typeof updateMutation.mutate>[0]["status"] } as Parameters<typeof updateMutation.mutate>[0]);
+  };
+
+  const confirmarConclusao = () => {
+    // Pré-preencher percentual: prioridade serviço > profissional
+    const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
+    const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
+    const pct = pctServico > 0 ? pctServico : pctProfissional;
+    const custoServico = (servico as any)?.custoFixo ? parseFloat(String((servico as any).custoFixo)) : 0;
+    setComissaoForm(f => ({
+      ...f,
+      percentualComissao: pct > 0 ? String(pct) : "",
+      custoReposicao: custoServico > 0 ? String(custoServico) : "",
+    }));
+    setResumoConclusaoModal(false);
+    updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
+      onSuccess: () => {
+        if (ag?.profissionalId) setComissaoModal(true);
+      }
+    });
   };
 
   function salvarComissao() {
@@ -267,6 +271,47 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Barra fixa de pagamento no rodapé */}
+        {(() => {
+          const totalItens = parseFloat(String(ag.valorTotal ?? 0));
+          const desconto = parseFloat(String((ag as any).desconto ?? 0));
+          const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+          const emAberto = Math.max(0, totalItens - desconto - totalPago);
+          const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+          return (
+            <div className="border-t px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0"
+              style={{ borderColor: "oklch(91% 0.010 250)", background: "oklch(97% 0.006 250)" }}>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-bold">{fmt(totalItens)}</span>
+                {desconto > 0 && <span className="text-amber-600 text-[11px]">- {fmt(desconto)}</span>}
+                {totalPago > 0 && <span className="text-green-600 text-[11px]">pago {fmt(totalPago)}</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                {emAberto > 0 && (
+                  <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                    {fmt(emAberto)} em aberto
+                  </span>
+                )}
+                {emAberto <= 0 && totalPago > 0 && (
+                  <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                    Quitado
+                  </span>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  onClick={() => setShowAddPagamento(true)}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Pagamento
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Corpo */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
@@ -815,6 +860,82 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           <Button variant="outline" onClick={() => setComissaoModal(false)}>Pular</Button>
           <Button onClick={salvarComissao} disabled={criarComissaoMutation.isPending}>
             {criarComissaoMutation.isPending ? "Salvando..." : "Registrar Comissão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Resumo de Conclusão */}
+    <Dialog open={resumoConclusaoModal} onOpenChange={setResumoConclusaoModal}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
+            Concluir Atendimento
+          </DialogTitle>
+        </DialogHeader>
+        {ag && (() => {
+          const totalItens = parseFloat(String(ag.valorTotal ?? 0));
+          const desconto = parseFloat(String((ag as any).desconto ?? 0));
+          const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+          const emAberto = Math.max(0, totalItens - desconto - totalPago);
+          const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+          const clienteNome = clientes?.find(c => c.id === ag.clienteId)?.nome ?? "Cliente";
+          return (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo do Atendimento</p>
+                <p className="text-sm font-medium">{clienteNome}</p>
+                <div className="space-y-1">
+                  {servicosDoAgendamento.map((s, i) => (
+                    <div key={i} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{s.nome}</span>
+                      <span className="font-medium">{fmt(s.valor)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium">{fmt(totalItens)}</span>
+                </div>
+                {desconto > 0 && (
+                  <div className="flex justify-between text-amber-600">
+                    <span>Desconto</span>
+                    <span>- {fmt(desconto)}</span>
+                  </div>
+                )}
+                {totalPago > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Já pago</span>
+                    <span>- {fmt(totalPago)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold pt-1 border-t">
+                  <span>Em aberto</span>
+                  <span className={emAberto > 0 ? "text-amber-600" : "text-green-600"}>
+                    {emAberto > 0 ? fmt(emAberto) : "Quitado"}
+                  </span>
+                </div>
+              </div>
+              {emAberto > 0 && (
+                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-700">Ainda há {fmt(emAberto)} em aberto. Você pode registrar o pagamento antes ou após concluir.</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setResumoConclusaoModal(false)}>Voltar</Button>
+          <Button
+            onClick={confirmarConclusao}
+            disabled={updateMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {updateMutation.isPending ? "Concluindo..." : "Confirmar Conclusão"}
           </Button>
         </DialogFooter>
       </DialogContent>
