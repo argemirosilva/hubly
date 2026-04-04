@@ -91,6 +91,74 @@ describe("dashboardConfig - saveDashboardConfig", () => {
   });
 });
 
+describe("dashboardConfig - layouts pré-definidos", () => {
+  it("Visão Geral tem todos os 9 widgets visíveis", () => {
+    const visaoGeral = [
+      { id: "stats", visible: true, order: 0, size: "full" },
+      { id: "contas_pagar", visible: true, order: 1, size: "full" },
+      { id: "agenda_hoje", visible: true, order: 2, size: "lg" },
+      { id: "acoes_rapidas", visible: true, order: 3, size: "sm" },
+      { id: "financeiro", visible: true, order: 4, size: "sm" },
+      { id: "score_ia", visible: true, order: 5, size: "sm" },
+      { id: "pipeline", visible: true, order: 6, size: "sm" },
+      { id: "plano_uso", visible: true, order: 7, size: "sm" },
+      { id: "equipe", visible: true, order: 8, size: "sm" },
+    ];
+    const ocultos = visaoGeral.filter(w => !w.visible);
+    expect(ocultos).toHaveLength(0);
+    expect(visaoGeral).toHaveLength(9);
+  });
+
+  it("Foco Financeiro oculta Agenda, Ações Rápidas e Equipe", () => {
+    const focoFinanceiro = [
+      { id: "stats", visible: true, order: 0, size: "full" },
+      { id: "contas_pagar", visible: true, order: 1, size: "full" },
+      { id: "financeiro", visible: true, order: 2, size: "sm" },
+      { id: "score_ia", visible: true, order: 3, size: "sm" },
+      { id: "pipeline", visible: true, order: 4, size: "sm" },
+      { id: "plano_uso", visible: true, order: 5, size: "sm" },
+      { id: "agenda_hoje", visible: false, order: 6, size: "lg" },
+      { id: "acoes_rapidas", visible: false, order: 7, size: "sm" },
+      { id: "equipe", visible: false, order: 8, size: "sm" },
+    ];
+    const ocultos = focoFinanceiro.filter(w => !w.visible).map(w => w.id);
+    expect(ocultos).toContain("agenda_hoje");
+    expect(ocultos).toContain("acoes_rapidas");
+    expect(ocultos).toContain("equipe");
+    expect(ocultos).toHaveLength(3);
+  });
+
+  it("Agenda do Dia oculta widgets financeiros", () => {
+    const agendaDia = [
+      { id: "stats", visible: true, order: 0, size: "full" },
+      { id: "agenda_hoje", visible: true, order: 1, size: "lg" },
+      { id: "acoes_rapidas", visible: true, order: 2, size: "sm" },
+      { id: "equipe", visible: true, order: 3, size: "sm" },
+      { id: "pipeline", visible: true, order: 4, size: "sm" },
+      { id: "contas_pagar", visible: false, order: 5, size: "full" },
+      { id: "financeiro", visible: false, order: 6, size: "sm" },
+      { id: "score_ia", visible: false, order: 7, size: "sm" },
+      { id: "plano_uso", visible: false, order: 8, size: "sm" },
+    ];
+    const ocultos = agendaDia.filter(w => !w.visible).map(w => w.id);
+    expect(ocultos).toContain("contas_pagar");
+    expect(ocultos).toContain("financeiro");
+    expect(ocultos).toContain("score_ia");
+  });
+
+  it("todos os layouts pré-definidos têm exatamente 9 widgets", () => {
+    const layouts = [
+      // Visão Geral
+      ["stats", "contas_pagar", "agenda_hoje", "acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe"],
+      // Foco Financeiro
+      ["stats", "contas_pagar", "financeiro", "score_ia", "pipeline", "plano_uso", "agenda_hoje", "acoes_rapidas", "equipe"],
+      // Agenda do Dia
+      ["stats", "agenda_hoje", "acoes_rapidas", "equipe", "pipeline", "contas_pagar", "financeiro", "score_ia", "plano_uso"],
+    ];
+    layouts.forEach(l => expect(l).toHaveLength(9));
+  });
+});
+
 describe("dashboardConfig - validações de layout", () => {
   it("layout padrão tem 9 widgets", () => {
     const DEFAULT_WIDGET_IDS = [

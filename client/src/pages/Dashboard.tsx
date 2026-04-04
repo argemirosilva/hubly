@@ -7,6 +7,7 @@ import {
   Sparkles, Clock, CheckCircle2, AlertCircle, Zap, Brain,
   Gem, MessageCircle, CalendarCheck, ArrowRight, CreditCard, AlertTriangle,
   KanbanSquare, Star, Settings2, GripVertical, Eye, EyeOff, RotateCcw, Save,
+  LayoutDashboard, TrendingUp as TrendingUpIcon, CalendarDays,
 } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
@@ -53,6 +54,66 @@ const WIDGET_CATALOG: Array<{
   { id: "pipeline",       title: "Pipeline Favorita",      description: "Mini-kanban da pipeline marcada como favorita",        defaultSize: "sm" },
   { id: "plano_uso",      title: "Plano e Uso",            description: "Status do plano e barras de consumo",                  defaultSize: "sm", adminOnly: true },
   { id: "equipe",         title: "Equipe",                 description: "Profissionais ativos e agendamentos do dia",           defaultSize: "sm", requiresPermission: "profissionaisVer" },
+];
+
+// ─── Layouts pré-definidos ───────────────────────────────────────────────────
+type PresetLayout = { id: string; title: string; description: string; icon: React.ElementType; color: string; widgets: Array<{ id: string; visible: boolean; order: number; size: WidgetSize }> };
+
+const PRESET_LAYOUTS: PresetLayout[] = [
+  {
+    id: "visao_geral",
+    title: "Visão Geral",
+    description: "Todos os widgets visíveis na ordem padrão",
+    icon: LayoutDashboard,
+    color: "oklch(55% 0.22 264)",
+    widgets: [
+      { id: "stats",         visible: true,  order: 0, size: "full" },
+      { id: "contas_pagar",  visible: true,  order: 1, size: "full" },
+      { id: "agenda_hoje",   visible: true,  order: 2, size: "lg" },
+      { id: "acoes_rapidas", visible: true,  order: 3, size: "sm" },
+      { id: "financeiro",    visible: true,  order: 4, size: "sm" },
+      { id: "score_ia",      visible: true,  order: 5, size: "sm" },
+      { id: "pipeline",      visible: true,  order: 6, size: "sm" },
+      { id: "plano_uso",     visible: true,  order: 7, size: "sm" },
+      { id: "equipe",        visible: true,  order: 8, size: "sm" },
+    ],
+  },
+  {
+    id: "foco_financeiro",
+    title: "Foco Financeiro",
+    description: "Métricas, contas, resumo financeiro e score IA em destaque",
+    icon: TrendingUpIcon,
+    color: "oklch(62% 0.18 155)",
+    widgets: [
+      { id: "stats",         visible: true,  order: 0, size: "full" },
+      { id: "contas_pagar",  visible: true,  order: 1, size: "full" },
+      { id: "financeiro",    visible: true,  order: 2, size: "sm" },
+      { id: "score_ia",      visible: true,  order: 3, size: "sm" },
+      { id: "pipeline",      visible: true,  order: 4, size: "sm" },
+      { id: "plano_uso",     visible: true,  order: 5, size: "sm" },
+      { id: "agenda_hoje",   visible: false, order: 6, size: "lg" },
+      { id: "acoes_rapidas", visible: false, order: 7, size: "sm" },
+      { id: "equipe",        visible: false, order: 8, size: "sm" },
+    ],
+  },
+  {
+    id: "agenda_dia",
+    title: "Agenda do Dia",
+    description: "Agenda, ações rápidas e equipe em foco",
+    icon: CalendarDays,
+    color: "oklch(65% 0.20 75)",
+    widgets: [
+      { id: "stats",         visible: true,  order: 0, size: "full" },
+      { id: "agenda_hoje",   visible: true,  order: 1, size: "lg" },
+      { id: "acoes_rapidas", visible: true,  order: 2, size: "sm" },
+      { id: "equipe",        visible: true,  order: 3, size: "sm" },
+      { id: "pipeline",      visible: true,  order: 4, size: "sm" },
+      { id: "contas_pagar",  visible: false, order: 5, size: "full" },
+      { id: "financeiro",    visible: false, order: 6, size: "sm" },
+      { id: "score_ia",      visible: false, order: 7, size: "sm" },
+      { id: "plano_uso",     visible: false, order: 8, size: "sm" },
+    ],
+  },
 ];
 
 const DEFAULT_LAYOUT: WidgetConfig[] = WIDGET_CATALOG.map((w, i) => ({
@@ -262,8 +323,18 @@ export default function Dashboard() {
     setLayoutDirty(true);
   }, []);
 
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
+  const applyPreset = useCallback((preset: PresetLayout) => {
+    setLayout(preset.widgets);
+    setActivePresetId(preset.id);
+    setLayoutDirty(true);
+    toast.success(`Layout "${preset.title}" aplicado! Clique em Salvar para confirmar.`);
+  }, []);
+
   const resetLayout = useCallback(() => {
     setLayout(DEFAULT_LAYOUT);
+    setActivePresetId(null);
     setLayoutDirty(true);
   }, []);
 
@@ -674,6 +745,38 @@ export default function Dashboard() {
                 <Save className="w-3.5 h-3.5" />{saveConfig.isPending ? "Salvando..." : "Salvar layout"}
               </button>
             </div>
+          </div>
+
+          {/* Layouts pré-definidos */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Layouts pré-definidos</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {PRESET_LAYOUTS.map(preset => {
+                const Icon = preset.icon;
+                const isActive = activePresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${
+                      isActive
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border bg-background hover:border-primary/40 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${preset.color.replace(')', ' / 15%)')}` }}>
+                      <Icon className="w-4 h-4" style={{ color: preset.color }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-xs font-semibold truncate ${isActive ? "text-primary" : ""}`}>{preset.title}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{preset.description}</p>
+                    </div>
+                    {isActive && <div className="ml-auto flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "oklch(55% 0.22 264)" }}><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Aplique um layout pré-definido como ponto de partida e ajuste os widgets abaixo conforme preferir.</p>
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

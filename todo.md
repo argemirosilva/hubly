@@ -995,3 +995,9 @@
 - [x] Frontend: toggle para mostrar/ocultar widgets
 - [x] Frontend: botão "Salvar layout" e "Restaurar padrão"
 - [x] Frontend: carregar configuração salva automaticamente ao logar
+
+## Layouts Pré-definidos do Dashboard (04/04/2026)
+- [x] Layout "Visão Geral": todos os widgets visíveis na ordem padrão
+- [x] Layout "Foco Financeiro": Métricas, Contas a Pagar, Resumo Financeiro, Score IA, Pipeline, Plano e Uso
+- [x] Layout "Agenda do Dia": Métricas, Agenda de Hoje, Ações Rápidas, Equipe
+- [x] Seletor visual com cards clicáveis no modo de edição do Dashboard
