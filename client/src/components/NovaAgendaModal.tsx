@@ -43,7 +43,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     horaInicio: "09:00",
     horaFim: "10:00",
     observacoes: "",
-    comReserva: false,
+    comReserva: true,
     // Padrão: pré-agendado
     status: "pre_agendado" as "pre_agendado" | "agendado" | "confirmado",
   });

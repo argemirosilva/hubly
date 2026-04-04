@@ -1105,3 +1105,6 @@
 
 ## Bugs (sessão atual)
 - [x] Bug: mensagem do nó de automação não está sendo salva ao clicar no botão salvar
+
+## Melhorias (sessão atual)
+- [x] Toggle "Solicitar valor de reserva" habilitado por padrão no modal de nova agenda
