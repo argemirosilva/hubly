@@ -935,3 +935,8 @@
 
 ## Stripe: Reconfigurações após renomear produtos (04/04/2026)
 - [x] Identificar price IDs desatualizados no código e orientar usuário sobre reconfiguração
+
+## Portal Público: Logo + Compressão + Página de Planos (04/04/2026)
+- [x] Portal público: logo já exibido no cabeçalho (PortalHeader já tinha a lógica, faltava apenas o upload que foi implementado)
+- [x] Upload de imagem: compressão via canvas antes de enviar ao S3 (max 800x800 logo, 1200x400 capa)
+- [x] Página /planos: preços dinâmicos via trpc.planos.getStripePrices (busca do Stripe, fallback local)

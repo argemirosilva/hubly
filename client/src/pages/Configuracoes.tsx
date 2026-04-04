@@ -128,6 +128,42 @@ export default function Configuracoes() {
     });
   }
 
+  // Comprime imagem via canvas antes de enviar ao S3
+  async function comprimirImagem(file: File, maxWidth: number, maxHeight: number, quality = 0.85): Promise<{ base64: string; mimeType: string }> {
+    // SVG não precisa de compressão
+    if (file.type === 'image/svg+xml') {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve({ base64: (ev.target?.result as string).split(',')[1], mimeType: file.type });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(mimeType, quality);
+        resolve({ base64: dataUrl.split(',')[1], mimeType });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
   function toggleDia(dia: number) {
     setForm(f => ({
       ...f,
@@ -261,17 +297,14 @@ export default function Configuracoes() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 2 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 2MB.'); return; }
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                      const base64 = (ev.target?.result as string).split(',')[1];
-                      try {
-                        const result = await uploadLogoMutation.mutateAsync({ imagemBase64: base64, mimeType: file.type });
-                        setForm(f => ({ ...f, logoUrl: result.url }));
-                        toast.success('Logo enviado com sucesso!');
-                      } catch { toast.error('Erro ao enviar logo'); }
-                    };
-                    reader.readAsDataURL(file);
+                    if (file.size > 10 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 10MB.'); return; }
+                    try {
+                      toast.info('Comprimindo imagem...');
+                      const { base64, mimeType } = await comprimirImagem(file, 800, 800, 0.9);
+                      const result = await uploadLogoMutation.mutateAsync({ imagemBase64: base64, mimeType });
+                      setForm(f => ({ ...f, logoUrl: result.url }));
+                      toast.success('Logo enviado com sucesso!');
+                    } catch { toast.error('Erro ao enviar logo'); }
                   }}
                 />
               </label>
@@ -309,17 +342,14 @@ export default function Configuracoes() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 5 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 5MB.'); return; }
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                      const base64 = (ev.target?.result as string).split(',')[1];
-                      try {
-                        const result = await uploadCapaMutation.mutateAsync({ imagemBase64: base64, mimeType: file.type });
-                        setForm(f => ({ ...f, portalHeaderUrl: result.url }));
-                        toast.success('Imagem de capa enviada!');
-                      } catch { toast.error('Erro ao enviar imagem de capa'); }
-                    };
-                    reader.readAsDataURL(file);
+                    if (file.size > 20 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 20MB.'); return; }
+                    try {
+                      toast.info('Comprimindo imagem...');
+                      const { base64, mimeType } = await comprimirImagem(file, 1200, 400, 0.85);
+                      const result = await uploadCapaMutation.mutateAsync({ imagemBase64: base64, mimeType });
+                      setForm(f => ({ ...f, portalHeaderUrl: result.url }));
+                      toast.success('Imagem de capa enviada!');
+                    } catch { toast.error('Erro ao enviar imagem de capa'); }
                   }}
                 />
               </label>

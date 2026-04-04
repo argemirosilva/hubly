@@ -1705,6 +1705,47 @@ export const appRouter = router({
         limits: PLAN_LIMITS[key as PlanType],
       }));
     }),
+    /** Busca preços reais do Stripe para exibir na página de planos */
+    getStripePrices: publicProcedure.query(async () => {
+      try {
+        const { stripe: stripeClient } = await import('./stripe');
+        const { PLANOS_STRIPE } = await import('./stripe-products');
+        const result: Record<string, { mensal: number | null; anual: number | null; mensal_id: string | null; anual_id: string | null }> = {};
+        for (const [key, plano] of Object.entries(PLANOS_STRIPE)) {
+          let mensalCentavos: number | null = plano.mensal.valorCentavos;
+          let anualCentavos: number | null = plano.anual.valorCentavos;
+          // Tenta buscar preço real do Stripe se tiver price ID
+          if (plano.mensal.priceId) {
+            try {
+              const price = await stripeClient.prices.retrieve(plano.mensal.priceId);
+              if (price.unit_amount) mensalCentavos = price.unit_amount;
+            } catch { /* usa fallback local */ }
+          }
+          if (plano.anual.priceId) {
+            try {
+              const price = await stripeClient.prices.retrieve(plano.anual.priceId);
+              if (price.unit_amount) anualCentavos = price.unit_amount;
+            } catch { /* usa fallback local */ }
+          }
+          result[key] = {
+            mensal: mensalCentavos ? mensalCentavos / 100 : null,
+            anual: anualCentavos ? anualCentavos / 100 : null,
+            mensal_id: plano.mensal.priceId,
+            anual_id: plano.anual.priceId,
+          };
+        }
+        return result;
+      } catch {
+        // Fallback: retorna valores do arquivo local
+        const { PLANOS_STRIPE } = await import('./stripe-products');
+        return Object.fromEntries(
+          Object.entries(PLANOS_STRIPE).map(([key, p]) => [
+            key,
+            { mensal: p.mensal.valorCentavos / 100, anual: p.anual.valorCentavos / 100, mensal_id: p.mensal.priceId, anual_id: p.anual.priceId },
+          ])
+        );
+      }
+    }),
     /** Inicializa o trial para uma empresa recém-criada */
     initTrial: protectedProcedure.mutation(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

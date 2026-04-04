@@ -105,6 +105,7 @@ export default function Planos() {
   const [ciclo, setCiclo] = useState<"monthly" | "annual">("monthly");
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
+  const { data: stripePrices } = trpc.planos.getStripePrices.useQuery();
   const checkoutMutation = trpc.stripe.createCheckoutSession.useMutation({
     onSuccess: (data) => {
       setLoadingKey(null);
@@ -120,7 +121,28 @@ export default function Planos() {
   });
 
   const planoAtual = statusPlano?.plan ?? "FREE";
-  const desconto = Math.round((1 - (PLANOS[0].annual / PLANOS[0].monthly)) * 100);
+  // Usa preços do Stripe se disponíveis, senão usa os hardcoded
+  function getPreco(key: string, cicloLocal: "monthly" | "annual"): number {
+    if (stripePrices?.[key]) {
+      const p = stripePrices[key];
+      if (cicloLocal === "monthly" && p.mensal) return p.mensal;
+      if (cicloLocal === "annual" && p.anual) {
+        // Anual: divide por 12 para mostrar valor mensal equivalente
+        return Math.round((p.anual / 12) * 100) / 100;
+      }
+    }
+    const plano = PLANOS.find(p => p.key === key);
+    return cicloLocal === "monthly" ? (plano?.monthly ?? 0) : (plano?.annual ?? 0);
+  }
+  function getPrecoAnualTotal(key: string): number {
+    if (stripePrices?.[key]?.anual) return stripePrices[key].anual!;
+    return PLANOS.find(p => p.key === key)?.annualTotal ?? 0;
+  }
+  const soloMensal = getPreco("SOLO", "monthly");
+  const soloAnualMes = getPreco("SOLO", "annual");
+  const desconto = soloMensal > 0 && soloAnualMes > 0
+    ? Math.round((1 - soloAnualMes / soloMensal) * 100)
+    : Math.round((1 - (PLANOS[0].annual / PLANOS[0].monthly)) * 100);
 
   function handleAssinar(planKey: "SOLO" | "PLUS" | "PRO") {
     setLoadingKey(planKey);
@@ -175,7 +197,7 @@ export default function Planos() {
 
         {ciclo === "annual" && (
           <p className="text-sm text-green-600 font-medium mt-2">
-            Economize até {formatBRL(PLANOS[2].monthly * 12 - PLANOS[2].annualTotal)} por ano no plano Pro
+            Economize até {formatBRL(getPreco("PRO", "monthly") * 12 - getPrecoAnualTotal("PRO"))} por ano no plano Pro
           </p>
         )}
       </div>
@@ -186,7 +208,9 @@ export default function Planos() {
           const Icon = plano.icon;
           const isAtual = planoAtual === plano.key;
           const isLoading = loadingKey === plano.key;
-          const preco = ciclo === "monthly" ? plano.monthly : plano.annual;
+          const preco = getPreco(plano.key, ciclo);
+          const precoAnualTotal = getPrecoAnualTotal(plano.key);
+          const precoMensalRef = getPreco(plano.key, "monthly");
 
           return (
             <Card
@@ -225,8 +249,8 @@ export default function Planos() {
                   </div>
                   {ciclo === "annual" && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Cobrado {formatBRL(plano.annualTotal)}/ano
-                      <span className="ml-1 line-through opacity-50">{formatBRL(plano.monthly)}/mês</span>
+                      Cobrado {formatBRL(precoAnualTotal)}/ano
+                      <span className="ml-1 line-through opacity-50">{formatBRL(precoMensalRef)}/mês</span>
                     </p>
                   )}
                 </div>
