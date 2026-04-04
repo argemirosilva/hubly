@@ -8,7 +8,7 @@ import {
   getEmpresaByOwnerId, getEmpresaDoUsuario as getEmpresaDoUsuarioDb, getEmpresaDoContexto, createEmpresa, updateEmpresa,
   getProfissionaisByEmpresa, getProfissionaisParaAgendamento, getProfissionalById, createProfissional, updateProfissional,
   getPermissoesByProfissional, updatePermissoes,
-  getClientesByEmpresa, getClienteById, createCliente, updateCliente,
+  getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
   getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
@@ -446,6 +446,31 @@ export const appRouter = router({
         });
         return { id, url, success: true };
       }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const cliente = await getClienteById(input.id);
+        if (!cliente || cliente.empresaId !== empresa.id) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
+        await deleteCliente(input.id);
+        return { success: true };
+      }),
+    restore: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        const cliente = await getClienteById(input.id);
+        if (!cliente || cliente.empresaId !== empresa.id) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
+        await updateCliente(input.id, { ativo: true });
+        return { success: true };
+      }),
+    listAll: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      return getClientesByEmpresaAll(empresa.id);
+    }),
   }),
 
   // ─── SERVIÇOS ─────────────────────────────────────────────────────────────

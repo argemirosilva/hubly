@@ -832,3 +832,11 @@
 ## Melhorias Contas a Pagar/Receber (04/04/2026 - Lote 2)
 - [x] Adicionar opções de recorrência: Quinzenal, Bimestral, Trimestral, Semestral (além de Semanal, Mensal, Anual)
 - [x] Atualizar enum de recorrenciaTipo no backend e banco de dados para aceitar novos valores
+
+## Gerenciamento de Clientes (04/04/2026)
+- [x] Botão Editar cliente: modal com formulário preenchido (nome, telefone, whatsapp, email, CPF, nasc., endereço, obs)
+- [x] Botão Excluir cliente: soft delete com confirmação (marca como inativo, não apaga)
+- [x] Botão Reativar cliente: restaura clientes inativos
+- [x] Toggle "Ver inativos" para gerenciar clientes removidos
+- [x] Busca por CPF além de nome, telefone e email
+- [x] Endpoints delete, restore e listAll adicionados no backend

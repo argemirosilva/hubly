@@ -159,6 +159,20 @@ export async function updateCliente(id: number, data: Partial<typeof clientes.$i
   await db.update(clientes).set(data).where(eq(clientes.id, id));
 }
 
+export async function deleteCliente(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Soft delete: marca como inativo em vez de remover do banco
+  await db.update(clientes).set({ ativo: false }).where(eq(clientes.id, id));
+}
+
+export async function getClientesByEmpresaAll(empresaId: number) {
+  // Retorna todos incluindo inativos (para admin)
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientes).where(eq(clientes.empresaId, empresaId)).orderBy(clientes.nome);
+}
+
 // ─── SERVIÇOS ─────────────────────────────────────────────────────────────────
 export async function getServicosByEmpresa(empresaId: number) {
   const db = await getDb();
