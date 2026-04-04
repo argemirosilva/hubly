@@ -975,3 +975,12 @@
 - [x] Frontend: seletor de período na aba Jornada ao Vivo
 - [x] Frontend: badge de erros no item Automações do menu lateral
 - [x] Frontend: botão "Reenviar" nos itens com status falhou no feed
+
+## Pipeline Favorita + Acesso Rápido no Card (04/04/2026)
+- [x] Schema: campo pipelineFavoritaId na tabela empresas
+- [x] Backend: endpoint setPipelineFavorita (salva qual pipeline é a favorita)
+- [x] Backend: endpoint getDashboardPipeline (retorna colunas + cards da pipeline favorita)
+- [x] Backend: endpoint getCardAgendamento (retorna agendamento vinculado ao card)
+- [x] Frontend Pipeline: ações "Ver agendamento" e "Ver cliente" no menu "..." do card
+- [x] Frontend Dashboard: widget de pipeline favorita com mini-kanban
+- [x] Frontend Dashboard: seletor de pipeline favorita (somente admin)

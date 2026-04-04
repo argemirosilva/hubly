@@ -7,11 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Link } from "wouter";
 import {
   Plus, MoreHorizontal, Pencil, Trash2, GripVertical,
-  User, Calendar, DollarSign, Loader2, KanbanSquare, X
+  User, Calendar, DollarSign, Loader2, KanbanSquare, X,
+  Star, CalendarDays, UserCircle
 } from "lucide-react";
 
 type StatusCartao = "em_andamento" | "congelado" | "cancelado" | "concluido";
@@ -112,6 +114,23 @@ export default function Pipeline() {
     onSuccess: () => utils.pipeline.listar.invalidate(),
   });
 
+  // Pipeline favorita
+  const { data: dashboardPipeline } = trpc.pipeline.getDashboardPipeline.useQuery();
+  const pipelineFavoritaId = (dashboardPipeline as any)?.pipelineFavoritaId ?? null;
+
+  const setPipelineFavorita = trpc.pipeline.setPipelineFavorita.useMutation({
+    onSuccess: () => {
+      utils.pipeline.getDashboardPipeline.invalidate();
+      toast.success("Pipeline favorita atualizada!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleToggleFavorita = (pipelineId: number) => {
+    const novoId = pipelineFavoritaId === pipelineId ? null : pipelineId;
+    setPipelineFavorita.mutate({ pipelineId: novoId });
+  };
+
   const pipelineAtivoData = pipelines.find((p) => p.id === pipelineAtivo) ?? pipelines[0];
 
   const handleSalvarCartao = () => {
@@ -162,13 +181,25 @@ export default function Pipeline() {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Tabs de pipelines */}
           {pipelines.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPipelineAtivo(p.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${(pipelineAtivoData?.id === p.id) ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80 text-muted-foreground"}`}
-            >
-              {p.nome}
-            </button>
+            <div key={p.id} className="flex items-center gap-0.5">
+              <button
+                onClick={() => setPipelineAtivo(p.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${(pipelineAtivoData?.id === p.id) ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80 text-muted-foreground"}`}
+              >
+                {p.nome}
+              </button>
+              <button
+                title={pipelineFavoritaId === p.id ? "Remover do dashboard" : "Fixar no dashboard"}
+                onClick={() => handleToggleFavorita(p.id)}
+                className={`p-1 rounded transition-colors ${
+                  pipelineFavoritaId === p.id
+                    ? "text-yellow-500 hover:text-yellow-600"
+                    : "text-muted-foreground/30 hover:text-yellow-400"
+                }`}
+              >
+                <Star className={`w-3.5 h-3.5 ${pipelineFavoritaId === p.id ? "fill-yellow-500" : ""}`} />
+              </button>
+            </div>
           ))}
           <Button variant="outline" size="sm" onClick={() => setModalNovoPipeline(true)}>
             <Plus className="w-4 h-4 mr-1" /> Novo pipeline
@@ -253,6 +284,23 @@ export default function Pipeline() {
                             <DropdownMenuItem onClick={() => abrirEdicaoCartao(cartao as Parameters<typeof abrirEdicaoCartao>[0])}>
                               <Pencil className="w-4 h-4 mr-2" /> Editar
                             </DropdownMenuItem>
+                            {(cartao as any).agendamentoId && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/agendamentos?id=${(cartao as any).agendamentoId}`}>
+                                  <CalendarDays className="w-4 h-4 mr-2" /> Ver agendamento
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {(cartao as any).clienteId && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/clientes/${(cartao as any).clienteId}`}>
+                                  <UserCircle className="w-4 h-4 mr-2" /> Ver cliente
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {((cartao as any).agendamentoId || (cartao as any).clienteId) && (
+                              <DropdownMenuSeparator />
+                            )}
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => { if (confirm("Excluir este cartão?")) excluirCartao.mutate({ id: cartao.id }); }}

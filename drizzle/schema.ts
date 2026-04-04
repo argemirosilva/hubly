@@ -64,6 +64,7 @@ export const empresas = mysqlTable("empresas", {
   diasFuncionamento: json("diasFuncionamento").$type<number[]>().default([1,2,3,4,5]),
   intervaloMinutos: int("intervaloMinutos").default(30),
   ownerId: int("ownerId").notNull(),
+  pipelineFavoritaId: int("pipelineFavoritaId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -550,6 +551,7 @@ export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
   responsavelNome: varchar("responsavelNome", { length: 120 }),
   lembrete: dateField("lembrete"),
   valor: decimal("valor", { precision: 10, scale: 2 }),
+  agendamentoId: int("agendamentoId"),
   ordem: int("ordem").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

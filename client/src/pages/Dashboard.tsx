@@ -5,7 +5,8 @@ import {
   Calendar, Users, TrendingUp, DollarSign,
   ArrowUpRight, ArrowDownRight, Plus, ChevronRight,
   Sparkles, Clock, CheckCircle2, AlertCircle, Zap, Brain,
-  Gem, MessageCircle, CalendarCheck, ArrowRight, CreditCard, AlertTriangle
+  Gem, MessageCircle, CalendarCheck, ArrowRight, CreditCard, AlertTriangle,
+  KanbanSquare, Star, User
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
@@ -205,6 +206,9 @@ export default function Dashboard() {
     { status: "vencido" },
     { enabled: podeVerFinanceiro }
   );
+
+  // Pipeline favorita no dashboard
+  const { data: dashboardPipeline } = trpc.pipeline.getDashboardPipeline.useQuery();
   const totalContasHoje = contasHoje?.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0) ?? 0;
   const totalContasSemana = contasSemana?.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0) ?? 0;
   const totalContasVencidas = contasVencidas?.reduce((acc, c) => acc + parseFloat(String(c.valor)), 0) ?? 0;
@@ -648,6 +652,52 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          )}
+
+          {/* Widget: Pipeline Favorita */}
+          {dashboardPipeline && (
+            <div className="card-elegant overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
+                    <KanbanSquare className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-xs tracking-tight truncate max-w-[130px]">{dashboardPipeline.nome}</h3>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" /> Pipeline favorita
+                    </p>
+                  </div>
+                </div>
+                <Link href="/admin/pipeline">
+                  <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                    Abrir <ChevronRight className="w-3 h-3" />
+                  </button>
+                </Link>
+              </div>
+              <div className="p-3 space-y-2">
+                {dashboardPipeline.colunas.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">Nenhuma coluna criada</p>
+                ) : (
+                  dashboardPipeline.colunas.map((col: any) => (
+                    <div key={col.id} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.cor ?? "#6366f1" }} />
+                        <span className="text-xs text-muted-foreground truncate">{col.nome}</span>
+                      </div>
+                      <span className="text-xs font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(35% 0.18 264)" }}>
+                        {col.cartoes.length}
+                      </span>
+                    </div>
+                  ))
+                )}
+                <div className="pt-1 border-t" style={{ borderColor: "oklch(92% 0.008 250)" }}>
+                  <p className="text-[10px] text-muted-foreground">
+                    {dashboardPipeline.colunas.reduce((acc: number, c: any) => acc + c.cartoes.length, 0)} cartões no total
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Card de Plano e Uso — apenas para admin/owner */}

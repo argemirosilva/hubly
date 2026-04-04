@@ -16,6 +16,9 @@ import {
   deleteCartao,
   getAutomacoesByEmpresa,
   getHistoricoEnvios,
+  updateEmpresa,
+  getAgendamentoById,
+  getClienteById,
 } from "../db";
 import { invokeLLM } from "../_core/llm";
 
@@ -404,6 +407,69 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await deleteCartao(input.id);
+      return { success: true };
+    }),
+
+  // ── Pipeline Favorita ─────────────────────────────────────────────────────
+  setPipelineFavorita: protectedProcedure
+    .input(z.object({ pipelineId: z.number().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      await updateEmpresa(empresa.id, { pipelineFavoritaId: input.pipelineId ?? undefined });
+      return { success: true };
+    }),
+
+  getDashboardPipeline: protectedProcedure.query(async ({ ctx }) => {
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+    if (!empresa) return null;
+    const pipelineId = (empresa as any).pipelineFavoritaId;
+    if (!pipelineId) return null;
+
+    const pipelines = await getPipelinesByEmpresa(empresa.id);
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    if (!pipeline) return null;
+
+    const colunas = await getColunasByPipeline(pipelineId);
+    const cartoes = await getCartoesByPipeline(pipelineId);
+    const colunasComCartoes = colunas
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((c) => ({
+        ...c,
+        cartoes: cartoes
+          .filter((k) => k.colunaId === c.id)
+          .sort((a, b) => a.ordem - b.ordem),
+      }));
+    return { ...pipeline, colunas: colunasComCartoes, pipelineFavoritaId: pipelineId };
+  }),
+
+  // ── Acesso rápido ao agendamento/cliente do card ─────────────────────────
+  getCardDetalhes: protectedProcedure
+    .input(z.object({ cartaoId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+
+      const db = await import("../db").then((m) => m.getDb());
+      if (!db) throw new Error("DB indisponível");
+
+      const { pipelineCartoes } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [cartao] = await db.select().from(pipelineCartoes).where(eq(pipelineCartoes.id, input.cartaoId));
+      if (!cartao || cartao.empresaId !== empresa.id) throw new Error("Cartão não encontrado");
+
+      const agendamento = cartao.agendamentoId ? await getAgendamentoById(cartao.agendamentoId) : null;
+      const cliente = cartao.clienteId ? await getClienteById(cartao.clienteId) : null;
+
+      return { cartao, agendamento, cliente };
+    }),
+
+  vincularAgendamento: protectedProcedure
+    .input(z.object({ cartaoId: z.number(), agendamentoId: z.number().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      await updateCartao(input.cartaoId, { agendamentoId: input.agendamentoId ?? undefined });
       return { success: true };
     }),
 });

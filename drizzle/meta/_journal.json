@@ -232,6 +232,13 @@
       "when": 1775306182296,
       "tag": "0032_redundant_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1775311848433,
+      "tag": "0033_fixed_sunspot",
+      "breakpoints": true
     }
   ]
 }
