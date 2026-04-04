@@ -890,3 +890,6 @@
 - [x] Botão "Adicionar pagamento" fixo no rodapé do modal de detalhes (sem precisar rolar)
 - [x] Resumo de pagamento ao concluir agendamento (serviços, total, pago, saldo em aberto)
 - [x] Filtro "Com saldo em aberto" na lista de agendamentos
+
+## Bug: Botão "Cancelar" cortado no NovaAgendaModal mobile (04/04/2026)
+- [x] Corrigir modal de novo agendamento no mobile: botão "Cancelar" fica cortado abaixo da tela, modal não rola até o fim

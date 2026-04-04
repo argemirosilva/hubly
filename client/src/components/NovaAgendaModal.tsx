@@ -165,14 +165,14 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 px-5 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Cliente */}
             <div className="sm:col-span-2">
@@ -368,7 +368,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-5 py-4 flex-shrink-0 border-t" style={{ borderColor: "oklch(91% 0.010 250)" }}>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={criarMutation.isPending}>
             {criarMutation.isPending ? "Criando..." : "Criar Agendamento"}
