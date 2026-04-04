@@ -45,10 +45,10 @@ interface FlowAutomacao {
 //  Opções
 
 const TRIGGER_OPTIONS = [
-  { value: "evento_agendamento_criado", label: "Agendamento criado", icon: Calendar, color: "#6366f1" },
+  { value: "evento_agendamento_criado", label: "Agendamento criado (qualquer status)", icon: Calendar, color: "#6366f1" },
+  { value: "evento_agendamento_pre_agendado", label: "Pré-agendamento criado", icon: Calendar, color: "#8b5cf6" },
   { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981" },
   { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444" },
-  { value: "evento_pre_agendamento", label: "Pré-agendamento criado", icon: Clock, color: "#f59e0b" },
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
   { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
   { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },

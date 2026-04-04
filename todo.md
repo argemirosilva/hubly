@@ -1080,3 +1080,7 @@
 - [ ] Tela de onboarding wizard multi-etapas (nome empresa, tipo, horários, profissional, serviço)
 - [ ] Redirecionamento automático para onboarding após primeiro login
 - [ ] Marcar onboarding como concluído e redirecionar para dashboard
+
+## Lógica de disparo por status inicial
+- [ ] Adicionar evento agendamento_pre_agendado na UI de Automações
+- [ ] Corrigir lógica de disparo no agendamentos.create: pre_agendado → busca agendamento_pre_agendado primeiro, fallback agendamento_criado; agendado → só agendamento_criado

@@ -742,6 +742,7 @@ export const appRouter = router({
               const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
               const templateVars = {
                 nome_cliente: cliente.nome,
+                primeiro_nome: cliente.nome.split(' ')[0],
                 servico: servico?.nome ?? '',
                 data: dataFormatada,
                 hora: `${rest.horaInicio} – ${rest.horaFim}`,
@@ -750,34 +751,66 @@ export const appRouter = router({
                 valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
                 valor_reserva: valorReservaCalc,
               };
-              // Buscar automação configurada para o evento 'agendamento_criado'
-              const automacaoCriado = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
-              // Fallback: automação para evento genérico de confirmação
-              const automacaoConfirmado = !automacaoCriado ? await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado') : null;
-              const automacaoAtiva = automacaoCriado ?? automacaoConfirmado;
+              // ── Lógica de prioridade de automação por status inicial ────────────────
+              // pre_agendado → busca agendamento_pre_agendado primeiro; fallback: agendamento_criado
+              // agendado (ou qualquer outro) → busca apenas agendamento_criado
+              let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
+              let nomeEventoUsado = 'Confirmação de Agendamento';
+
+              if (status === 'pre_agendado') {
+                // Tenta automação específica de pré-agendamento
+                automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_pre_agendado');
+                nomeEventoUsado = automacaoAtiva ? 'Pré-agendamento' : 'Confirmação de Agendamento';
+                // Fallback: agendamento_criado (somente se não houver automação de pré-agendamento)
+                if (!automacaoAtiva) {
+                  automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+                }
+              } else {
+                // status agendado, confirmado, etc. → apenas agendamento_criado
+                automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+              }
+
+              // Mensagem padrão de fallback varia por status
+              const mensagemPadraoPreAgendado = [
+                `⏳ *Pré-agendamento Recebido!*`,
+                ``,
+                `Olá, *${cliente.nome}*!`,
+                `Recebemos seu pedido de agendamento. Em breve confirmaremos sua disponibilidade.`,
+                ``,
+                `📅 *Data solicitada:* ${dataFormatada}`,
+                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                ``,
+                `_${empresa.nome}_`,
+              ].filter(Boolean).join('\n');
+
+              const mensagemPadraoCriado = [
+                `✅ *Agendamento Confirmado!*`,
+                ``,
+                `Olá, *${cliente.nome}*!`,
+                `Seu agendamento foi confirmado com sucesso.`,
+                ``,
+                `📅 *Data:* ${dataFormatada}`,
+                `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
+                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+                valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
+                ``,
+                `_${empresa.nome}_`,
+              ].filter(Boolean).join('\n');
+
               const mensagem = automacaoAtiva?.corpoMensagem
                 ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
-                : [
-                    `✅ *Agendamento Confirmado!*`,
-                    ``,
-                    `Olá, *${cliente.nome}*!`,
-                    `Seu agendamento foi confirmado com sucesso.`,
-                    ``,
-                    `📅 *Data:* ${dataFormatada}`,
-                    `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-                    servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                    profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                    `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
-                    valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
-                    ``,
-                    `_${empresa.nome}_`,
-                  ].filter(Boolean).join('\n');
+                : (status === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
+
               await waManager.sendMessage(telefone, mensagem);
               // Registrar no histórico de envios
               registrarEnvioAutomacao({
                 empresaId: empresa.id,
                 automacaoId: automacaoAtiva?.id,
-                automacaoNome: automacaoAtiva?.nome ?? 'Confirmação de Agendamento',
+                automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
                 clienteId: cliente.id,
                 clienteNome: cliente.nome,
                 telefone,
