@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import {
   CreditCard, Calendar, CheckCircle2, AlertTriangle, XCircle,
   Clock, FileText, ExternalLink, Download, ArrowUpRight,
-  Shield, Zap, RefreshCw, ChevronRight, Gem,
+  Shield, Zap, RefreshCw, ChevronRight, Gem, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -272,9 +272,10 @@ export default function Assinatura() {
                 size="sm"
                 onClick={handlePortal}
                 disabled={loadingPortal}
-                className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100"
+                className="shrink-0 gap-2 border-amber-300 text-amber-700 hover:bg-amber-100"
               >
-                Reativar
+                {loadingPortal && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {loadingPortal ? "Aguarde..." : "Reativar"}
               </Button>
             </div>
           )}
@@ -349,8 +350,12 @@ export default function Assinatura() {
                   disabled={loadingPortal}
                   className="gap-2 text-sm"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Gerenciar no Stripe
+                  {loadingPortal ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  )}
+                  {loadingPortal ? "Aguarde..." : "Gerenciar no Stripe"}
                 </Button>
                 {!planStatus?.cancelAtPeriodEnd && (
                   <Button
@@ -360,7 +365,8 @@ export default function Assinatura() {
                     disabled={loadingPortal}
                     className="gap-2 text-sm text-red-600 border-red-200 hover:bg-red-50"
                   >
-                    Cancelar assinatura
+                    {loadingPortal && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {loadingPortal ? "Aguarde..." : "Cancelar assinatura"}
                   </Button>
                 )}
               </div>
