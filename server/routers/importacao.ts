@@ -178,7 +178,7 @@ export const importacaoRouter = router({
       if (input.fileType === "xlsx") {
         const ExcelJS = await import("exceljs");
         const wb = new ExcelJS.default.Workbook();
-        await wb.xlsx.load(buffer);
+        await wb.xlsx.load(buffer as any);
         const ws = wb.worksheets[0];
         if (!ws) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo Excel sem planilhas" });
 
@@ -245,8 +245,8 @@ export const importacaoRouter = router({
       duplicateAction: z.enum(["skip", "update", "create"]).default("skip"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { getEmpresaDoUsuario } = await import("../db");
-      const empresa = await getEmpresaDoUsuario(ctx.user!.id, ctx.systemUser?.empresaId);
+      const { getEmpresaDoContexto } = await import("../db");
+      const empresa = await getEmpresaDoContexto(ctx.user!.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -319,8 +319,8 @@ export const importacaoRouter = router({
       duplicateAction: z.enum(["skip", "update", "create"]).default("skip"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { getEmpresaDoUsuario, createCliente, createServico, createProfissional, createAgendamento } = await import("../db");
-      const empresa = await getEmpresaDoUsuario(ctx.user!.id, ctx.systemUser?.empresaId);
+      const { getEmpresaDoContexto, createCliente, createServico, createProfissional, createAgendamento } = await import("../db");
+      const empresa = await getEmpresaDoContexto(ctx.user!.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const importable = input.rows.filter(r => r.status === "ok" || r.status === "warning");

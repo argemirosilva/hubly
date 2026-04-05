@@ -8,7 +8,7 @@ import { Lock, CheckCircle, XCircle, Calendar } from "lucide-react";
 export default function RelatoriosBloqueios() {
   const [filtroMes, setFiltroMes] = useState<string>(new Date().toISOString().slice(0, 7));
   
-  const { data: bloqueios } = trpc.bloqueios.list.useQuery();
+  const { data: bloqueios } = trpc.bloqueios.list.useQuery({});
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const profMap: Record<number, string> = {};

@@ -316,7 +316,7 @@ export default function Calendario() {
                         title={`Bloqueio: ${profMap[bloq.profissionalId]?.nome ?? "Profissional"} - ${bloq.motivo}`}
                       >
                         <span className="text-xs">🔒</span>
-                        <span className="truncate font-medium">{bloq.motivo.slice(0, 12)}</span>
+                        <span className="truncate font-medium">{(bloq.motivo ?? "").slice(0, 12)}</span>
                       </div>
                     ))}
                   </div>

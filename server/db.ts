@@ -702,7 +702,7 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
     .from(gruposPermissoes).where(eq(gruposPermissoes.id, prof.grupoId)).limit(1);
   if (grupoInfo?.isAdmin) {
     // Retornar objeto com todas as permissões como true (bypass total)
-    const allTrue: Record<string, boolean | number> = {};
+    const allTrue: Record<string, boolean | number | string> = {};
     const cols = await db.select().from(permissoesGrupo).limit(1);
     const sample = cols[0];
     if (sample) {

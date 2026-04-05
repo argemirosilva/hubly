@@ -321,7 +321,7 @@ export const pacotesRouter = router({
         dataVencimento,
         observacoes: input.observacoes,
         automacaoRenovacao: input.automacaoRenovacao ?? false,
-        dataValidade: input.dataValidade ? input.dataValidade : undefined,
+        dataValidade: input.dataValidade ? new Date(input.dataValidade) : undefined,
       });
       const pacoteId = (result as any).insertId as number;
 

@@ -932,21 +932,24 @@ function ModalMembro({
       return;
     }
 
-    const payload = {
+    const payloadBase = {
       nome: nome.trim(),
       email: email || undefined,
-      telefone: telefone || (isEdit ? null : undefined),
-      especialidade: especialidade || (isEdit ? null : undefined),
       corCalendario,
       isProfissional,
       temAcesso,
-      grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : (isEdit ? null : undefined),
       senha: senha || undefined,
-      percentualComissao: percentualComissao || (isEdit ? null : undefined),
     };
 
     if (isEdit) {
-      atualizar.mutate({ id: membro.id, ...payload, ativo }, {
+      const payloadAtualizar = {
+        ...payloadBase,
+        telefone: telefone || null,
+        especialidade: especialidade || null,
+        grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : null,
+        percentualComissao: percentualComissao || null,
+      };
+      atualizar.mutate({ id: membro.id, ...payloadAtualizar, ativo }, {
         onSuccess: () => {
           // Salvar tipos de profissional após atualizar o membro
           if (isProfissional) {
@@ -955,7 +958,14 @@ function ModalMembro({
         }
       });
     } else {
-      criar.mutate(payload, {
+      const payloadCriar = {
+        ...payloadBase,
+        telefone: telefone || undefined,
+        especialidade: especialidade || undefined,
+        grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined,
+        percentualComissao: percentualComissao || undefined,
+      };
+      criar.mutate(payloadCriar, {
         onSuccess: (data: any) => {
           // Salvar tipos de profissional após criar o membro
           if (isProfissional && data?.id && tiposIds.length > 0) {

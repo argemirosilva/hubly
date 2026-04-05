@@ -1,19 +1,13 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import {
-  Calendar, Users, UserCheck, Scissors, DollarSign, Zap,
-  Kanban, Brain, Download, Settings, ChevronRight,
-  CheckCircle2, ArrowRight, Lock, Globe, BarChart2,
-  MessageSquare, HelpCircle, BookOpen, Search, Menu, X,
+  Calendar, Users, DollarSign, Zap,
+  Bell, Settings, ChevronRight,
+  CheckCircle2, Lock, MessageSquare, HelpCircle, BookOpen, Search, X,
+  UserCog, Package, Star,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 /* ─── Types ─────────────────────────────────────────────── */
-interface Step {
-  text: string;
-}
-
 interface Section {
   id: string;
   icon: React.ReactNode;
@@ -34,51 +28,54 @@ const SECTIONS: Section[] = [
   {
     id: "primeiros-passos",
     icon: <CheckCircle2 size={20} />,
-    title: "Primeiros Passos",
-    subtitle: "Configure o sistema antes de começar",
+    title: "Começando do Zero",
+    subtitle: "Tudo que você precisa fazer antes de abrir o sistema para a equipe",
     color: "oklch(45% 0.18 155)",
-    intro: "Antes de usar o sistema no dia a dia, é importante configurar as informações da sua empresa, cadastrar seus serviços e profissionais. Siga esta ordem para uma configuração tranquila.",
+    intro: "Antes de usar o sistema no dia a dia, você precisa configurar algumas coisas básicas. Não se preocupe — é simples e rápido! Siga os passos abaixo na ordem e você estará pronto em poucos minutos.",
     topics: [
       {
-        title: "Configurar os dados da empresa",
+        title: "1. Configure os dados do seu negócio",
         steps: [
-          "No menu lateral, clique em Configurações.",
-          "Preencha o nome do salão, telefone, endereço e horário de funcionamento.",
-          "Faça o upload do logotipo se desejar.",
-          "Clique em Salvar para confirmar.",
+          "No menu do lado esquerdo, clique em Configurações.",
+          "Preencha o nome do seu salão ou clínica, telefone e endereço.",
+          "Defina o horário de funcionamento (ex: das 8h às 18h).",
+          "Se quiser, faça o upload do seu logotipo.",
+          "Clique em Salvar.",
         ],
-        tip: "O nome e logotipo aparecem no portal de agendamento online que seus clientes acessam.",
+        tip: "O nome e o logo aparecem na página de agendamento online que seus clientes acessam. Vale a pena deixar bonito!",
       },
       {
-        title: "Cadastrar serviços",
+        title: "2. Cadastre os serviços que você oferece",
         steps: [
-          "Vá em Serviços no menu lateral.",
-          "Clique em Novo Serviço.",
-          "Informe o nome, duração (em minutos), preço e categoria.",
-          "Defina o percentual de comissão padrão do serviço (ex: 40%). Esse valor será preenchido automaticamente ao concluir um agendamento.",
-          "Salve o serviço.",
+          "No menu lateral, clique em Serviços.",
+          "Clique no botão Novo Serviço.",
+          "Coloque o nome do serviço (ex: Corte Feminino), quanto tempo dura e o preço.",
+          "Se quiser, defina a comissão do profissional para esse serviço (ex: 40%).",
+          "Salve.",
         ],
-        tip: "O percentual de comissão do serviço tem prioridade sobre o percentual do profissional. Se não definido no serviço, o sistema usa o percentual do profissional.",
+        tip: "Quanto mais completo você preencher, melhor o sistema vai funcionar. A duração é importante para o calendário não sobrepor horários.",
       },
       {
-        title: "Cadastrar profissionais",
+        title: "3. Cadastre os profissionais",
         steps: [
-          "Vá em Profissionais no menu lateral.",
+          "Clique em Equipe e Permissões no menu.",
           "Clique em Novo Profissional.",
-          "Informe o nome, especialidades e percentual de comissão.",
-          "Salve o profissional.",
+          "Preencha o nome e as especialidades.",
+          "Salve.",
         ],
+        tip: "Cada profissional terá sua própria coluna no calendário, facilitando a visualização da agenda.",
       },
       {
-        title: "Criar usuários do sistema",
+        title: "4. Crie os usuários do sistema",
         steps: [
-          "Vá em Usuários no menu lateral.",
+          "Ainda em Equipe e Permissões, clique na aba Usuários.",
           "Clique em Novo Usuário.",
-          "Informe nome, e-mail e senha (mínimo 6 caracteres).",
-          "Atribua um grupo de permissão (Administrador, Recepcionista, etc.).",
-          "Salve o usuário.",
+          "Coloque o nome, e-mail e uma senha (mínimo 6 caracteres).",
+          "Escolha o grupo de permissão (ex: Recepcionista, Profissional).",
+          "Salve.",
         ],
-        tip: "Cada colaborador que precisar acessar o sistema deve ter um usuário cadastrado com e-mail e senha próprios.",
+        tip: "Cada pessoa que vai usar o sistema precisa de um usuário próprio com e-mail e senha. Assim você sabe quem fez o quê.",
+        warning: "O e-mail precisa ser único — não pode repetir o mesmo e-mail em dois usuários diferentes.",
       },
     ],
   },
@@ -86,49 +83,49 @@ const SECTIONS: Section[] = [
     id: "agendamentos",
     icon: <Calendar size={20} />,
     title: "Agendamentos",
-    subtitle: "Gerencie toda a agenda do salão",
+    subtitle: "Como marcar, confirmar, cancelar e acompanhar os atendimentos",
     color: "oklch(45% 0.18 264)",
-    intro: "O módulo de agendamentos é o coração do Hubly. Aqui você cria, confirma, cancela e acompanha todos os atendimentos do salão.",
+    intro: "O módulo de agendamentos é onde tudo acontece. Aqui você marca os horários dos clientes, acompanha o que está confirmado, o que foi cancelado e o que está aguardando confirmação.",
     topics: [
       {
-        title: "Criar um novo agendamento",
+        title: "Como marcar um novo agendamento",
         steps: [
-          "Clique no botão Novo Agendamento no canto superior direito.",
-          "Selecione o cliente (ou cadastre um novo clicando em + Novo Cliente).",
-          "Escolha o serviço desejado.",
-          "Selecione o profissional responsável.",
-          "Escolha a data e o horário disponível.",
+          "Clique no botão Novo Agendamento (geralmente no canto superior direito).",
+          "Escolha o cliente — se ele ainda não estiver cadastrado, clique em + Novo Cliente para cadastrá-lo na hora.",
+          "Selecione o serviço desejado.",
+          "Escolha o profissional que vai atender.",
+          "Escolha a data e o horário.",
           "Clique em Confirmar Agendamento.",
         ],
-        tip: "Você também pode criar um agendamento clicando diretamente em um horário vazio no Calendário.",
+        tip: "Você também pode clicar diretamente em um horário vazio no Calendário — o sistema já preenche a data, hora e profissional automaticamente!",
       },
       {
-        title: "Confirmar um pré-agendamento",
+        title: "O que é um pré-agendamento?",
         steps: [
-          "Vá em Agendamentos no menu lateral.",
-          "Clique na aba Pré-agendamentos.",
-          "Localize o pré-agendamento pendente.",
-          "Clique em Confirmar para aprovar ou Cancelar para recusar.",
+          "Quando um cliente agenda pelo link de agendamento online, ele cria um pré-agendamento.",
+          "Esse pré-agendamento fica aguardando a sua confirmação.",
+          "Vá em Agendamentos e clique na aba Pré-agendamentos.",
+          "Clique em Confirmar para aceitar ou Cancelar para recusar.",
         ],
-        tip: "Pré-agendamentos são criados quando o cliente agenda pelo portal online. Eles ficam pendentes por 24 horas aguardando sua confirmação.",
-        warning: "Se não confirmado em 24 horas, o pré-agendamento é cancelado automaticamente e o horário é liberado.",
+        tip: "O cliente recebe uma notificação quando você confirma ou cancela o pré-agendamento dele.",
+        warning: "Se você não confirmar em 24 horas (ou no tempo configurado), o pré-agendamento é cancelado automaticamente e o horário fica livre.",
       },
       {
-        title: "Cancelar ou remarcar um agendamento",
+        title: "Como cancelar ou remarcar",
         steps: [
           "Abra o agendamento clicando sobre ele na lista ou no calendário.",
-          "Para cancelar: clique em Cancelar e confirme a ação.",
-          "Para remarcar: clique em Editar, altere a data/hora e salve.",
+          "Para cancelar: clique em Cancelar e confirme.",
+          "Para remarcar: clique em Editar, mude a data ou hora e salve.",
         ],
       },
       {
-        title: "Registrar comparecimento ou falta",
+        title: "Registrar se o cliente veio ou faltou",
         steps: [
           "Abra o agendamento.",
-          "Clique em Compareceu para registrar que o cliente chegou.",
-          "Ou clique em Faltou para registrar ausência.",
+          "Clique em Compareceu se o cliente chegou.",
+          "Ou clique em Faltou se ele não apareceu.",
         ],
-        tip: "Esses registros alimentam o histórico do cliente e as análises de IA.",
+        tip: "Esses registros ficam no histórico do cliente e ajudam nas análises do sistema.",
       },
     ],
   },
@@ -136,45 +133,99 @@ const SECTIONS: Section[] = [
     id: "calendario",
     icon: <Calendar size={20} />,
     title: "Calendário",
-    subtitle: "Visualize a agenda de forma clara",
+    subtitle: "Veja a agenda de todos os profissionais de uma vez",
     color: "oklch(45% 0.20 30)",
-    intro: "O Calendário oferece uma visão completa da agenda do salão, com colunas por profissional e cores por status de agendamento.",
+    intro: "O Calendário é a visão mais completa da sua agenda. Você vê todos os profissionais lado a lado, com os horários ocupados e livres, e pode criar agendamentos direto por aqui.",
     topics: [
       {
         title: "Navegar pelo calendário",
         steps: [
-          "Use as setas para avançar ou voltar entre semanas.",
+          "Use as setas para ir para o dia seguinte ou anterior.",
           "Clique em Hoje para voltar à data atual.",
-          "Alterne entre visualização Semanal e Diária usando os botões no topo.",
+          "Você pode alternar entre a visão do dia inteiro ou da semana.",
         ],
       },
       {
         title: "Criar agendamento pelo calendário",
         steps: [
           "Clique em qualquer horário vazio na coluna do profissional desejado.",
-          "O formulário de novo agendamento abrirá com a data, hora e profissional já preenchidos.",
+          "O formulário já abre com a data, hora e profissional preenchidos.",
           "Complete os demais campos e confirme.",
         ],
       },
       {
-        title: "Entender as cores dos agendamentos",
+        title: "O que significa cada cor?",
         steps: [
           "Azul: agendamento confirmado.",
-          "Amarelo/laranja: pré-agendamento aguardando confirmação.",
-          "Verde: cliente compareceu.",
-          "Vermelho: cancelado ou falta.",
-          "Cinza: bloqueio de agenda.",
+          "Amarelo ou laranja: pré-agendamento aguardando sua confirmação.",
+          "Verde: cliente compareceu e foi atendido.",
+          "Vermelho: cancelado ou cliente faltou.",
+          "Cinza listrado: bloqueio de agenda (horário indisponível).",
         ],
       },
       {
-        title: "Solicitar bloqueio de agenda",
+        title: "Bloqueios aparecem no calendário?",
         steps: [
-          "Vá em Bloqueios no menu lateral.",
-          "Clique em Solicitar Bloqueio.",
-          "Informe o profissional, data, horário de início e fim, e o motivo.",
-          "Aguarde a aprovação do administrador.",
+          "Sim! Quando um bloqueio é aprovado, ele aparece no calendário como um horário cinza.",
+          "Esse horário fica bloqueado e não pode receber novos agendamentos.",
+          "Para solicitar um bloqueio, vá em Bloqueios no menu lateral.",
         ],
-        tip: "Bloqueios aprovados aparecem no calendário como horários indisponíveis.",
+      },
+    ],
+  },
+  {
+    id: "bloqueios",
+    icon: <Lock size={20} />,
+    title: "Bloqueios de Agenda",
+    subtitle: "Quando um profissional não pode atender em determinado horário",
+    color: "oklch(45% 0.18 30)",
+    intro: "Às vezes um profissional precisa de um horário livre — para uma consulta médica, um treinamento, férias ou qualquer outro motivo. O sistema de bloqueios serve exatamente para isso: reservar um período como indisponível, sem que novos agendamentos possam ser marcados nele.",
+    topics: [
+      {
+        title: "Como solicitar um bloqueio",
+        steps: [
+          "No menu lateral, clique em Bloqueios.",
+          "Clique no botão Solicitar Bloqueio.",
+          "Escolha o profissional, a data, o horário de início e fim.",
+          "Escreva o motivo (ex: Consulta médica, Treinamento).",
+          "Se for um bloqueio que se repete toda semana ou todo mês, ative a opção de recorrência.",
+          "Clique em Solicitar.",
+        ],
+        tip: "O administrador receberá uma notificação para aprovar ou recusar o bloqueio. Enquanto isso, o status fica como Pendente.",
+      },
+      {
+        title: "Quem pode aprovar um bloqueio?",
+        steps: [
+          "Somente o dono da conta ou usuários com permissão de Aprovar/recusar bloqueios podem aprovar.",
+          "O dono da conta pode aprovar o próprio bloqueio diretamente.",
+          "Outros profissionais precisam aguardar a aprovação.",
+        ],
+        tip: "Isso garante que nenhum horário seja bloqueado sem o conhecimento de quem gerencia a agenda.",
+      },
+      {
+        title: "O que acontece depois da aprovação?",
+        steps: [
+          "O bloqueio aprovado aparece no calendário como um horário cinza.",
+          "Nenhum agendamento pode ser marcado nesse período.",
+          "Se o bloqueio for recusado, o profissional recebe uma notificação com o motivo.",
+        ],
+      },
+      {
+        title: "Bloqueios recorrentes",
+        steps: [
+          "Ao criar um bloqueio, você pode marcar a opção de recorrência.",
+          "Semanal: o bloqueio se repete toda semana no mesmo dia e horário.",
+          "Mensal: o bloqueio se repete todo mês na mesma data e horário.",
+        ],
+        tip: "Útil para folgas fixas semanais ou compromissos mensais recorrentes.",
+      },
+      {
+        title: "Relatório de bloqueios",
+        steps: [
+          "Vá em Bloqueios no menu e clique em Ver Relatório.",
+          "Você verá quantos bloqueios foram aprovados, recusados e ainda estão pendentes no mês.",
+          "Também há um gráfico mostrando os motivos mais comuns de bloqueio.",
+        ],
       },
     ],
   },
@@ -182,48 +233,214 @@ const SECTIONS: Section[] = [
     id: "clientes",
     icon: <Users size={20} />,
     title: "Clientes",
-    subtitle: "Gerencie o relacionamento com seus clientes",
+    subtitle: "Cadastro, histórico e tudo sobre seus clientes",
     color: "oklch(45% 0.18 300)",
-    intro: "O módulo de clientes centraliza todas as informações sobre cada pessoa que frequenta o salão, incluindo histórico de atendimentos, prontuários e análises de IA.",
+    intro: "Aqui ficam todos os seus clientes cadastrados. Você pode ver o histórico de atendimentos de cada um, adicionar anotações, fotos e muito mais.",
     topics: [
       {
         title: "Cadastrar um novo cliente",
         steps: [
-          "Vá em Clientes no menu lateral.",
+          "Clique em Clientes no menu lateral.",
           "Clique em Novo Cliente.",
-          "Preencha nome, telefone, e-mail e data de nascimento.",
-          "Adicione observações ou tags se necessário.",
-          "Salve o cadastro.",
+          "Preencha o nome, telefone, e-mail e data de nascimento.",
+          "Adicione observações se necessário (ex: alergia a determinado produto).",
+          "Salve.",
         ],
-        tip: "O telefone é importante para as automações de WhatsApp funcionarem corretamente.",
+        tip: "O telefone é essencial para as mensagens automáticas de WhatsApp funcionarem.",
       },
       {
-        title: "Ver histórico de um cliente",
+        title: "Ver o histórico de um cliente",
         steps: [
           "Na lista de clientes, clique no nome do cliente.",
-          "A aba Histórico mostra todos os agendamentos anteriores.",
-          "Você pode ver data, serviço, profissional e status de cada atendimento.",
+          "A aba Histórico mostra todos os atendimentos anteriores.",
+          "Você vê data, serviço, profissional e se o cliente compareceu ou faltou.",
         ],
       },
       {
-        title: "Adicionar prontuário ou foto",
+        title: "Adicionar anotações ou fotos (prontuário)",
         steps: [
           "Abra o perfil do cliente.",
           "Clique na aba Prontuário.",
-          "Adicione anotações sobre o atendimento, alergias, preferências, etc.",
-          "Para fotos, clique em Adicionar Foto e faça o upload.",
+          "Escreva suas anotações — alergias, preferências, observações do atendimento.",
+          "Para fotos, clique em Adicionar Foto.",
         ],
-        tip: "Prontuários são visíveis apenas para usuários com permissão de acesso.",
+        tip: "O prontuário é visível apenas para usuários com permissão. Ótimo para manter informações sigilosas seguras.",
       },
       {
-        title: "Ver análise IA do cliente",
+        title: "Análise inteligente do cliente",
         steps: [
-          "Abra o perfil do cliente.",
-          "Role até a seção Análise IA.",
-          "Veja a classificação do cliente (Principal, Em crescimento, Inativo, etc.).",
-          "Leia o resumo gerado automaticamente com insights sobre o comportamento do cliente.",
+          "Abra o perfil do cliente e role até a seção Análise IA.",
+          "Veja a classificação automática: Cliente Fiel, Em Crescimento, Em Risco de Perda, etc.",
+          "Leia o resumo com dicas sobre como tratar esse cliente.",
         ],
-        tip: "A análise é gerada automaticamente quando você usa a função Analisar Clientes em IA Clientes.",
+        tip: "A análise é gerada automaticamente. Muito útil para saber em quem focar nas ações de fidelização.",
+      },
+    ],
+  },
+  {
+    id: "equipe-permissoes",
+    icon: <UserCog size={20} />,
+    title: "Equipe e Permissões",
+    subtitle: "Controle quem pode fazer o quê no sistema",
+    color: "oklch(45% 0.18 264)",
+    intro: "Aqui você gerencia toda a sua equipe: profissionais, usuários do sistema e os grupos de permissão. Cada pessoa pode ter acesso diferente — por exemplo, uma recepcionista pode criar agendamentos, mas não ver o financeiro.",
+    topics: [
+      {
+        title: "O que são grupos de permissão?",
+        steps: [
+          "Um grupo é como um cargo no sistema. Exemplos: Recepcionista, Profissional, Gerente.",
+          "Cada grupo tem um conjunto de permissões — o que pode ver, criar, editar ou excluir.",
+          "Quando você cria um usuário, você atribui ele a um grupo.",
+          "Assim, todos os usuários do mesmo grupo têm as mesmas permissões automaticamente.",
+        ],
+        tip: "É muito mais fácil gerenciar permissões por grupo do que configurar uma por uma para cada pessoa.",
+      },
+      {
+        title: "O grupo Administradores é especial",
+        steps: [
+          "O grupo Administradores tem acesso total ao sistema — sem nenhuma restrição.",
+          "Esse grupo não pode ser editado nem excluído. Ele é protegido.",
+          "O dono da conta é automaticamente colocado nesse grupo.",
+        ],
+        warning: "Só adicione pessoas de total confiança ao grupo Administradores, pois elas terão acesso a tudo, incluindo financeiro e configurações.",
+      },
+      {
+        title: "Criar um novo grupo",
+        steps: [
+          "Clique em Equipe e Permissões no menu.",
+          "Vá para a aba Grupos.",
+          "Clique em Novo Grupo.",
+          "Dê um nome (ex: Recepcionista) e escolha uma cor.",
+          "Ative ou desative as permissões que esse grupo deve ter.",
+          "Salve.",
+        ],
+      },
+      {
+        title: "O que é escopo de visibilidade?",
+        steps: [
+          "Ao configurar um grupo, você pode definir o que os membros enxergam.",
+          "Próprio: o usuário só vê os próprios agendamentos, notificações e calendário.",
+          "Todos: o usuário vê os dados de todos os profissionais.",
+          "Isso se aplica separadamente para Notificações, Agenda e Calendário.",
+        ],
+        tip: "Exemplo: um profissional com escopo Próprio só vê seus próprios horários no calendário. Já uma recepcionista com escopo Todos vê a agenda completa.",
+      },
+      {
+        title: "Quais permissões existem no sistema?",
+        steps: [
+          "Atendimentos: ver, criar, editar, concluir, remarcar e cancelar agendamentos.",
+          "Clientes: ver, cadastrar, editar, ver histórico, ver prontuário, editar prontuário e excluir.",
+          "Agenda e Bloqueios: solicitar bloqueio, aprovar ou recusar bloqueios, ver bloqueios de todos.",
+          "Financeiro: acessar módulo, ver comissões, editar comissões, marcar como pago, ver receita, ver custos, ver relatórios.",
+          "Profissionais: ver, cadastrar, editar, gerenciar permissões e excluir.",
+          "Serviços: ver, cadastrar, editar e excluir.",
+          "Pacotes: ver, criar e editar, excluir.",
+          "Automações: ver, criar, editar, ativar ou desativar, e excluir.",
+          "Relatórios e Dashboard: acessar dashboard, ver métricas, ver relatórios e exportar.",
+          "Sistema e Usuários: receber notificações, ver configurações, editar configurações, ver usuários e cadastrar usuários.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "notificacoes",
+    icon: <Bell size={20} />,
+    title: "Notificações",
+    subtitle: "Fique por dentro de tudo que acontece no sistema",
+    color: "oklch(45% 0.18 60)",
+    intro: "As notificações são os avisos do sistema para você. Quando um cliente agenda online, quando um bloqueio precisa de aprovação, quando um pacote está vencendo — tudo aparece aqui. Você não precisa ficar verificando o sistema o tempo todo; ele te avisa!",
+    topics: [
+      {
+        title: "Como acessar as notificações",
+        steps: [
+          "Clique no ícone de sino no menu lateral ou na barra superior.",
+          "Um número vermelho no sino indica quantas notificações não lidas você tem.",
+          "Clique para abrir a lista completa.",
+        ],
+      },
+      {
+        title: "Aprovar ou recusar um bloqueio direto da notificação",
+        steps: [
+          "Quando um profissional solicita um bloqueio, você recebe uma notificação.",
+          "Na própria notificação, há dois botões: Aprovar e Recusar.",
+          "Clique em Aprovar para liberar o bloqueio diretamente.",
+          "Clique em Recusar para abrir uma caixa onde você escreve o motivo da recusa.",
+          "Não precisa ir até a tela de Bloqueios — tudo acontece aqui mesmo!",
+        ],
+        tip: "O profissional recebe uma notificação informando se o bloqueio foi aprovado ou recusado.",
+      },
+      {
+        title: "Remover uma notificação",
+        steps: [
+          "No computador: passe o mouse sobre a notificação e clique no X que aparece.",
+          "No celular: deslize a notificação para a esquerda para removê-la.",
+        ],
+      },
+      {
+        title: "Limpar todas as notificações de uma vez",
+        steps: [
+          "No topo da tela de Notificações, clique no botão Limpar tudo.",
+          "Todas as notificações serão removidas.",
+        ],
+        warning: "Essa ação não pode ser desfeita. Certifique-se de ter lido tudo antes de limpar.",
+      },
+      {
+        title: "Limpeza automática",
+        steps: [
+          "O sistema remove automaticamente notificações com mais de 30 dias.",
+          "Isso acontece todos os dias de madrugada, sem que você precise fazer nada.",
+          "Assim a lista não fica entupida de avisos antigos.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "pacotes",
+    icon: <Package size={20} />,
+    title: "Pacotes",
+    subtitle: "Venda combos de serviços com sessões pré-pagas",
+    color: "oklch(45% 0.18 200)",
+    intro: "Pacotes são combos de serviços que o cliente paga antecipado e vai usando ao longo do tempo. Por exemplo: um pacote de 10 hidratações, ou um combo de escova mais manicure. É ótimo para fidelizar clientes e garantir receita recorrente.",
+    topics: [
+      {
+        title: "Criar um pacote",
+        steps: [
+          "Clique em Pacotes no menu lateral.",
+          "Clique em Novo Pacote.",
+          "Dê um nome ao pacote (ex: Combo Beleza Total).",
+          "Adicione os serviços incluídos e a quantidade de sessões de cada um.",
+          "Defina o preço do pacote e a validade em dias.",
+          "Salve.",
+        ],
+        tip: "Pacotes são ótimos para serviços recorrentes. Clientes que compram pacotes tendem a voltar com mais frequência.",
+      },
+      {
+        title: "Vender um pacote para um cliente",
+        steps: [
+          "Na tela de Pacotes, clique em Vender Pacote.",
+          "Selecione o cliente e o pacote desejado.",
+          "Confirme a venda.",
+          "O pacote fica registrado no histórico do cliente com os créditos disponíveis.",
+        ],
+      },
+      {
+        title: "Usar o pacote em um agendamento",
+        steps: [
+          "Ao criar um agendamento para um cliente com pacote ativo, o sistema mostra os créditos disponíveis.",
+          "Selecione o pacote para descontar o serviço automaticamente.",
+          "O saldo de sessões é atualizado após o uso.",
+        ],
+        tip: "O sistema avisa automaticamente quando um pacote está perto de vencer ou com poucas sessões restantes.",
+        warning: "Pacotes vencidos não podem ser utilizados. Fique de olho na validade!",
+      },
+      {
+        title: "Alertas automáticos de pacotes",
+        steps: [
+          "O sistema verifica automaticamente os pacotes ativos a cada 6 horas.",
+          "Se um pacote vencer em até 7 dias, você recebe uma notificação.",
+          "Se restar apenas 1 ou 2 sessões, você também recebe um aviso.",
+          "Esses alertas aparecem na tela de Notificações.",
+        ],
       },
     ],
   },
@@ -231,58 +448,54 @@ const SECTIONS: Section[] = [
     id: "financeiro",
     icon: <DollarSign size={20} />,
     title: "Financeiro",
-    subtitle: "Controle receitas, custos e comissões",
-    color: "oklch(45% 0.18 155)",
-    intro: "O módulo financeiro permite acompanhar a saúde financeira do salão, registrar receitas e despesas, e calcular as comissões dos profissionais.",
+    subtitle: "Controle de receitas, custos e comissões da equipe",
+    color: "oklch(45% 0.18 140)",
+    intro: "O módulo financeiro ajuda você a acompanhar a saúde do seu negócio: quanto está entrando, quanto está saindo e quanto cada profissional tem a receber de comissão.",
     topics: [
       {
         title: "Registrar uma receita",
         steps: [
           "Vá em Financeiro no menu lateral.",
           "Clique em Nova Receita.",
-          "Informe o valor, descrição, data e categoria.",
-          "Associe a um profissional se for comissão.",
-          "Salve o registro.",
+          "Informe o valor, a descrição, a data e a categoria.",
+          "Salve.",
         ],
       },
       {
-        title: "Registrar um custo",
+        title: "Registrar um custo ou despesa",
         steps: [
           "Vá em Financeiro no menu lateral.",
           "Clique em Novo Custo.",
-          "Informe o valor, descrição, data e categoria.",
-          "Salve o registro.",
+          "Informe o valor, a descrição, a data e a categoria.",
+          "Salve.",
         ],
       },
       {
-        title: "Registrar comissão ao concluir atendimento",
+        title: "Comissões — como funciona?",
         steps: [
-          "Ao clicar em Concluído em um agendamento, o sistema abre automaticamente o modal de comissão.",
-          "O percentual já vem preenchido com o valor configurado no serviço (ou no profissional, como fallback).",
-          "Selecione o tipo de pagamento: Dinheiro, PIX, Cartão Débito, Cartão Crédito ou Outro.",
-          "Informe o custo de reposição de produtos, se houver (opcional).",
-          "Veja a prévia do cálculo antes de confirmar.",
-          "Clique em Registrar Comissão ou Pular se não quiser registrar agora.",
+          "Quando você conclui um atendimento, o sistema pergunta se quer registrar a comissão.",
+          "O percentual já vem preenchido automaticamente (do serviço ou do profissional).",
+          "Escolha a forma de pagamento: Dinheiro, PIX, Cartão, etc.",
+          "Veja o valor calculado antes de confirmar.",
+          "Clique em Registrar Comissão.",
         ],
-        tip: "O percentual de comissão do serviço tem prioridade sobre o do profissional. Configure o percentual em Serviços para que seja preenchido automaticamente.",
+        tip: "O percentual configurado no serviço tem prioridade. Se não houver no serviço, o sistema usa o percentual do profissional.",
       },
       {
-        title: "Ver comissões dos profissionais",
+        title: "Ver comissões a pagar",
         steps: [
-          "Na tela de Financeiro, vá para a aba Comissões.",
-          "Selecione o período desejado.",
-          "Veja o valor de comissão calculado para cada profissional.",
+          "Vá em Financeiro e clique em Comissões a Pagar.",
+          "Você vê o que cada profissional tem a receber.",
+          "Quando pagar, clique em Marcar como Pago para registrar.",
         ],
-        tip: "O percentual de comissão pode ser definido tanto no cadastro do profissional quanto no cadastro do serviço. O serviço tem prioridade.",
+        tip: "Cada profissional só vê as próprias comissões. Apenas administradores veem as comissões de todos.",
       },
       {
-        title: "Usar a IA Financeira",
+        title: "Relatórios financeiros",
         steps: [
-          "Vá em IA Financeira no menu lateral (grupo IA Inteligente).",
-          "Clique em Calcular Score para gerar a análise.",
-          "Veja a nota de 0 a 100 e o status (Saudável, Atenção ou Risco).",
-          "Leia os alertas proativos gerados automaticamente.",
-          "Use o chat para fazer perguntas sobre os dados financeiros do salão.",
+          "Vá em Financeiro e clique em Relatórios.",
+          "Filtre por período, profissional ou categoria.",
+          "Você pode exportar os dados se precisar.",
         ],
       },
     ],
@@ -291,235 +504,38 @@ const SECTIONS: Section[] = [
     id: "automacoes",
     icon: <Zap size={20} />,
     title: "Automações",
-    subtitle: "Envie mensagens automáticas no momento certo",
-    color: "oklch(45% 0.20 75)",
-    intro: "As automações permitem enviar mensagens de WhatsApp automaticamente para os clientes com base em eventos do salão, como confirmação de agendamento, aniversário ou lembrete.",
+    subtitle: "Mensagens automáticas que trabalham por você",
+    color: "oklch(45% 0.18 60)",
+    intro: "As automações são mensagens que o sistema envia sozinho, sem você precisar fazer nada. Por exemplo: uma mensagem de confirmação de agendamento, um lembrete no dia anterior, ou um aviso quando um pacote está vencendo.",
     topics: [
+      {
+        title: "O que são gatilhos?",
+        steps: [
+          "Um gatilho é o evento que dispara a mensagem. Por exemplo:",
+          "Agendamento confirmado — envia mensagem de confirmação para o cliente.",
+          "1 dia antes do agendamento — envia lembrete.",
+          "Pacote vencendo — envia aviso de renovação.",
+          "Você escolhe o gatilho ao criar a automação.",
+        ],
+      },
       {
         title: "Criar uma automação",
         steps: [
           "Vá em Automações no menu lateral.",
           "Clique em Nova Automação.",
-          "Dê um nome para a automação.",
-          "No canvas, adicione um nó de Gatilho (o que dispara a mensagem).",
-          "Adicione um nó de Ação (Enviar WhatsApp) e escreva a mensagem.",
-          "Conecte os nós arrastando da saída de um para a entrada do outro.",
-          "Ative a automação com o toggle no topo.",
+          "Escolha o gatilho (quando a mensagem deve ser enviada).",
+          "Escreva a mensagem. Use variáveis como {{nome_cliente}} para personalizar.",
+          "Ative a automação.",
         ],
-        tip: "Use variáveis como {{nome_cliente}}, {{servico}}, {{data}}, {{hora}} e {{profissional}} para personalizar as mensagens.",
+        tip: "Variáveis disponíveis: {{nome_cliente}}, {{primeiro_nome}}, {{data}}, {{hora}}, {{servico}}, {{profissional}}, {{empresa}}. O sistema substitui automaticamente pelos dados reais.",
       },
       {
-        title: "Tipos de gatilho disponíveis",
+        title: "Fila de envios",
         steps: [
-          "Agendamento criado: dispara quando um novo agendamento é feito.",
-          "Agendamento confirmado: dispara na confirmação.",
-          "Agendamento cancelado: dispara no cancelamento.",
-          "Aniversário: dispara no mês do aniversário do cliente.",
-          "Data fixa: dispara em uma data específica (ex: Natal).",
-          "Dias antes do evento: dispara X dias antes do agendamento.",
+          "Vá em Automações e clique em Fila de Envios.",
+          "Você vê todas as mensagens que foram enviadas ou estão agendadas para envio.",
+          "Útil para verificar se as mensagens estão sendo entregues corretamente.",
         ],
-      },
-      {
-        title: "Adicionar um delay (atraso)",
-        steps: [
-          "No canvas, adicione um nó de Delay entre o gatilho e a ação.",
-          "Defina quantas horas ou dias de espera.",
-          "Conecte: Gatilho > Delay > Ação.",
-        ],
-        tip: "Use delay para enviar um lembrete 24h antes do agendamento, por exemplo.",
-      },
-      {
-        title: "Ver mensagens enviadas",
-        steps: [
-          "Em Automações, clique na aba Caixa de Saída.",
-          "Veja todas as mensagens disparadas com nome do cliente, telefone, data e status.",
-        ],
-      },
-    ],
-  },
-  {
-    id: "pipeline",
-    icon: <Kanban size={20} />,
-    title: "Pipeline",
-    subtitle: "Organize leads e oportunidades no Kanban",
-    color: "oklch(45% 0.18 264)",
-    intro: "O Pipeline é um quadro Kanban para organizar leads, oportunidades de venda ou qualquer fluxo de trabalho que precise de acompanhamento visual.",
-    topics: [
-      {
-        title: "Criar um pipeline",
-        steps: [
-          "Vá em Pipeline no menu lateral.",
-          "Clique em Configurar.",
-          "Clique em + Novo Pipeline e dê um nome.",
-          "Adicione colunas clicando em + Nome da coluna.",
-          "Salve as configurações.",
-        ],
-      },
-      {
-        title: "Criar um cartão",
-        steps: [
-          "No board do pipeline, clique em + no topo de uma coluna.",
-          "Informe o título do cartão.",
-          "Adicione detalhes, lembrete e vincule um cliente se necessário.",
-          "Defina o status: Em andamento, Congelado, Cancelado ou Concluído.",
-          "Salve o cartão.",
-        ],
-      },
-      {
-        title: "Mover cartões entre colunas",
-        steps: [
-          "Arraste o cartão para a coluna desejada.",
-          "O cartão é salvo automaticamente na nova posição.",
-        ],
-      },
-    ],
-  },
-  {
-    id: "ia-inteligente",
-    icon: <Brain size={20} />,
-    title: "IA Inteligente",
-    subtitle: "Análises automáticas com inteligência artificial",
-    color: "oklch(45% 0.18 300)",
-    intro: "O módulo de IA Inteligente usa inteligência artificial para analisar os dados do seu salão e gerar insights valiosos sobre finanças e comportamento dos clientes.",
-    topics: [
-      {
-        title: "Calcular o Score Financeiro",
-        steps: [
-          "Vá em IA Financeira no menu lateral.",
-          "Clique em Calcular Score.",
-          "Aguarde alguns segundos enquanto a IA analisa os dados.",
-          "Veja a nota de 0 a 100 e o status: Saudável (verde), Atenção (amarelo) ou Risco (vermelho).",
-          "Leia a explicação detalhada com os pontos fortes e fracos.",
-        ],
-        tip: "O score é calculado com base em 10 fatores: receita, comissões, ticket médio, taxa de conversão, entre outros.",
-      },
-      {
-        title: "Usar o chat financeiro",
-        steps: [
-          "Na página IA Financeira, use o chat no lado direito.",
-          "Faça perguntas como: 'Qual mês teve mais receita?' ou 'Quais serviços geram mais lucro?'",
-          "A IA responde com base nos dados reais do seu salão.",
-        ],
-      },
-      {
-        title: "Analisar clientes com IA",
-        steps: [
-          "Vá em IA Clientes no menu lateral.",
-          "Clique em Analisar Clientes.",
-          "Aguarde a análise ser concluída.",
-          "Veja o ranking de clientes por classificação: Principal, Bom pagador, Em crescimento, Em queda, Inativo, Risco.",
-          "Clique em um cliente para ver o resumo detalhado.",
-        ],
-        warning: "São necessários pelo menos 3 clientes com histórico de 30 dias para gerar a análise.",
-      },
-    ],
-  },
-  {
-    id: "importacao-zandu",
-    icon: <Download size={20} />,
-    title: "Importação Zandu",
-    subtitle: "Migre seus dados do Zandu para o Hubly",
-    color: "oklch(45% 0.18 30)",
-    intro: "Se você usava o Zandu antes, pode importar todos os seus dados para o Hubly em poucos minutos. O processo é simples e seguro.",
-    topics: [
-      {
-        title: "Obter o token de API do Zandu",
-        steps: [
-          "Acesse o Zandu (pro.zandu.com.br).",
-          "Vá em Ferramentas > API (no menu superior direito).",
-          "Clique em + Novo Token.",
-          "Copie o token gerado.",
-        ],
-        tip: "O token começa com letras e números e tem cerca de 30 caracteres.",
-      },
-      {
-        title: "Importar dados no Hubly",
-        steps: [
-          "No Hubly, vá em Configurações > Importação Zandu.",
-          "Cole o token de API do Zandu.",
-          "Selecione o tipo de dado a importar: Clientes, Serviços, Profissionais ou Agendamentos.",
-          "Clique em Visualizar para ver um preview dos dados.",
-          "Confirme a importação clicando em Importar.",
-        ],
-        warning: "Importe sempre nesta ordem: 1. Clientes, 2. Serviços, 3. Profissionais, 4. Agendamentos. Importar agendamentos antes dos outros dados causará erros.",
-      },
-      {
-        title: "Verificar o resultado da importação",
-        steps: [
-          "Após a importação, veja o resumo com quantos registros foram importados com sucesso, quantos eram duplicados e quantos tiveram erro.",
-          "Registros duplicados são ignorados automaticamente.",
-          "Em caso de erro, verifique se os dados dependentes foram importados antes.",
-        ],
-      },
-    ],
-  },
-  {
-    id: "portal-cliente",
-    icon: <Globe size={20} />,
-    title: "Portal do Cliente",
-    subtitle: "Agendamento online para seus clientes",
-    color: "oklch(45% 0.18 155)",
-    intro: "O Portal do Cliente é uma página pública onde seus clientes podem agendar online, sem precisar ligar ou mandar mensagem.",
-    topics: [
-      {
-        title: "Acessar o link do portal",
-        steps: [
-          "Vá em Configurações no menu lateral.",
-          "Na seção Portal do Cliente, copie o link público.",
-          "Compartilhe o link com seus clientes via WhatsApp, Instagram ou site.",
-        ],
-      },
-      {
-        title: "Como o cliente agenda online",
-        steps: [
-          "O cliente acessa o link do portal.",
-          "Escolhe o serviço desejado.",
-          "Seleciona o profissional de preferência (ou qualquer disponível).",
-          "Escolhe a data e o horário disponível.",
-          "Informa nome e telefone.",
-          "Confirma o agendamento.",
-        ],
-        tip: "O agendamento feito pelo portal entra como pré-agendamento e precisa ser confirmado por você no sistema.",
-      },
-    ],
-  },
-  {
-    id: "pacotes",
-    icon: <BarChart2 size={20} />,
-    title: "Pacotes",
-    subtitle: "Venda combinações de serviços com desconto",
-    color: "oklch(45% 0.18 30)",
-    intro: "O módulo de Pacotes permite criar combinações de serviços que podem ser vendidas juntas com preço especial. É ideal para fidelizar clientes e aumentar o ticket médio.",
-    topics: [
-      {
-        title: "Criar um pacote de serviços",
-        steps: [
-          "Vá em Pacotes no menu lateral.",
-          "Clique em Novo Pacote.",
-          "Informe o nome do pacote e o preço total.",
-          "Adicione os serviços incluídos no pacote e a quantidade de cada um.",
-          "Defina a validade do pacote em dias.",
-          "Salve o pacote.",
-        ],
-        tip: "Pacotes são ótimos para serviços recorrentes como escova + hidratação ou combo de estética.",
-      },
-      {
-        title: "Vender um pacote para um cliente",
-        steps: [
-          "No perfil do cliente ou na tela de Pacotes, clique em Vender Pacote.",
-          "Selecione o cliente e o pacote desejado.",
-          "Confirme a venda.",
-          "O pacote fica registrado no histórico do cliente com os créditos disponíveis.",
-        ],
-      },
-      {
-        title: "Usar créditos do pacote em um agendamento",
-        steps: [
-          "Ao criar um agendamento para um cliente que possui pacote ativo, o sistema exibe os créditos disponíveis.",
-          "Selecione o pacote para descontar o serviço automaticamente.",
-          "O saldo de créditos é atualizado após o uso.",
-        ],
-        tip: "Pacotes expirados não podem ser utilizados. Verifique a validade antes de vender.",
       },
     ],
   },
@@ -527,108 +543,72 @@ const SECTIONS: Section[] = [
     id: "whatsapp",
     icon: <MessageSquare size={20} />,
     title: "WhatsApp",
-    subtitle: "Integração com WhatsApp Business",
+    subtitle: "Conecte seu WhatsApp para enviar mensagens automáticas",
     color: "oklch(45% 0.18 155)",
-    intro: "O módulo de WhatsApp permite integrar o sistema com sua conta do WhatsApp Business para envio de mensagens automáticas e manuais diretamente pelo painel.",
+    intro: "O sistema pode enviar mensagens pelo seu WhatsApp Business automaticamente. Para isso, você precisa conectar o WhatsApp uma vez. Depois disso, tudo funciona sozinho!",
     topics: [
       {
-        title: "Configurar a integração com WhatsApp",
+        title: "Conectar o WhatsApp",
         steps: [
-          "Vá em WhatsApp no menu lateral.",
+          "Clique em WhatsApp no menu lateral.",
           "Clique em Conectar WhatsApp.",
-          "Escaneie o QR Code com o celular onde está o WhatsApp Business da empresa.",
-          "Aguarde a conexão ser estabelecida (status fica verde).",
+          "Abra o WhatsApp no celular, vá em Dispositivos Vinculados e escaneie o QR Code.",
+          "Aguarde o status ficar verde — isso significa que está conectado.",
         ],
-        warning: "Use apenas o WhatsApp Business da empresa. Não conecte o WhatsApp pessoal para evitar bloqueios.",
+        warning: "Use o WhatsApp Business da empresa, não o seu pessoal. Usar o pessoal pode causar bloqueios pelo WhatsApp.",
+      },
+      {
+        title: "A conexão fica ativa?",
+        steps: [
+          "Sim! Uma vez conectado, o WhatsApp fica ativo em segundo plano.",
+          "Mesmo que você feche a tela de WhatsApp, a conexão continua.",
+          "Se cair, basta reconectar escaneando o QR Code novamente.",
+        ],
       },
       {
         title: "Enviar mensagem manual para um cliente",
         steps: [
-          "Vá em WhatsApp no menu lateral.",
-          "Clique em Nova Mensagem.",
-          "Selecione o cliente ou informe o número do telefone.",
+          "Vá em WhatsApp e clique em Nova Mensagem.",
+          "Selecione o cliente ou informe o número.",
           "Digite a mensagem e clique em Enviar.",
-        ],
-        tip: "As mensagens enviadas ficam registradas no histórico do cliente.",
-      },
-      {
-        title: "Configurar mensagens automáticas",
-        steps: [
-          "As mensagens automáticas são configuradas no módulo de Automações.",
-          "Crie uma automação com o gatilho desejado (ex: Agendamento Confirmado).",
-          "Adicione a ação Enviar WhatsApp e escreva a mensagem.",
-          "Ative a automação para começar a enviar automaticamente.",
         ],
       },
     ],
   },
   {
     id: "assinatura",
-    icon: <Lock size={20} />,
+    icon: <Star size={20} />,
     title: "Assinatura e Planos",
-    subtitle: "Gerencie seu plano e recursos disponíveis",
+    subtitle: "Seu plano atual e como fazer upgrade",
     color: "oklch(45% 0.18 264)",
-    intro: "O sistema oferece diferentes planos com recursos e limites distintos. Você pode visualizar seu plano atual, fazer upgrade e acompanhar o uso dos recursos diretamente pelo painel.",
+    intro: "O sistema tem diferentes planos com recursos e limites distintos. Você pode ver seu plano atual, acompanhar o uso e fazer upgrade quando precisar.",
     topics: [
       {
-        title: "Ver o plano atual",
+        title: "Ver seu plano atual",
         steps: [
-          "O plano atual é exibido no header do sistema (canto superior direito no mobile).",
-          "Para ver os detalhes completos, vá em Assinatura no menu lateral.",
-          "Veja os recursos incluídos e os limites do seu plano.",
+          "Clique em Assinatura no menu lateral.",
+          "Você vê o plano atual, os recursos incluídos e os limites.",
+          "O sistema também mostra quanto você já usou de cada recurso.",
         ],
-        tip: "O sistema exibe um alerta automático quando você atingir 80% do limite de qualquer recurso do seu plano.",
+        tip: "O sistema avisa automaticamente quando você atingir 80% do limite de qualquer recurso.",
       },
       {
         title: "Fazer upgrade de plano",
         steps: [
-          "Vá em Assinatura no menu lateral.",
-          "Clique em Ver Planos.",
-          "Escolha o plano desejado (SOLO, PLUS ou PRO).",
-          "Clique em Contratar e será redirecionado para o checkout seguro.",
+          "Vá em Assinatura e clique em Ver Planos.",
+          "Escolha o plano desejado: SOLO, PLUS ou PRO.",
+          "Clique em Contratar e siga para o checkout seguro.",
           "Após o pagamento, o plano é ativado automaticamente.",
         ],
-        tip: "Use o cartão 4242 4242 4242 4242 para testar o checkout em ambiente de testes.",
       },
       {
-        title: "Alertas de limite de plano",
+        title: "O que acontece quando atinge o limite?",
         steps: [
-          "O sistema monitora automaticamente o uso de recursos como clientes, agendamentos e profissionais.",
-          "Quando você atingir 80% do limite, um alerta aparece no topo da tela.",
-          "Clique no alerta para ver qual recurso está próximo do limite.",
-          "Clique em Fazer Upgrade para ampliar os limites.",
+          "Quando você chega a 80% do limite, um alerta aparece no topo da tela.",
+          "Ao atingir 100%, não será possível cadastrar novos registros daquele tipo.",
+          "Faça upgrade para ampliar os limites.",
         ],
-        warning: "Ao atingir 100% do limite, não será possível cadastrar novos registros até fazer upgrade do plano.",
-      },
-    ],
-  },
-  {
-    id: "suporte",
-    icon: <HelpCircle size={20} />,
-    title: "Suporte",
-    subtitle: "Tire dúvidas e obtenha ajuda",
-    color: "oklch(45% 0.18 30)",
-    intro: "O sistema possui um assistente de suporte integrado que responde dúvidas sobre o uso do sistema em tempo real, sem precisar sair da plataforma.",
-    topics: [
-      {
-        title: "Acessar o chat de suporte",
-        steps: [
-          "No menu lateral, role até o final e clique em Suporte (ícone de fone de ouvido).",
-          "O painel de chat de suporte abre na lateral.",
-          "Digite sua dúvida e pressione Enter ou clique em Enviar.",
-          "O assistente responde com base no manual e nas funcionalidades do sistema.",
-        ],
-        tip: "O suporte está disponível 24 horas por dia, 7 dias por semana, sem espera.",
-      },
-      {
-        title: "Tipos de dúvidas que o suporte responde",
-        steps: [
-          "Como usar qualquer funcionalidade do sistema.",
-          "Explicações sobre relatórios e dados do dashboard.",
-          "Orientações sobre configuração de automações.",
-          "Dúvidas sobre planos e assinatura.",
-          "Problemas com agendamentos, clientes ou financeiro.",
-        ],
+        warning: "Fique de olho nos alertas! Atingir o limite pode impedir novos cadastros de clientes ou agendamentos.",
       },
     ],
   },
@@ -636,33 +616,73 @@ const SECTIONS: Section[] = [
     id: "configuracoes",
     icon: <Settings size={20} />,
     title: "Configurações",
-    subtitle: "Personalize o sistema para o seu salão",
+    subtitle: "Personalize o sistema para o seu negócio",
     color: "oklch(45% 0.10 250)",
-    intro: "Na tela de Configurações você ajusta todas as preferências do sistema: dados da empresa, horários, cores, integrações e muito mais.",
+    intro: "Nas Configurações você ajusta tudo sobre o seu negócio: nome, horários, cores, link de agendamento online e muito mais.",
     topics: [
       {
-        title: "Dados da empresa",
+        title: "Dados do negócio",
         steps: [
-          "Informe nome do salão, telefone, endereço e CNPJ.",
+          "Preencha o nome, telefone, endereço e CNPJ.",
           "Faça upload do logotipo.",
-          "Defina o horário de funcionamento (início e fim do expediente).",
+          "Defina o horário de funcionamento.",
           "Salve as alterações.",
         ],
       },
       {
+        title: "Link de agendamento online",
+        steps: [
+          "Você pode ter um link personalizado para seus clientes agendarem online.",
+          "Exemplo: hubly.manus.space/agendar/meu-salao",
+          "Defina o seu link nas configurações.",
+          "Compartilhe esse link no Instagram, WhatsApp ou onde preferir.",
+        ],
+        tip: "O link de agendamento online é gratuito e está incluído em todos os planos.",
+      },
+      {
         title: "Configurar reserva de horário",
         steps: [
-          "Na seção Reserva de Horário, defina o percentual de adiantamento cobrado.",
-          "Defina o tempo de expiração do pré-agendamento (padrão: 24 horas).",
-          "Salve as configurações.",
+          "Defina se quer cobrar um valor de reserva ao agendar online.",
+          "Configure o percentual do valor adiantado (ex: 30% do serviço).",
+          "Defina em quantas horas o pré-agendamento expira se não for confirmado.",
         ],
       },
       {
-        title: "Personalizar cores do sistema",
+        title: "Personalizar as cores do sistema",
         steps: [
           "Na seção Aparência, escolha a cor principal do sistema.",
-          "As cores são aplicadas em botões, destaques e elementos interativos.",
+          "As cores são aplicadas nos botões e destaques.",
           "Salve para aplicar.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "suporte",
+    icon: <HelpCircle size={20} />,
+    title: "Precisa de Ajuda?",
+    subtitle: "O assistente de suporte está sempre disponível",
+    color: "oklch(45% 0.18 30)",
+    intro: "Se você tiver alguma dúvida sobre como usar o sistema, o assistente de suporte está aqui para ajudar. É como ter um especialista disponível 24 horas por dia, 7 dias por semana.",
+    topics: [
+      {
+        title: "Como acessar o suporte",
+        steps: [
+          "Role até o final do menu lateral e clique em Suporte.",
+          "O chat de suporte abre na lateral da tela.",
+          "Digite sua dúvida em português e pressione Enter.",
+          "O assistente responde em segundos, com base no manual e nas funcionalidades do sistema.",
+        ],
+        tip: "Pode perguntar qualquer coisa! O assistente entende perguntas do tipo: Como cancelo um agendamento? ou Onde vejo as comissões?",
+      },
+      {
+        title: "O que o suporte consegue responder?",
+        steps: [
+          "Como usar qualquer funcionalidade do sistema.",
+          "O que significa cada tela, botão ou status.",
+          "Como configurar automações, permissões e pacotes.",
+          "Dúvidas sobre planos e assinatura.",
+          "Qualquer problema ou dificuldade no uso do dia a dia.",
         ],
       },
     ],
@@ -681,6 +701,7 @@ export default function Manual() {
     ? SECTIONS.filter(
         (s) =>
           s.title.toLowerCase().includes(search.toLowerCase()) ||
+          s.subtitle.toLowerCase().includes(search.toLowerCase()) ||
           s.topics.some(
             (t) =>
               t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -691,11 +712,19 @@ export default function Manual() {
 
   return (
     <div className="flex h-full" style={{ background: "var(--background)" }}>
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
         className={`
           shrink-0 flex flex-col border-r
-          ${mobileMenuOpen ? "fixed inset-0 z-50 w-72" : "hidden md:flex w-64"}
+          ${mobileMenuOpen ? "fixed inset-y-0 left-0 z-50 w-72" : "hidden md:flex w-64"}
         `}
         style={{
           background: "var(--card)",
@@ -714,7 +743,7 @@ export default function Manual() {
               </div>
               <div>
                 <p className="text-sm font-semibold">Manual do Sistema</p>
-                <p className="text-xs text-muted-foreground">Hub de Serviços Inteligentes</p>
+                <p className="text-xs text-muted-foreground">Guia completo de uso</p>
               </div>
             </div>
             <button
@@ -737,6 +766,9 @@ export default function Manual() {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-3 px-3">
+          {filteredSections.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-6">Nenhum resultado encontrado.</p>
+          )}
           {filteredSections.map((section) => (
             <button
               key={section.id}
@@ -760,65 +792,37 @@ export default function Manual() {
               >
                 {section.icon}
               </span>
-              <span className="text-sm">{section.title}</span>
+              <span className="text-sm leading-tight">{section.title}</span>
               {activeSection === section.id && (
-                <ChevronRight size={14} className="ml-auto" />
+                <ChevronRight size={14} className="ml-auto shrink-0" />
               )}
             </button>
           ))}
         </nav>
 
-        {/* Help CTA */}
-        <div className="p-4 border-t" style={{ borderColor: "var(--border)" }}>
-          <div
-            className="rounded-xl p-3 text-xs"
-            style={{ background: "oklch(45% 0.18 264 / 10%)" }}
-          >
-            <p className="font-medium mb-1" style={{ color: "oklch(45% 0.18 264)" }}>
-              Ainda com duvidas?
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              Use o chat de suporte (botao azul no canto da tela) para falar com a assistente IA.
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="px-4 py-3 border-t text-center" style={{ borderColor: "var(--border)" }}>
+          <p className="text-[11px] text-muted-foreground">Dúvidas? Use o chat de Suporte</p>
         </div>
       </aside>
 
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        {/* Top bar */}
+        {/* Mobile header */}
         <div
-          className="sticky top-0 z-10 flex items-center gap-3 px-6 py-4 border-b"
-          style={{
-            background: "var(--background)",
-            borderColor: "var(--border)",
-          }}
+          className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b md:hidden"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}
         >
           <button
-            className="md:hidden p-1.5 rounded-lg border"
-            style={{ borderColor: "var(--border)" }}
             onClick={() => setMobileMenuOpen(true)}
+            className="p-1.5 rounded-lg"
+            style={{ background: "var(--muted)" }}
           >
-            <Menu size={16} />
+            <BookOpen size={16} />
           </button>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Manual</span>
-            <ChevronRight size={14} />
-            <span className="font-medium" style={{ color: "var(--foreground)" }}>
-              {current.title}
-            </span>
-          </div>
+          <span className="text-sm font-semibold">{current.title}</span>
         </div>
 
-        {/* Content */}
         <div className="max-w-3xl mx-auto px-6 py-8">
           {/* Section header */}
           <div className="mb-8">
@@ -830,17 +834,13 @@ export default function Manual() {
                 {current.icon}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{current.title}</h1>
+                <h1 className="text-xl font-bold">{current.title}</h1>
                 <p className="text-sm text-muted-foreground">{current.subtitle}</p>
               </div>
             </div>
             <p
-              className="text-sm leading-relaxed rounded-xl px-4 py-3 mt-4"
-              style={{
-                background: current.color + "10",
-                color: "var(--foreground)",
-                borderLeft: `3px solid ${current.color}`,
-              }}
+              className="text-sm leading-relaxed px-4 py-3 rounded-xl"
+              style={{ background: current.color + "10", color: "var(--foreground)" }}
             >
               {current.intro}
             </p>
@@ -848,79 +848,69 @@ export default function Manual() {
 
           {/* Topics */}
           <div className="space-y-6">
-            {current.topics.map((topic, ti) => (
+            {current.topics.map((topic, i) => (
               <div
-                key={ti}
-                className="rounded-2xl border overflow-hidden"
+                key={i}
+                className="rounded-xl border overflow-hidden"
                 style={{ borderColor: "var(--border)" }}
               >
                 {/* Topic header */}
                 <div
-                  className="px-5 py-4 flex items-center gap-3"
-                  style={{ background: "var(--muted)" }}
+                  className="px-5 py-3 border-b"
+                  style={{
+                    background: current.color + "0d",
+                    borderColor: current.color + "30",
+                  }}
                 >
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ background: current.color, color: "white" }}
-                  >
-                    {ti + 1}
-                  </div>
-                  <h2 className="font-semibold text-sm">{topic.title}</h2>
+                  <h2 className="text-sm font-semibold" style={{ color: current.color }}>
+                    {topic.title}
+                  </h2>
                 </div>
 
                 {/* Steps */}
-                <div className="px-5 py-4 space-y-2.5">
-                  {topic.steps.map((step, si) => (
-                    <div key={si} className="flex items-start gap-3">
-                      <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium shrink-0 mt-0.5"
-                        style={{
-                          background: current.color + "18",
-                          color: current.color,
-                        }}
-                      >
-                        {si + 1}
-                      </div>
-                      <p className="text-sm leading-relaxed">{step}</p>
+                <div className="px-5 py-4" style={{ background: "var(--card)" }}>
+                  <ol className="space-y-2.5">
+                    {topic.steps.map((step, j) => (
+                      <li key={j} className="flex gap-3 text-sm">
+                        <span
+                          className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold mt-0.5"
+                          style={{ background: current.color + "20", color: current.color }}
+                        >
+                          {j + 1}
+                        </span>
+                        <span className="leading-relaxed text-foreground">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+
+                  {/* Tip */}
+                  {topic.tip && (
+                    <div
+                      className="mt-4 flex gap-2.5 px-3 py-2.5 rounded-lg text-sm"
+                      style={{ background: "oklch(62% 0.18 155 / 10%)", color: "oklch(35% 0.14 155)" }}
+                    >
+                      <span className="shrink-0 font-bold">💡</span>
+                      <span className="leading-relaxed">{topic.tip}</span>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Warning */}
+                  {topic.warning && (
+                    <div
+                      className="mt-3 flex gap-2.5 px-3 py-2.5 rounded-lg text-sm"
+                      style={{ background: "oklch(58% 0.22 25 / 10%)", color: "oklch(40% 0.18 25)" }}
+                    >
+                      <span className="shrink-0 font-bold">⚠️</span>
+                      <span className="leading-relaxed">{topic.warning}</span>
+                    </div>
+                  )}
                 </div>
-
-                {/* Tip */}
-                {topic.tip && (
-                  <div
-                    className="mx-5 mb-4 rounded-xl px-4 py-3 text-xs leading-relaxed"
-                    style={{
-                      background: "oklch(55% 0.18 155 / 8%)",
-                      color: "oklch(35% 0.14 155)",
-                      border: "1px solid oklch(55% 0.18 155 / 20%)",
-                    }}
-                  >
-                    <span className="font-semibold">Dica: </span>
-                    {topic.tip}
-                  </div>
-                )}
-
-                {/* Warning */}
-                {topic.warning && (
-                  <div
-                    className="mx-5 mb-4 rounded-xl px-4 py-3 text-xs leading-relaxed"
-                    style={{
-                      background: "oklch(55% 0.20 30 / 8%)",
-                      color: "oklch(40% 0.18 30)",
-                      border: "1px solid oklch(55% 0.20 30 / 20%)",
-                    }}
-                  >
-                    <span className="font-semibold">Atencao: </span>
-                    {topic.warning}
-                  </div>
-                )}
               </div>
             ))}
           </div>
 
-          {/* Navigation between sections */}
-          <div className="flex items-center justify-between mt-10 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
+          {/* Navigation footer */}
+          <div className="flex justify-between mt-10 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
             {(() => {
               const idx = SECTIONS.findIndex((s) => s.id === activeSection);
               const prev = SECTIONS[idx - 1];
@@ -932,18 +922,17 @@ export default function Manual() {
                       onClick={() => setActiveSection(prev.id)}
                       className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <ArrowRight size={14} className="rotate-180" />
-                      {prev.title}
+                      <ChevronRight size={14} className="rotate-180" />
+                      <span>{prev.title}</span>
                     </button>
                   ) : <div />}
                   {next ? (
                     <button
                       onClick={() => setActiveSection(next.id)}
-                      className="flex items-center gap-2 text-sm font-medium transition-colors"
-                      style={{ color: current.color }}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {next.title}
-                      <ArrowRight size={14} />
+                      <span>{next.title}</span>
+                      <ChevronRight size={14} />
                     </button>
                   ) : <div />}
                 </>

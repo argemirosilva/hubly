@@ -7,6 +7,7 @@ import {
   pacotesClientes,
   pacotesClientesItens,
   notificacoesPacotes,
+  notificacoes,
   clientes,
   empresas,
   agendamentos,
@@ -1581,6 +1582,35 @@ export async function processarFilaPendente() {
   }
 }
 
+// ── Limpar notificações com mais de 30 dias ─────────────────────────────────
+async function limparNotificacoesAntigas() {
+  const db = await getDb();
+  if (!db) return;
+
+  const limite = new Date();
+  limite.setDate(limite.getDate() - 30);
+
+  try {
+    // Remover notificações do sistema com mais de 30 dias
+    const resultSistema = await db.delete(notificacoes)
+      .where(lte(notificacoes.createdAt, limite));
+
+    // Remover notificações de pacotes com mais de 30 dias
+    const resultPacotes = await db.delete(notificacoesPacotes)
+      .where(lte(notificacoesPacotes.enviadoEm, limite));
+
+    const totalSistema = (resultSistema as any)?.rowsAffected ?? 0;
+    const totalPacotes = (resultPacotes as any)?.rowsAffected ?? 0;
+    const total = totalSistema + totalPacotes;
+
+    if (total > 0) {
+      console.log(`[Scheduler] Limpeza de notificações: ${totalSistema} do sistema + ${totalPacotes} de pacotes removidas (> 30 dias).`);
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao limpar notificações antigas:', err);
+  }
+}
+
 // ── Cancelar pré-agendamentos com reserva expirada ──────────────────────────
 async function cancelarPreAgendamentosExpirados() {
   const db = await getDb();
@@ -1755,9 +1785,19 @@ export function initScheduler() {
     setTimeout(() => processarFilaPendente(), 3_000); // aguarda 3s para estabilizar
   });
 
+  // Limpeza de notificações antigas (> 30 dias) — roda 1x por dia às 3h da manhã
+  const LIMPEZA_NOTIF_MS = 24 * 60 * 60 * 1000;
+  setTimeout(() => {
+    limparNotificacoesAntigas();
+    setInterval(() => {
+      if (deveExecutarNaHora(3)) limparNotificacoesAntigas();
+    }, LIMPEZA_NOTIF_MS);
+  }, 120_000); // aguarda 2min para o DB estar pronto
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
   console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
   console.log("[Scheduler] Pré-registro de envios pendentes inicializado (a cada 1h).");
   console.log("[Scheduler] Worker de fila universal inicializado (a cada 1min + ao reconectar WhatsApp).");
+  console.log("[Scheduler] Limpeza de notificações antigas inicializada (diariamente às 3h).");
 }
