@@ -49,6 +49,7 @@ import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
 import { portalRouter } from "./routers/portal";
+import { importacaoRouter } from "./routers/importacao";
 import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
@@ -155,6 +156,7 @@ export const appRouter = router({
   iaClientes: iaClientesRouter,
   suporte: suporteRouter,
   portal: portalRouter,
+  importacao: importacaoRouter,
   pacotes: pacotesRouter,
   relatorios: relatoriosRouter,
   onboarding: onboardingRouter,
@@ -1655,7 +1657,6 @@ export const appRouter = router({
         offset: z.number().min(0).default(0),
         canal: z.string().optional(),
         status: z.string().optional(),
-        isTeste: z.boolean().optional(),
       }))
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -1665,7 +1666,6 @@ export const appRouter = router({
           offset: input.offset,
           canal: input.canal,
           status: input.status,
-          isTeste: input.isTeste,
         });
       }),
 
@@ -1952,83 +1952,6 @@ export const appRouter = router({
           return { success: true, mensagem };
         } catch (err: any) {
           if (err instanceof TRPCError) throw err;
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Erro ao enviar: ${err?.message ?? "desconhecido"}` });
-        }
-      }),
-
-    testarEnvio: protectedProcedure
-      .input(z.object({
-        corpoMensagem: z.string().min(1, "Mensagem não pode ser vazia"),
-        telefone: z.string().min(8, "Telefone inválido"),
-        midiaUrl: z.string().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
-        // Verificar WhatsApp
-        const { waManager } = await import("./whatsapp");
-        const waState = waManager.getState();
-        if (waState.status !== "connected") {
-          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não está conectado. Conecte primeiro em Configurações > WhatsApp." });
-        }
-        // Substituir variáveis com dados fictícios
-        const agora = new Date();
-        const dataExemplo = agora.toLocaleDateString("pt-BR");
-        const horaExemplo = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        const mensagem = input.corpoMensagem
-          .replace(/\{\{nome_cliente\}\}/g, "Maria Silva")
-          .replace(/\{\{primeiro_nome\}\}/g, "Maria")
-          .replace(/\{\{empresa\}\}/g, empresa.nome)
-          .replace(/\{\{servico\}\}/g, "Corte de Cabelo")
-          .replace(/\{\{data\}\}/g, dataExemplo)
-          .replace(/\{\{hora\}\}/g, horaExemplo)
-          .replace(/\{\{profissional\}\}/g, "Ana")
-          .replace(/\{\{pacote\}\}/g, "Pacote Premium")
-          .replace(/\{\{sessoes_restantes\}\}/g, "2")
-          .replace(/\{\{sessoes_total\}\}/g, "10")
-          .replace(/\{\{data_vencimento\}\}/g, new Date(Date.now() + 30 * 86400000).toLocaleDateString("pt-BR"))
-          .replace(/\{\{link_agendamento\}\}/g, "https://hubly.orizontech.com.br/agendar")
-          .replace(/\{\{link_confirmacao\}\}/g, "https://hubly.orizontech.com.br/confirmar");
-        try {
-          const ok = await waManager.sendMessage(input.telefone, mensagem);
-          if (!ok) {
-            await registrarEnvioAutomacao({
-              empresaId: empresa.id,
-              automacaoNome: "[TESTE]",
-              clienteNome: "Maria Silva (teste)",
-              telefone: input.telefone,
-              canal: "whatsapp",
-              mensagem,
-              status: "falhou",
-              erroDetalhe: "sendMessage retornou false",
-              isTeste: true,
-            });
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao enviar mensagem de teste via WhatsApp" });
-          }
-          await registrarEnvioAutomacao({
-            empresaId: empresa.id,
-            automacaoNome: "[TESTE]",
-            clienteNome: "Maria Silva (teste)",
-            telefone: input.telefone,
-            canal: "whatsapp",
-            mensagem,
-            status: "enviado",
-            isTeste: true,
-          });
-          return { success: true, mensagemEnviada: mensagem };
-        } catch (err: any) {
-          if (err instanceof TRPCError) throw err;
-          await registrarEnvioAutomacao({
-            empresaId: empresa.id,
-            automacaoNome: "[TESTE]",
-            clienteNome: "Maria Silva (teste)",
-            telefone: input.telefone,
-            canal: "whatsapp",
-            mensagem,
-            status: "falhou",
-            erroDetalhe: err?.message ?? "desconhecido",
-            isTeste: true,
-          }).catch(() => {});
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Erro ao enviar: ${err?.message ?? "desconhecido"}` });
         }
       }),

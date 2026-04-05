@@ -85,7 +85,7 @@ const navGroups: NavGroup[] = [
     label: "Sistema",
     items: [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
-      { href: "/admin/importacao", label: "Importar Zandu", icon: Download, permissao: "configuracoesEditar" },
+      { href: "/admin/importacao-inteligente", label: "Importar Dados", icon: Download, permissao: "configuracoesEditar" },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings, permissao: "configuracoesVer" },
       { href: "/admin/assinatura", label: "Assinatura", icon: CreditCard, permissao: "__admin__" },
       { href: "/admin/manual", label: "Manual do Sistema", icon: BookOpen },

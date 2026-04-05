@@ -22,6 +22,7 @@ import PortalCliente from "./pages/PortalCliente";
 import Setup from "./pages/Setup";
 import Usuarios from "./pages/Usuarios";
 import ImportacaoZandu from "./pages/ImportacaoZandu";
+import ImportacaoInteligente from "./pages/ImportacaoInteligente";
 import Pipeline from "./pages/Pipeline";
 import IAFinanceiro from "./pages/IAFinanceiro";
 import ContasPagar from "./pages/ContasPagar";
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/admin/usuarios">{() => <WithAdmin><Usuarios /></WithAdmin>}</Route>
       <Route path="/admin/pipeline">{() => <WithAdmin><Pipeline /></WithAdmin>}</Route>
       <Route path="/admin/importacao">{() => <WithAdmin><ImportacaoZandu /></WithAdmin>}</Route>
+      <Route path="/admin/importacao-inteligente">{() => <WithAdmin><ImportacaoInteligente /></WithAdmin>}</Route>
       <Route path="/admin/ia-financeiro">{() => <Redirect to="/admin/insights" />}</Route>
       <Route path="/admin/contas-pagar">{() => <WithAdmin><ContasPagar /></WithAdmin>}</Route>
       <Route path="/admin/contas-receber">{() => <WithAdmin><ContasReceber /></WithAdmin>}</Route>
