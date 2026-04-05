@@ -218,7 +218,7 @@ export const appRouter = router({
         permissoes = null;
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
-        const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.id);
+        const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.profissionalId ?? opts.ctx.systemUser.id);
         isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
         if (perms) {
           // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)

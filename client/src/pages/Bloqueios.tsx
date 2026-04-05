@@ -23,7 +23,7 @@ export default function Bloqueios() {
   const [selectedBloqueio, setSelectedBloqueio] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
 
-  const { isOwner, pode } = usePermissoes();
+  const { isOwner, pode, profissionalId } = usePermissoes();
   const isAdmin = isOwner || pode('agendaAprovarBloqueio');
 
   const { data: bloqueios } = trpc.bloqueios.list.useQuery();
@@ -117,7 +117,7 @@ export default function Bloqueios() {
                       )}
                     </div>
                   </div>
-                  {b.status === "pendente" && isAdmin && (
+                  {b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId && (
                     <div className="flex gap-2 mt-3 ml-12">
                       <button
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
