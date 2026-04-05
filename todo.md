@@ -1174,3 +1174,7 @@
 - [x] Corrigir busca de cliente na tela de Pacotes (filtro client-side + server-side)
 - [x] Filtrar alertas/notificações por usuário: PlanLimitAlert e ícone WhatsApp ocultos para profissionais
 - [x] Implementar seleção múltipla de agendamentos para exclusão em lote (botão Excluir + confirmação)
+
+## Correção — Autocomplete de cliente no modal "Abrir Pacote"
+
+- [x] Substituir Select de cliente por campo de busca com autocomplete (digita nome/sobrenome, lista em tempo real)

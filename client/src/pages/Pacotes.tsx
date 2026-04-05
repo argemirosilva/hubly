@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
-  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw,
+  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw, Search, X,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -370,6 +370,49 @@ function ModalAbrirPacote({
 }) {
   const utils = trpc.useUtils();
   const [clienteId, setClienteId] = useState("");
+  // Autocomplete de cliente
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteNomeSelecionado, setClienteNomeSelecionado] = useState("");
+  const [clienteDropdownAberto, setClienteDropdownAberto] = useState(false);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const clienteDropdownRef = useRef<HTMLDivElement>(null);
+
+  const clientesFiltrados = clienteBusca.trim().length >= 1
+    ? clientes.filter(c =>
+        c.nome?.toLowerCase().includes(clienteBusca.toLowerCase()) ||
+        c.sobrenome?.toLowerCase().includes(clienteBusca.toLowerCase()) ||
+        `${c.nome} ${c.sobrenome || ''}`.toLowerCase().includes(clienteBusca.toLowerCase())
+      ).slice(0, 10)
+    : [];
+
+  function selecionarCliente(c: any) {
+    setClienteId(String(c.id));
+    setClienteNomeSelecionado(`${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`);
+    setClienteBusca(`${c.nome}${c.sobrenome ? ' ' + c.sobrenome : ''}`);
+    setClienteDropdownAberto(false);
+  }
+
+  function limparCliente() {
+    setClienteId("");
+    setClienteNomeSelecionado("");
+    setClienteBusca("");
+    setClienteDropdownAberto(false);
+    setTimeout(() => clienteInputRef.current?.focus(), 50);
+  }
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        clienteDropdownRef.current && !clienteDropdownRef.current.contains(e.target as Node) &&
+        clienteInputRef.current && !clienteInputRef.current.contains(e.target as Node)
+      ) {
+        setClienteDropdownAberto(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [modeloId, setModeloId] = useState("");
   const [nome, setNome] = useState("");
   const [valorPago, setValorPago] = useState("");
@@ -426,14 +469,67 @@ function ModalAbrirPacote({
         <div className="space-y-4 py-2">
           <div>
             <Label>Cliente *</Label>
-            <Select value={clienteId} onValueChange={setClienteId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-              <SelectContent>
-                {clientes.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  ref={clienteInputRef}
+                  value={clienteBusca}
+                  onChange={e => {
+                    setClienteBusca(e.target.value);
+                    setClienteDropdownAberto(true);
+                    if (clienteNomeSelecionado && e.target.value !== clienteNomeSelecionado) {
+                      setClienteId("");
+                      setClienteNomeSelecionado("");
+                    }
+                  }}
+                  onFocus={() => setClienteDropdownAberto(true)}
+                  placeholder="Digite o nome do cliente..."
+                  className="pl-9 pr-8"
+                />
+                {clienteBusca && (
+                  <button
+                    type="button"
+                    onClick={limparCliente}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {clienteDropdownAberto && clientesFiltrados.length > 0 && (
+                <div
+                  ref={clienteDropdownRef}
+                  className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden"
+                  style={{ borderColor: "oklch(92% 0.01 250)" }}
+                >
+                  {clientesFiltrados.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={e => { e.preventDefault(); selecionarCliente(c); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors flex items-center gap-2 ${
+                        clienteId === String(c.id) ? 'bg-primary/8 text-primary font-medium' : ''
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-primary">
+                        {c.nome?.[0]?.toUpperCase()}
+                      </div>
+                      <span>{c.nome}{c.sobrenome ? ` ${c.sobrenome}` : ''}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {clienteDropdownAberto && clienteBusca.trim().length >= 1 && clientesFiltrados.length === 0 && (
+                <div
+                  ref={clienteDropdownRef}
+                  className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-lg px-4 py-3 text-sm text-muted-foreground"
+                  style={{ borderColor: "oklch(92% 0.01 250)" }}
+                >
+                  Nenhum cliente encontrado
+                </div>
+              )}
+            </div>
           </div>
 
           {modelos.length > 0 && (
