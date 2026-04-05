@@ -107,6 +107,39 @@ async function verificarPacotesVencendoGlobal() {
           lida: false,
         });
         totalCriadas++;
+
+        // ── Disparar automação WhatsApp se configurada (evento: pacote_vencendo) ──
+        try {
+          const autoRenovacao = await getAutomacaoByTipoGatilho(empId, 'evento', 'pacote_vencendo');
+          if (autoRenovacao && pacote.clienteId) {
+            const [clienteData] = await db.select({ telefone: clientes.telefone, whatsapp: clientes.whatsapp, nome: clientes.nome })
+              .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+            const tel = clienteData?.telefone || clienteData?.whatsapp;
+            if (tel && clienteData) {
+              // Buscar nome do pacote
+              const [pacoteData] = await db.select({ nome: pacotesClientes.nome }).from(pacotesClientes).where(eq(pacotesClientes.id, pacote.id)).limit(1);
+              const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empId)).limit(1);
+              let msg = autoRenovacao.corpoMensagem;
+              msg = msg
+                .replace(/\{\{nome_cliente\}\}/g, clienteData.nome ?? "")
+                .replace(/\{\{primeiro_nome\}\}/g, (clienteData.nome ?? "").split(" ")[0])
+                .replace(/\{\{empresa\}\}/g, empresaData?.nome ?? "")
+                .replace(/\{\{pacote\}\}/g, pacoteData?.nome ?? "")
+                .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
+                .replace(/\{\{sessoes_total\}\}/g, String(totalSessoes))
+                .replace(/\{\{data_vencimento\}\}/g, venc.toLocaleDateString("pt-BR"));
+              const { waManager } = await import("./whatsapp");
+              if (waManager.getState().status === "connected") {
+                const ok = await waManager.sendMessage(tel, msg);
+                await registrarEnvioAutomacao({
+                  empresaId: empId, automacaoId: autoRenovacao.id, automacaoNome: autoRenovacao.nome,
+                  clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
+                  telefone: tel, canal: "whatsapp", mensagem: msg, status: ok ? "enviado" : "falhou",
+                });
+              }
+            }
+          }
+        } catch (e) { /* silencioso — não bloquear notificação por falha no WhatsApp */ }
       }
 
       // ── 2. Pacotes com poucas sessões restantes (1 ou 2) ───────────────────
@@ -162,6 +195,37 @@ async function verificarPacotesVencendoGlobal() {
           lida: false,
         });
         totalCriadas++;
+
+        // ── Disparar automação WhatsApp se configurada (evento: sessoes_acabando) ──
+        try {
+          const autoSessoes = await getAutomacaoByTipoGatilho(empId, 'evento', 'sessoes_acabando');
+          if (autoSessoes && pacote.clienteId) {
+            const [clienteData] = await db.select({ telefone: clientes.telefone, whatsapp: clientes.whatsapp, nome: clientes.nome })
+              .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+            const tel = clienteData?.telefone || clienteData?.whatsapp;
+            if (tel && clienteData) {
+              const [pacoteData] = await db.select({ nome: pacotesClientes.nome }).from(pacotesClientes).where(eq(pacotesClientes.id, pacote.id)).limit(1);
+              const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empId)).limit(1);
+              let msg = autoSessoes.corpoMensagem;
+              msg = msg
+                .replace(/\{\{nome_cliente\}\}/g, clienteData.nome ?? "")
+                .replace(/\{\{primeiro_nome\}\}/g, (clienteData.nome ?? "").split(" ")[0])
+                .replace(/\{\{empresa\}\}/g, empresaData?.nome ?? "")
+                .replace(/\{\{pacote\}\}/g, pacoteData?.nome ?? "")
+                .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
+                .replace(/\{\{sessoes_total\}\}/g, String(totalSessoes));
+              const { waManager } = await import("./whatsapp");
+              if (waManager.getState().status === "connected") {
+                const ok = await waManager.sendMessage(tel, msg);
+                await registrarEnvioAutomacao({
+                  empresaId: empId, automacaoId: autoSessoes.id, automacaoNome: autoSessoes.nome,
+                  clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
+                  telefone: tel, canal: "whatsapp", mensagem: msg, status: ok ? "enviado" : "falhou",
+                });
+              }
+            }
+          }
+        } catch (e) { /* silencioso */ }
       }
     }
 
