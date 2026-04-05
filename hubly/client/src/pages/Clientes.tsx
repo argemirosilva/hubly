@@ -188,55 +188,32 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* Cards de métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <div className="card-elegant p-3.5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
-            <UserCheck className="w-4 h-4" style={{ color: "oklch(55% 0.22 264)" }} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] text-muted-foreground leading-none">Clientes ativos</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5">{metricas.ativos}</p>
-          </div>
-        </div>
-
-        <div className="card-elegant p-3.5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "oklch(50% 0.16 155 / 10%)" }}>
-            <DollarSign className="w-4 h-4" style={{ color: "oklch(50% 0.16 155)" }} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] text-muted-foreground leading-none">Receita total</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5">{formatCurrency(metricas.totalReceita)}</p>
-          </div>
-        </div>
-
-        <div className="card-elegant p-3.5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "oklch(60% 0.20 30 / 10%)" }}>
-            <TrendingUp className="w-4 h-4" style={{ color: "oklch(60% 0.20 30)" }} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] text-muted-foreground leading-none">Ticket médio</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5">{formatCurrency(metricas.ticketMedio)}</p>
-          </div>
-        </div>
-
-        <div className="card-elegant p-3.5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "oklch(55% 0.18 270 / 10%)" }}>
-            <Calendar className="w-4 h-4" style={{ color: "oklch(55% 0.18 270)" }} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] text-muted-foreground leading-none">Total atendimentos</p>
-            <p className="text-lg font-bold tracking-tight mt-0.5">{metricas.totalAtendimentos}</p>
-          </div>
-        </div>
+      {/* Cards de métricas — compactos no mobile */}
+      <div className="grid grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4">
+        {[
+          { label: "Ativos", value: String(metricas.ativos), icon: UserCheck, color: "oklch(55% 0.22 264)" },
+          { label: "Receita", value: formatCurrency(metricas.totalReceita), icon: DollarSign, color: "oklch(50% 0.16 155)" },
+          { label: "Ticket médio", value: formatCurrency(metricas.ticketMedio), icon: TrendingUp, color: "oklch(60% 0.20 30)" },
+          { label: "Atendimentos", value: String(metricas.totalAtendimentos), icon: Calendar, color: "oklch(55% 0.18 270)" },
+        ].map(card => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="card-elegant p-2 lg:p-3.5 flex items-center gap-2 lg:gap-3">
+              <div className="w-7 h-7 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${card.color}18` }}>
+                <Icon className="w-3 h-3 lg:w-4 lg:h-4" style={{ color: card.color }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] lg:text-[11px] text-muted-foreground leading-none truncate">{card.label}</p>
+                <p className="text-xs lg:text-lg font-bold tracking-tight mt-0.5 truncate">{card.value}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Mini gráficos */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      {/* Mini gráficos — ocultos no mobile */}
+      <div className="hidden lg:grid grid-cols-2 gap-3 mb-4">
         <div className="card-elegant p-3.5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[11px] font-medium text-muted-foreground">Top 5 clientes (receita)</p>
