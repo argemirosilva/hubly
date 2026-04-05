@@ -324,9 +324,7 @@ export async function getBloqueiosByEmpresa(empresaId: number, profissionalId?: 
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(bloqueiosAgenda.empresaId, empresaId)];
-  if (profissionalId) {
-    conditions.push(eq(bloqueiosAgenda.profissionalId, profissionalId));
-  }
+  if (profissionalId) conditions.push(eq(bloqueiosAgenda.profissionalId, profissionalId));
   return db.select().from(bloqueiosAgenda).where(and(...conditions)).orderBy(desc(bloqueiosAgenda.createdAt));
 }
 
@@ -335,6 +333,43 @@ export async function createBloqueio(data: typeof bloqueiosAgenda.$inferInsert) 
   if (!db) throw new Error("DB not available");
   const result = await db.insert(bloqueiosAgenda).values(data);
   return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function createBloqueioRecorrente(data: typeof bloqueiosAgenda.$inferInsert & { recorrencia: string; dataFimRecorrencia?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  
+  if (data.recorrencia === "nenhuma" || !data.dataFimRecorrencia) {
+    // Sem recorrência: criar apenas um bloqueio
+    return createBloqueio(data);
+  }
+
+  const bloqueios = [];
+  let currentDate = new Date(data.dataInicio);
+  const endDate = new Date(data.dataFimRecorrencia);
+  const increment = data.recorrencia === "semanal" ? 7 : 30; // dias
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + (data.recorrencia === "semanal" ? 1 : 1)); // duração do bloqueio
+    const nextDateStr = nextDate.toISOString().split("T")[0];
+
+    const bloqueioData = {
+      ...data,
+      dataInicio: dateStr,
+      dataFim: nextDateStr,
+      recorrencia: "nenhuma", // Cada instância é armazenada como "nenhuma"
+      dataFimRecorrencia: undefined,
+    };
+
+    const id = await createBloqueio(bloqueioData as any);
+    bloqueios.push(id);
+
+    currentDate.setDate(currentDate.getDate() + increment);
+  }
+
+  return bloqueios[0]; // Retorna o ID do primeiro bloqueio criado
 }
 
 export async function updateBloqueio(id: number, data: Partial<typeof bloqueiosAgenda.$inferInsert>) {
@@ -386,15 +421,16 @@ export async function getNotificacoesByEmpresa(empresaId: number, profissionalId
   const db = await getDb();
   if (!db) return [];
   if (!profissionalId) {
-    // Admin: todas da empresa
+    // Admin: todas da empresa, exceto ocultadas
     return db.select().from(notificacoes)
-      .where(eq(notificacoes.empresaId, empresaId))
+      .where(and(eq(notificacoes.empresaId, empresaId), eq(notificacoes.ocultada, false)))
       .orderBy(desc(notificacoes.createdAt)).limit(50);
   }
-  // Não-admin: apenas as suas ou as sem destinatário específico
+  // Não-admin: apenas as suas ou as sem destinatário específico, exceto ocultadas
   return db.select().from(notificacoes)
     .where(and(
       eq(notificacoes.empresaId, empresaId),
+      eq(notificacoes.ocultada, false),
       or(eq(notificacoes.destinatarioId, profissionalId), isNull(notificacoes.destinatarioId))
     ))
     .orderBy(desc(notificacoes.createdAt)).limit(50);
@@ -404,13 +440,6 @@ export async function createNotificacao(data: typeof notificacoes.$inferInsert) 
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.insert(notificacoes).values(data);
-}
-
-export async function getNotificacaoById(id: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(notificacoes).where(eq(notificacoes.id, id)).limit(1);
-  return result[0] ?? null;
 }
 
 export async function marcarNotificacaoLida(id: number) {
@@ -424,6 +453,30 @@ export async function marcarTodasNotificacoesLidas(destinatarioId: number, empre
   if (!db) throw new Error("DB not available");
   await db.update(notificacoes).set({ lida: true, lidaEm: new Date() })
     .where(and(eq(notificacoes.destinatarioId, destinatarioId), eq(notificacoes.empresaId, empresaId), eq(notificacoes.lida, false)));
+}
+
+export async function ocultarNotificacao(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() }).where(eq(notificacoes.id, id));
+}
+
+export async function ocultarTodasNotificacoes(empresaId: number, profissionalId?: number | null) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  if (!profissionalId) {
+    // Admin: oculta todas da empresa
+    await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() })
+      .where(and(eq(notificacoes.empresaId, empresaId), eq(notificacoes.ocultada, false)));
+  } else {
+    // Não-admin: oculta apenas as suas ou sem destinatário
+    await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() })
+      .where(and(
+        eq(notificacoes.empresaId, empresaId),
+        eq(notificacoes.ocultada, false),
+        or(eq(notificacoes.destinatarioId, profissionalId), isNull(notificacoes.destinatarioId))
+      ));
+  }
 }
 
 // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────────
@@ -646,6 +699,24 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
   const [prof] = await db.select({ grupoId: profissionais.grupoId })
     .from(profissionais).where(eq(profissionais.id, profissionalId)).limit(1);
   if (!prof || !prof.grupoId) return null;
+  // Verificar se o grupo é isAdmin (supergrupo) — bypass total de permissões
+  const [grupoInfo] = await db.select({ isAdmin: gruposPermissoes.isAdmin })
+    .from(gruposPermissoes).where(eq(gruposPermissoes.id, prof.grupoId)).limit(1);
+  if (grupoInfo?.isAdmin) {
+    // Retornar objeto com todas as permissões como true (bypass total)
+    const allTrue: Record<string, boolean | number | string> = {};
+    const cols = await db.select().from(permissoesGrupo).limit(1);
+    const sample = cols[0];
+    if (sample) {
+      const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo'];
+      for (const key of Object.keys(sample)) {
+        if (key === 'id' || key === 'grupoId' || key === 'createdAt' || key === 'updatedAt') continue;
+        allTrue[key] = escopoFields.includes(key) ? 'todos' : true;
+      }
+    }
+    allTrue.__grupoIsAdmin = true;
+    return allTrue as any;
+  }
   // Buscar as permissões do grupo
   const grupoResult = await db.select().from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, prof.grupoId)).limit(1);
   const grupoPerms = grupoResult[0] ?? null;

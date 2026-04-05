@@ -11,9 +11,9 @@ import {
   getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
-  getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
+  getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
-  getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas, getNotificacaoById,
+  getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
   getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
@@ -118,13 +118,8 @@ async function requirePermissao(
 ): Promise<void> {
   // Owner OAuth: sempre tem permissão
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) return;
-  // OAuth sem ser owner: NÃO tem permissão (bloquear)
-  if (!ctx.systemUser) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: `Sem permissão para realizar esta ação (${permField}).`,
-    });
-  }
+  // OAuth sem ser owner: também tem (pode ser dono de outra empresa)
+  if (!ctx.systemUser) return;
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
   if (!perms || !(perms as any)[permField]) {
@@ -158,14 +153,13 @@ async function resolveAdminContext(
   }
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   if (ctx.systemUser) {
-    const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
-    // Admin do grupo OU permissão específica concede acesso
-    const isGroupAdmin = perms ? (perms as any).isAdmin === true : false;
+    const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.profissionalId ?? ctx.systemUser.id);
+    // Verificar permissão específica ou permissão genérica de ver todos
     const temPermissao = perms ? (perms as any)[permField] === true : false;
-    if (isGroupAdmin || temPermissao) {
+    if (temPermissao) {
       return { isAdmin: true, profId: null };
     }
-    return { isAdmin: false, profId: ctx.systemUser.profissionalId ?? ctx.systemUser.id };
+    return { isAdmin: false, profId: ctx.systemUser.profissionalId };
   }
   // OAuth sem ser owner: sem empresa vinculada, tratar como admin (owner de outra empresa)
   return { isAdmin: true, profId: null };
@@ -224,8 +218,11 @@ export const appRouter = router({
         permissoes = null;
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
-        const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.id);
-        isAdmin = perms ? (perms as any).isAdmin === true : false;
+        const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.profissionalId ?? opts.ctx.systemUser.id);
+        // Verificar se o grupo é isAdmin (supergrupo) — bypass total
+        // Também aceitar valor 1 (inteiro do MySQL) além de boolean true
+        const grupoIsAdmin = (perms as any)?.__grupoIsAdmin === true;
+        isAdmin = grupoIsAdmin || (perms ? !!(perms as any).agendamentosVerTodos : false);
         if (perms) {
           // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)
           const { id: _id, grupoId: _g, createdAt: _c, updatedAt: _u, ...boolPerms } = perms as any;
@@ -234,7 +231,7 @@ export const appRouter = router({
           permissoes = {}; // sem grupo = sem permissões
         }
       }
-      return {
+      const meResult = {
         ...opts.ctx.user,
         profissionalId: opts.ctx.systemUser ? opts.ctx.systemUser.id : null,
         isProfissional: opts.ctx.systemUser?.isProfissional ?? false,
@@ -242,6 +239,7 @@ export const appRouter = router({
         isAdmin,
         permissoes, // null = owner (acesso total); objeto = permissões do grupo
       };
+      return meResult;
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -684,13 +682,21 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         // Se o input especifica explicitamente um profissionalId, usar esse
-        // Caso contrário: admin vê todos (profId=null), profissional vê só os seus
+        // Caso contrário: verificar escopo da agenda no grupo do usuário
         let profId: number | null;
         if (input?.profissionalId !== undefined) {
           profId = input.profissionalId;
         } else {
-          const { profId: resolvedProfId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
-          profId = resolvedProfId;
+          const { isAdmin, profId: resolvedProfId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+          if (isAdmin) {
+            profId = null; // admin vê todos
+          } else if (resolvedProfId) {
+            // Verificar escopo da agenda do grupo
+            const perms = await getPermissoesGrupoByProfissional(resolvedProfId);
+            profId = (perms as any)?.agendaEscopo === 'todos' ? null : resolvedProfId;
+          } else {
+            profId = resolvedProfId;
+          }
         }
         return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim, profId);
       }),
@@ -1450,13 +1456,26 @@ export const appRouter = router({
   }),
   // ─── BLOQUEIOS ─────────────────────────────────────────────────────────────
   bloqueios: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-      if (!empresa) return [];
-      // Admin vê todos os bloqueios; não-admin vê apenas os seus
-      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
-      return getBloqueiosByEmpresa(empresa.id, isAdmin ? null : profId);
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        dataInicio: z.string().optional(),
+        dataFim: z.string().optional(),
+        profissionalId: z.number().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        // Admin vê todos; não-admin vê apenas os seus bloqueios
+        const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+        const bloqueios = await getBloqueiosByEmpresa(empresa.id, isAdmin ? null : profId);
+        // Filtrar por data e profissional se fornecidos
+        return bloqueios.filter(b => {
+          if (input.dataInicio && b.dataInicio < input.dataInicio) return false;
+          if (input.dataFim && b.dataInicio > input.dataFim) return false;
+          if (input.profissionalId && b.profissionalId !== input.profissionalId) return false;
+          return true;
+        });
+      }),
     create: protectedProcedure
       .input(z.object({
         profissionalId: z.number().optional(), // opcional: usa o profissional logado como fallback
@@ -1465,6 +1484,8 @@ export const appRouter = router({
         dataFim: z.string(),
         horaFim: z.string(),
         motivo: z.string().optional(),
+        recorrencia: z.enum(["nenhuma", "semanal", "mensal"]).default("nenhuma"),
+        dataFimRecorrencia: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -1473,13 +1494,17 @@ export const appRouter = router({
         const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
 
-        // Auto-aprovar apenas quando o criador é o owner da empresa (não systemUser)
-        const isOwner = !ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id;
+        // Determinar se é owner (owner sempre aprova automaticamente)
+        // Para OAuth users: comparar ctx.user.id com empresa.ownerId
+        // Para SystemUsers: nunca são owners (ctx.user.id é negativo)
+        const isOwner = !ctx.systemUser && empresa.ownerId === ctx.user?.id;
+
+        // Owner: força status "aprovado". Qualquer outro (admin ou não): "pendente"
         const status = isOwner ? "aprovado" : "pendente";
 
-        const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id, status });
+        const id = await createBloqueioRecorrente({ ...input, profissionalId, empresaId: empresa.id, status });
 
-        // Se não é owner, criar notificação para admins (destinatarioId = null = visível para todos admins)
+        // Se não for owner, criar notificação para admins (destinatarioId = null = visível para todos admins)
         if (!isOwner) {
           const prof = await getProfissionalById(profissionalId);
           await createNotificacao({
@@ -1550,6 +1575,40 @@ export const appRouter = router({
           }
         }
 
+        return { success: true };
+      }),
+
+    excluir: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        
+        // Buscar bloqueio antes de excluir
+        const db = await getDb();
+        if (!db) throw new Error("Database não disponível");
+        
+        const { bloqueiosAgenda } = await import("../drizzle/schema");
+        const [bloqueio] = await db.select()
+          .from(bloqueiosAgenda)
+          .where(eq(bloqueiosAgenda.id, input.id))
+          .limit(1);
+        
+        if (!bloqueio) throw new Error("Bloqueio não encontrado");
+        
+        // Excluir bloqueio
+        await db.delete(bloqueiosAgenda).where(eq(bloqueiosAgenda.id, input.id));
+        
+        // Notificar admins que o bloqueio foi cancelado
+        await createNotificacao({
+          empresaId: empresa.id,
+          destinatarioId: null as any, // null = visível para todos os admins
+          tipo: "bloqueio_cancelado",
+          titulo: "Bloqueio cancelado",
+          mensagem: `Bloqueio de agenda cancelado. Profissional: ${bloqueio.profissionalId}, Período: ${bloqueio.dataInicio} a ${bloqueio.dataFim}`,
+          dadosContexto: { bloqueioId: input.id, profissionalId: bloqueio.profissionalId },
+        });
+        
         return { success: true };
       }),
   }),
@@ -1646,34 +1705,19 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
-      // Determinar se admin ou não-admin para filtrar notificações
-      // resolveAdminContext agora verifica isAdmin do grupo corretamente
-      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
-      const { getNotificacoesByEmpresa } = await import("./db");
-      return getNotificacoesByEmpresa(empresa.id, isAdmin ? null : profId);
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const { getNotificacoesByEmpresa, getPermissoesGrupoByProfissional } = await import("./db");
+      // Verificar escopo de notificações do grupo
+      let verTodas = isAdmin;
+      if (!isAdmin && profId) {
+        const perms = await getPermissoesGrupoByProfissional(profId);
+        if ((perms as any)?.notificacoesEscopo === 'todos') verTodas = true;
+      }
+      return getNotificacoesByEmpresa(empresa.id, verTodas ? null : profId);
     }),
     marcarLida: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        // Buscar a notificação para verificar propriedade
-        const notificacao = await getNotificacaoById(input.id);
-        if (!notificacao) throw new TRPCError({ code: 'NOT_FOUND', message: 'Notificação não encontrada' });
-
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
-
-        // Verificar se o usuário pode marcar esta notificação como lida
-        const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
-        const isDestinatario = profId && notificacao.destinatarioId === profId;
-        const isGlobal = notificacao.destinatarioId === null;
-
-        if (!isAdmin && !isDestinatario && !isGlobal) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Sem permissão para marcar esta notificação como lida.',
-          });
-        }
-
         await marcarNotificacaoLida(input.id);
         return { success: true };
       }),
@@ -1682,7 +1726,7 @@ export const appRouter = router({
       if (!empresa) throw new Error("Empresa não encontrada");
       // Admin: mark all unread notifications for the company
       // Non-admin: mark only their own notifications
-      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
       const db = await getDb();
       if (!db) throw new Error("DB indisponível");
       const { notificacoes: notifTable } = await import("../drizzle/schema");
@@ -1698,6 +1742,21 @@ export const appRouter = router({
             orOp(eqOp(notifTable.destinatarioId, profId), isNullOp(notifTable.destinatarioId))
           ));
       }
+      return { success: true };
+    }),
+    ocultar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { ocultarNotificacao } = await import("./db");
+        await ocultarNotificacao(input.id);
+        return { success: true };
+      }),
+    ocultarTodas: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const { ocultarTodasNotificacoes } = await import("./db");
+      await ocultarTodasNotificacoes(empresa.id, isAdmin ? null : profId);
       return { success: true };
     }),
   }),
@@ -2345,6 +2404,11 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposEditar');
+        // Proteger grupo isAdmin contra renomeação
+        const grupoAtual = await getGrupoById(input.id);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e não pode ser editado.' });
+        }
         const { id, ...data } = input;
         await updateGrupo(id, data);
         return { success: true };
@@ -2356,6 +2420,11 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposExcluir');
+        // Proteger grupo isAdmin contra exclusão
+        const grupoAtual = await getGrupoById(input.id);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e não pode ser excluído.' });
+        }
         await deleteGrupo(input.id);
         return { success: true };
       }),
@@ -2370,10 +2439,16 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposEditar');
-        // Filtrar apenas campos booleanos para evitar erro com campos extras do banco (id, grupoId, createdAt, updatedAt)
+        // Proteger grupo isAdmin contra alteração de permissões
+        const grupoAtual = await getGrupoById(input.grupoId);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e suas permissões não podem ser alteradas.' });
+        }
+        // Filtrar campos booleanos e campos de escopo (enum strings)
+        const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo'];
         const permissoesBooleanas = Object.fromEntries(
-          Object.entries(input.permissoes).filter(([, v]) => typeof v === 'boolean')
-        ) as Record<string, boolean>;
+          Object.entries(input.permissoes).filter(([k, v]) => typeof v === 'boolean' || escopoFields.includes(k))
+        ) as Record<string, boolean | string>;
         await updatePermissoesGrupo(input.grupoId, permissoesBooleanas as any);
         return { success: true };
       }),
@@ -3016,6 +3091,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisCriar');
+        // Validar email único globalmente (entre todas as empresas)
+        if (input.email) {
+          const db = await getDb();
+          if (db) {
+            const { profissionais: profTable } = await import('../drizzle/schema.js');
+            const existing = await db.select({ id: profTable.id }).from(profTable)
+              .where(eq(profTable.email, input.email.toLowerCase().trim())).limit(1);
+            if (existing.length > 0) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este e-mail já está cadastrado no sistema. Utilize outro e-mail.' });
+            }
+          }
+        }
         let passwordHash: string | undefined;
         if (input.temAcesso && input.senha) {
           const bcryptLib = await import('bcryptjs');
@@ -3057,6 +3144,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisEditar');
+        // Validar email único globalmente ao atualizar
+        if (input.email) {
+          const db = await getDb();
+          if (db) {
+            const { profissionais: profTable } = await import('../drizzle/schema.js');
+            const existing = await db.select({ id: profTable.id }).from(profTable)
+              .where(eq(profTable.email, input.email.toLowerCase().trim())).limit(1);
+            if (existing.length > 0 && existing[0].id !== input.id) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este e-mail já está cadastrado no sistema. Utilize outro e-mail.' });
+            }
+          }
+        }
         const { id, senha, ...data } = input;
         const updateData: Record<string, unknown> = { ...data };
         if (senha) {
