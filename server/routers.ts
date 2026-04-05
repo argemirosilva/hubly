@@ -679,13 +679,21 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         // Se o input especifica explicitamente um profissionalId, usar esse
-        // Caso contrário: admin vê todos (profId=null), profissional vê só os seus
+        // Caso contrário: verificar escopo da agenda no grupo do usuário
         let profId: number | null;
         if (input?.profissionalId !== undefined) {
           profId = input.profissionalId;
         } else {
-          const { profId: resolvedProfId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
-          profId = resolvedProfId;
+          const { isAdmin, profId: resolvedProfId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+          if (isAdmin) {
+            profId = null; // admin vê todos
+          } else if (resolvedProfId) {
+            // Verificar escopo da agenda do grupo
+            const perms = await getPermissoesGrupoByProfissional(resolvedProfId);
+            profId = (perms as any)?.agendaEscopo === 'todos' ? null : resolvedProfId;
+          } else {
+            profId = resolvedProfId;
+          }
         }
         return getAgendamentosByEmpresa(empresa.id, input?.dataInicio, input?.dataFim, profId);
       }),
@@ -1692,10 +1700,15 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
-      // Determinar se admin ou não-admin para filtrar notificações
       const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
-      const { getNotificacoesByEmpresa } = await import("./db");
-      return getNotificacoesByEmpresa(empresa.id, isAdmin ? null : profId);
+      const { getNotificacoesByEmpresa, getPermissoesGrupoByProfissional } = await import("./db");
+      // Verificar escopo de notificações do grupo
+      let verTodas = isAdmin;
+      if (!isAdmin && profId) {
+        const perms = await getPermissoesGrupoByProfissional(profId);
+        if ((perms as any)?.notificacoesEscopo === 'todos') verTodas = true;
+      }
+      return getNotificacoesByEmpresa(empresa.id, verTodas ? null : profId);
     }),
     marcarLida: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -2411,10 +2424,11 @@ export const appRouter = router({
         if (grupoAtual?.isAdmin) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e suas permissões não podem ser alteradas.' });
         }
-        // Filtrar apenas campos booleanos para evitar erro com campos extras do banco (id, grupoId, createdAt, updatedAt)
+        // Filtrar campos booleanos e campos de escopo (enum strings)
+        const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo'];
         const permissoesBooleanas = Object.fromEntries(
-          Object.entries(input.permissoes).filter(([, v]) => typeof v === 'boolean')
-        ) as Record<string, boolean>;
+          Object.entries(input.permissoes).filter(([k, v]) => typeof v === 'boolean' || escopoFields.includes(k))
+        ) as Record<string, boolean | string>;
         await updatePermissoesGrupo(input.grupoId, permissoesBooleanas as any);
         return { success: true };
       }),

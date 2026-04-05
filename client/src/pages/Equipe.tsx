@@ -237,6 +237,11 @@ function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
   const utils = trpc.useUtils();
   const [local, setLocal] = useState<Record<string, boolean>>(permissoesIniciais);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [escopos, setEscopos] = useState<Record<string, 'proprio' | 'todos'>>(() => ({
+    notificacoesEscopo: (permissoesIniciais as any).notificacoesEscopo ?? 'proprio',
+    agendaEscopo: (permissoesIniciais as any).agendaEscopo ?? 'proprio',
+    calendarioEscopo: (permissoesIniciais as any).calendarioEscopo ?? 'proprio',
+  }));
   const updateMutation = trpc.grupos.updatePermissoes.useMutation({
     onSuccess: () => { toast.success("Permissões salvas!"); utils.grupos.list.invalidate(); onClose(); },
     onError: (err) => toast.error(err.message),
@@ -313,9 +318,52 @@ function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
           );
         })}
       </div>
+      {/* Seção de Escopo de Visibilidade */}
+      <div className="mt-4 border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 bg-accent/10 border-b border-border">
+          <p className="text-sm font-semibold text-foreground">Escopo de Visibilidade</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Defina se os membros deste grupo verão apenas seus próprios dados ou de todos</p>
+        </div>
+        <div className="divide-y divide-border/50">
+          {[
+            { key: 'notificacoesEscopo', label: 'Notificações', desc: 'Quais notificações o usuário pode ver' },
+            { key: 'agendaEscopo', label: 'Agenda', desc: 'Quais agendamentos aparecem na agenda' },
+            { key: 'calendarioEscopo', label: 'Calendário', desc: 'Quais agendamentos aparecem no calendário' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between px-4 py-3">
+              <div className="flex-1 min-w-0 pr-4">
+                <p className="text-sm font-medium text-foreground">{label}</p>
+                <p className="text-xs text-muted-foreground">{desc}</p>
+              </div>
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+                <button
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                    escopos[key] === 'proprio'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setEscopos(prev => ({ ...prev, [key]: 'proprio' }))}
+                >
+                  Próprio
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                    escopos[key] === 'todos'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setEscopos(prev => ({ ...prev, [key]: 'todos' }))}
+                >
+                  Todos
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-3 pt-4 border-t border-border mt-4">
         <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-        <Button className="flex-1" onClick={() => updateMutation.mutate({ grupoId, permissoes: local })} disabled={updateMutation.isPending}>
+        <Button className="flex-1" onClick={() => updateMutation.mutate({ grupoId, permissoes: { ...local, ...escopos } as any })} disabled={updateMutation.isPending}>
           {updateMutation.isPending ? "Salvando..." : "Salvar permissões"}
         </Button>
       </div>

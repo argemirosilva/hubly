@@ -416,6 +416,8 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   agendamentosConfirmar: boolean("agendamentosConfirmar").default(false),
   agendamentosConcluir: boolean("agendamentosConcluir").default(false),
   agendamentosVerTodos: boolean("agendamentosVerTodos").default(false), // ver de todos os profissionais
+  agendaEscopo: mysqlEnum("agendaEscopo", ["proprio", "todos"]).default("proprio"), // escopo da agenda/calendário
+  calendarioEscopo: mysqlEnum("calendarioEscopo", ["proprio", "todos"]).default("proprio"), // escopo do calendário
   // ── Clientes ──
   clientesVer: boolean("clientesVer").default(false),
   clientesCriar: boolean("clientesCriar").default(false),
@@ -456,6 +458,7 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   automacoesAtivar: boolean("automacoesAtivar").default(false),
   // ── Notificações ──
   notificacoesVer: boolean("notificacoesVer").default(true),
+  notificacoesEscopo: mysqlEnum("notificacoesEscopo", ["proprio", "todos"]).default("proprio"), // proprio = só as suas, todos = de toda a empresa
   // ── Relatórios ──
   relatoriosVer: boolean("relatoriosVer").default(false),
   relatoriosExportar: boolean("relatoriosExportar").default(false),
