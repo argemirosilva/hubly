@@ -78,8 +78,7 @@ const navGroups: NavGroup[] = [
   {
     label: "IA Inteligente",
     items: [
-      { href: "/admin/ia-financeiro", label: "IA Financeira", icon: Brain, permissao: "__admin__" },
-      { href: "/admin/ia-clientes", label: "IA Clientes", icon: Users, permissao: "__admin__" },
+      { href: "/admin/insights", label: "Insights", icon: Brain, permissao: "__admin__" },
     ],
   },
   {
@@ -88,8 +87,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/importacao", label: "Importar Zandu", icon: Download, permissao: "configuracoesEditar" },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings, permissao: "configuracoesVer" },
-      { href: "/admin/planos", label: "Planos", icon: Gem, permissao: "__admin__" },
-      { href: "/admin/assinatura", label: "Minha Assinatura", icon: CreditCard, permissao: "__admin__" },
+      { href: "/admin/assinatura", label: "Assinatura", icon: CreditCard, permissao: "__admin__" },
       { href: "/admin/manual", label: "Manual do Sistema", icon: BookOpen },
     ],
   },
