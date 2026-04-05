@@ -193,6 +193,12 @@ export default function FilaAutomacoes() {
     { refetchInterval: autoRefresh ? 15000 : false }
   );
 
+  // Query separada para totais (sem filtro de status) — garante que os cards não zeram ao filtrar
+  const { data: totaisData } = trpc.automacoes.getFilaTotais.useQuery(
+    { periodo },
+    { refetchInterval: autoRefresh ? 15000 : false }
+  );
+
   const reenviarMutation = trpc.automacoes.reenviarItem.useMutation({
     onSuccess: () => {
       toast.success("Item reenfileirado com sucesso!");
@@ -211,9 +217,9 @@ export default function FilaAutomacoes() {
     }
   };
 
-  const pendentes = data?.rows.filter(r => r.status === "pendente").length ?? 0;
-  const enviados = data?.rows.filter(r => r.status === "enviado").length ?? 0;
-  const falhas = data?.rows.filter(r => r.status === "falhou").length ?? 0;
+  const pendentes = totaisData?.pendentes ?? 0;
+  const enviados = totaisData?.enviados ?? 0;
+  const falhas = totaisData?.falhas ?? 0;
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">

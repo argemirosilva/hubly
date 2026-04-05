@@ -1784,6 +1784,37 @@ export const appRouter = router({
         return { rows: result, total: result.length };
       }),
 
+    // Contadores de status (sem filtro de status) para os cards da fila
+    getFilaTotais: protectedProcedure
+      .input(z.object({
+        periodo: z.enum(["hoje", "semana", "mes", "todos"]).default("todos"),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { pendentes: 0, enviados: 0, falhas: 0 };
+
+        const db = await getDb();
+        if (!db) return { pendentes: 0, enviados: 0, falhas: 0 };
+
+        const conditions: any[] = [eq(historicoEnviosAutomacao.empresaId, empresa.id)];
+        if (input.periodo !== "todos") {
+          const agora = new Date();
+          let desde: Date;
+          if (input.periodo === "hoje") desde = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+          else if (input.periodo === "semana") desde = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          else desde = new Date(agora.getFullYear(), agora.getMonth(), 1);
+          conditions.push(gte(historicoEnviosAutomacao.criadoEm, desde));
+        }
+        const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+        const rows = await db.select({ status: historicoEnviosAutomacao.status }).from(historicoEnviosAutomacao).where(where);
+        return {
+          pendentes: rows.filter(r => r.status === "pendente").length,
+          enviados: rows.filter(r => r.status === "enviado").length,
+          falhas: rows.filter(r => r.status === "falhou").length,
+        };
+      }),
+
     getFalhasRecentes: protectedProcedure
       .query(async ({ ctx }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
