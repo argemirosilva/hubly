@@ -54,7 +54,7 @@ import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { nanoid } from "nanoid";
 import { getDb } from "./db";
-import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao } from "../drizzle/schema";
+import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
 
 /**
@@ -1578,7 +1578,7 @@ export const appRouter = router({
       .input(z.object({
         nome: z.string().min(1),
         descricao: z.string().optional(),
-        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento"]),
+        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento", "manual"]),
         evento: z.string().optional(),
         delayMinutos: z.number().optional(),
         dataFixaDia: z.number().optional(),
@@ -1607,7 +1607,7 @@ export const appRouter = router({
         ativo: z.boolean().optional(),
         flowJson: z.string().optional(),
         // Campos de agendamento temporal (necessários para dias_antes_agendamento funcionar após edição)
-        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento"]).optional(),
+        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento", "manual"]).optional(),
         evento: z.string().nullable().optional(),
         diasAntesDepois: z.number().nullable().optional(),
         horaDisparo: z.string().nullable().optional(),
@@ -1854,6 +1854,116 @@ export const appRouter = router({
         } catch (err: any) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Falha no reenvio: ${err?.message ?? "erro desconhecido"}` });
         }
+      }),
+
+    enviarManual: protectedProcedure
+      .input(z.object({
+        automacaoId: z.number(),
+        clienteId: z.number(),
+        pacoteClienteId: z.number().optional(),
+        notificacaoPacoteId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+        // Buscar automação
+        const [automacao] = await db.select().from(automacoes).where(and(eq(automacoes.id, input.automacaoId), eq(automacoes.empresaId, empresa.id))).limit(1);
+        if (!automacao) throw new TRPCError({ code: "NOT_FOUND", message: "Automação não encontrada" });
+
+        // Buscar cliente
+        const [cliente] = await db.select().from(clientes).where(and(eq(clientes.id, input.clienteId), eq(clientes.empresaId, empresa.id))).limit(1);
+        if (!cliente) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
+
+        const telefone = cliente.telefone || cliente.whatsapp;
+        if (!telefone) throw new TRPCError({ code: "BAD_REQUEST", message: "Cliente não possui telefone cadastrado" });
+
+        // Buscar dados do pacote se fornecido
+        let pacoteNome = "";
+        let sessoesRestantes = 0;
+        let sessoesTotal = 0;
+        let dataVencimento = "";
+        if (input.pacoteClienteId) {
+          const [pacote] = await db.select().from(pacotesClientes).where(eq(pacotesClientes.id, input.pacoteClienteId)).limit(1);
+          if (pacote) {
+            pacoteNome = pacote.nome ?? "";
+            dataVencimento = pacote.dataVencimento ? new Date(pacote.dataVencimento).toLocaleDateString("pt-BR") : "";
+            // Buscar itens do pacote para calcular sessões
+            const itens = await db.select().from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+            sessoesTotal = itens.reduce((acc, i) => acc + (i.quantidadeTotal ?? 0), 0);
+            const usadas = itens.reduce((acc, i) => acc + (i.quantidadeUsada ?? 0), 0);
+            sessoesRestantes = sessoesTotal - usadas;
+          }
+        }
+
+        // Substituir variáveis no template
+        let mensagem = automacao.corpoMensagem;
+        const primeiroNome = (cliente.nome ?? "").split(" ")[0];
+        mensagem = mensagem
+          .replace(/\{\{nome_cliente\}\}/g, cliente.nome ?? "")
+          .replace(/\{\{primeiro_nome\}\}/g, primeiroNome)
+          .replace(/\{\{empresa\}\}/g, empresa.nome)
+          .replace(/\{\{pacote\}\}/g, pacoteNome)
+          .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
+          .replace(/\{\{sessoes_total\}\}/g, String(sessoesTotal))
+          .replace(/\{\{data_vencimento\}\}/g, dataVencimento);
+
+        // Verificar WhatsApp
+        const { waManager } = await import("./whatsapp");
+        const waState = waManager.getState();
+        if (waState.status !== "connected") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não está conectado. Conecte primeiro em Configurações > WhatsApp." });
+        }
+
+        // Enviar
+        try {
+          const ok = await waManager.sendMessage(telefone, mensagem);
+          const status = ok ? "enviado" : "falhou";
+
+          // Registrar no histórico
+          await registrarEnvioAutomacao({
+            empresaId: empresa.id,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: cliente.id,
+            clienteNome: cliente.nome,
+            telefone,
+            canal: "whatsapp",
+            mensagem,
+            status,
+            erroDetalhe: ok ? undefined : "Falha no envio via WhatsApp",
+          });
+
+          if (!ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao enviar mensagem via WhatsApp" });
+
+          // Marcar notificação de pacote como lida se fornecida
+          if (input.notificacaoPacoteId) {
+            try {
+              const { notificacoesPacotes } = await import("../drizzle/schema");
+              await db.update(notificacoesPacotes).set({ lida: true }).where(eq(notificacoesPacotes.id, input.notificacaoPacoteId));
+            } catch { /* silencioso */ }
+          }
+
+          return { success: true, mensagem };
+        } catch (err: any) {
+          if (err instanceof TRPCError) throw err;
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Erro ao enviar: ${err?.message ?? "desconhecido"}` });
+        }
+      }),
+
+    getAutomacoesManual: protectedProcedure
+      .input(z.object({ evento: z.string().optional() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        const db = await getDb();
+        if (!db) return [];
+        const conditions = [eq(automacoes.empresaId, empresa.id), eq(automacoes.ativo, true), drizzleSql`${automacoes.tipoGatilho} = 'manual'`];
+        if (input.evento) conditions.push(eq(automacoes.evento, input.evento));
+        return db.select({ id: automacoes.id, nome: automacoes.nome, corpoMensagem: automacoes.corpoMensagem, evento: automacoes.evento }).from(automacoes).where(and(...conditions));
       }),
   }),
 
