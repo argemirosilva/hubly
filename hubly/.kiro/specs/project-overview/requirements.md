@@ -3,6 +3,7 @@
 ## Introdução
 
 Hubly é uma plataforma SaaS brasileira para gestão de negócios de beleza e estética (salões, clínicas, barbearias, consultórios). O sistema oferece agendamento, gestão de clientes, financeiro, equipe, automações via WhatsApp, inteligência artificial, portal público de agendamento e assinatura com planos escalonados. A arquitetura é monorepo (client/server/shared) com multi-tenancy por empresa, usando React 19 + tRPC 11 + Drizzle ORM + MySQL.
+A partir de agora, responda a todas as perguntas, gere documentação, comentários de código e explicações em Português Brasileiro (pt-BR).
 
 ## Glossário
 

@@ -1,8 +1,10 @@
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
 import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
   Package, Clock, RefreshCw, ChevronRight,
-  BellRing, BellOff, Smartphone, CheckCircle2, XCircle, Volume2, Loader2, Info
+  BellRing, BellOff, Smartphone, CheckCircle2, XCircle, Volume2, Loader2, Info,
+  Send, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -11,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 // ── Ícones por tipo ───────────────────────────────────────────────────────────
 function getNotifIcon(tipo?: string | null) {
@@ -50,6 +53,9 @@ type NotifUnificada = {
 export default function Notificacoes() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+
+  // ── Envio rápido de mensagem ──────────────────────────────────────────
+  const [envioRapido, setEnvioRapido] = useState<{ clienteId: number; clienteNome: string; pacoteClienteId: number; notificacaoPacoteId: number } | null>(null);
 
   // ── Push Notifications (PWA) ──────────────────────────────────────────
   const push = usePushNotifications();
@@ -235,17 +241,32 @@ export default function Notificacoes() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>
                     {n.clienteNome && (
-                      <button
-                        className="flex items-center gap-1 text-[11px] mt-1.5 font-medium transition-colors"
-                        style={{ color: "oklch(55% 0.22 264)" }}
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (n.clienteId) setLocation(`/admin/clientes/${n.clienteId}`);
-                        }}
-                      >
-                        {n.clienteNome}
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <button
+                          className="flex items-center gap-1 text-[11px] font-medium transition-colors"
+                          style={{ color: "oklch(55% 0.22 264)" }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (n.clienteId) setLocation(`/admin/clientes/${n.clienteId}`);
+                          }}
+                        >
+                          {n.clienteNome}
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                        {n.origem === "pacote" && n.clienteId && n.pacoteClienteId && (
+                          <button
+                            className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
+                            style={{ background: "oklch(55% 0.18 155 / 10%)", color: "oklch(40% 0.16 155)" }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              setEnvioRapido({ clienteId: n.clienteId!, clienteNome: n.clienteNome!, pacoteClienteId: n.pacoteClienteId!, notificacaoPacoteId: n.id });
+                            }}
+                          >
+                            <Send className="w-3 h-3" />
+                            Enviar mensagem
+                          </button>
+                        )}
+                      </div>
                     )}
                     <p className="text-[10px] text-muted-foreground/50 mt-1.5">
                       {formatarData(n.data)}
@@ -379,6 +400,113 @@ export default function Notificacoes() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Modal de Envio Rápido ── */}
+      {envioRapido && (
+        <EnvioRapidoModal
+          clienteId={envioRapido.clienteId}
+          clienteNome={envioRapido.clienteNome}
+          pacoteClienteId={envioRapido.pacoteClienteId}
+          notificacaoPacoteId={envioRapido.notificacaoPacoteId}
+          onClose={() => setEnvioRapido(null)}
+          onSuccess={() => {
+            setEnvioRapido(null);
+            utils.pacotes.listarNotificacoes.invalidate();
+            utils.pacotes.contarNaoLidas.invalidate();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── Modal de Envio Rápido ──────────────────────────────────────────────────
+
+function EnvioRapidoModal({ clienteId, clienteNome, pacoteClienteId, notificacaoPacoteId, onClose, onSuccess }: {
+  clienteId: number;
+  clienteNome: string;
+  pacoteClienteId: number;
+  notificacaoPacoteId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { data: automacoesManual, isLoading } = trpc.automacoes.getAutomacoesManual.useQuery({ evento: "renovacao_pacote" });
+  const enviarMutation = trpc.automacoes.enviarManual.useMutation({
+    onSuccess: () => {
+      toast.success("Mensagem enviada com sucesso!");
+      onSuccess();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const automacao = automacoesManual?.[0];
+  const preview = automacao?.corpoMensagem
+    ?.replace(/\{\{nome_cliente\}\}/g, clienteNome)
+    ?.replace(/\{\{primeiro_nome\}\}/g, clienteNome.split(" ")[0])
+    ?? "";
+
+  return (
+    <Dialog open onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <MessageCircle className="w-4 h-4" style={{ color: "oklch(55% 0.18 155)" }} />
+            Enviar mensagem para {clienteNome.split(" ")[0]}
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-8 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !automacao ? (
+          <div className="py-6 text-center space-y-3">
+            <MessageCircle className="w-10 h-10 mx-auto text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              Nenhuma automação manual de renovação configurada.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Crie uma automação do tipo "Manual" com evento "renovacao_pacote" em Automações.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap"
+              style={{ background: "oklch(96% 0.006 250)", border: "1px solid oklch(90% 0.012 250)" }}>
+              {preview || automacao.corpoMensagem}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              As variáveis serão substituídas pelos dados reais do cliente e pacote ao enviar.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} size="sm">Cancelar</Button>
+          {automacao && (
+            <Button
+              size="sm"
+              className="gap-1.5"
+              style={{ background: "oklch(55% 0.18 155)", color: "white" }}
+              disabled={enviarMutation.isPending}
+              onClick={() => {
+                enviarMutation.mutate({
+                  automacaoId: automacao.id,
+                  clienteId,
+                  pacoteClienteId,
+                  notificacaoPacoteId,
+                });
+              }}
+            >
+              {enviarMutation.isPending ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando...</>
+              ) : (
+                <><Send className="w-3.5 h-3.5" /> Enviar via WhatsApp</>
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
