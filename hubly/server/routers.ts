@@ -145,7 +145,7 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
 async function resolveAdminContext(
   ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null } | null },
   empresa: { id: number; ownerId: number },
-  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" = "agendamentosVerTodos"
+  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" | "agendaAprovarBloqueio" = "agendamentosVerTodos"
 ): Promise<{ isAdmin: boolean; profId: number | null }> {
   // Owner OAuth: sempre admin
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
@@ -3017,15 +3017,15 @@ export const appRouter = router({
         id: z.number(),
         nome: z.string().min(1).optional(),
         email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
-        telefone: z.string().optional(),
-        especialidade: z.string().optional(),
+        telefone: z.string().nullable().optional(),
+        especialidade: z.string().nullable().optional(),
         corCalendario: z.string().optional(),
         isProfissional: z.boolean().optional(),
         temAcesso: z.boolean().optional(),
         ativo: z.boolean().optional(),
         senha: z.string().min(6).optional(),
         grupoId: z.number().nullable().optional(),
-        percentualComissao: z.string().optional(),
+        percentualComissao: z.string().nullable().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
