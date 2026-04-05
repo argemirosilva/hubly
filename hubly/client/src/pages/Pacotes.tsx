@@ -651,11 +651,12 @@ function ModalAbrirPacote({
 
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar }: {
+function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
   onCancelar: (id: number) => void;
   onRenovar?: (pacote: any) => void;
+  onEditar?: (pacote: any) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const totalItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeTotal, 0);
@@ -720,6 +721,11 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar }: {
                 <XCircle className="w-3 h-3" /> Cancelar
               </button>
             )}
+            {pacote.status === "ativo" && onEditar && (
+              <button onClick={() => onEditar(pacote)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 font-medium">
+                <Pencil className="w-3 h-3" /> Editar
+              </button>
+            )}
             {(pacote.status === "concluido" || pacote.status === "vencido") && onRenovar && (
               <button onClick={() => onRenovar(pacote)} className="text-violet-600 hover:text-violet-800 flex items-center gap-1 font-medium">
                 <RefreshCw className="w-3 h-3" /> Renovar
@@ -755,6 +761,15 @@ export default function Pacotes() {
     numeroParcelas: "1",
     validadeDias: "",
     observacoes: "",
+  });
+  const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
+  const [editarPacoteForm, setEditarPacoteForm] = useState<{
+    nome: string; valorPago: string; formaPagamento: string;
+    numeroParcelas: string; dataVencimento: string; observacoes: string;
+    itens: Array<{ servicoId: number; servicoNome: string; quantidade: number; sessoesUsadas: number }>;
+  }>({
+    nome: "", valorPago: "", formaPagamento: "",
+    numeroParcelas: "1", dataVencimento: "", observacoes: "", itens: [],
   });
 
   // Debounce da busca para evitar muitas requisições
@@ -803,6 +818,14 @@ export default function Pacotes() {
       utils.pacotes.listarTodos.invalidate();
       setPacoteRenovarId(null);
       toast.success("Pacote renovado com sucesso!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const editarPacoteMutation = trpc.pacotes.editarPacote.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarTodos.invalidate();
+      setPacoteEditarId(null);
+      toast.success("Pacote atualizado com sucesso!");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -888,6 +911,25 @@ export default function Pacotes() {
                     pacote={p}
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
+                    onEditar={(pac) => {
+                      setPacoteEditarId(pac.id);
+                      setEditarPacoteForm({
+                        nome: pac.nome ?? "",
+                        valorPago: String(pac.valorPago ?? ""),
+                        formaPagamento: pac.formaPagamento ?? "",
+                        numeroParcelas: String(pac.numeroParcelas ?? 1),
+                        dataVencimento: pac.dataVencimento
+                          ? new Date(pac.dataVencimento).toISOString().split("T")[0]
+                          : "",
+                        observacoes: pac.observacoes ?? "",
+                        itens: (pac.itens as any[]).map((item: any) => ({
+                          servicoId: item.servicoId,
+                          servicoNome: item.servicoNome ?? `Serviço #${item.servicoId}`,
+                          quantidade: item.quantidadeTotal ?? item.quantidade ?? 1,
+                          sessoesUsadas: item.quantidadeUsada ?? 0,
+                        })),
+                      });
+                    }}
                     onRenovar={(pac) => {
                       setPacoteRenovarId(pac.id);
                       setRenovarForm({
@@ -1084,6 +1126,140 @@ export default function Pacotes() {
               }}
             >
               {renovarMutation.isPending ? "Renovando..." : "Renovar pacote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de edição de pacote */}
+      <Dialog open={!!pacoteEditarId} onOpenChange={(open) => !open && setPacoteEditarId(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-blue-600" />
+              Editar Pacote
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Nome do pacote</Label>
+              <Input
+                value={editarPacoteForm.nome}
+                onChange={e => setEditarPacoteForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Ex: Pacote Manicure 4x"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Valor pago (R$)</Label>
+                <Input
+                  type="number" min="0" step="0.01"
+                  value={editarPacoteForm.valorPago}
+                  onChange={e => setEditarPacoteForm(f => ({ ...f, valorPago: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Forma de pagamento</Label>
+                <Select
+                  value={editarPacoteForm.formaPagamento}
+                  onValueChange={v => setEditarPacoteForm(f => ({ ...f, formaPagamento: v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                    <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Número de parcelas</Label>
+                <Input
+                  type="number" min="1" max="24"
+                  value={editarPacoteForm.numeroParcelas}
+                  onChange={e => setEditarPacoteForm(f => ({ ...f, numeroParcelas: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Vencimento</Label>
+                <Input
+                  type="date"
+                  value={editarPacoteForm.dataVencimento}
+                  onChange={e => setEditarPacoteForm(f => ({ ...f, dataVencimento: e.target.value }))}
+                />
+              </div>
+            </div>
+            {Number(editarPacoteForm.numeroParcelas) > 1 && Number(editarPacoteForm.valorPago) > 0 && (
+              <p className="text-xs text-muted-foreground bg-blue-50 rounded-md px-3 py-2">
+                Valor por parcela: <strong>{formatCurrency(Number(editarPacoteForm.valorPago) / Number(editarPacoteForm.numeroParcelas))}</strong>
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label>Itens do pacote</Label>
+              {editarPacoteForm.itens.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-slate-50 rounded-md px-3 py-2">
+                  <span className="text-sm flex-1">{item.servicoNome}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditarPacoteForm(f => ({
+                        ...f,
+                        itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: Math.max(it.sessoesUsadas + 1, it.quantidade - 1) } : it)
+                      }))}
+                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                    >-</button>
+                    <span className="w-8 text-center text-sm font-medium">{item.quantidade}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditarPacoteForm(f => ({
+                        ...f,
+                        itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: it.quantidade + 1 } : it)
+                      }))}
+                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                    >+</button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{item.sessoesUsadas} usadas</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observações (opcional)</Label>
+              <Textarea
+                placeholder="Anotações sobre o pacote..."
+                rows={2}
+                value={editarPacoteForm.observacoes}
+                onChange={e => setEditarPacoteForm(f => ({ ...f, observacoes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPacoteEditarId(null)}>Cancelar</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!editarPacoteForm.nome || editarPacoteMutation.isPending}
+              onClick={() => {
+                if (!pacoteEditarId) return;
+                editarPacoteMutation.mutate({
+                  id: pacoteEditarId,
+                  nome: editarPacoteForm.nome,
+                  valorPago: editarPacoteForm.valorPago ? Number(editarPacoteForm.valorPago) : undefined,
+                  formaPagamento: editarPacoteForm.formaPagamento || undefined,
+                  numeroParcelas: Number(editarPacoteForm.numeroParcelas) || 1,
+                  dataVencimento: editarPacoteForm.dataVencimento || null,
+                  observacoes: editarPacoteForm.observacoes || undefined,
+                  itens: editarPacoteForm.itens.map(it => ({
+                    servicoId: it.servicoId,
+                    quantidade: it.quantidade,
+                    sessoesUsadas: it.sessoesUsadas,
+                  })),
+                });
+              }}
+            >
+              {editarPacoteMutation.isPending ? "Salvando..." : "Salvar alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>
