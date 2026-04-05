@@ -584,38 +584,37 @@ export default function ContasReceber() {
             <p className="text-[10px] text-muted-foreground">{metricas?.quantidadePendentes ?? 0} pendentes</p>
           </CardContent>
         </Card>
+        <Card>
           <CardContent className="p-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <CheckCircle2 className="w-3 h-3 text-green-500" />
               <span className="text-[10px] text-muted-foreground">Recebido no Mês</span>
-              <span className="text-xs text-muted-foreground">Recebido no Mês</span>
+            </div>
             <p className="text-sm font-bold text-green-600">{fmt(metricas?.totalRecebidoMes ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">mês atual</p>
-            <p className="text-xs text-muted-foreground">mês atual</p>
           </CardContent>
+        </Card>
+        <Card>
           <CardContent className="p-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <AlertCircle className="w-3 h-3 text-red-500" />
               <span className="text-[10px] text-muted-foreground">Vencido</span>
-              <AlertCircle className="w-4 h-4 text-red-500" />
+            </div>
             <p className="text-sm font-bold text-red-600">{fmt(metricas?.totalVencido ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">{metricas?.quantidadeVencidas ?? 0} contas</p>
-            <p className="text-xl font-bold text-red-600">{fmt(metricas?.totalVencido ?? 0)}</p>
-            <p className="text-xs text-muted-foreground">{metricas?.quantidadeVencidas ?? 0} contas</p>
+          </CardContent>
+        </Card>
+        <Card>
           <CardContent className="p-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
               <TrendingUp className="w-3 h-3 text-blue-500" />
               <span className="text-[10px] text-muted-foreground">Próx. 7 dias</span>
-            <div className="flex items-center gap-2 mb-1">
+            </div>
             <p className="text-sm font-bold text-blue-600">{fmt(metricas?.totalProximas7 ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">{metricas?.quantidadeProximas7 ?? 0} contas</p>
-            </div>
-            <p className="text-xl font-bold text-blue-600">{fmt(metricas?.totalProximas7 ?? 0)}</p>
-            <p className="text-xs text-muted-foreground">{metricas?.quantidadeProximas7 ?? 0} contas</p>
           </CardContent>
         </Card>
       </div>
-
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
