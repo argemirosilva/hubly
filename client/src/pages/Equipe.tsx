@@ -60,6 +60,7 @@ import {
   DollarSign,
   Users2,
   Wrench,
+  Package,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -157,6 +158,14 @@ const PERMISSION_GROUPS = [
       { key: "servicosCriar", label: "Cadastrar serviços" },
       { key: "servicosEditar", label: "Editar serviços" },
       { key: "servicosExcluir", label: "Excluir serviços" },
+    ],
+  },
+  {
+    key: "pacotes", label: "Pacotes", icon: Package, color: "oklch(60% 0.20 200)",
+    items: [
+      { key: "pacotesVer", label: "Visualizar pacotes" },
+      { key: "pacotesEditar", label: "Criar e editar pacotes" },
+      { key: "pacotesExcluir", label: "Excluir pacotes" },
     ],
   },
   {

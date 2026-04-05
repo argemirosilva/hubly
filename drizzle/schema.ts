@@ -470,6 +470,10 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   gruposCriar: boolean("gruposCriar").default(false),
   gruposEditar: boolean("gruposEditar").default(false),
   gruposExcluir: boolean("gruposExcluir").default(false),
+  // ── Pacotes ──
+  pacotesVer: boolean("pacotesVer").default(false),
+  pacotesEditar: boolean("pacotesEditar").default(false),
+  pacotesExcluir: boolean("pacotesExcluir").default(false),
   // ── Dashboard ──
   dashboardVer: boolean("dashboardVer").default(false),
   dashboardVerMetricas: boolean("dashboardVerMetricas").default(false),

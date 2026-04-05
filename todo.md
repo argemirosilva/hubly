@@ -1241,3 +1241,8 @@
 - [ ] Integrar bloqueios no calendário visual - exibir períodos bloqueados com cor diferenciada
 - [ ] Bloqueios recorrentes - permitir repetição semanal/mensal
 - [ ] Relatório de bloqueios - página de análise com histórico e aprovações
+
+## Permissões de Pacotes nos Grupos (v-atual)
+- [ ] Adicionar colunas pacotesVer, pacotesEditar, pacotesExcluir na tabela permissoes_grupo (schema + migration)
+- [ ] Atualizar tela de configuração de grupos para exibir seção Pacotes com os 3 toggles
+- [ ] Aplicar validação de permissão nos endpoints de pacotes
