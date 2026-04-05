@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Gem, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -773,7 +773,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     borderColor: getPlanColor(planStatus.plan) + "30",
                     color: getPlanColor(planStatus.plan),
                   }}>
-                  <Gem className="w-3 h-3" />
                   <span className="text-[11px] font-semibold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
                 </div>
               </Link>
