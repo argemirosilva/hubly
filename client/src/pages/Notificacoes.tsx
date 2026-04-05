@@ -4,7 +4,7 @@ import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
   Package, Clock, RefreshCw, ChevronRight,
   BellRing, BellOff, Smartphone, CheckCircle2, XCircle, Volume2, Loader2, Info,
-  Send, MessageCircle,
+  Send, MessageCircle, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -69,6 +69,14 @@ export default function Notificacoes() {
     onError: (err: any) => toast.error(err.message),
   });
   const marcarTodasSistemaMutation = trpc.notificacoes.marcarTodasLidas.useMutation({
+    onSuccess: () => utils.notificacoes.list.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+  const ocultarSistemaMutation = trpc.notificacoes.ocultar.useMutation({
+    onSuccess: () => utils.notificacoes.list.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+  const ocultarTodasSistemaMutation = trpc.notificacoes.ocultarTodas.useMutation({
     onSuccess: () => utils.notificacoes.list.invalidate(),
     onError: (err: any) => toast.error(err.message),
   });
@@ -146,6 +154,13 @@ export default function Notificacoes() {
     else toast.success("Todas marcadas como lidas!");
   }
 
+  function limparTodas() {
+    if (lista.length === 0) { toast.info("Nenhuma notificação para limpar."); return; }
+    ocultarTodasSistemaMutation.mutate(undefined, {
+      onSuccess: () => toast.success("Notificações limpas com sucesso!"),
+    });
+  }
+
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-3xl mx-auto animate-in-up">
       {/* Header */}
@@ -179,6 +194,21 @@ export default function Notificacoes() {
               <CheckCheck className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Marcar todas como lidas</span>
               <span className="sm:hidden">Marcar lidas</span>
+            </button>
+          )}
+          {/* Botão limpar tudo */}
+          {lista.length > 0 && (
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
+              style={{ borderColor: "oklch(75% 0.18 25 / 40%)", color: "oklch(45% 0.18 25)" }}
+              onClick={limparTodas}
+              disabled={ocultarTodasSistemaMutation.isPending}
+            >
+              {ocultarTodasSistemaMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Trash2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">Limpar tudo</span>
+              <span className="sm:hidden">Limpar</span>
             </button>
           )}
         </div>

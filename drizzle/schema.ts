@@ -292,6 +292,8 @@ export const notificacoes = mysqlTable("notificacoes", {
   dadosContexto: json("dadosContexto"),
   lida: boolean("lida").default(false),
   lidaEm: timestamp("lidaEm"),
+  ocultada: boolean("ocultada").default(false),
+  ocultadaEm: timestamp("ocultadaEm"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

@@ -419,15 +419,16 @@ export async function getNotificacoesByEmpresa(empresaId: number, profissionalId
   const db = await getDb();
   if (!db) return [];
   if (!profissionalId) {
-    // Admin: todas da empresa
+    // Admin: todas da empresa, exceto ocultadas
     return db.select().from(notificacoes)
-      .where(eq(notificacoes.empresaId, empresaId))
+      .where(and(eq(notificacoes.empresaId, empresaId), eq(notificacoes.ocultada, false)))
       .orderBy(desc(notificacoes.createdAt)).limit(50);
   }
-  // Não-admin: apenas as suas ou as sem destinatário específico
+  // Não-admin: apenas as suas ou as sem destinatário específico, exceto ocultadas
   return db.select().from(notificacoes)
     .where(and(
       eq(notificacoes.empresaId, empresaId),
+      eq(notificacoes.ocultada, false),
       or(eq(notificacoes.destinatarioId, profissionalId), isNull(notificacoes.destinatarioId))
     ))
     .orderBy(desc(notificacoes.createdAt)).limit(50);
@@ -450,6 +451,30 @@ export async function marcarTodasNotificacoesLidas(destinatarioId: number, empre
   if (!db) throw new Error("DB not available");
   await db.update(notificacoes).set({ lida: true, lidaEm: new Date() })
     .where(and(eq(notificacoes.destinatarioId, destinatarioId), eq(notificacoes.empresaId, empresaId), eq(notificacoes.lida, false)));
+}
+
+export async function ocultarNotificacao(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() }).where(eq(notificacoes.id, id));
+}
+
+export async function ocultarTodasNotificacoes(empresaId: number, profissionalId?: number | null) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  if (!profissionalId) {
+    // Admin: oculta todas da empresa
+    await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() })
+      .where(and(eq(notificacoes.empresaId, empresaId), eq(notificacoes.ocultada, false)));
+  } else {
+    // Não-admin: oculta apenas as suas ou sem destinatário
+    await db.update(notificacoes).set({ ocultada: true, ocultadaEm: new Date() })
+      .where(and(
+        eq(notificacoes.empresaId, empresaId),
+        eq(notificacoes.ocultada, false),
+        or(eq(notificacoes.destinatarioId, profissionalId), isNull(notificacoes.destinatarioId))
+      ));
+  }
 }
 
 // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────────

@@ -1739,6 +1739,21 @@ export const appRouter = router({
       }
       return { success: true };
     }),
+    ocultar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { ocultarNotificacao } = await import("./db");
+        await ocultarNotificacao(input.id);
+        return { success: true };
+      }),
+    ocultarTodas: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const { ocultarTodasNotificacoes } = await import("./db");
+      await ocultarTodasNotificacoes(empresa.id, isAdmin ? null : profId);
+      return { success: true };
+    }),
   }),
 
   // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────
