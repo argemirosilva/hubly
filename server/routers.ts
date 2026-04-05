@@ -1954,6 +1954,49 @@ export const appRouter = router({
         }
       }),
 
+    testarEnvio: protectedProcedure
+      .input(z.object({
+        corpoMensagem: z.string().min(1, "Mensagem não pode ser vazia"),
+        telefone: z.string().min(8, "Telefone inválido"),
+        midiaUrl: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        // Verificar WhatsApp
+        const { waManager } = await import("./whatsapp");
+        const waState = waManager.getState();
+        if (waState.status !== "connected") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não está conectado. Conecte primeiro em Configurações > WhatsApp." });
+        }
+        // Substituir variáveis com dados fictícios
+        const agora = new Date();
+        const dataExemplo = agora.toLocaleDateString("pt-BR");
+        const horaExemplo = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const mensagem = input.corpoMensagem
+          .replace(/\{\{nome_cliente\}\}/g, "Maria Silva")
+          .replace(/\{\{primeiro_nome\}\}/g, "Maria")
+          .replace(/\{\{empresa\}\}/g, empresa.nome)
+          .replace(/\{\{servico\}\}/g, "Corte de Cabelo")
+          .replace(/\{\{data\}\}/g, dataExemplo)
+          .replace(/\{\{hora\}\}/g, horaExemplo)
+          .replace(/\{\{profissional\}\}/g, "Ana")
+          .replace(/\{\{pacote\}\}/g, "Pacote Premium")
+          .replace(/\{\{sessoes_restantes\}\}/g, "2")
+          .replace(/\{\{sessoes_total\}\}/g, "10")
+          .replace(/\{\{data_vencimento\}\}/g, new Date(Date.now() + 30 * 86400000).toLocaleDateString("pt-BR"))
+          .replace(/\{\{link_agendamento\}\}/g, "https://hubly.orizontech.com.br/agendar")
+          .replace(/\{\{link_confirmacao\}\}/g, "https://hubly.orizontech.com.br/confirmar");
+        try {
+          const ok = await waManager.sendMessage(input.telefone, mensagem);
+          if (!ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao enviar mensagem de teste via WhatsApp" });
+          return { success: true, mensagemEnviada: mensagem };
+        } catch (err: any) {
+          if (err instanceof TRPCError) throw err;
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Erro ao enviar: ${err?.message ?? "desconhecido"}` });
+        }
+      }),
+
     getAutomacoesManual: protectedProcedure
       .input(z.object({ evento: z.string().optional() }))
       .query(async ({ ctx, input }) => {

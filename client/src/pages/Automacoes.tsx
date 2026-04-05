@@ -269,6 +269,8 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
   const [data, setData] = useState({ ...node.data });
   const [uploadingMidia, setUploadingMidia] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showTestarEnvio, setShowTestarEnvio] = useState(false);
+  const [telefoneTestar, setTelefoneTestar] = useState("");
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
   const save = () => {
     onUpdate(node.id, data);
@@ -281,6 +283,14 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
   };
   const insertVar = (v: string) => set("mensagem", (data.mensagem || "") + v);
   const utils = trpc.useUtils();
+  const testarEnvioMutation = trpc.automacoes.testarEnvio.useMutation({
+    onSuccess: (res) => {
+      toast.success("Mensagem de teste enviada com sucesso!");
+      setShowTestarEnvio(false);
+      setTelefoneTestar("");
+    },
+    onError: (err) => toast.error(err.message || "Erro ao enviar mensagem de teste"),
+  });
   const uploadMidiaMutation = trpc.automacoes.uploadMidia.useMutation({
     onSuccess: (res) => {
       set("midiaUrl", res.url);
@@ -519,7 +529,18 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
           </div>
         )}
       </div>
-      <div className="px-4 py-3 border-t bg-gray-50">
+      <div className="px-4 py-3 border-t bg-gray-50 space-y-2">
+        {/* Botão Testar Envio - só para nós de ação WhatsApp */}
+        {node.type === "action" && data.tipo === "enviar_whatsapp" && (
+          <Button
+            onClick={() => setShowTestarEnvio(true)}
+            size="sm"
+            variant="outline"
+            className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          >
+            <Send size={13} className="mr-1.5" />Testar envio
+          </Button>
+        )}
         <Button onClick={save} size="sm" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
           <Save size={13} className="mr-1.5" />Salvar configuração
         </Button>
@@ -532,6 +553,66 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
         mensagem={data.mensagem || ""}
         midiaUrl={data.midiaUrl}
       />
+
+      {/* Modal de teste de envio */}
+      <Dialog open={showTestarEnvio} onOpenChange={(open) => { if (!testarEnvioMutation.isPending) setShowTestarEnvio(open); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Send size={16} className="text-emerald-600" />
+              Testar envio de mensagem
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-700 font-medium mb-1">Mensagem de teste com dados fictícios</p>
+              <p className="text-xs text-amber-600">As variáveis serão substituídas por: <strong>Maria Silva</strong>, <strong>Corte de Cabelo</strong>, data/hora atual, etc.</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600 mb-1.5 block">Número de destino (com DDD)</Label>
+              <div className="flex items-center gap-2">
+                <Phone size={14} className="text-gray-400 flex-shrink-0" />
+                <Input
+                  type="tel"
+                  placeholder="Ex: 11999998888"
+                  value={telefoneTestar}
+                  onChange={(e) => setTelefoneTestar(e.target.value.replace(/\D/g, ""))}
+                  className="text-sm"
+                  disabled={testarEnvioMutation.isPending}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Apenas números, sem espaços ou hífens.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => { setShowTestarEnvio(false); setTelefoneTestar(""); }}
+                disabled={testarEnvioMutation.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={telefoneTestar.length < 8 || testarEnvioMutation.isPending}
+                onClick={() => testarEnvioMutation.mutate({
+                  corpoMensagem: data.mensagem || "",
+                  telefone: telefoneTestar,
+                  midiaUrl: data.midiaUrl,
+                })}
+              >
+                {testarEnvioMutation.isPending ? (
+                  <><Loader2 size={13} className="mr-1.5 animate-spin" />Enviando...</>
+                ) : (
+                  <><Send size={13} className="mr-1.5" />Enviar teste</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

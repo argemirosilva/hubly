@@ -1203,3 +1203,8 @@
 - [x] Frontend: banner de renovação próxima na página Assinatura (violeta/âmbar/vermelho conforme urgência)
 - [x] Frontend: loading spinner no botão "Gerenciar" do banner
 - [x] Frontend: spinner no botão "Portal do cliente" no cabeçalho da página Assinatura
+
+## Botão "Testar Envio" na Configuração de Automação
+
+- [x] Backend: procedure testarEnvioAutomacao (envia mensagem de teste para número informado substituindo variáveis com dados fictícios)
+- [x] Frontend: botão "Testar envio" no modal/formulário de edição de automação com campo de número de destino
