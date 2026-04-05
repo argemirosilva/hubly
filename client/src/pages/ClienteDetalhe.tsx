@@ -19,6 +19,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
   Pencil, Save, X, Trash2, MapPin, CreditCard, History, RefreshCw, ChevronDown, ChevronUp,
+  TrendingUp, TrendingDown, Activity, Star, Ban,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -370,6 +371,9 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                 );
               })}
             </div>
+
+            {/* Score do Cliente */}
+            <ClienteScoreCard agendamentos={agendamentosCliente} cliente={c} />
 
             {/* Análise IA */}
             {analiseIA && (
@@ -928,5 +932,165 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
         </AlertDialogContent>
       </AlertDialog>
     </TooltipProvider>
+  );
+}
+
+// ─── Score do Cliente ────────────────────────────────────────────────────────
+
+function calcularScore(agendamentos: any[], cliente: any) {
+  const total = agendamentos.length;
+  if (total === 0) return { score: 0, label: "Sem dados", color: "#94a3b8", icon: Activity, fatores: [], stats: { total: 0, concluidos: 0, cancelados: 0, faltas: 0 } };
+
+  const concluidos = agendamentos.filter(a => a.status === "concluido").length;
+  const cancelados = agendamentos.filter(a => a.status === "cancelado").length;
+  const faltas = agendamentos.filter(a => a.status === "faltou").length;
+
+  // Fator 1: Taxa de conclusão (0-30 pts)
+  const taxaConclusao = total > 0 ? concluidos / total : 0;
+  const ptsConclusao = Math.round(taxaConclusao * 30);
+
+  // Fator 2: Frequência — média de dias entre atendimentos concluídos (0-25 pts)
+  const datasConc = agendamentos
+    .filter(a => a.status === "concluido")
+    .map(a => new Date(a.data).getTime())
+    .sort((a, b) => a - b);
+  let ptsFrequencia = 0;
+  if (datasConc.length >= 2) {
+    const intervalos: number[] = [];
+    for (let i = 1; i < datasConc.length; i++) {
+      intervalos.push((datasConc[i] - datasConc[i - 1]) / (1000 * 60 * 60 * 24));
+    }
+    const mediaIntervalo = intervalos.reduce((a, b) => a + b, 0) / intervalos.length;
+    if (mediaIntervalo <= 7) ptsFrequencia = 25;
+    else if (mediaIntervalo <= 14) ptsFrequencia = 22;
+    else if (mediaIntervalo <= 21) ptsFrequencia = 18;
+    else if (mediaIntervalo <= 30) ptsFrequencia = 15;
+    else if (mediaIntervalo <= 45) ptsFrequencia = 10;
+    else if (mediaIntervalo <= 60) ptsFrequencia = 5;
+    else ptsFrequencia = 2;
+  } else if (datasConc.length === 1) {
+    ptsFrequencia = 10;
+  }
+
+  // Fator 3: Gasto total (0-20 pts)
+  const gasto = Number(cliente.totalGasto ?? 0);
+  let ptsGasto = 0;
+  if (gasto >= 5000) ptsGasto = 20;
+  else if (gasto >= 2000) ptsGasto = 17;
+  else if (gasto >= 1000) ptsGasto = 14;
+  else if (gasto >= 500) ptsGasto = 10;
+  else if (gasto >= 200) ptsGasto = 7;
+  else if (gasto > 0) ptsGasto = 3;
+
+  // Fator 4: Baixo cancelamento/falta (0-15 pts)
+  const taxaProblemas = total > 0 ? (cancelados + faltas) / total : 0;
+  const ptsConfiabilidade = Math.round((1 - taxaProblemas) * 15);
+
+  // Fator 5: Recência — último atendimento (0-10 pts)
+  let ptsRecencia = 0;
+  if (cliente.ultimoAtendimento) {
+    const diasDesdeUltimo = (Date.now() - new Date(cliente.ultimoAtendimento).getTime()) / (1000 * 60 * 60 * 24);
+    if (diasDesdeUltimo <= 7) ptsRecencia = 10;
+    else if (diasDesdeUltimo <= 14) ptsRecencia = 8;
+    else if (diasDesdeUltimo <= 30) ptsRecencia = 6;
+    else if (diasDesdeUltimo <= 60) ptsRecencia = 4;
+    else if (diasDesdeUltimo <= 90) ptsRecencia = 2;
+    else ptsRecencia = 0;
+  }
+
+  const score = Math.min(100, ptsConclusao + ptsFrequencia + ptsGasto + ptsConfiabilidade + ptsRecencia);
+
+  const fatores = [
+    { nome: "Conclusão", pts: ptsConclusao, max: 30, detalhe: `${Math.round(taxaConclusao * 100)}% concluídos` },
+    { nome: "Frequência", pts: ptsFrequencia, max: 25, detalhe: datasConc.length >= 2 ? `${datasConc.length} visitas` : "Poucos dados" },
+    { nome: "Gasto", pts: ptsGasto, max: 20, detalhe: formatCurrency(gasto) },
+    { nome: "Confiabilidade", pts: ptsConfiabilidade, max: 15, detalhe: `${cancelados} canc. · ${faltas} faltas` },
+    { nome: "Recência", pts: ptsRecencia, max: 10, detalhe: cliente.ultimoAtendimento ? `Último: ${new Date(cliente.ultimoAtendimento).toLocaleDateString("pt-BR")}` : "Sem visita" },
+  ];
+
+  let label: string;
+  let color: string;
+  let icon: any;
+  if (score >= 80) { label = "Excelente"; color = "oklch(50% 0.16 155)"; icon = Star; }
+  else if (score >= 60) { label = "Bom"; color = "oklch(55% 0.22 264)"; icon = TrendingUp; }
+  else if (score >= 40) { label = "Regular"; color = "oklch(60% 0.20 75)"; icon = Activity; }
+  else if (score >= 20) { label = "Baixo"; color = "oklch(55% 0.18 30)"; icon = TrendingDown; }
+  else { label = "Crítico"; color = "oklch(50% 0.22 25)"; icon = Ban; }
+
+  return { score, label, color, icon, fatores, stats: { total, concluidos, cancelados, faltas } };
+}
+
+function ScoreRing({ score, color, size = 80 }: { score: number; color: string; size?: number }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(92% 0.005 250)" strokeWidth={6} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={6}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        className="transition-all duration-700" />
+      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
+        className="fill-foreground font-bold" fontSize={size * 0.28}
+        transform={`rotate(90, ${size / 2}, ${size / 2})`}>
+        {score}
+      </text>
+    </svg>
+  );
+}
+
+function ClienteScoreCard({ agendamentos, cliente }: { agendamentos: any[]; cliente: any }) {
+  const result = useMemo(() => calcularScore(agendamentos, cliente), [agendamentos, cliente]);
+  const { score, label, color, fatores, stats, icon: Icon } = result;
+
+  if (agendamentos.length === 0) return null;
+
+  return (
+    <Card className="border-border shadow-none">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
+            <Icon className="w-3.5 h-3.5" style={{ color }} />
+          </div>
+          <h3 className="font-semibold text-sm">Score do Cliente</h3>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto" style={{ color, background: `${color}15` }}>
+            {label}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <ScoreRing score={score} color={color} />
+
+          <div className="flex-1 space-y-1.5">
+            {fatores.map(f => (
+              <div key={f.nome} className="space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">{f.nome}</span>
+                  <span className="text-[11px] font-medium tabular-nums">{f.pts}/{f.max}</span>
+                </div>
+                <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${(f.pts / f.max) * 100}%`, background: color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-border">
+          {[
+            { label: "Total", value: stats.total, color: "text-foreground" },
+            { label: "Concluídos", value: stats.concluidos, color: "text-emerald-600" },
+            { label: "Cancelados", value: stats.cancelados, color: "text-red-500" },
+            { label: "Faltas", value: stats.faltas, color: "text-amber-500" },
+          ].map(s => (
+            <div key={s.label} className="text-center">
+              <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
