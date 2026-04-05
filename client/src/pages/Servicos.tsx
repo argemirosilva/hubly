@@ -256,9 +256,9 @@ export default function Servicos() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
                   {(grupo.items ?? []).map(s => (
                     <Card key={s.id} className="border-border shadow-none hover:shadow-sm transition-all duration-150 group">
-                      <CardContent className="p-2">
+                      <CardContent className="px-2 py-1">
                         {/* Linha topo: categoria + status + editar */}
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-0.5">
                           <span
                             className="text-[9px] font-semibold uppercase tracking-wider leading-none"
                             style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}
@@ -282,7 +282,7 @@ export default function Servicos() {
                           </div>
                         </div>
                         {/* Nome do serviço */}
-                        <p className="text-xs font-semibold text-foreground leading-snug mb-1.5">{s.nome}</p>
+                        <p className="text-xs font-semibold text-foreground leading-snug mb-1">{s.nome}</p>
                         {/* Rodapé: duração + comissão + valor */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
