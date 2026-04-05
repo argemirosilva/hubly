@@ -219,7 +219,10 @@ export const appRouter = router({
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
         const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.profissionalId ?? opts.ctx.systemUser.id);
-        isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
+        // Verificar se o grupo é isAdmin (supergrupo) — bypass total
+        // Também aceitar valor 1 (inteiro do MySQL) além de boolean true
+        const grupoIsAdmin = (perms as any)?.__grupoIsAdmin === true;
+        isAdmin = grupoIsAdmin || (perms ? !!(perms as any).agendamentosVerTodos : false);
         if (perms) {
           // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)
           const { id: _id, grupoId: _g, createdAt: _c, updatedAt: _u, ...boolPerms } = perms as any;

@@ -712,6 +712,7 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
         allTrue[key] = escopoFields.includes(key) ? 'todos' : true;
       }
     }
+    allTrue.__grupoIsAdmin = true;
     return allTrue as any;
   }
   // Buscar as permissões do grupo

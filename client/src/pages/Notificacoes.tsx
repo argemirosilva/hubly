@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { useState } from "react";
 import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
@@ -48,11 +49,16 @@ type NotifUnificada = {
   pacoteClienteId?: number | null;
   diasParaVencer?: number | null;
   sessoesRestantes?: number | null;
+  dadosContexto?: { bloqueioId?: number; profissionalId?: number; [key: string]: any } | null;
 };
 
 export default function Notificacoes() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+  const { pode, isOwner } = usePermissoes();
+  const podeAprovarBloqueio = isOwner || pode('agendaAprovarBloqueio');
+  const [recusaModal, setRecusaModal] = useState<{ bloqueioId: number; notifId: number } | null>(null);
+  const [motivoRecusa, setMotivoRecusa] = useState("");
 
   // ── Envio rápido de mensagem ──────────────────────────────────────────
   const [envioRapido, setEnvioRapido] = useState<{ clienteId: number; clienteNome: string; pacoteClienteId: number; notificacaoPacoteId: number } | null>(null);
@@ -78,6 +84,22 @@ export default function Notificacoes() {
   });
   const ocultarTodasSistemaMutation = trpc.notificacoes.ocultarTodas.useMutation({
     onSuccess: () => utils.notificacoes.list.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+  const aprovarBloqueioMutation = trpc.bloqueios.aprovar.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success("Bloqueio aprovado!");
+      utils.notificacoes.list.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const recusarBloqueioMutation = trpc.bloqueios.recusar.useMutation({
+    onSuccess: () => {
+      toast.success("Bloqueio recusado.");
+      utils.notificacoes.list.invalidate();
+      setRecusaModal(null);
+      setMotivoRecusa("");
+    },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -113,6 +135,7 @@ export default function Notificacoes() {
       mensagem: n.mensagem ?? "",
       lida: !!n.lida,
       data: (n as any).createdAt ?? new Date(),
+      dadosContexto: (n as any).dadosContexto ?? null,
     })),
     ...(notifPacotes ?? []).map(n => ({
       id: n.id,
@@ -298,6 +321,27 @@ export default function Notificacoes() {
                         )}
                       </div>
                     )}
+                    {/* Ações rápidas para bloqueio_solicitado */}
+                    {n.tipo === "bloqueio_solicitado" && podeAprovarBloqueio && n.dadosContexto?.bloqueioId && (
+                      <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                        <button
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                          style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                          onClick={() => aprovarBloqueioMutation.mutate({ id: n.dadosContexto!.bloqueioId! })}
+                          disabled={aprovarBloqueioMutation.isPending}
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Aprovar
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                          style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
+                          onClick={() => { setRecusaModal({ bloqueioId: n.dadosContexto!.bloqueioId!, notifId: n.id }); setMotivoRecusa(""); }}
+                          disabled={recusarBloqueioMutation.isPending}
+                        >
+                          <XCircle className="w-3 h-3" /> Recusar
+                        </button>
+                      </div>
+                    )}
                     <p className="text-[10px] text-muted-foreground/50 mt-1.5">
                       {formatarData(n.data)}
                     </p>
@@ -432,6 +476,42 @@ export default function Notificacoes() {
       </Card>
 
       {/* ── Modal de Envio Rápido ── */}
+      {/* Modal de recusa de bloqueio */}
+      <Dialog open={!!recusaModal} onOpenChange={open => { if (!open) { setRecusaModal(null); setMotivoRecusa(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recusar Bloqueio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Informe o motivo da recusa (opcional):</p>
+            <textarea
+              className="w-full border rounded-lg p-2.5 text-sm resize-none focus:outline-none focus:ring-2"
+              style={{ borderColor: "oklch(88% 0.010 250)", minHeight: 80 }}
+              placeholder="Ex: Período com alta demanda..."
+              value={motivoRecusa}
+              onChange={e => setMotivoRecusa(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              className="px-4 py-2 text-sm rounded-lg border transition-colors"
+              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              onClick={() => { setRecusaModal(null); setMotivoRecusa(""); }}
+            >
+              Cancelar
+            </button>
+            <button
+              className="px-4 py-2 text-sm rounded-lg font-medium transition-colors"
+              style={{ background: "oklch(58% 0.22 25)", color: "white" }}
+              onClick={() => recusaModal && recusarBloqueioMutation.mutate({ id: recusaModal.bloqueioId, motivoRecusa: motivoRecusa || undefined })}
+              disabled={recusarBloqueioMutation.isPending}
+            >
+              {recusarBloqueioMutation.isPending ? "Recusando..." : "Confirmar Recusa"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {envioRapido && (
         <EnvioRapidoModal
           clienteId={envioRapido.clienteId}
