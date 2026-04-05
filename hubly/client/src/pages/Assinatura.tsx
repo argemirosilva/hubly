@@ -126,15 +126,10 @@ export default function Assinatura() {
       {/* ── Cabeçalho ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Minha Assinatura</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Assinatura</h1>
           <p className="text-sm text-slate-500 mt-0.5">Gerencie seu plano, pagamentos e histórico de faturas</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/planos">
-            <Button variant="outline" className="gap-2 text-sm">
-              <Gem className="w-4 h-4" /> Ver planos
-            </Button>
-          </Link>
           {plan !== "FREE" && (
             <Button
               onClick={handlePortal}

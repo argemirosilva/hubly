@@ -34,7 +34,6 @@ function getPlanConfig(planType: string) {
           { icon: MessageCircle, text: "100 notificações WhatsApp/mês" },
           { icon: Package, text: "Pacotes de serviços" },
           { icon: BarChart3, text: "Relatórios avançados" },
-          { icon: Sparkles, text: "IA Marketing" },
         ],
       };
     case "PLUS":
@@ -49,7 +48,7 @@ function getPlanConfig(planType: string) {
           { icon: Users, text: "Até 5 profissionais" },
           { icon: MessageCircle, text: "400 notificações WhatsApp/mês" },
           { icon: Package, text: "Pacotes de serviços" },
-          { icon: Brain, text: "IA Financeira + IA Marketing" },
+          { icon: Brain, text: "IA Financeira" },
           { icon: BarChart3, text: "Relatórios avançados" },
         ],
       };
@@ -65,7 +64,7 @@ function getPlanConfig(planType: string) {
           { icon: Users, text: "Até 20 profissionais" },
           { icon: MessageCircle, text: "1.000 notificações WhatsApp/mês" },
           { icon: Package, text: "Pacotes de serviços" },
-          { icon: Brain, text: "IA completa (Financeira + Clientes + Marketing)" },
+          { icon: Brain, text: "IA completa (Financeira + Clientes)" },
           { icon: BarChart3, text: "Múltiplos caixas + Relatórios avançados" },
         ],
       };
