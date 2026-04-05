@@ -1253,3 +1253,9 @@
 - [x] Backend: proteção contra edição/exclusão/alteração de permissões do grupo isAdmin
 - [x] Frontend: badge "Protegido" + borda âmbar + sem botões de editar/excluir para grupo isAdmin
 - [x] Frontend: exibir "Acesso total ao sistema" e "Permissões imutáveis" para grupo isAdmin
+
+## Escopo de Visibilidade por Grupo (v-atual)
+- [ ] Schema: colunas notificacoesEscopo, agendaEscopo, calendarioEscopo (enum: proprio/todos) na tabela permissoes_grupo
+- [ ] Backend: filtrar notificações por escopo do grupo do usuário logado
+- [ ] Backend: filtrar agenda/calendário por escopo do grupo do usuário logado
+- [ ] Frontend: seção de escopo de visibilidade no modal de permissões dos grupos
