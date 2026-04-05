@@ -46,6 +46,7 @@ const STEP_ICONS = [User, Scissors, User, Calendar, CheckCircle2];
 
 export default function PortalCliente() {
   const [matchSlug, paramsSlug] = useRoute("/agendar/:slug");
+  const [matchBase] = useRoute("/agendar");
   const slug = matchSlug ? paramsSlug?.slug : null;
 
   // Se tiver slug na URL, busca empresa por slug; caso contrário usa ?e=ID
@@ -55,6 +56,9 @@ export default function PortalCliente() {
     const id = parseInt(params.get("e") ?? "0");
     return isNaN(id) || id === 0 ? null : id;
   }, [slug]);
+
+  // Detectar se acessou /agendar sem slug e sem ?e=ID
+  const semIdentificacao = !slug && !empresaIdFromQuery && matchBase;
 
   // Query por slug
   const { data: empresaBySlug, isLoading: loadingSlug, error: errorSlug } =
@@ -71,9 +75,9 @@ export default function PortalCliente() {
     );
 
   const empresa = slug ? empresaBySlug : empresaById;
-  const loadingEmpresa = slug ? loadingSlug : loadingId;
+  const loadingEmpresa = slug ? loadingSlug : (!slug && empresaIdFromQuery ? loadingId : false);
   const errorEmpresa = slug ? errorSlug : errorId;
-  const empresaId = empresa?.id ?? (empresaIdFromQuery ?? 1);
+  const empresaId = empresa?.id ?? (empresaIdFromQuery ?? 0);
 
   const [step, setStep] = useState<Step>("identificacao");
 
@@ -107,7 +111,13 @@ export default function PortalCliente() {
   };
 
   const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId });
-  const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId });
+  const { data: profissionaisTodos } = trpc.portal.getProfissionais.useQuery({ empresaId });
+  // Profissionais filtrados pelo serviço selecionado (com fallback para todos)
+  const { data: profissionaisFiltrados } = trpc.portal.getProfissionaisPorServico.useQuery(
+    { empresaId, servicoId: servicoId! },
+    { enabled: !!servicoId },
+  );
+  const profissionais = servicoId ? profissionaisFiltrados : profissionaisTodos;
   const { data: meusAgendamentos } = trpc.portal.getMeusAgendamentos.useQuery(
     { empresaId, telefone },
     { enabled: clienteIdentificado && !!telefone },
@@ -226,16 +236,18 @@ export default function PortalCliente() {
     );
   }
 
-  if (errorEmpresa || !empresa) {
+  if (semIdentificacao || errorEmpresa || !empresa) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
         <div className="text-center max-w-sm space-y-4">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
           <h2 className="font-bold text-xl text-slate-800">Portal indisponível</h2>
           <p className="text-sm text-slate-500">
-            {errorEmpresa?.message === "Portal de agendamento não está ativo"
+            {semIdentificacao
+              ? "Endereço de agendamento incompleto. Utilize o link fornecido pelo estabelecimento (ex: /agendar/nome-do-salao)."
+              : errorEmpresa?.message === "Portal de agendamento não está ativo"
               ? "O portal de agendamento online ainda não foi ativado. Entre em contato diretamente com o estabelecimento."
-              : "Não foi possível carregar o portal. Tente novamente mais tarde."}
+              : "Não foi possível carregar o portal. Verifique o link e tente novamente."}
           </p>
         </div>
       </div>
@@ -302,11 +314,22 @@ export default function PortalCliente() {
               style={{ background: corSecundaria + "40", borderColor: corPrimaria + "30" }}>
               <p className="text-xs font-bold uppercase tracking-wider" style={{ color: corPrimaria }}>Resumo</p>
               <div className="space-y-1.5">
-                <p className="font-semibold text-slate-800">{servicoSelecionado?.nome}</p>
+                {servicosSelecionados.length > 1 ? (
+                  <>
+                    {servicosSelecionados.map(s => (
+                      <div key={s.id} className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-800">{s.nome}</p>
+                        <p className="text-xs text-slate-500">{formatCurrency(s.valor)}</p>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <p className="font-semibold text-slate-800">{servicoSelecionado?.nome}</p>
+                )}
                 {profFinal && <p className="text-sm text-slate-600">com {profFinal.nome}</p>}
                 <p className="text-sm text-slate-600">{formatarData(data)} às {hora}</p>
                 <p className="font-bold text-base" style={{ color: corPrimaria }}>
-                  {formatCurrency(servicoSelecionado?.valor ?? "0")}
+                  {formatCurrency(valorTotalServicos)}
                 </p>
               </div>
             </div>

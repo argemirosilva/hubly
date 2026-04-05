@@ -7,10 +7,35 @@ import { z } from "zod";
 import { getDb } from "../db";
 import {
   empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda, agendamentoItens,
+  profissionalServicos,
 } from "../../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { checkAgendamentoLimit, incrementAgendamentosCount } from "../db-plans";
 import { checkAndNotifyUsageLimits } from "../usage-alerts";
+
+// ─── Rate limiting simples em memória ────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minuto
+const RATE_LIMIT_MAX_REQUESTS = 20; // máx por janela
+
+function checkRateLimit(key: string, max = RATE_LIMIT_MAX_REQUESTS): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= max;
+}
+
+// Limpar entradas expiradas a cada 5 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of Array.from(rateLimitMap)) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 5 * 60_000);
 
 // ─── Helpers internos ────────────────────────────────────────────────────────
 
@@ -218,7 +243,19 @@ export const portalRouter = router({
               sql`${agendamentos.data} = ${input.data}`,
               sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
             ));
-          const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, ocupados);
+
+          // Verificar bloqueios também no modo "qualquer profissional"
+          const bloqueios = await db.select({ horaInicio: bloqueiosAgenda.horaInicio, horaFim: bloqueiosAgenda.horaFim })
+            .from(bloqueiosAgenda)
+            .where(and(
+              eq(bloqueiosAgenda.profissionalId, prof.id),
+              sql`${bloqueiosAgenda.dataInicio} <= ${input.data}`,
+              sql`${bloqueiosAgenda.dataFim} >= ${input.data}`,
+              sql`${bloqueiosAgenda.status} = 'aprovado'`,
+            ));
+
+          const todosOcupados = [...ocupados, ...bloqueios];
+          const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, todosOcupados);
           return { profissionalId: prof.id, slots };
         }));
         return resultado;
@@ -243,13 +280,29 @@ export const portalRouter = router({
       clienteEmail: z.string().email().optional(),
       observacoes: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Rate limiting por IP
+      const ip = ctx.req.headers["x-forwarded-for"] as string || ctx.req.socket.remoteAddress || "unknown";
+      if (!checkRateLimit(`criar_${ip}`, 10)) {
+        throw new Error("Muitas tentativas. Aguarde um momento antes de tentar novamente.");
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Serviço indisponível");
 
       const empresa = await getEmpresaPublicaById(input.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       if (!empresa.portalAtivo) throw new Error("Portal de agendamento não está ativo");
+
+      // ── Validar que a data não é no passado ────────────────────────────────
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const [ano, mes, dia] = input.data.split("-").map(Number);
+      const dataAgendamento = new Date(ano, mes - 1, dia);
+      dataAgendamento.setHours(0, 0, 0, 0);
+      if (dataAgendamento < hoje) {
+        throw new Error("Não é possível agendar em uma data passada.");
+      }
       // ── Verificar limite de agendamentos do plano ──────────────────────────
       const limitError = await checkAgendamentoLimit(input.empresaId);
       if (limitError) {
@@ -418,7 +471,12 @@ export const portalRouter = router({
       telefone: z.string().min(8),
       cpf: z.string().min(3),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // Rate limiting anti brute-force: máx 5 tentativas por minuto por IP
+      const ip = ctx.req.headers["x-forwarded-for"] as string || ctx.req.socket.remoteAddress || "unknown";
+      if (!checkRateLimit(`cpf_${ip}`, 5)) {
+        return { valido: false, nome: "", email: "" };
+      }
       const db = await getDb();
       if (!db) return { valido: false, nome: "", email: "" };
       const cpfNorm = input.cpf.replace(/[^0-9]/g, "");
@@ -500,11 +558,14 @@ export const portalRouter = router({
       const db = await getDb();
       if (!db) return [];
 
+      // Busca flexível por telefone (últimos 8 dígitos) — consistente com buscarClientePorTelefone
+      const telNorm = input.telefone.replace(/[^0-9]/g, "");
+      const telSuffix = telNorm.slice(-8);
       const clienteResult = await db.select({ id: clientes.id })
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
-          eq(clientes.telefone, input.telefone),
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!clienteResult.length) return [];
 
@@ -526,5 +587,44 @@ export const portalRouter = router({
         ))
         .orderBy(sql`${agendamentos.data} DESC, ${agendamentos.horaInicio} DESC`)
         .limit(10);
+    }),
+
+  /** Lista profissionais que atendem um serviço específico */
+  getProfissionaisPorServico: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      servicoId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      // Buscar profissionais vinculados ao serviço via profissionalServicos
+      const vinculados = await db.select({
+        id: profissionais.id,
+        nome: profissionais.nome,
+        especialidade: profissionais.especialidade,
+        avatarUrl: profissionais.avatarUrl,
+      })
+        .from(profissionais)
+        .innerJoin(profissionalServicos, eq(profissionalServicos.profissionalId, profissionais.id))
+        .where(and(
+          eq(profissionais.empresaId, input.empresaId),
+          eq(profissionais.ativo, true),
+          eq(profissionalServicos.servicoId, input.servicoId),
+        ))
+        .orderBy(profissionais.nome);
+
+      // Se nenhum vínculo existe, retornar todos os profissionais ativos (fallback)
+      if (vinculados.length === 0) {
+        return db.select({
+          id: profissionais.id,
+          nome: profissionais.nome,
+          especialidade: profissionais.especialidade,
+          avatarUrl: profissionais.avatarUrl,
+        }).from(profissionais)
+          .where(and(eq(profissionais.empresaId, input.empresaId), eq(profissionais.ativo, true)))
+          .orderBy(profissionais.nome);
+      }
+      return vinculados;
     }),
 });
