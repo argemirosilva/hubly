@@ -857,14 +857,14 @@ function ModalMembro({
     const payload = {
       nome: nome.trim(),
       email: email || undefined,
-      telefone: telefone || undefined,
-      especialidade: especialidade || undefined,
+      telefone: telefone || (isEdit ? null : undefined),
+      especialidade: especialidade || (isEdit ? null : undefined),
       corCalendario,
       isProfissional,
       temAcesso,
-      grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : undefined,
+      grupoId: grupoId && grupoId !== "none" ? parseInt(grupoId) : (isEdit ? null : undefined),
       senha: senha || undefined,
-      percentualComissao: percentualComissao || undefined,
+      percentualComissao: percentualComissao || (isEdit ? null : undefined),
     };
 
     if (isEdit) {
