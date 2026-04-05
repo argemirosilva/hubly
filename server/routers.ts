@@ -2371,6 +2371,11 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposEditar');
+        // Proteger grupo isAdmin contra renomeação
+        const grupoAtual = await getGrupoById(input.id);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e não pode ser editado.' });
+        }
         const { id, ...data } = input;
         await updateGrupo(id, data);
         return { success: true };
@@ -2382,6 +2387,11 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposExcluir');
+        // Proteger grupo isAdmin contra exclusão
+        const grupoAtual = await getGrupoById(input.id);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e não pode ser excluído.' });
+        }
         await deleteGrupo(input.id);
         return { success: true };
       }),
@@ -2396,6 +2406,11 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'gruposEditar');
+        // Proteger grupo isAdmin contra alteração de permissões
+        const grupoAtual = await getGrupoById(input.grupoId);
+        if (grupoAtual?.isAdmin) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e suas permissões não podem ser alteradas.' });
+        }
         // Filtrar apenas campos booleanos para evitar erro com campos extras do banco (id, grupoId, createdAt, updatedAt)
         const permissoesBooleanas = Object.fromEntries(
           Object.entries(input.permissoes).filter(([, v]) => typeof v === 'boolean')

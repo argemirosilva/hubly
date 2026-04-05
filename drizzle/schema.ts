@@ -394,6 +394,7 @@ export const gruposPermissoes = mysqlTable("grupos_permissoes", {
   descricao: text("descricao"),
   cor: varchar("cor", { length: 7 }).default("#6366f1"),
   isDefault: boolean("isDefault").default(false),
+  isAdmin: boolean("isAdmin").default(false), // supergrupo: bypass total de permissões, imutável
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -672,6 +672,22 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
   const [prof] = await db.select({ grupoId: profissionais.grupoId })
     .from(profissionais).where(eq(profissionais.id, profissionalId)).limit(1);
   if (!prof || !prof.grupoId) return null;
+  // Verificar se o grupo é isAdmin (supergrupo) — bypass total de permissões
+  const [grupoInfo] = await db.select({ isAdmin: gruposPermissoes.isAdmin })
+    .from(gruposPermissoes).where(eq(gruposPermissoes.id, prof.grupoId)).limit(1);
+  if (grupoInfo?.isAdmin) {
+    // Retornar objeto com todas as permissões como true (bypass total)
+    const allTrue: Record<string, boolean | number> = {};
+    const cols = await db.select().from(permissoesGrupo).limit(1);
+    const sample = cols[0];
+    if (sample) {
+      for (const key of Object.keys(sample)) {
+        if (key === 'id' || key === 'grupoId' || key === 'createdAt' || key === 'updatedAt') continue;
+        allTrue[key] = true;
+      }
+    }
+    return allTrue as any;
+  }
   // Buscar as permissões do grupo
   const grupoResult = await db.select().from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, prof.grupoId)).limit(1);
   const grupoPerms = grupoResult[0] ?? null;

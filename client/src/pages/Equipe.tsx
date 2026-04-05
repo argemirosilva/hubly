@@ -369,38 +369,53 @@ function AbaGrupos() {
       ) : (
         <div className="space-y-3">
           {grupos.map((grupo: any) => (
-            <div key={grupo.id} className="border border-border rounded-xl p-4">
+            <div key={grupo.id} className={`border rounded-xl p-4 ${grupo.isAdmin ? 'border-amber-500/40 bg-amber-500/5' : 'border-border'}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${grupo.cor ?? "#6366f1"}20` }}>
                   <Shield className="w-4 h-4" style={{ color: grupo.cor ?? "#6366f1" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm">{grupo.nome}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm">{grupo.nome}</h3>
+                    {grupo.isAdmin && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 font-medium flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Protegido
+                      </span>
+                    )}
+                  </div>
                   {grupo.descricao && <p className="text-xs text-muted-foreground truncate">{grupo.descricao}</p>}
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
-                    onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}
-                    title="Editar permissões"
-                  >
-                    <Settings2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
-                    onClick={() => { if (confirm("Excluir este grupo? Os membros perderão o grupo vinculado.")) deleteMutation.mutate({ id: grupo.id }); }}
-                    title="Excluir grupo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {!grupo.isAdmin && (
+                  <div className="flex gap-1">
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
+                      onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}
+                      title="Editar permissões"
+                    >
+                      <Settings2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                      onClick={() => { if (confirm("Excluir este grupo? Os membros perderão o grupo vinculado.")) deleteMutation.mutate({ id: grupo.id }); }}
+                      title="Excluir grupo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {PERMISSION_GROUPS.filter(g => g.items.some(i => grupo.permissoes?.[i.key])).map(g => (
-                  <span key={g.key} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground">{g.label}</span>
-                ))}
-                {!PERMISSION_GROUPS.some(g => g.items.some(i => grupo.permissoes?.[i.key])) && (
-                  <span className="text-xs text-muted-foreground italic">Sem permissões definidas</span>
+                {grupo.isAdmin ? (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600">Acesso total ao sistema</span>
+                ) : (
+                  <>
+                    {PERMISSION_GROUPS.filter(g => g.items.some(i => grupo.permissoes?.[i.key])).map(g => (
+                      <span key={g.key} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground">{g.label}</span>
+                    ))}
+                    {!PERMISSION_GROUPS.some(g => g.items.some(i => grupo.permissoes?.[i.key])) && (
+                      <span className="text-xs text-muted-foreground italic">Sem permissões definidas</span>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-border">
@@ -408,10 +423,16 @@ function AbaGrupos() {
                   <Users className="w-3.5 h-3.5" />
                   {membrosCount(grupo)} {membrosCount(grupo) === 1 ? "membro" : "membros"}
                 </span>
-                <Button variant="outline" size="sm" className="text-xs h-7 gap-1"
-                  onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}>
-                  <Pencil className="w-3 h-3" /> Editar permissões
-                </Button>
+                {grupo.isAdmin ? (
+                  <span className="text-xs text-amber-600/80 italic flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Permissões imutáveis
+                  </span>
+                ) : (
+                  <Button variant="outline" size="sm" className="text-xs h-7 gap-1"
+                    onClick={() => setPermissoesModal({ open: true, grupoId: grupo.id, nome: grupo.nome, permissoes: grupo.permissoes ?? {} })}>
+                    <Pencil className="w-3 h-3" /> Editar permissões
+                  </Button>
+                )}
               </div>
             </div>
           ))}

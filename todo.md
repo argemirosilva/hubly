@@ -1246,3 +1246,10 @@
 - [ ] Adicionar colunas pacotesVer, pacotesEditar, pacotesExcluir na tabela permissoes_grupo (schema + migration)
 - [ ] Atualizar tela de configuração de grupos para exibir seção Pacotes com os 3 toggles
 - [ ] Aplicar validação de permissão nos endpoints de pacotes
+
+## Grupo Administradores Protegido (v-atual)
+- [x] Schema: coluna isAdmin na tabela grupos_permissoes + migration aplicada
+- [x] Backend: bypass total de permissões para grupo isAdmin em getPermissoesGrupoByProfissional
+- [x] Backend: proteção contra edição/exclusão/alteração de permissões do grupo isAdmin
+- [x] Frontend: badge "Protegido" + borda âmbar + sem botões de editar/excluir para grupo isAdmin
+- [x] Frontend: exibir "Acesso total ao sistema" e "Permissões imutáveis" para grupo isAdmin
