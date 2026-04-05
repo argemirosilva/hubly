@@ -1208,3 +1208,11 @@
 
 - [x] Backend: procedure testarEnvioAutomacao (envia mensagem de teste para número informado substituindo variáveis com dados fictícios)
 - [x] Frontend: botão "Testar envio" no modal/formulário de edição de automação com campo de número de destino
+
+## Histórico de Envios de Teste
+
+- [x] Adicionar coluna is_test na tabela historicoEnviosAutomacao e migration SQL
+- [x] Atualizar helper registrarEnvioAutomacao para aceitar flag is_test
+- [x] Registrar envios de teste na procedure testarEnvio com is_test=true
+- [x] Exibir badge "Teste" no histórico de envios para diferenciar dos envios reais
+- [x] Filtro por tipo (real/teste) na tela de histórico de envios

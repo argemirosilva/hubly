@@ -811,6 +811,7 @@ export default function Automacoes() {
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
   const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
+  const [historicoFiltroTipo, setHistoricoFiltroTipo] = useState("");
   const HISTORICO_LIMIT = 20;
 
   const [jornadaPeriodo, setJornadaPeriodo] = useState<"24h" | "7d" | "30d">("7d");
@@ -835,6 +836,7 @@ export default function Automacoes() {
     offset: historicoPage * HISTORICO_LIMIT,
     canal: historicoFiltroCanal || undefined,
     status: historicoFiltroStatus || undefined,
+    isTeste: historicoFiltroTipo === "teste" ? true : historicoFiltroTipo === "real" ? false : undefined,
   }, { enabled: activeTab === "historico" });
 
   const [view, setView] = useState<"list" | "editor">("list");
@@ -1092,6 +1094,15 @@ export default function Automacoes() {
                   <option value="falhou">Falhou</option>
                   <option value="pendente">Pendente</option>
                 </select>
+                <select
+                  value={historicoFiltroTipo}
+                  onChange={e => { setHistoricoFiltroTipo(e.target.value); setHistoricoPage(0); }}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                >
+                  <option value="">Todos os tipos</option>
+                  <option value="real">Somente reais</option>
+                  <option value="teste">Somente testes</option>
+                </select>
               </div>
 
               {/* Tabela */}
@@ -1134,6 +1145,9 @@ export default function Automacoes() {
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-gray-600 text-xs">{row.automacaoNome || '—'}</span>
+                              {row.isTeste && (
+                                <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">TESTE</span>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${

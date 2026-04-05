@@ -343,6 +343,7 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   mensagem: text("mensagem"),
   status: mysqlEnum("status", ["enviado", "falhou", "pendente"]).default("enviado").notNull(),
   erroDetalhe: text("erroDetalhe"),
+  isTeste: boolean("is_teste").default(false), // true = envio de teste, false = envio real
   enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });

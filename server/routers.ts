@@ -1655,6 +1655,7 @@ export const appRouter = router({
         offset: z.number().min(0).default(0),
         canal: z.string().optional(),
         status: z.string().optional(),
+        isTeste: z.boolean().optional(),
       }))
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -1664,6 +1665,7 @@ export const appRouter = router({
           offset: input.offset,
           canal: input.canal,
           status: input.status,
+          isTeste: input.isTeste,
         });
       }),
 
@@ -1989,10 +1991,44 @@ export const appRouter = router({
           .replace(/\{\{link_confirmacao\}\}/g, "https://hubly.orizontech.com.br/confirmar");
         try {
           const ok = await waManager.sendMessage(input.telefone, mensagem);
-          if (!ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao enviar mensagem de teste via WhatsApp" });
+          if (!ok) {
+            await registrarEnvioAutomacao({
+              empresaId: empresa.id,
+              automacaoNome: "[TESTE]",
+              clienteNome: "Maria Silva (teste)",
+              telefone: input.telefone,
+              canal: "whatsapp",
+              mensagem,
+              status: "falhou",
+              erroDetalhe: "sendMessage retornou false",
+              isTeste: true,
+            });
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao enviar mensagem de teste via WhatsApp" });
+          }
+          await registrarEnvioAutomacao({
+            empresaId: empresa.id,
+            automacaoNome: "[TESTE]",
+            clienteNome: "Maria Silva (teste)",
+            telefone: input.telefone,
+            canal: "whatsapp",
+            mensagem,
+            status: "enviado",
+            isTeste: true,
+          });
           return { success: true, mensagemEnviada: mensagem };
         } catch (err: any) {
           if (err instanceof TRPCError) throw err;
+          await registrarEnvioAutomacao({
+            empresaId: empresa.id,
+            automacaoNome: "[TESTE]",
+            clienteNome: "Maria Silva (teste)",
+            telefone: input.telefone,
+            canal: "whatsapp",
+            mensagem,
+            status: "falhou",
+            erroDetalhe: err?.message ?? "desconhecido",
+            isTeste: true,
+          }).catch(() => {});
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Erro ao enviar: ${err?.message ?? "desconhecido"}` });
         }
       }),

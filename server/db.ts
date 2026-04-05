@@ -1572,6 +1572,7 @@ export async function registrarEnvioAutomacao(data: {
   status?: "enviado" | "falhou" | "pendente";
   erroDetalhe?: string;
   enviarEm?: Date; // Data/hora programada para envio (para status pendente)
+  isTeste?: boolean; // true = envio de teste
 }) {
   const db = await getDb();
   if (!db) return;
@@ -1615,6 +1616,7 @@ export async function registrarEnvioAutomacao(data: {
     status: data.status ?? "enviado",
     erroDetalhe: data.erroDetalhe ?? null,
     enviarEm: data.enviarEm ?? null,
+    isTeste: data.isTeste ?? false,
   });
 }
 
@@ -1664,6 +1666,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   canal?: string;
   status?: string;
   desde?: Date;
+  isTeste?: boolean; // undefined = todos, true = somente testes, false = somente reais
 }) {
   const db = await getDb();
   if (!db) return { rows: [], total: 0 };
@@ -1674,6 +1677,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   if (opts?.canal) conditions.push(eq(historicoEnviosAutomacao.canal, opts.canal as any));
   if (opts?.status) conditions.push(eq(historicoEnviosAutomacao.status, opts.status as any));
   if (opts?.desde) conditions.push(gte(historicoEnviosAutomacao.criadoEm, opts.desde));
+  if (opts?.isTeste !== undefined) conditions.push(eq(historicoEnviosAutomacao.isTeste, opts.isTeste));
 
   const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 
