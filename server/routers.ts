@@ -1571,7 +1571,7 @@ export const appRouter = router({
         // Notificar admins que o bloqueio foi cancelado
         await createNotificacao({
           empresaId: empresa.id,
-          destinatarioId: null, // null = visível para todos os admins
+          destinatarioId: null as any, // null = visível para todos os admins
           tipo: "bloqueio_cancelado",
           titulo: "Bloqueio cancelado",
           mensagem: `Bloqueio de agenda cancelado. Profissional: ${bloqueio.profissionalId}, Período: ${bloqueio.dataInicio} a ${bloqueio.dataFim}`,
