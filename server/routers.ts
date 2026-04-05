@@ -1480,16 +1480,16 @@ export const appRouter = router({
         const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
 
-        // Determinar se é admin
-        const { isAdmin } = await resolveAdminContext(ctx, empresa, "agendaAprovarBloqueio");
+        // Determinar se é owner (owner sempre aprova automaticamente)
+        const isOwner = empresa.ownerId === ctx.user?.id;
 
-        // Non-admin: force status "pendente"
-        const status = isAdmin ? "aprovado" : "pendente";
+        // Owner: força status "aprovado". Qualquer outro (admin ou não): "pendente"
+        const status = isOwner ? "aprovado" : "pendente";
 
         const id = await createBloqueioRecorrente({ ...input, profissionalId, empresaId: empresa.id, status });
 
-        // Se não-admin, criar notificação para admins (destinatarioId = null = visível para todos admins)
-        if (!isAdmin) {
+        // Se não for owner, criar notificação para admins (destinatarioId = null = visível para todos admins)
+        if (!isOwner) {
           const prof = await getProfissionalById(profissionalId);
           await createNotificacao({
             empresaId: empresa.id,
