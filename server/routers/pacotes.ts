@@ -856,6 +856,7 @@ export const pacotesRouter = router({
 
        // Buscar dados do cliente para notificações
       const [clienteRow] = await db.select({
+        id: clientes.id,
         nome: clientes.nome,
         telefone: clientes.telefone,
         whatsapp: clientes.whatsapp,
@@ -970,7 +971,7 @@ export const pacotesRouter = router({
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
       if (input.automacaoRenovacao !== undefined) updates.automacaoRenovacao = input.automacaoRenovacao;
       if (input.dataValidade !== undefined) {
-        updates.dataValidade = input.dataValidade || null;
+        updates.dataValidade = input.dataValidade ? new Date(input.dataValidade) : null;
       }
 
       if (Object.keys(updates).length > 0) {

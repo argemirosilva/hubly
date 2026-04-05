@@ -1473,6 +1473,7 @@ export default function Automacoes() {
 
   //  EDITOR
   return (
+    <>
     <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
         {/* Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-10 flex-shrink-0">
@@ -1540,7 +1541,6 @@ export default function Automacoes() {
           ) : null}
         </div>
     </div>
-
     {/* Debug Modal */}
     {debugOpen && (
       <DebugAutomacoesModal
@@ -1558,6 +1558,7 @@ export default function Automacoes() {
         automacaoId={testeEnvioId}
       />
     )}
+    </>
   );
 }
 
