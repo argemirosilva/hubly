@@ -38,7 +38,7 @@ const navGroups: NavGroup[] = [
     label: "Gestão",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users, permissao: "clientesVer" },
-      { href: "/admin/equipe", label: "Equipe", icon: UserCog, permissao: "profissionaisVer" },
+      { href: "/admin/equipe", label: "Equipe e Permissões", icon: UserCog, permissao: "profissionaisVer" },
       { href: "/admin/servicos", label: "Serviços", icon: Sparkles, permissao: "servicosVer" },
       { href: "/admin/pacotes", label: "Pacotes", icon: Package, permissao: "clientesVer" },
     ],
