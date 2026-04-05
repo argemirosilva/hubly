@@ -168,12 +168,12 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: 1.25rem 1.5rem;
+    padding: 0.75rem 1rem;
     transition: box-shadow 0.2s ease, transform 0.15s ease;
   }
   .stat-card:hover {
     box-shadow: 0 4px 24px oklch(55% 0.22 264 / 8%);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 
   /* ── Card padrão */
