@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pendente:  { label: "Pendente",  bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(40% 0.14 75)" },
@@ -17,6 +18,9 @@ export default function Bloqueios() {
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "" });
+
+  const { isOwner, pode } = usePermissoes();
+  const isAdmin = isOwner || pode('agendaAprovarBloqueio');
 
   const { data: bloqueios } = trpc.bloqueios.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
@@ -98,7 +102,7 @@ export default function Bloqueios() {
                       )}
                     </div>
                   </div>
-                  {b.status === "pendente" && (
+                  {b.status === "pendente" && isAdmin && (
                     <div className="flex gap-2 mt-3 ml-12">
                       <button
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"

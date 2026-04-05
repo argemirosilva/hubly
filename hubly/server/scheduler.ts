@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
+import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -234,6 +234,188 @@ async function verificarPacotesVencendoGlobal() {
     }
   } catch (err) {
     console.error("[Scheduler] Erro ao verificar pacotes:", err);
+  }
+}
+
+// ── Verificar pacotes com automacaoRenovacao habilitada (pacote_vencendo + sessoes_acabando) ──
+async function verificarPacotesAutomacaoRenovacao() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  const hojeStr = getDataStr(agora);
+
+  try {
+    // Buscar empresas que têm automações ativas para pacote_vencendo ou sessoes_acabando
+    const empresasVencendo = await getEmpresasComAutomacoes('evento');
+
+    for (const empresaId of empresasVencendo) {
+      // ── 1. Trigger pacote_vencendo: pacotes com automacaoRenovacao=true e dataValidade definida ──
+      const autoVencendo = await getAutomacaoByTipoGatilho(empresaId, 'evento', 'pacote_vencendo');
+      if (autoVencendo) {
+        const pacotesComValidade = await db.select({
+          id: pacotesClientes.id,
+          clienteId: pacotesClientes.clienteId,
+          nome: pacotesClientes.nome,
+          dataValidade: pacotesClientes.dataValidade,
+        })
+          .from(pacotesClientes)
+          .where(and(
+            eq(pacotesClientes.empresaId, empresaId),
+            eq(pacotesClientes.status, 'ativo'),
+            eq(pacotesClientes.automacaoRenovacao, true),
+            sql`${pacotesClientes.dataValidade} IS NOT NULL`,
+          ));
+
+        for (const pacote of pacotesComValidade) {
+          if (!pacote.dataValidade || !pacote.clienteId) continue;
+          const dataValidadeStr = getDataStr(pacote.dataValidade);
+          const dataValidadeMs = new Date(dataValidadeStr + 'T00:00:00').getTime();
+          const hojeMs = new Date(hojeStr + 'T00:00:00').getTime();
+          const diffDias = Math.round((dataValidadeMs - hojeMs) / (1000 * 60 * 60 * 24));
+
+          const avisos: { tipo: string; dias: number }[] = [];
+          if (diffDias === 7) avisos.push({ tipo: '7d', dias: 7 });
+          if (diffDias === 1) avisos.push({ tipo: '1d', dias: 1 });
+
+          for (const aviso of avisos) {
+            // Deduplicação: automacaoId + pacoteClienteId + tipoAviso + dataAlvo
+            const dedupeKey = `${autoVencendo.id}_${pacote.id}_${aviso.tipo}_${dataValidadeStr}`;
+            const [existente] = await db.select({ id: historicoEnviosAutomacao.id })
+              .from(historicoEnviosAutomacao)
+              .where(and(
+                eq(historicoEnviosAutomacao.empresaId, empresaId),
+                eq(historicoEnviosAutomacao.automacaoId, autoVencendo.id),
+                sql`${historicoEnviosAutomacao.mensagem} LIKE ${'%' + dedupeKey + '%'}`,
+              ))
+              .limit(1);
+            if (existente) continue;
+
+            // Buscar dados do cliente
+            const [clienteData] = await db.select({ telefone: clientes.telefone, whatsapp: clientes.whatsapp, nome: clientes.nome })
+              .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+            const tel = clienteData?.telefone || clienteData?.whatsapp;
+            if (!tel || !clienteData) continue;
+
+            // Buscar sessões restantes
+            const itens = await db.select({ quantidadeTotal: pacotesClientesItens.quantidadeTotal, quantidadeUsada: pacotesClientesItens.quantidadeUsada })
+              .from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+            const sessoesTotal = itens.reduce((s, i) => s + i.quantidadeTotal, 0);
+            const sessoesRestantes = sessoesTotal - itens.reduce((s, i) => s + i.quantidadeUsada, 0);
+
+            const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+
+            let msg = autoVencendo.corpoMensagem;
+            msg = msg
+              .replace(/\{\{nome_cliente\}\}/g, clienteData.nome ?? '')
+              .replace(/\{\{primeiro_nome\}\}/g, (clienteData.nome ?? '').split(' ')[0])
+              .replace(/\{\{empresa\}\}/g, empresaData?.nome ?? '')
+              .replace(/\{\{pacote\}\}/g, pacote.nome ?? '')
+              .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
+              .replace(/\{\{sessoes_total\}\}/g, String(sessoesTotal))
+              .replace(/\{\{data_vencimento\}\}/g, new Date(dataValidadeStr + 'T12:00:00').toLocaleDateString('pt-BR'));
+            // Append deduplication key as invisible marker
+            msg += `\u200B${dedupeKey}`;
+
+            const midiaUrl = (() => {
+              if (!autoVencendo.flowJson) return undefined;
+              try {
+                const flow = JSON.parse(autoVencendo.flowJson);
+                if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+                else if (flow?.midiaUrl) return flow.midiaUrl;
+              } catch {} return undefined;
+            })();
+
+            await registrarEnvioAutomacao({
+              empresaId, automacaoId: autoVencendo.id, automacaoNome: autoVencendo.nome,
+              clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
+              telefone: tel, canal: 'whatsapp', mensagem: msg, status: 'pendente',
+              enviarEm: new Date(), midiaUrl,
+            });
+            console.log(`[Scheduler] Automação pacote_vencendo (${aviso.tipo}): enfileirado para ${clienteData.nome} (pacote ${pacote.id})`);
+          }
+        }
+      }
+
+      // ── 2. Trigger sessoes_acabando: pacotes com automacaoRenovacao=true e algum item com 1 sessão restante ──
+      const autoSessoes = await getAutomacaoByTipoGatilho(empresaId, 'evento', 'sessoes_acabando');
+      if (autoSessoes) {
+        const pacotesAtivos = await db.select({
+          id: pacotesClientes.id,
+          clienteId: pacotesClientes.clienteId,
+          nome: pacotesClientes.nome,
+        })
+          .from(pacotesClientes)
+          .where(and(
+            eq(pacotesClientes.empresaId, empresaId),
+            eq(pacotesClientes.status, 'ativo'),
+            eq(pacotesClientes.automacaoRenovacao, true),
+          ));
+
+        for (const pacote of pacotesAtivos) {
+          if (!pacote.clienteId) continue;
+          const itens = await db.select({
+            id: pacotesClientesItens.id,
+            quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+            quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+          }).from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+
+          // Check if ANY item has exactly 1 session remaining
+          const itemComUmaSessao = itens.find(i => (i.quantidadeTotal - i.quantidadeUsada) === 1);
+          if (!itemComUmaSessao) continue;
+
+          // Deduplicação: automacaoId + pacoteClienteId + pacoteClienteItemId
+          const dedupeKey = `sessoes_${autoSessoes.id}_${pacote.id}_${itemComUmaSessao.id}`;
+          const [existente] = await db.select({ id: historicoEnviosAutomacao.id })
+            .from(historicoEnviosAutomacao)
+            .where(and(
+              eq(historicoEnviosAutomacao.empresaId, empresaId),
+              eq(historicoEnviosAutomacao.automacaoId, autoSessoes.id),
+              sql`${historicoEnviosAutomacao.mensagem} LIKE ${'%' + dedupeKey + '%'}`,
+            ))
+            .limit(1);
+          if (existente) continue;
+
+          const [clienteData] = await db.select({ telefone: clientes.telefone, whatsapp: clientes.whatsapp, nome: clientes.nome })
+            .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
+          const tel = clienteData?.telefone || clienteData?.whatsapp;
+          if (!tel || !clienteData) continue;
+
+          const sessoesTotal = itens.reduce((s, i) => s + i.quantidadeTotal, 0);
+          const sessoesRestantes = sessoesTotal - itens.reduce((s, i) => s + i.quantidadeUsada, 0);
+          const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+
+          let msg = autoSessoes.corpoMensagem;
+          msg = msg
+            .replace(/\{\{nome_cliente\}\}/g, clienteData.nome ?? '')
+            .replace(/\{\{primeiro_nome\}\}/g, (clienteData.nome ?? '').split(' ')[0])
+            .replace(/\{\{empresa\}\}/g, empresaData?.nome ?? '')
+            .replace(/\{\{pacote\}\}/g, pacote.nome ?? '')
+            .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
+            .replace(/\{\{sessoes_total\}\}/g, String(sessoesTotal));
+          msg += `\u200B${dedupeKey}`;
+
+          const midiaUrl = (() => {
+            if (!autoSessoes.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(autoSessoes.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
+
+          await registrarEnvioAutomacao({
+            empresaId, automacaoId: autoSessoes.id, automacaoNome: autoSessoes.nome,
+            clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
+            telefone: tel, canal: 'whatsapp', mensagem: msg, status: 'pendente',
+            enviarEm: new Date(), midiaUrl,
+          });
+          console.log(`[Scheduler] Automação sessoes_acabando: enfileirado para ${clienteData.nome} (pacote ${pacote.id})`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao verificar pacotes com automação de renovação:', err);
   }
 }
 
@@ -539,6 +721,14 @@ async function processarAutomacoesAgendadas() {
           }
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+          const midiaUrlDiasAntes = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -551,6 +741,7 @@ async function processarAutomacoesAgendadas() {
             mensagem,
             status: 'pendente',
             enviarEm: new Date(), // deve ser enviado agora
+            midiaUrl: midiaUrlDiasAntes,
           }).catch(() => {});
 
           console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
@@ -647,6 +838,14 @@ async function processarAutomacoesAgendadas() {
           }
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+          const midiaUrlHorasAntes = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -659,6 +858,7 @@ async function processarAutomacoesAgendadas() {
             mensagem,
             status: 'pendente',
             enviarEm: new Date(), // deve ser enviado agora
+            midiaUrl: midiaUrlHorasAntes,
           }).catch(() => {});
 
           console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
@@ -754,6 +954,14 @@ async function processarAutomacoesAgendadas() {
           }
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+          const midiaUrlHorasApos = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -766,6 +974,7 @@ async function processarAutomacoesAgendadas() {
             mensagem,
             status: 'pendente',
             enviarEm: new Date(), // deve ser enviado agora
+            midiaUrl: midiaUrlHorasApos,
           }).catch(() => {});
 
           console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
@@ -858,6 +1067,15 @@ async function processarAutomacoesAgendadas() {
           }
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+          const midiaUrlDiasDepois = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
           await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
@@ -870,6 +1088,7 @@ async function processarAutomacoesAgendadas() {
             mensagem,
             status: 'pendente',
             enviarEm: new Date(), // deve ser enviado agora
+            midiaUrl: midiaUrlDiasDepois,
           }).catch(() => {});
 
           console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
@@ -878,6 +1097,215 @@ async function processarAutomacoesAgendadas() {
     }
   } catch (err) {
     console.error('[Scheduler] Erro ao processar automações agendadas:', err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Processar automações do tipo aniversario_mes
+// Roda a cada 15 minutos e dispara para clientes cujo mês de nascimento = mês atual
+// ─────────────────────────────────────────────────────────────────────────────
+async function processarAniversarioMes() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  const mesAtual = agora.getMonth() + 1; // 1-12
+  const JANELA_MS = 15 * 60 * 1000;
+
+  try {
+    const empresasAniversario = await getEmpresasComAutomacoes('aniversario_mes');
+    if (empresasAniversario.length === 0) return;
+
+    for (const empresaId of empresasAniversario) {
+      const automacoesAniv = await getAutomacoesAtivasByTipo(empresaId, 'aniversario_mes');
+
+      for (const automacao of automacoesAniv) {
+        const horaDisparo = automacao.horaDisparo ?? '09:00:00';
+        const [hStr, mStr] = horaDisparo.split(':');
+        const horaAlvo = parseInt(hStr, 10);
+        const minAlvo = parseInt(mStr, 10);
+
+        // Verificar se estamos na janela de disparo
+        const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+        const minutosAlvo = horaAlvo * 60 + minAlvo;
+        if (Math.abs(minutosAgora - minutosAlvo) > 15) continue;
+
+        // Buscar clientes com mês de nascimento = mês atual
+        const clientesAniversario = await db
+          .select({
+            id: clientes.id,
+            nome: clientes.nome,
+            telefone: clientes.telefone,
+            whatsapp: clientes.whatsapp,
+            dataNascimento: clientes.dataNascimento,
+          })
+          .from(clientes)
+          .where(and(
+            eq(clientes.empresaId, empresaId),
+            eq(clientes.ativo, true),
+            sql`MONTH(${clientes.dataNascimento}) = ${mesAtual}`,
+          ));
+
+        const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+
+        for (const cliente of clientesAniversario) {
+          const tel = cliente.whatsapp || cliente.telefone;
+          if (!tel) continue;
+
+          // Deduplicação por automacaoId + clienteId + data
+          const jaEnviou = await jaEnviouParaCliente(empresaId, automacao.id, cliente.id);
+          if (jaEnviou) continue;
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: cliente.nome || 'Cliente',
+            primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
+            empresa: empresaData?.nome ?? '',
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            mensagem =
+              `🎂 *Feliz Aniversário!*\n\n` +
+              `Olá, *${cliente.nome ?? 'cliente'}*!\n\n` +
+              `A equipe de *${empresaData?.nome ?? ''}* deseja um feliz aniversário! 🎉\n\n` +
+              `Esperamos você em breve! 💖`;
+          }
+
+          const midiaUrl = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
+
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: cliente.id,
+            clienteNome: cliente.nome ?? undefined,
+            telefone: tel,
+            canal: 'whatsapp',
+            mensagem,
+            status: 'pendente',
+            enviarEm: new Date(),
+            midiaUrl,
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Aniversário do mês: enfileirado para ${cliente.nome} (automação "${automacao.nome}")`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao processar aniversários do mês:', err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Processar automações do tipo data_fixa
+// Roda a cada 15 minutos e dispara na data e horário exatos configurados
+// ─────────────────────────────────────────────────────────────────────────────
+async function processarDataFixa() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  const diaAtual = agora.getDate();
+  const mesAtual = agora.getMonth() + 1; // 1-12
+
+  try {
+    const empresasDataFixa = await getEmpresasComAutomacoes('data_fixa');
+    if (empresasDataFixa.length === 0) return;
+
+    for (const empresaId of empresasDataFixa) {
+      const automacoesFixa = await getAutomacoesAtivasByTipo(empresaId, 'data_fixa');
+
+      for (const automacao of automacoesFixa) {
+        const diaConfig = automacao.dataFixaDia;
+        const mesConfig = automacao.dataFixaMes;
+        const horaConfig = automacao.dataFixaHora ?? '09:00:00';
+
+        // Verificar se hoje é a data configurada
+        if (diaConfig !== diaAtual || mesConfig !== mesAtual) continue;
+
+        // Verificar se estamos na janela de disparo
+        const [hStr, mStr] = horaConfig.split(':');
+        const horaAlvo = parseInt(hStr, 10);
+        const minAlvo = parseInt(mStr, 10);
+        const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+        const minutosAlvo = horaAlvo * 60 + minAlvo;
+        if (Math.abs(minutosAgora - minutosAlvo) > 15) continue;
+
+        // Buscar todos os clientes ativos da empresa
+        const clientesEmpresa = await db
+          .select({
+            id: clientes.id,
+            nome: clientes.nome,
+            telefone: clientes.telefone,
+            whatsapp: clientes.whatsapp,
+          })
+          .from(clientes)
+          .where(and(
+            eq(clientes.empresaId, empresaId),
+            eq(clientes.ativo, true),
+          ));
+
+        const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+
+        for (const cliente of clientesEmpresa) {
+          const tel = cliente.whatsapp || cliente.telefone;
+          if (!tel) continue;
+
+          // Deduplicação por automacaoId + clienteId + data
+          const jaEnviou = await jaEnviouParaCliente(empresaId, automacao.id, cliente.id);
+          if (jaEnviou) continue;
+
+          const templateVars: Record<string, string> = {
+            nome_cliente: cliente.nome || 'Cliente',
+            primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
+            empresa: empresaData?.nome ?? '',
+          };
+
+          let mensagem: string;
+          if (automacao.corpoMensagem) {
+            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+          } else {
+            mensagem = `Olá, *${cliente.nome ?? 'cliente'}*! Mensagem de *${empresaData?.nome ?? ''}*.`;
+          }
+
+          const midiaUrl = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
+
+          await registrarEnvioAutomacao({
+            empresaId,
+            automacaoId: automacao.id,
+            automacaoNome: automacao.nome,
+            clienteId: cliente.id,
+            clienteNome: cliente.nome ?? undefined,
+            telefone: tel,
+            canal: 'whatsapp',
+            mensagem,
+            status: 'pendente',
+            enviarEm: new Date(),
+            midiaUrl,
+          }).catch(() => {});
+
+          console.log(`[Scheduler] Data fixa: enfileirado para ${cliente.nome} (automação "${automacao.nome}")`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erro ao processar automações de data fixa:', err);
   }
 }
 
@@ -1087,18 +1515,57 @@ export async function processarFilaPendente() {
       }
 
       try {
-        const enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+        let enviado = false;
+        let erroDetalhe: string | null = null;
+
+        // Verificar se há mídia para enviar
+        if (item.midiaUrl) {
+          try {
+            // Classificar tipo de mídia pela extensão
+            const urlLower = item.midiaUrl.toLowerCase();
+            const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/.test(urlLower);
+            const isDocument = /\.pdf(\?|$)/.test(urlLower);
+            const mimeType = isDocument ? 'application/pdf' : 'image/jpeg';
+
+            if (isImage || isDocument) {
+              enviado = await waManager.sendMediaMessage(item.telefone, item.midiaUrl, item.mensagem, mimeType);
+            } else {
+              // Extensão desconhecida: tentar enviar como imagem
+              enviado = await waManager.sendMediaMessage(item.telefone, item.midiaUrl, item.mensagem);
+            }
+
+            if (!enviado) {
+              // Mídia falhou: tentar enviar apenas texto como fallback
+              console.log(`[Fila] ⚠️ Mídia falhou para ${item.clienteNome ?? item.telefone}, enviando apenas texto`);
+              erroDetalhe = 'Envio de mídia falhou, enviado apenas texto';
+              enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+            }
+          } catch (mediaErr) {
+            // Mídia falhou com exceção: tentar enviar apenas texto como fallback
+            console.warn(`[Fila] ⚠️ Erro ao enviar mídia para ${item.clienteNome ?? item.telefone}:`, mediaErr);
+            erroDetalhe = `Mídia falhou (${String(mediaErr)}), enviado apenas texto`;
+            try {
+              enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+            } catch {
+              enviado = false;
+            }
+          }
+        } else {
+          // Sem mídia: enviar apenas texto
+          enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+        }
+
         await db.update(historicoEnviosAutomacao)
           .set({
             status: enviado ? 'enviado' : 'falhou',
-            erroDetalhe: enviado ? null : 'Falha ao enviar via WhatsApp',
+            erroDetalhe: enviado ? (erroDetalhe ?? null) : (erroDetalhe ?? 'Falha ao enviar via WhatsApp'),
           })
           .where(eq(historicoEnviosAutomacao.id, item.id));
 
         if (enviado) {
           // Incrementar contador de uso
           try { await (await import('./db-plans')).incrementWhatsappCount(item.empresaId); } catch {}
-          console.log(`[Fila] ✅ Enviado para ${item.clienteNome ?? item.telefone} (${item.automacaoNome ?? 'manual'})`);
+          console.log(`[Fila] ✅ Enviado para ${item.clienteNome ?? item.telefone} (${item.automacaoNome ?? 'manual'})${item.midiaUrl ? ' [com mídia]' : ''}`);
         } else {
           console.log(`[Fila] ❌ Falhou para ${item.clienteNome ?? item.telefone}`);
         }
@@ -1181,12 +1648,26 @@ async function cancelarPreAgendamentosExpirados() {
                 await registrarEnvioAutomacao({
                   empresaId: empresa.id,
                   automacaoId: automacao.id,
+                  automacaoNome: automacao.nome,
                   agendamentoId: ag.id,
                   clienteId: ag.clienteId,
+                  clienteNome: nomeCliente,
                   telefone,
                   mensagem,
                   status: 'pendente',
                   enviarEm: new Date(),
+                  midiaUrl: (() => {
+                    if (!automacao.flowJson) return undefined;
+                    try {
+                      const flow = JSON.parse(automacao.flowJson);
+                      if (Array.isArray(flow)) {
+                        for (const node of flow) {
+                          if (node?.data?.midiaUrl) return node.data.midiaUrl;
+                        }
+                      } else if (flow?.midiaUrl) return flow.midiaUrl;
+                    } catch {}
+                    return undefined;
+                  })(),
                 });
               }
             }
@@ -1231,8 +1712,14 @@ export function initScheduler() {
   // Executar após 60s do start para garantir que o DB está pronto
   setTimeout(() => {
     processarAutomacoesAgendadas();
+    processarAniversarioMes();
+    processarDataFixa();
+    verificarPacotesAutomacaoRenovacao();
     setInterval(() => {
       processarAutomacoesAgendadas();
+      processarAniversarioMes();
+      processarDataFixa();
+      verificarPacotesAutomacaoRenovacao();
     }, AUTOMACAO_CHECK_MS);
   }, 60_000);
 

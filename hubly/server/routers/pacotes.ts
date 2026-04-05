@@ -16,7 +16,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
-import { getAutomacaoByEvento } from "../db";
+import { getAutomacaoByEvento, registrarEnvioAutomacao } from "../db";
 import { waManager } from "../whatsapp";
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
@@ -288,6 +288,8 @@ export const pacotesRouter = router({
       numeroParcelas: z.number().min(1).max(24).optional().default(1),
       validadeDias: z.number().optional(),
       observacoes: z.string().optional(),
+      automacaoRenovacao: z.boolean().optional(),
+      dataValidade: z.string().nullable().optional(),
       itens: z.array(z.object({
         servicoId: z.number(),
         quantidadeTotal: z.number().min(1),
@@ -318,6 +320,8 @@ export const pacotesRouter = router({
         valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
         dataVencimento,
         observacoes: input.observacoes,
+        automacaoRenovacao: input.automacaoRenovacao ?? false,
+        dataValidade: input.dataValidade ? input.dataValidade : undefined,
       });
       const pacoteId = (result as any).insertId as number;
 
@@ -882,7 +886,34 @@ export const pacotesRouter = router({
               .replace(/\{\{data_vencimento\}\}/g, vencimentoStr)
               .replace(/\{\{valor_pago\}\}/g, `R$ ${input.valorPago.toFixed(2).replace('.', ',')}`)
               .replace(/\{\{parcelas\}\}/g, parcelasStr);
-            await waManager.sendMessage(telefoneCliente, mensagem);
+            // Extrair midiaUrl do flowJson
+            let midiaUrl: string | null = null;
+            if (automacao.flowJson) {
+              try {
+                const flow = JSON.parse(automacao.flowJson);
+                if (Array.isArray(flow)) {
+                  for (const node of flow) {
+                    if (node?.data?.midiaUrl) { midiaUrl = node.data.midiaUrl; break; }
+                  }
+                } else if (flow?.midiaUrl) {
+                  midiaUrl = flow.midiaUrl;
+                }
+              } catch { /* ignorar erro de parse */ }
+            }
+            // Enfileirar na fila universal em vez de enviar diretamente
+            await registrarEnvioAutomacao({
+              empresaId: empId,
+              automacaoId: automacao.id,
+              automacaoNome: automacao.nome,
+              clienteId: clienteRow?.id,
+              clienteNome: clienteRow?.nome ?? undefined,
+              telefone: telefoneCliente,
+              canal: 'whatsapp',
+              mensagem,
+              status: 'pendente',
+              enviarEm: new Date(),
+              midiaUrl: midiaUrl ?? undefined,
+            });
           }
         }
       } catch (e) {
@@ -903,6 +934,8 @@ export const pacotesRouter = router({
       numeroParcelas: z.number().min(1).max(24).optional(),
       dataVencimento: z.string().nullable().optional(),
       observacoes: z.string().optional(),
+      automacaoRenovacao: z.boolean().optional(),
+      dataValidade: z.string().nullable().optional(),
       itens: z.array(z.object({
         servicoId: z.number(),
         quantidade: z.number().min(1),
@@ -935,6 +968,10 @@ export const pacotesRouter = router({
         updates.dataVencimento = input.dataVencimento ? new Date(input.dataVencimento) : null;
       }
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
+      if (input.automacaoRenovacao !== undefined) updates.automacaoRenovacao = input.automacaoRenovacao;
+      if (input.dataValidade !== undefined) {
+        updates.dataValidade = input.dataValidade || null;
+      }
 
       if (Object.keys(updates).length > 0) {
         await db.update(pacotesClientes).set(updates).where(eq(pacotesClientes.id, input.id));

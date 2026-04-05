@@ -295,6 +295,20 @@
       "when": 1775389028798,
       "tag": "0041_flawless_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1775389028799,
+      "tag": "0042_automacao_manual",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1775389028800,
+      "tag": "0043_melhorias_automacoes_agendamentos",
+      "breakpoints": true
     }
   ]
 }

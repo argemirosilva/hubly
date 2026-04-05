@@ -726,6 +726,9 @@ export default function Automacoes() {
     onError: (e: any) => toast.error(e.message),
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [testeEnvioId, setTesteEnvioId] = useState<number | null>(null);
+  const [testeTelefone, setTesteTelefone] = useState("");
   const [activeTab, setActiveTab] = useState<"automacoes" | "historico" | "jornada">("automacoes");
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
@@ -936,6 +939,10 @@ export default function Automacoes() {
                   <Plus size={14} className="mr-1" />
                   <span className="hidden sm:inline">Nova automação</span>
                   <span className="sm:hidden">Nova</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDebugOpen(true)}>
+                  <Activity size={14} className="mr-1" />
+                  <span className="hidden sm:inline">Debug</span>
                 </Button>
               </div>
             )}
@@ -1316,6 +1323,10 @@ export default function Automacoes() {
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
+                          onClick={() => setTesteEnvioId(a.id)}>
+                          <Send size={13} className="text-indigo-500" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
                           <Edit2 size={13} />
                         </Button>
@@ -1529,5 +1540,204 @@ export default function Automacoes() {
           ) : null}
         </div>
     </div>
+
+    {/* Debug Modal */}
+    {debugOpen && (
+      <DebugAutomacoesModal
+        open={debugOpen}
+        onClose={() => setDebugOpen(false)}
+        automacoes={automacoesSalvas as any[]}
+      />
+    )}
+
+    {/* Teste de Envio Modal */}
+    {testeEnvioId !== null && (
+      <TesteEnvioModal
+        open={testeEnvioId !== null}
+        onClose={() => { setTesteEnvioId(null); setTesteTelefone(""); }}
+        automacaoId={testeEnvioId}
+      />
+    )}
+  );
+}
+
+
+// ─── Debug Modal ────────────────────────────────────────────────────────────
+
+function DebugAutomacoesModal({ open, onClose, automacoes }: {
+  open: boolean;
+  onClose: () => void;
+  automacoes: any[];
+}) {
+  const [filtroAutomacao, setFiltroAutomacao] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("24h");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  const { data: debugData = [], isLoading } = trpc.automacoes.debugList.useQuery({
+    automacaoId: filtroAutomacao ? parseInt(filtroAutomacao) : undefined,
+    status: filtroStatus ? (filtroStatus as any) : undefined,
+    periodo: filtroPeriodo ? (filtroPeriodo as any) : undefined,
+    limite: 100,
+  }, { refetchInterval: 5000 });
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Activity size={16} className="text-indigo-600" />
+            Debug de Automações
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap gap-2 px-5 pb-3 border-b">
+          <Select value={filtroAutomacao} onValueChange={setFiltroAutomacao}>
+            <SelectTrigger className="h-8 text-xs w-[180px]">
+              <SelectValue placeholder="Todas automações" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas automações</SelectItem>
+              {automacoes.map(a => (
+                <SelectItem key={a.id} value={String(a.id)}>{a.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+            <SelectTrigger className="h-8 text-xs w-[130px]">
+              <SelectValue placeholder="Todos status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos status</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="enviado">Enviado</SelectItem>
+              <SelectItem value="falhou">Falhou</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+            <SelectTrigger className="h-8 text-xs w-[130px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1h">Última hora</SelectItem>
+              <SelectItem value="24h">Últimas 24h</SelectItem>
+              <SelectItem value="7d">Últimos 7 dias</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Lista */}
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          {isLoading ? (
+            <div className="text-center py-8 text-sm text-gray-400">Carregando...</div>
+          ) : debugData.length === 0 ? (
+            <div className="text-center py-8 text-sm text-gray-400">Nenhum envio encontrado para os filtros selecionados.</div>
+          ) : (
+            <div className="space-y-2">
+              {debugData.map((item: any) => {
+                const isFailed = item.status === 'falhou';
+                const isExpanded = expandedId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border p-3 text-sm cursor-pointer transition-colors"
+                    style={{
+                      borderColor: isFailed ? "oklch(58% 0.22 25 / 30%)" : "oklch(90% 0.012 250)",
+                      background: isFailed ? "oklch(58% 0.22 25 / 4%)" : "white",
+                    }}
+                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-gray-400 tabular-nums">
+                        {item.criadoEm ? new Date(item.criadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </span>
+                      <span className="text-xs font-medium text-gray-700 truncate">{item.automacaoNome ?? "—"}</span>
+                      {item.tipoGatilho && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.tipoGatilho}</span>
+                      )}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                        item.status === 'enviado' ? 'bg-green-100 text-green-700' :
+                        item.status === 'pendente' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {item.status === 'enviado' ? '✅ Enviado' : item.status === 'pendente' ? '⏳ Pendente' : '❌ Falhou'}
+                      </span>
+                      {item.isTeste && (
+                        <Badge className="text-[9px] px-1.5 py-0 bg-violet-100 text-violet-700 border-violet-200">Teste</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                      <span>{item.clienteNome ?? "—"}</span>
+                      {item.telefone && <span>· {item.telefone}</span>}
+                    </div>
+                    {isFailed && item.erroDetalhe && (
+                      <div className={`mt-2 text-xs text-red-600 ${isExpanded ? '' : 'line-clamp-1'}`}>
+                        {item.erroDetalhe}
+                      </div>
+                    )}
+                    {isExpanded && item.mensagem && (
+                      <div className="mt-2 p-2 rounded bg-gray-50 text-xs text-gray-600 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                        {item.mensagem}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Teste de Envio Modal ───────────────────────────────────────────────────
+
+function TesteEnvioModal({ open, onClose, automacaoId }: {
+  open: boolean;
+  onClose: () => void;
+  automacaoId: number;
+}) {
+  const [telefone, setTelefone] = useState("");
+  const testarMutation = trpc.automacoes.testarEnvio.useMutation({
+    onSuccess: () => {
+      toast.success("Teste enfileirado! Acompanhe no Debug.");
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Send size={15} className="text-indigo-600" />
+            Testar Envio
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div>
+            <Label className="text-xs text-gray-500 mb-1 block">Telefone de teste</Label>
+            <Input
+              value={telefone}
+              onChange={e => setTelefone(e.target.value)}
+              placeholder="5511999999999"
+              className="text-sm"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">Variáveis serão substituídas por dados de exemplo.</p>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={() => testarMutation.mutate({ automacaoId, telefone })}
+            disabled={!telefone || testarMutation.isPending}>
+            {testarMutation.isPending ? "Enviando..." : "Enviar teste"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
