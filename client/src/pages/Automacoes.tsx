@@ -1570,14 +1570,14 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
   onClose: () => void;
   automacoes: any[];
 }) {
-  const [filtroAutomacao, setFiltroAutomacao] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroAutomacao, setFiltroAutomacao] = useState("all");
+  const [filtroStatus, setFiltroStatus] = useState("all");
   const [filtroPeriodo, setFiltroPeriodo] = useState("24h");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: debugData = [], isLoading } = trpc.automacoes.debugList.useQuery({
-    automacaoId: filtroAutomacao ? parseInt(filtroAutomacao) : undefined,
-    status: filtroStatus ? (filtroStatus as any) : undefined,
+    automacaoId: filtroAutomacao && filtroAutomacao !== "all" ? parseInt(filtroAutomacao) : undefined,
+    status: filtroStatus && filtroStatus !== "all" ? (filtroStatus as any) : undefined,
     periodo: filtroPeriodo ? (filtroPeriodo as any) : undefined,
     limite: 100,
   }, { refetchInterval: 5000 });
@@ -1599,7 +1599,7 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
               <SelectValue placeholder="Todas automações" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas automações</SelectItem>
+              <SelectItem value="all">Todas automações</SelectItem>
               {automacoes.map(a => (
                 <SelectItem key={a.id} value={String(a.id)}>{a.nome}</SelectItem>
               ))}
@@ -1610,7 +1610,7 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
               <SelectValue placeholder="Todos status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos status</SelectItem>
+              <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="enviado">Enviado</SelectItem>
               <SelectItem value="falhou">Falhou</SelectItem>

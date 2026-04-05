@@ -28,7 +28,7 @@ export default function Calendario() {
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
-  const [profissionalFiltro, setProfissionalFiltro] = useState<string>("");
+  const [profissionalFiltro, setProfissionalFiltro] = useState<string>("all");
 
   const { isOwner, pode } = usePermissoes();
   const isAdmin = isOwner || pode('agendamentosVerTodos');
@@ -43,7 +43,7 @@ export default function Calendario() {
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({
     dataInicio,
     dataFim,
-    profissionalId: profissionalFiltro ? parseInt(profissionalFiltro) : undefined,
+    profissionalId: profissionalFiltro && profissionalFiltro !== "all" ? parseInt(profissionalFiltro) : undefined,
   });
 
   const { data: clientes } = trpc.clientes.list.useQuery();
@@ -146,7 +146,7 @@ export default function Calendario() {
                 <SelectValue placeholder="Todos profissionais" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos profissionais</SelectItem>
+                <SelectItem value="all">Todos profissionais</SelectItem>
                 {profissionais.filter(p => p.ativo).map(p => (
                   <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
                 ))}
