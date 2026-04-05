@@ -773,6 +773,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     borderColor: getPlanColor(planStatus.plan) + "30",
                     color: getPlanColor(planStatus.plan),
                   }}>
+                  <CreditCard className="w-3 h-3" />
                   <span className="text-[11px] font-semibold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
                 </div>
               </Link>
