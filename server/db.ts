@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
@@ -371,6 +371,29 @@ export async function getNotificacoesByDestinatario(destinatarioId: number, empr
     .where(and(eq(notificacoes.destinatarioId, destinatarioId), eq(notificacoes.empresaId, empresaId)))
     .orderBy(desc(notificacoes.createdAt))
     .limit(50);
+}
+
+/**
+ * Busca notificações filtradas por papel:
+ * - Admin (profissionalId = null): retorna todas da empresa
+ * - Não-admin: retorna onde destinatarioId = profissionalId OU destinatarioId IS NULL
+ */
+export async function getNotificacoesByEmpresa(empresaId: number, profissionalId?: number | null) {
+  const db = await getDb();
+  if (!db) return [];
+  if (!profissionalId) {
+    // Admin: todas da empresa
+    return db.select().from(notificacoes)
+      .where(eq(notificacoes.empresaId, empresaId))
+      .orderBy(desc(notificacoes.createdAt)).limit(50);
+  }
+  // Não-admin: apenas as suas ou as sem destinatário específico
+  return db.select().from(notificacoes)
+    .where(and(
+      eq(notificacoes.empresaId, empresaId),
+      or(eq(notificacoes.destinatarioId, profissionalId), isNull(notificacoes.destinatarioId))
+    ))
+    .orderBy(desc(notificacoes.createdAt)).limit(50);
 }
 
 export async function createNotificacao(data: typeof notificacoes.$inferInsert) {
@@ -1572,7 +1595,8 @@ export async function registrarEnvioAutomacao(data: {
   status?: "enviado" | "falhou" | "pendente";
   erroDetalhe?: string;
   enviarEm?: Date; // Data/hora programada para envio (para status pendente)
-  isTeste?: boolean; // true = envio de teste
+  midiaUrl?: string; // URL da mídia para envio (imagem/documento)
+  isTeste?: boolean; // Flag de envio de teste
 }) {
   const db = await getDb();
   if (!db) return;
@@ -1616,6 +1640,7 @@ export async function registrarEnvioAutomacao(data: {
     status: data.status ?? "enviado",
     erroDetalhe: data.erroDetalhe ?? null,
     enviarEm: data.enviarEm ?? null,
+    midiaUrl: data.midiaUrl ?? null,
     isTeste: data.isTeste ?? false,
   });
 }
@@ -1630,7 +1655,26 @@ export async function jaEnviouLembrete(empresaId: number, automacaoId: number, a
       eq(historicoEnviosAutomacao.empresaId, empresaId),
       eq(historicoEnviosAutomacao.automacaoId, automacaoId),
       eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
-      eq(historicoEnviosAutomacao.status, 'enviado'),
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+    ))
+    .limit(1);
+  return result.length > 0;
+}
+
+// Verificar se já foi enviado para este cliente+automação na data atual (deduplicação para triggers sem agendamento)
+export async function jaEnviouParaCliente(empresaId: number, automacaoId: number, clienteId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const result = await db.select({ id: historicoEnviosAutomacao.id })
+    .from(historicoEnviosAutomacao)
+    .where(and(
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+      eq(historicoEnviosAutomacao.automacaoId, automacaoId),
+      eq(historicoEnviosAutomacao.clienteId, clienteId),
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+      gte(historicoEnviosAutomacao.criadoEm, hoje),
     ))
     .limit(1);
   return result.length > 0;
@@ -1666,7 +1710,6 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   canal?: string;
   status?: string;
   desde?: Date;
-  isTeste?: boolean; // undefined = todos, true = somente testes, false = somente reais
 }) {
   const db = await getDb();
   if (!db) return { rows: [], total: 0 };
@@ -1677,7 +1720,6 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   if (opts?.canal) conditions.push(eq(historicoEnviosAutomacao.canal, opts.canal as any));
   if (opts?.status) conditions.push(eq(historicoEnviosAutomacao.status, opts.status as any));
   if (opts?.desde) conditions.push(gte(historicoEnviosAutomacao.criadoEm, opts.desde));
-  if (opts?.isTeste !== undefined) conditions.push(eq(historicoEnviosAutomacao.isTeste, opts.isTeste));
 
   const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 

@@ -4,6 +4,8 @@ import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { getServiceIcon } from "@/lib/serviceIcons";
+import { usePermissoes } from "@/hooks/usePermissoes";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // Backend já aplica filtros via resolveAdminContext, sem necessidade de useAuth aqui
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -26,6 +28,10 @@ export default function Calendario() {
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
+  const [profissionalFiltro, setProfissionalFiltro] = useState<string>("");
+
+  const { isOwner, pode } = usePermissoes();
+  const isAdmin = isOwner || pode('agendamentosVerTodos');
 
   // Backend já aplica o filtro correto via resolveAdminContext
   const year = currentDate.getFullYear();
@@ -34,7 +40,11 @@ export default function Calendario() {
   const dataInicio = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const dataFim = `${year}-${String(month + 1).padStart(2, "0")}-${new Date(year, month + 1, 0).getDate()}`;
 
-  const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
+  const { data: agendamentos } = trpc.agendamentos.list.useQuery({
+    dataInicio,
+    dataFim,
+    profissionalId: profissionalFiltro ? parseInt(profissionalFiltro) : undefined,
+  });
 
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
@@ -129,6 +139,21 @@ export default function Calendario() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Filtro por profissional (admin only) */}
+          {isAdmin && profissionais && profissionais.filter(p => p.ativo).length > 1 && (
+            <Select value={profissionalFiltro} onValueChange={setProfissionalFiltro}>
+              <SelectTrigger className="h-8 text-xs w-[160px]">
+                <SelectValue placeholder="Todos profissionais" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos profissionais</SelectItem>
+                {profissionais.filter(p => p.ativo).map(p => (
+                  <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Toggle view: apenas visível no mobile */}
           <div className="flex lg:hidden items-center rounded-lg border overflow-hidden">
             <button

@@ -59,6 +59,25 @@ import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automa
 import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
 
 /**
+ * Extrai midiaUrl do flowJson de uma automação.
+ * Procura em nós do flow (array) ou diretamente no objeto.
+ */
+function extrairMidiaUrl(flowJson: string | null | undefined): string | null {
+  if (!flowJson) return null;
+  try {
+    const flow = JSON.parse(flowJson);
+    if (Array.isArray(flow)) {
+      for (const node of flow) {
+        if (node?.data?.midiaUrl) return node.data.midiaUrl;
+      }
+    } else if (flow?.midiaUrl) {
+      return flow.midiaUrl;
+    }
+  } catch { /* ignorar erro de parse */ }
+  return null;
+}
+
+/**
  * Processa variáveis de template em mensagens de WhatsApp/automações.
  * Substitui {{variavel}} pelos valores reais do agendamento.
  */
@@ -462,15 +481,18 @@ export const appRouter = router({
               for (const [k, v] of Object.entries(templateVars)) {
                 mensagem = mensagem.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
               }
-              const enviarEm = new Date();
+              const midiaUrl = extrairMidiaUrl(automacao.flowJson);
               await registrarEnvioAutomacao({
                 empresaId: empresa.id,
                 automacaoId: automacao.id,
+                automacaoNome: automacao.nome,
                 clienteId: id,
+                clienteNome: nomeCliente,
                 telefone: telefoneContato,
                 mensagem,
                 status: 'pendente',
-                enviarEm,
+                enviarEm: new Date(),
+                midiaUrl: midiaUrl ?? undefined,
               });
             }
           } catch (e) {
@@ -885,6 +907,7 @@ export const appRouter = router({
               : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
 
             // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+            const midiaUrlCriado = automacaoAtiva ? extrairMidiaUrl(automacaoAtiva.flowJson) : null;
             await registrarEnvioAutomacao({
               empresaId: empresa.id,
               automacaoId: automacaoAtiva?.id,
@@ -897,6 +920,7 @@ export const appRouter = router({
               mensagem,
               status: 'pendente',
               enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
+              midiaUrl: midiaUrlCriado ?? undefined,
             });
             console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
           }
@@ -1088,6 +1112,7 @@ export const appRouter = router({
                 const nomeEvento = data.status === 'confirmado' ? 'Confirmação de Agendamento'
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
                   : 'Atendimento Concluído';
+                const midiaUrlStatus = automacaoUsada ? extrairMidiaUrl(automacaoUsada.flowJson) : null;
                 await registrarEnvioAutomacao({
                   empresaId: empresa.id,
                   agendamentoId: id,
@@ -1100,6 +1125,7 @@ export const appRouter = router({
                   mensagem,
                   status: 'pendente',
                   enviarEm: new Date(),
+                  midiaUrl: midiaUrlStatus ?? undefined,
                 });
                 console.log(`[Fila] ${nomeEvento} enfileirado para ag. ${id} (${telefone})`);
                 try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
@@ -1431,16 +1457,28 @@ export const appRouter = router({
         // Resolver profissionalId: usa o enviado ou o do profissional logado
         const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
-        const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id });
-        // Notificar dona
-        await createNotificacao({
-          empresaId: empresa.id,
-          destinatarioId: ctx.user.id,
-          tipo: "bloqueio_solicitado",
-          titulo: "Nova solicitação de bloqueio",
-          mensagem: `Profissional solicitou bloqueio de agenda para ${input.dataInicio}`,
-          dadosContexto: { bloqueioId: id, ...input },
-        });
+
+        // Determinar se é admin
+        const { isAdmin } = await resolveAdminContext(ctx, empresa, "agendaAprovarBloqueio");
+
+        // Non-admin: force status "pendente"
+        const status = isAdmin ? "aprovado" : "pendente";
+
+        const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id, status });
+
+        // Se não-admin, criar notificação para admins (destinatarioId = null = visível para todos admins)
+        if (!isAdmin) {
+          const prof = await getProfissionalById(profissionalId);
+          await createNotificacao({
+            empresaId: empresa.id,
+            destinatarioId: null as any,
+            tipo: "bloqueio_solicitado",
+            titulo: "Nova solicitação de bloqueio",
+            mensagem: `${prof?.nome ?? 'Profissional'} solicitou bloqueio de agenda para ${input.dataInicio}`,
+            dadosContexto: { bloqueioId: id, profissionalId, ...input },
+          });
+        }
+
         return { id, success: true };
       }),
     aprovar: protectedProcedure
@@ -1448,7 +1486,28 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Verificar permissão admin
+        await requirePermissao(ctx, empresa, 'agendaAprovarBloqueio');
         await updateBloqueio(input.id, { status: "aprovado", aprovadoPorId: ctx.user.id });
+
+        // Buscar bloqueio para obter profissionalId do solicitante
+        const db = await getDb();
+        if (db) {
+          const { bloqueiosAgenda } = await import("../drizzle/schema");
+          const [bloqueio] = await db.select({ profissionalId: bloqueiosAgenda.profissionalId, dataInicio: bloqueiosAgenda.dataInicio })
+            .from(bloqueiosAgenda).where(eq(bloqueiosAgenda.id, input.id)).limit(1);
+          if (bloqueio) {
+            await createNotificacao({
+              empresaId: empresa.id,
+              destinatarioId: bloqueio.profissionalId,
+              tipo: "bloqueio_aprovado",
+              titulo: "Bloqueio aprovado",
+              mensagem: `Seu bloqueio de agenda para ${bloqueio.dataInicio} foi aprovado.`,
+              dadosContexto: { bloqueioId: input.id },
+            });
+          }
+        }
+
         return { success: true };
       }),
     recusar: protectedProcedure
@@ -1456,7 +1515,28 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Verificar permissão admin
+        await requirePermissao(ctx, empresa, 'agendaAprovarBloqueio');
         await updateBloqueio(input.id, { status: "recusado", motivoRecusa: input.motivoRecusa, aprovadoPorId: ctx.user.id });
+
+        // Buscar bloqueio para obter profissionalId do solicitante
+        const db = await getDb();
+        if (db) {
+          const { bloqueiosAgenda } = await import("../drizzle/schema");
+          const [bloqueio] = await db.select({ profissionalId: bloqueiosAgenda.profissionalId, dataInicio: bloqueiosAgenda.dataInicio })
+            .from(bloqueiosAgenda).where(eq(bloqueiosAgenda.id, input.id)).limit(1);
+          if (bloqueio) {
+            await createNotificacao({
+              empresaId: empresa.id,
+              destinatarioId: bloqueio.profissionalId,
+              tipo: "bloqueio_recusado",
+              titulo: "Bloqueio recusado",
+              mensagem: `Seu bloqueio de agenda para ${bloqueio.dataInicio} foi recusado.${input.motivoRecusa ? ` Motivo: ${input.motivoRecusa}` : ''}`,
+              dadosContexto: { bloqueioId: input.id, motivoRecusa: input.motivoRecusa },
+            });
+          }
+        }
+
         return { success: true };
       }),
   }),
@@ -1553,7 +1633,10 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
-      return getNotificacoesByDestinatario(ctx.user.id, empresa.id);
+      // Determinar se admin ou não-admin para filtrar notificações
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const { getNotificacoesByEmpresa } = await import("./db");
+      return getNotificacoesByEmpresa(empresa.id, isAdmin ? null : profId);
     }),
     marcarLida: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -1564,7 +1647,24 @@ export const appRouter = router({
     marcarTodasLidas: protectedProcedure.mutation(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
-      await marcarTodasNotificacoesLidas(ctx.user.id, empresa.id);
+      // Admin: mark all unread notifications for the company
+      // Non-admin: mark only their own notifications
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const db = await getDb();
+      if (!db) throw new Error("DB indisponível");
+      const { notificacoes: notifTable } = await import("../drizzle/schema");
+      const { eq: eqOp, and: andOp, or: orOp, isNull: isNullOp } = await import("drizzle-orm");
+      if (isAdmin) {
+        await db.update(notifTable).set({ lida: true, lidaEm: new Date() })
+          .where(andOp(eqOp(notifTable.empresaId, empresa.id), eqOp(notifTable.lida, false)));
+      } else if (profId) {
+        await db.update(notifTable).set({ lida: true, lidaEm: new Date() })
+          .where(andOp(
+            eqOp(notifTable.empresaId, empresa.id),
+            eqOp(notifTable.lida, false),
+            orOp(eqOp(notifTable.destinatarioId, profId), isNullOp(notifTable.destinatarioId))
+          ));
+      }
       return { success: true };
     }),
   }),
@@ -1997,6 +2097,141 @@ export const appRouter = router({
         const conditions = [eq(automacoes.empresaId, empresa.id), eq(automacoes.ativo, true), drizzleSql`${automacoes.tipoGatilho} = 'manual'`];
         if (input.evento) conditions.push(eq(automacoes.evento, input.evento));
         return db.select({ id: automacoes.id, nome: automacoes.nome, corpoMensagem: automacoes.corpoMensagem, evento: automacoes.evento }).from(automacoes).where(and(...conditions));
+      }),
+
+    debugList: protectedProcedure
+      .input(z.object({
+        automacaoId: z.number().optional(),
+        status: z.enum(["pendente", "enviado", "falhou"]).optional(),
+        periodo: z.enum(["1h", "24h", "7d"]).optional(),
+        limite: z.number().default(100),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+
+        const db = await getDb();
+        if (!db) return [];
+
+        const conditions: any[] = [eq(historicoEnviosAutomacao.empresaId, empresa.id)];
+
+        if (input.automacaoId) {
+          conditions.push(eq(historicoEnviosAutomacao.automacaoId, input.automacaoId));
+        }
+        if (input.status) {
+          conditions.push(eq(historicoEnviosAutomacao.status, input.status));
+        }
+        if (input.periodo) {
+          const agora = new Date();
+          const horasMap: Record<string, number> = { "1h": 1, "24h": 24, "7d": 168 };
+          const horas = horasMap[input.periodo] ?? 24;
+          const desde = new Date(agora.getTime() - horas * 60 * 60 * 1000);
+          conditions.push(gte(historicoEnviosAutomacao.criadoEm, desde));
+        }
+
+        const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+        // Join with automacoes to get tipoGatilho
+        const rows = await db.select({
+          id: historicoEnviosAutomacao.id,
+          criadoEm: historicoEnviosAutomacao.criadoEm,
+          automacaoNome: historicoEnviosAutomacao.automacaoNome,
+          automacaoId: historicoEnviosAutomacao.automacaoId,
+          status: historicoEnviosAutomacao.status,
+          clienteNome: historicoEnviosAutomacao.clienteNome,
+          telefone: historicoEnviosAutomacao.telefone,
+          erroDetalhe: historicoEnviosAutomacao.erroDetalhe,
+          mensagem: historicoEnviosAutomacao.mensagem,
+          isTeste: historicoEnviosAutomacao.isTeste,
+          midiaUrl: historicoEnviosAutomacao.midiaUrl,
+          tipoGatilho: automacoes.tipoGatilho,
+        })
+          .from(historicoEnviosAutomacao)
+          .leftJoin(automacoes, eq(historicoEnviosAutomacao.automacaoId, automacoes.id))
+          .where(where)
+          .orderBy(desc(historicoEnviosAutomacao.criadoEm))
+          .limit(input.limite);
+
+        return rows;
+      }),
+
+    testarEnvio: protectedProcedure
+      .input(z.object({
+        automacaoId: z.number(),
+        telefone: z.string().min(8),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        // Verificar permissão admin
+        await requirePermissao(ctx, empresa, 'automacoesEditar');
+
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+        // Buscar automação
+        const [automacao] = await db.select().from(automacoes)
+          .where(and(eq(automacoes.id, input.automacaoId), eq(automacoes.empresaId, empresa.id)))
+          .limit(1);
+        if (!automacao) throw new TRPCError({ code: "NOT_FOUND", message: "Automação não encontrada" });
+
+        // Substituir variáveis por dados de teste
+        const dadosTeste: Record<string, string> = {
+          nome_cliente: "Cliente Teste",
+          primeiro_nome: "Cliente",
+          servico: "Serviço Exemplo",
+          profissional: "Profissional Teste",
+          data: "segunda-feira, 01 de janeiro",
+          hora: "10:00 – 11:00",
+          valor: "R$ 100,00",
+          empresa: empresa.nome,
+          valor_reserva: "R$ 30,00",
+          link_confirmacao: "https://exemplo.com/confirmar/teste",
+          pacote: "Pacote Exemplo",
+          sessoes_restantes: "3",
+          sessoes_total: "10",
+          data_vencimento: "01/02/2025",
+          dias_antes: "1",
+          horas_antes: "2",
+        };
+
+        let mensagem = automacao.corpoMensagem;
+        mensagem = mensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => dadosTeste[key] ?? '');
+
+        // Buscar midiaUrl do flowJson se existir
+        let midiaUrl: string | null = null;
+        if (automacao.flowJson) {
+          try {
+            const flow = JSON.parse(automacao.flowJson);
+            // Procurar midiaUrl nos nós do flow
+            if (Array.isArray(flow)) {
+              for (const node of flow) {
+                if (node?.data?.midiaUrl) {
+                  midiaUrl = node.data.midiaUrl;
+                  break;
+                }
+              }
+            } else if (flow?.midiaUrl) {
+              midiaUrl = flow.midiaUrl;
+            }
+          } catch { /* ignorar erro de parse */ }
+        }
+
+        // Enfileirar na fila com status pendente, isTeste=true
+        await registrarEnvioAutomacao({
+          empresaId: empresa.id,
+          automacaoId: automacao.id,
+          automacaoNome: `[TESTE] ${automacao.nome}`,
+          telefone: input.telefone,
+          mensagem,
+          status: 'pendente',
+          isTeste: true,
+          midiaUrl: midiaUrl ?? undefined,
+          enviarEm: new Date(),
+        });
+
+        return { success: true, message: "Teste enfileirado com sucesso" };
       }),
   }),
 

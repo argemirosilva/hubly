@@ -299,8 +299,15 @@
     {
       "idx": 42,
       "version": "5",
-      "when": 1775402136395,
-      "tag": "0042_common_jazinda",
+      "when": 1775389028799,
+      "tag": "0042_automacao_manual",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1775389028800,
+      "tag": "0043_melhorias_automacoes_agendamentos",
       "breakpoints": true
     }
   ]

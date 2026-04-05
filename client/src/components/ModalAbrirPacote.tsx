@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -83,6 +84,8 @@ export default function ModalAbrirPacote({
       setNumeroParcelas("1");
       setValidadeDias("");
       setObservacoes("");
+      setAutomacaoRenovacao(false);
+      setDataValidade("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -131,6 +134,8 @@ export default function ModalAbrirPacote({
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [validadeDias, setValidadeDias] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [automacaoRenovacao, setAutomacaoRenovacao] = useState(false);
+  const [dataValidade, setDataValidade] = useState("");
   const [itens, setItens] = useState<{ servicoId: number; quantidadeTotal: number }[]>([
     { servicoId: servicoIdInicial ?? 0, quantidadeTotal: 1 },
   ]);
@@ -175,6 +180,8 @@ export default function ModalAbrirPacote({
       numeroParcelas: parseInt(numeroParcelas) || 1,
       validadeDias: validadeDias ? parseInt(validadeDias) : undefined,
       observacoes: observacoes || undefined,
+      automacaoRenovacao,
+      dataValidade: dataValidade || undefined,
       itens: itens.filter((i) => i.servicoId > 0),
     });
   }
@@ -407,6 +414,27 @@ export default function ModalAbrirPacote({
               ))}
             </div>
           </div>
+
+          {/* Automação de renovação */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-foreground">Habilitar automação de renovação</p>
+              <p className="text-xs text-muted-foreground">Envia avisos automáticos quando o pacote estiver vencendo ou com sessões acabando</p>
+            </div>
+            <Switch checked={automacaoRenovacao} onCheckedChange={setAutomacaoRenovacao} />
+          </div>
+
+          {automacaoRenovacao && (
+            <div>
+              <Label>Data de validade (opcional)</Label>
+              <Input
+                type="date"
+                value={dataValidade}
+                onChange={(e) => setDataValidade(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Se não preenchida, o pacote não expira por tempo.</p>
+            </div>
+          )}
 
           {/* Observações */}
           <div>

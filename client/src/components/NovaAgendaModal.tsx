@@ -246,6 +246,55 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               )}
             </div>
 
+            {/* Pacotes Ativos do Cliente */}
+            {clienteIdNum && pacotesAtivos.length > 0 && (
+              <div className="sm:col-span-2">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">
+                  <Package className="w-3 h-3 inline mr-1" />
+                  Pacotes Ativos
+                </Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {pacotesAtivos.map(p => {
+                    const isSelected = servicosSelecionados.some(s => s.pacoteClienteItemId === p.pacoteClienteItemId);
+                    return (
+                      <button
+                        key={p.pacoteClienteItemId}
+                        type="button"
+                        className="text-left p-3 rounded-lg border transition-all"
+                        style={{
+                          borderColor: isSelected ? "oklch(55% 0.22 264)" : "oklch(90% 0.012 250)",
+                          background: isSelected ? "oklch(55% 0.22 264 / 6%)" : "oklch(98% 0.006 250)",
+                        }}
+                        onClick={() => {
+                          // Auto-fill service and link pacoteClienteItemId
+                          const servico = servicos?.find(s => s.id === p.servicoId);
+                          if (servico) {
+                            setServicosSelecionados([{
+                              servicoId: String(p.servicoId),
+                              valorUnitario: String(parseFloat(String(servico.valor)).toFixed(2)),
+                              pacoteClienteItemId: p.pacoteClienteItemId,
+                            }]);
+                            recalcularHoraFim(form.horaInicio, [{ servicoId: String(p.servicoId), valorUnitario: "0" }]);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{p.pacoteNome}</p>
+                            <p className="text-xs text-muted-foreground">{p.servicoNome}</p>
+                          </div>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(45% 0.18 264)" }}>
+                            {p.sessoesDisponiveis} sessão(ões)
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Serviços (múltiplos) */}
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-2">

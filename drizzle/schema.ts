@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   decimal,
   int,
   mysqlEnum,
@@ -270,7 +271,7 @@ export const comissoes = mysqlTable("comissoes", {
 export const notificacoes = mysqlTable("notificacoes", {
   id: int("id").autoincrement().primaryKey(),
   empresaId: int("empresaId").notNull(),
-  destinatarioId: int("destinatarioId").notNull(),
+  destinatarioId: int("destinatarioId"),
   tipo: mysqlEnum("tipo", [
     "agendamento_criado",
     "agendamento_confirmado",
@@ -343,7 +344,8 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   mensagem: text("mensagem"),
   status: mysqlEnum("status", ["enviado", "falhou", "pendente"]).default("enviado").notNull(),
   erroDetalhe: text("erroDetalhe"),
-  isTeste: boolean("is_teste").default(false), // true = envio de teste, false = envio real
+  midiaUrl: text("midiaUrl"),
+  isTeste: boolean("isTeste").default(false),
   enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
@@ -691,6 +693,8 @@ export const pacotesClientes = mysqlTable("pacotes_clientes", {
   status: mysqlEnum("status", ["ativo", "concluido", "vencido", "cancelado"]).default("ativo").notNull(),
   dataAbertura: timestamp("dataAbertura").defaultNow().notNull(),
   dataVencimento: timestamp("dataVencimento"), // null = sem vencimento
+  automacaoRenovacao: boolean("automacaoRenovacao").default(false),
+  dataValidade: date("dataValidade"),
   observacoes: text("observacoes"),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
