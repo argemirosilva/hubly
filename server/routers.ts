@@ -1481,7 +1481,9 @@ export const appRouter = router({
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
 
         // Determinar se é owner (owner sempre aprova automaticamente)
-        const isOwner = empresa.ownerId === ctx.user?.id;
+        // Para OAuth users: comparar ctx.user.id com empresa.ownerId
+        // Para SystemUsers: nunca são owners (ctx.user.id é negativo)
+        const isOwner = !ctx.systemUser && empresa.ownerId === ctx.user?.id;
 
         // Owner: força status "aprovado". Qualquer outro (admin ou não): "pendente"
         const status = isOwner ? "aprovado" : "pendente";
