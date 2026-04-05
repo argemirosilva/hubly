@@ -11,7 +11,7 @@ import {
   getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
-  getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
+  getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
   getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento,
