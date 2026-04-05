@@ -371,8 +371,8 @@ function AbaGrupos() {
           {grupos.map((grupo: any) => (
             <div key={grupo.id} className={`border rounded-xl p-4 ${grupo.isAdmin ? 'border-amber-500/40 bg-amber-500/5' : 'border-border'}`}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${grupo.cor ?? "#6366f1"}20` }}>
-                  <Shield className="w-4 h-4" style={{ color: grupo.cor ?? "#6366f1" }} />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm" style={{ background: `${grupo.cor ?? "#6366f1"}25`, color: grupo.cor ?? "#6366f1" }}>
+                  {(grupo.nome ?? 'G').charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@ import type { Application } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { getDb } from "../db";
-import { profissionais, empresas } from "../../drizzle/schema";
+import { profissionais, empresas, gruposPermissoes, permissoesGrupo } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { ENV } from "./env";
 import { getSessionCookieOptions } from "./cookies";
@@ -170,6 +170,20 @@ export function registerSystemAuthRoutes(app: Application) {
 
       // Atualizar ownerId da empresa
       await db.update(empresas).set({ ownerId: profId }).where(eq(empresas.id, empresaId));
+
+      // Criar grupo Administradores (supergrupo protegido) automaticamente
+      const [grupoResult] = await db.insert(gruposPermissoes).values({
+        empresaId,
+        nome: 'Administradores',
+        descricao: 'Acesso total ao sistema',
+        cor: '#ef4444',
+        isAdmin: true,
+      });
+      const grupoAdminId = grupoResult.insertId;
+      // Criar permissões padrão do grupo (todas true para o grupo admin)
+      await db.insert(permissoesGrupo).values({ grupoId: grupoAdminId });
+      // Vincular o owner ao grupo Administradores
+      await db.update(profissionais).set({ grupoId: grupoAdminId }).where(eq(profissionais.id, profId));
 
       // Criar token de sessão
       const token = await createSystemSessionToken({
