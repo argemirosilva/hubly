@@ -320,10 +320,14 @@ export async function getAgendamentosExpirados() {
 }
 
 // ─── BLOQUEIOS ────────────────────────────────────────────────────────────────
-export async function getBloqueiosByEmpresa(empresaId: number) {
+export async function getBloqueiosByEmpresa(empresaId: number, profissionalId?: number | null) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(bloqueiosAgenda).where(eq(bloqueiosAgenda.empresaId, empresaId)).orderBy(desc(bloqueiosAgenda.createdAt));
+  const conditions = [eq(bloqueiosAgenda.empresaId, empresaId)];
+  if (profissionalId) {
+    conditions.push(eq(bloqueiosAgenda.profissionalId, profissionalId));
+  }
+  return db.select().from(bloqueiosAgenda).where(and(...conditions)).orderBy(desc(bloqueiosAgenda.createdAt));
 }
 
 export async function createBloqueio(data: typeof bloqueiosAgenda.$inferInsert) {
@@ -400,6 +404,13 @@ export async function createNotificacao(data: typeof notificacoes.$inferInsert) 
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.insert(notificacoes).values(data);
+}
+
+export async function getNotificacaoById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(notificacoes).where(eq(notificacoes.id, id)).limit(1);
+  return result[0] ?? null;
 }
 
 export async function marcarNotificacaoLida(id: number) {

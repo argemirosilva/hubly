@@ -403,6 +403,7 @@ export type InsertGrupoPermissoes = typeof gruposPermissoes.$inferInsert;
 export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   id: int("id").autoincrement().primaryKey(),
   grupoId: int("grupoId").notNull(),
+  isAdmin: boolean("isAdmin").default(false),
   // ── Agendamentos ──
   agendamentosVer: boolean("agendamentosVer").default(false),
   agendamentosCriar: boolean("agendamentosCriar").default(false),
@@ -452,6 +453,10 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   automacoesAtivar: boolean("automacoesAtivar").default(false),
   // ── Notificações ──
   notificacoesVer: boolean("notificacoesVer").default(true),
+  // ── Escopo de Visibilidade ──
+  notificacoesEscopo: varchar("notificacoesEscopo", { length: 10 }).default("proprio"),
+  agendaEscopo: varchar("agendaEscopo", { length: 10 }).default("proprio"),
+  calendarioEscopo: varchar("calendarioEscopo", { length: 10 }).default("proprio"),
   // ── Relatórios ──
   relatoriosVer: boolean("relatoriosVer").default(false),
   relatoriosExportar: boolean("relatoriosExportar").default(false),
@@ -470,6 +475,10 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   // ── Dashboard ──
   dashboardVer: boolean("dashboardVer").default(false),
   dashboardVerMetricas: boolean("dashboardVerMetricas").default(false),
+  // ── Pacotes ──
+  pacotesVer: boolean("pacotesVer").default(false),
+  pacotesEditar: boolean("pacotesEditar").default(false),
+  pacotesExcluir: boolean("pacotesExcluir").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

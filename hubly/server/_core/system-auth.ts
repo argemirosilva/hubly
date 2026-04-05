@@ -171,6 +171,45 @@ export function registerSystemAuthRoutes(app: Application) {
       // Atualizar ownerId da empresa
       await db.update(empresas).set({ ownerId: profId }).where(eq(empresas.id, empresaId));
 
+      // Criar grupo Administradores com todas as permissões
+      const { gruposPermissoes, permissoesGrupo } = await import("../../drizzle/schema");
+      const [grupoResult] = await db.insert(gruposPermissoes).values({
+        empresaId,
+        nome: "Administradores",
+        cor: "#ef4444",
+        isDefault: false,
+      });
+      const grupoId = grupoResult.insertId;
+
+      // Criar permissões do grupo com tudo habilitado
+      await db.insert(permissoesGrupo).values({
+        grupoId,
+        isAdmin: true,
+        agendamentosVer: true, agendamentosCriar: true, agendamentosEditar: true,
+        agendamentosCancelar: true, agendamentosRemarcar: true, agendamentosConfirmar: true,
+        agendamentosConcluir: true, agendamentosVerTodos: true,
+        clientesVer: true, clientesCriar: true, clientesEditar: true, clientesExcluir: true,
+        clientesVerHistorico: true, clientesVerProntuario: true, clientesEditarProntuario: true, clientesVerContato: true,
+        profissionaisVer: true, profissionaisCriar: true, profissionaisEditar: true,
+        profissionaisExcluir: true, profissionaisGerenciarPermissoes: true,
+        servicosVer: true, servicosCriar: true, servicosEditar: true, servicosExcluir: true,
+        financeiroVer: true, financeiroVerComissoes: true, financeiroEditarComissoes: true,
+        financeiroVerReceita: true, financeiroVerCustos: true, financeiroMarcarPago: true, financeiroVerRelatorios: true,
+        agendaSolicitarBloqueio: true, agendaAprovarBloqueio: true, agendaVerBloqueiosTodos: true,
+        automacoesVer: true, automacoesCriar: true, automacoesEditar: true, automacoesExcluir: true, automacoesAtivar: true,
+        notificacoesVer: true,
+        notificacoesEscopo: "todos", agendaEscopo: "todos", calendarioEscopo: "todos",
+        relatoriosVer: true, relatoriosExportar: true,
+        configuracoesVer: true, configuracoesEditar: true,
+        usuariosVer: true, usuariosConvidar: true, usuariosEditar: true, usuariosRemover: true,
+        gruposVer: true, gruposCriar: true, gruposEditar: true, gruposExcluir: true,
+        dashboardVer: true, dashboardVerMetricas: true,
+        pacotesVer: true, pacotesEditar: true, pacotesExcluir: true,
+      });
+
+      // Vincular profissional owner ao grupo
+      await db.update(profissionais).set({ grupoId }).where(eq(profissionais.id, profId));
+
       // Criar token de sessão
       const token = await createSystemSessionToken({
         systemUserId: profId,

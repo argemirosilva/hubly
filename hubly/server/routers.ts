@@ -13,7 +13,7 @@ import {
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
   getBloqueiosByEmpresa, createBloqueio, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
-  getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
+  getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas, getNotificacaoById,
   getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
@@ -118,8 +118,13 @@ async function requirePermissao(
 ): Promise<void> {
   // Owner OAuth: sempre tem permissão
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) return;
-  // OAuth sem ser owner: também tem (pode ser dono de outra empresa)
-  if (!ctx.systemUser) return;
+  // OAuth sem ser owner: NÃO tem permissão (bloquear)
+  if (!ctx.systemUser) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Sem permissão para realizar esta ação (${permField}).`,
+    });
+  }
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
   if (!perms || !(perms as any)[permField]) {
@@ -154,12 +159,13 @@ async function resolveAdminContext(
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   if (ctx.systemUser) {
     const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
-    // Verificar permissão específica ou permissão genérica de ver todos
+    // Admin do grupo OU permissão específica concede acesso
+    const isGroupAdmin = perms ? (perms as any).isAdmin === true : false;
     const temPermissao = perms ? (perms as any)[permField] === true : false;
-    if (temPermissao) {
+    if (isGroupAdmin || temPermissao) {
       return { isAdmin: true, profId: null };
     }
-    return { isAdmin: false, profId: ctx.systemUser.profissionalId };
+    return { isAdmin: false, profId: ctx.systemUser.profissionalId ?? ctx.systemUser.id };
   }
   // OAuth sem ser owner: sem empresa vinculada, tratar como admin (owner de outra empresa)
   return { isAdmin: true, profId: null };
@@ -219,7 +225,7 @@ export const appRouter = router({
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
         const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.id);
-        isAdmin = perms ? (perms as any).agendamentosVerTodos === true : false;
+        isAdmin = perms ? (perms as any).isAdmin === true : false;
         if (perms) {
           // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)
           const { id: _id, grupoId: _g, createdAt: _c, updatedAt: _u, ...boolPerms } = perms as any;
@@ -1447,7 +1453,9 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
-      return getBloqueiosByEmpresa(empresa.id);
+      // Admin vê todos os bloqueios; não-admin vê apenas os seus
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
+      return getBloqueiosByEmpresa(empresa.id, isAdmin ? null : profId);
     }),
     create: protectedProcedure
       .input(z.object({
@@ -1465,16 +1473,14 @@ export const appRouter = router({
         const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
 
-        // Determinar se é admin
-        const { isAdmin } = await resolveAdminContext(ctx, empresa, "agendaAprovarBloqueio");
-
-        // Non-admin: force status "pendente"
-        const status = isAdmin ? "aprovado" : "pendente";
+        // Auto-aprovar apenas quando o criador é o owner da empresa (não systemUser)
+        const isOwner = !ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id;
+        const status = isOwner ? "aprovado" : "pendente";
 
         const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id, status });
 
-        // Se não-admin, criar notificação para admins (destinatarioId = null = visível para todos admins)
-        if (!isAdmin) {
+        // Se não é owner, criar notificação para admins (destinatarioId = null = visível para todos admins)
+        if (!isOwner) {
           const prof = await getProfissionalById(profissionalId);
           await createNotificacao({
             empresaId: empresa.id,
@@ -1641,13 +1647,33 @@ export const appRouter = router({
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return [];
       // Determinar se admin ou não-admin para filtrar notificações
-      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      // resolveAdminContext agora verifica isAdmin do grupo corretamente
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
       const { getNotificacoesByEmpresa } = await import("./db");
       return getNotificacoesByEmpresa(empresa.id, isAdmin ? null : profId);
     }),
     marcarLida: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        // Buscar a notificação para verificar propriedade
+        const notificacao = await getNotificacaoById(input.id);
+        if (!notificacao) throw new TRPCError({ code: 'NOT_FOUND', message: 'Notificação não encontrada' });
+
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+
+        // Verificar se o usuário pode marcar esta notificação como lida
+        const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
+        const isDestinatario = profId && notificacao.destinatarioId === profId;
+        const isGlobal = notificacao.destinatarioId === null;
+
+        if (!isAdmin && !isDestinatario && !isGlobal) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Sem permissão para marcar esta notificação como lida.',
+          });
+        }
+
         await marcarNotificacaoLida(input.id);
         return { success: true };
       }),
@@ -1656,7 +1682,7 @@ export const appRouter = router({
       if (!empresa) throw new Error("Empresa não encontrada");
       // Admin: mark all unread notifications for the company
       // Non-admin: mark only their own notifications
-      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa, "agendamentosVerTodos");
+      const { isAdmin, profId } = await resolveAdminContext(ctx, empresa);
       const db = await getDb();
       if (!db) throw new Error("DB indisponível");
       const { notificacoes: notifTable } = await import("../drizzle/schema");

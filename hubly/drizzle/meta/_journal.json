@@ -309,6 +309,13 @@
       "when": 1775389028800,
       "tag": "0043_melhorias_automacoes_agendamentos",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1775400000000,
+      "tag": "0044_correcoes_permissoes_acesso",
+      "breakpoints": true
     }
   ]
 }

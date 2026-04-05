@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
   Package, Clock, RefreshCw, ChevronRight,
@@ -53,6 +54,13 @@ type NotifUnificada = {
 export default function Notificacoes() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+
+  // ── Permissões ────────────────────────────────────────────────────────
+  const { pode, isOwner } = usePermissoes();
+  // Permissão para aprovar/recusar bloqueios de agenda.
+  // TODO: Quando botões de aprovar/recusar bloqueios forem adicionados a esta página,
+  // usar `podeAprovarBloqueio` para condicionar a exibição dessas ações.
+  const podeAprovarBloqueio = isOwner || pode('agendaAprovarBloqueio');
 
   // ── Envio rápido de mensagem ──────────────────────────────────────────
   const [envioRapido, setEnvioRapido] = useState<{ clienteId: number; clienteNome: string; pacoteClienteId: number; notificacaoPacoteId: number } | null>(null);
