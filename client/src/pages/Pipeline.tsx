@@ -225,16 +225,16 @@ export default function Pipeline() {
             {pipelineAtivoData.colunas.map((coluna) => (
               <div
                 key={coluna.id}
-                className={`flex flex-col w-72 flex-shrink-0 rounded-xl border bg-muted/30 transition-colors ${dragOverColuna === coluna.id ? "border-primary bg-primary/5" : "border-border"}`}
+                className={`flex flex-col w-56 flex-shrink-0 rounded-lg border bg-muted/30 transition-colors ${dragOverColuna === coluna.id ? "border-primary bg-primary/5" : "border-border"}`}
                 onDragOver={(e) => { e.preventDefault(); setDragOverColuna(coluna.id); }}
                 onDragLeave={() => setDragOverColuna(null)}
                 onDrop={() => handleDrop(coluna.id)}
               >
                 {/* Coluna header */}
-                <div className="flex items-center justify-between p-3 border-b">
+                <div className="flex items-center justify-between p-2 border-b">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: coluna.cor ?? "#6366f1" }} />
-                    <span className="font-medium text-sm">{coluna.nome}</span>
+                    <span className="font-medium text-xs">{coluna.nome}</span>
                     <Badge variant="secondary" className="text-xs h-5 px-1.5">{coluna.cartoes.length}</Badge>
                   </div>
                   <DropdownMenu>
@@ -255,22 +255,22 @@ export default function Pipeline() {
                 </div>
 
                 {/* Cartões */}
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
                   {coluna.cartoes.map((cartao) => (
                     <div
                       key={cartao.id}
                       draggable
                       onDragStart={() => setDraggingCartao(cartao.id)}
                       onDragEnd={() => { setDraggingCartao(null); setDragOverColuna(null); }}
-                      className={`bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all group ${draggingCartao === cartao.id ? "opacity-40" : ""}`}
+                      className={`bg-background rounded-md border p-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all group ${draggingCartao === cartao.id ? "opacity-40" : ""}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-1.5">
                         <div className="flex items-start gap-2 flex-1 min-w-0">
-                          <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
+                          <GripVertical className="w-3 h-3 text-muted-foreground/40 mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium leading-snug truncate">{cartao.titulo}</p>
+                            <p className="text-xs font-medium leading-snug truncate">{cartao.titulo}</p>
                             {cartao.descricao && (
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{cartao.descricao}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{cartao.descricao}</p>
                             )}
                           </div>
                         </div>
@@ -312,23 +312,23 @@ export default function Pipeline() {
                       </div>
 
                       {/* Meta info */}
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_CONFIG[cartao.status as StatusCartao]?.color}`}>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <span className={`text-[10px] px-1 py-0.5 rounded-full font-medium ${STATUS_CONFIG[cartao.status as StatusCartao]?.color}`}>
                           {STATUS_CONFIG[cartao.status as StatusCartao]?.label}
                         </span>
                         {cartao.clienteNome && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <User className="w-3 h-3" /> {cartao.clienteNome}
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <User className="w-2.5 h-2.5" /> {cartao.clienteNome}
                           </span>
                         )}
                         {cartao.lembrete && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {cartao.lembrete}
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Calendar className="w-2.5 h-2.5" /> {cartao.lembrete}
                           </span>
                         )}
                         {cartao.valor && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" /> R$ {Number(cartao.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <DollarSign className="w-2.5 h-2.5" /> R$ {Number(cartao.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </span>
                         )}
                       </div>
@@ -337,7 +337,7 @@ export default function Pipeline() {
                 </div>
 
                 {/* Adicionar cartão */}
-                <div className="p-2 border-t">
+                <div className="p-1.5 border-t">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -351,7 +351,7 @@ export default function Pipeline() {
             ))}
 
             {/* Adicionar coluna */}
-            <div className="w-72 flex-shrink-0">
+            <div className="w-56 flex-shrink-0">
               <Button
                 variant="outline"
                 className="w-full h-12 border-dashed text-muted-foreground"

@@ -416,35 +416,35 @@ export default function Dashboard() {
       case "contas_pagar":
         if (!podeVerFinanceiro) return null;
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <Link href="/admin/financeiro/contas-pagar">
               <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "oklch(55% 0.22 25)" }}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "oklch(55% 0.22 25 / 12%)" }}><AlertTriangle className="w-4 h-4" style={{ color: "oklch(45% 0.22 25)" }} /></div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 25 / 12%)", color: "oklch(40% 0.18 25)" }}>{contasVencidas?.length ?? 0} conta{(contasVencidas?.length ?? 0) !== 1 ? "s" : ""}</span>
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 25 / 12%)" }}><AlertTriangle className="w-3 h-3" style={{ color: "oklch(45% 0.22 25)" }} /></div>
+                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 25 / 12%)", color: "oklch(40% 0.18 25)" }}>{contasVencidas?.length ?? 0} conta{(contasVencidas?.length ?? 0) !== 1 ? "s" : ""}</span>
                 </div>
-                <p className="text-2xl font-bold tracking-tight" style={{ color: "oklch(40% 0.18 25)" }}>{formatCurrency(totalContasVencidas)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(40% 0.18 25)" }}>Contas Vencidas</span> · clique para ver</p>
+                <p className="text-base font-bold tracking-tight" style={{ color: "oklch(40% 0.18 25)" }}>{formatCurrency(totalContasVencidas)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(40% 0.18 25)" }}>Contas Vencidas</span> · clique para ver</p>
               </div>
             </Link>
             <Link href="/admin/financeiro/contas-pagar">
               <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "oklch(65% 0.20 75)" }}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "oklch(65% 0.20 75 / 12%)" }}><CreditCard className="w-4 h-4" style={{ color: "oklch(42% 0.16 75)" }} /></div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(65% 0.20 75 / 12%)", color: "oklch(40% 0.14 75)" }}>{contasHoje?.length ?? 0} conta{(contasHoje?.length ?? 0) !== 1 ? "s" : ""}</span>
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "oklch(65% 0.20 75 / 12%)" }}><CreditCard className="w-3 h-3" style={{ color: "oklch(42% 0.16 75)" }} /></div>
+                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full" style={{ background: "oklch(65% 0.20 75 / 12%)", color: "oklch(40% 0.14 75)" }}>{contasHoje?.length ?? 0} conta{(contasHoje?.length ?? 0) !== 1 ? "s" : ""}</span>
                 </div>
-                <p className="text-2xl font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalContasHoje)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(40% 0.14 75)" }}>A Pagar Hoje</span> · vencimento hoje</p>
+                <p className="text-base font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalContasHoje)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(40% 0.14 75)" }}>A Pagar Hoje</span> · vencimento hoje</p>
               </div>
             </Link>
             <Link href="/admin/financeiro/contas-pagar">
               <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "oklch(55% 0.22 264)" }}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}><CalendarCheck className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} /></div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>{contasSemana?.length ?? 0} conta{(contasSemana?.length ?? 0) !== 1 ? "s" : ""}</span>
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}><CalendarCheck className="w-3 h-3" style={{ color: "oklch(45% 0.18 264)" }} /></div>
+                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>{contasSemana?.length ?? 0} conta{(contasSemana?.length ?? 0) !== 1 ? "s" : ""}</span>
                 </div>
-                <p className="text-2xl font-bold tracking-tight" style={{ color: "oklch(35% 0.18 264)" }}>{formatCurrency(totalContasSemana)}</p>
-                <p className="text-xs text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(35% 0.18 264)" }}>A Pagar na Semana</span> · próximos 7 dias</p>
+                <p className="text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.18 264)" }}>{formatCurrency(totalContasSemana)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(35% 0.18 264)" }}>A Pagar na Semana</span> · próximos 7 dias</p>
               </div>
             </Link>
           </div>

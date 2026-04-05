@@ -61,7 +61,7 @@ export default function Financeiro() {
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
 
       {/* Cards de métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {[
           { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)" },
           { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), icon: TrendingUp, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
@@ -71,12 +71,12 @@ export default function Financeiro() {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="stat-card">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5"
                 style={{ background: stat.iconBg }}>
-                <Icon className="w-4 h-4" style={{ color: stat.iconColor }} />
+                <Icon className="w-3 h-3" style={{ color: stat.iconColor }} />
               </div>
-              <p className="text-lg lg:text-xl font-bold text-foreground tracking-tight">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+              <p className="text-base font-bold text-foreground tracking-tight">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{stat.label}</p>
             </div>
           );
         })}

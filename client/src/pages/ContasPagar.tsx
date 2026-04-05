@@ -574,40 +574,40 @@ export default function ContasPagar() {
       </div>
 
       {/* Cards de métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card className="border-0 shadow-sm bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="w-4 h-4 text-red-500" />
-              <span className="text-xs font-medium text-red-700">Vencidas</span>
+          <CardContent className="p-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <AlertTriangle className="w-3 h-3 text-red-500" />
+              <span className="text-[10px] font-medium text-red-700">Vencidas</span>
             </div>
-            <p className="text-xl font-bold text-red-700">{formatCurrency(metricas?.totalVencido ?? 0)}</p>
-            <p className="text-xs text-red-500 mt-0.5">{metricas?.contasVencidas ?? 0} conta(s)</p>
+            <p className="text-sm font-bold text-red-700">{formatCurrency(metricas?.totalVencido ?? 0)}</p>
+            <p className="text-[10px] text-red-500 mt-0.5">{metricas?.contasVencidas ?? 0} conta(s)</p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-sm bg-yellow-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
+          <CardContent className="p-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Clock className="w-3 h-3 text-yellow-600" />
+              <span className="text-[10px] font-medium text-yellow-700">A Vencer</span>
               <Clock className="w-4 h-4 text-yellow-600" />
-              <span className="text-xs font-medium text-yellow-700">A Vencer</span>
-            </div>
+            <p className="text-sm font-bold text-yellow-700">{formatCurrency(metricas?.totalPendente ?? 0)}</p>
+            <p className="text-[10px] text-yellow-500 mt-0.5">{metricas?.contasPendentes ?? 0} conta(s)</p>
             <p className="text-xl font-bold text-yellow-700">{formatCurrency(metricas?.totalPendente ?? 0)}</p>
             <p className="text-xs text-yellow-500 mt-0.5">{metricas?.contasPendentes ?? 0} conta(s)</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm bg-green-50">
+          <CardContent className="p-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <CheckCircle2 className="w-3 h-3 text-green-600" />
+              <span className="text-[10px] font-medium text-green-700">Pago no Mês</span>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
+            <p className="text-sm font-bold text-green-700">{formatCurrency(metricas?.totalPagoMes ?? 0)}</p>
               <CheckCircle2 className="w-4 h-4 text-green-600" />
               <span className="text-xs font-medium text-green-700">Pago no Mês</span>
-            </div>
-            <p className="text-xl font-bold text-green-700">{formatCurrency(metricas?.totalPagoMes ?? 0)}</p>
-          </CardContent>
-        </Card>
+          <CardContent className="p-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Calendar className="w-3 h-3 text-blue-600" />
+              <span className="text-[10px] font-medium text-blue-700">Total do Mês</span>
 
-        <Card className="border-0 shadow-sm bg-blue-50">
+            <p className="text-sm font-bold text-blue-700">{formatCurrency(metricas?.totalMes ?? 0)}</p>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-blue-600" />

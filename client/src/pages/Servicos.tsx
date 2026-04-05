@@ -253,49 +253,49 @@ export default function Servicos() {
               </button>
 
               {isExpandido(grupo.label) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
                   {(grupo.items ?? []).map(s => (
                     <Card key={s.id} className="border-border shadow-none hover:shadow-sm transition-all duration-150 group">
-                      <CardContent className="p-3">
+                      <CardContent className="p-2">
                         {/* Linha topo: categoria + status + editar */}
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-1">
                           <span
-                            className="text-[10px] font-semibold uppercase tracking-wider leading-none"
+                            className="text-[9px] font-semibold uppercase tracking-wider leading-none"
                             style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}
                           >
                             {grupo.label === "Sem categoria" ? "Geral" : grupo.label}
                           </span>
-                          <div className="flex items-center gap-1">
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none ${
+                          <div className="flex items-center gap-0.5">
+                            <span className={`text-[9px] font-medium px-1 py-0.5 rounded-full leading-none ${
                               s.ativo ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
                             }`}>
                               {s.ativo ? "Ativo" : "Inativo"}
                             </span>
                             {podeEditarServico(s.id) && (
-                              <button
+                                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all"
                                 onClick={() => abrirEditar(s)}
-                                className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all"
+                                <Pencil className="w-2.5 h-2.5 text-muted-foreground" />
                               >
                                 <Pencil className="w-3 h-3 text-muted-foreground" />
                               </button>
                             )}
                           </div>
-                        </div>
+                        <p className="text-xs font-semibold text-foreground leading-snug mb-1.5">{s.nome}</p>
 
                         {/* Nome do serviço */}
                         <p className="text-sm font-semibold text-foreground leading-snug mb-2.5">{s.nome}</p>
-
-                        {/* Rodapé: duração + comissão + valor */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                              <Clock className="w-2.5 h-2.5" />
+                              {s.duracaoMinutos ?? 60}m
                             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              {s.duracaoMinutos ?? 60} min
+                              <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}>
+                                <Percent className="w-2 h-2" />
                             </span>
                             {podeVerDadosFinanceiros(s.id) && (s as any).percentualComissao && parseFloat(String((s as any).percentualComissao)) > 0 && (
                               <span className="flex items-center gap-0.5 text-[11px] font-medium" style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}>
                                 <Percent className="w-2.5 h-2.5" />
-                                {parseFloat(String((s as any).percentualComissao)).toFixed(0)}%
+                          <span className="text-xs font-bold text-foreground">
                               </span>
                             )}
                           </div>

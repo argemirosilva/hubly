@@ -216,16 +216,16 @@ export default function MeiosPagamento() {
             const hasTaxas = meio.taxas && meio.taxas.length > 0;
             return (
               <Card key={meio.id} className={`transition-all ${!meio.ativo ? "opacity-60" : ""}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
+                <CardContent className="p-2.5">
+                  <div className="flex items-center gap-2">
                     {/* Ícone */}
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${TIPO_COLORS[tipo] || TIPO_COLORS.outro}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${TIPO_COLORS[tipo] || TIPO_COLORS.outro}`}>
                       {TIPO_ICONS[tipo] || TIPO_ICONS.outro}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900">{meio.nome}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-sm text-gray-900">{meio.nome}</span>
                         <Badge variant="outline" className={`text-xs ${TIPO_COLORS[tipo] || TIPO_COLORS.outro}`}>
                           {TIPO_LABELS[tipo] || tipo}
                         </Badge>
@@ -233,7 +233,7 @@ export default function MeiosPagamento() {
                           <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">Inativo</Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500 flex-wrap">
                         {parseFloat(meio.taxaFixa) > 0 && (
                           <span className="flex items-center gap-1">
                             <Percent className="w-3 h-3" />
@@ -281,11 +281,11 @@ export default function MeiosPagamento() {
                   {isExpanded && hasTaxas && (
                     <div className="mt-3 pt-3 border-t">
                       <p className="text-xs font-medium text-gray-500 mb-2">Taxas por parcela:</p>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
                         {meio.taxas.map((t: any) => (
-                          <div key={t.parcela} className="text-center bg-gray-50 rounded-lg p-2">
-                            <div className="text-xs text-gray-500">{t.parcela}x</div>
-                            <div className="text-sm font-semibold text-gray-800">{parseFloat(t.taxa).toFixed(2)}%</div>
+                          <div key={t.parcela} className="text-center bg-gray-50 rounded-md p-1.5">
+                            <div className="text-[10px] text-gray-500">{t.parcela}x</div>
+                            <div className="text-xs font-semibold text-gray-800">{parseFloat(t.taxa).toFixed(2)}%</div>
                           </div>
                         ))}
                       </div>
