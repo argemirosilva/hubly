@@ -72,23 +72,16 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const handleComprovanteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Upload para S3 via endpoint existente
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload falhou');
-      const { url } = await res.json();
-      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: url });
-    } catch {
-      // Fallback: usar FileReader para base64 e enviar como data URL
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
-      };
-      reader.readAsDataURL(file);
-    }
+    // Converter imagem para base64 data URL e enviar diretamente na mutation
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
+    };
+    reader.onerror = () => {
+      toast.error('Erro ao ler arquivo. Tente novamente.');
+    };
+    reader.readAsDataURL(file);
     // Limpar input para permitir re-upload do mesmo arquivo
     e.target.value = '';
   };

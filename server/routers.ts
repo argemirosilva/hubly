@@ -145,7 +145,7 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
 async function resolveAdminContext(
   ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null } | null },
   empresa: { id: number; ownerId: number },
-  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" | "agendaAprovarBloqueio" = "agendamentosVerTodos"
+  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" = "agendamentosVerTodos"
 ): Promise<{ isAdmin: boolean; profId: number | null }> {
   // Owner OAuth: sempre admin
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
@@ -973,6 +973,12 @@ export const appRouter = router({
 
         // ── Abatimento automático de pacote ao concluir ──────────────────────
         if (data.status === "concluido") {
+          // Verificar se o agendamento já possui vínculo com pacote (via agendamentoItens.pacoteClienteItemId)
+          // Se sim, a sessão já foi decrementada na criação — pular abatimento automático
+          const itensDoAgendamento = await getItensByAgendamento(id);
+          const jaVinculadoAPacote = itensDoAgendamento.some(item => item.pacoteClienteItemId != null);
+
+          if (!jaVinculadoAPacote) {
           try {
             // Buscar o agendamento para obter clienteId e servicoId
             const agendamento = await getAgendamentoById(id);
@@ -1020,6 +1026,7 @@ export const appRouter = router({
             // Não bloquear o fluxo principal se o abatimento falhar
             console.error("[Pacotes] Erro ao abater sessão:", e);
           }
+          } // fim if (!jaVinculadoAPacote)
         }
 
           // ── Enfileirar automação para confirmado, cancelado ou concluido ───────────
@@ -1375,7 +1382,7 @@ export const appRouter = router({
     lerComprovante: protectedProcedure
       .input(z.object({
         agendamentoId: z.number(),
-        imageUrl: z.string().url(),
+        imageUrl: z.string().min(1),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
