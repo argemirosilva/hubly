@@ -280,6 +280,7 @@ export const notificacoes = mysqlTable("notificacoes", {
     "bloqueio_aprovado",
     "bloqueio_recusado",
     "bloqueio_solicitado",
+    "bloqueio_cancelado",
     "reserva_expirada",
     "lembrete",
     "sistema",
