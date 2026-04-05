@@ -396,17 +396,17 @@ export default function Dashboard() {
               const isClickable = !!(stat as any).onClick;
               return (
                 <div key={stat.label} className={`stat-card ${isClickable ? "cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" : ""}`} onClick={(stat as any).onClick}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-4 h-4" style={{ color: stat.iconColor }} /></div>
+                  <div className="flex items-start justify-between mb-1.5">
+                    <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-3 h-3" style={{ color: stat.iconColor }} /></div>
                     {(stat as any).trend !== undefined && (
-                      <div className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: (stat as any).trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
-                        {(stat as any).trend >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                      <div className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: (stat as any).trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
+                        {(stat as any).trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         {Math.abs((stat as any).trend).toFixed(0)}%
                       </div>
                     )}
                   </div>
-                  <p className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5"><span className="font-medium text-foreground/70">{stat.label}</span> · {stat.sub}</p>
+                  <p className="text-base font-bold tracking-tight text-foreground">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium text-foreground/70">{stat.label}</span> · {stat.sub}</p>
                 </div>
               );
             })}
