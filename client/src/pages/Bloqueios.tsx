@@ -22,6 +22,7 @@ export default function Bloqueios() {
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedBloqueio, setSelectedBloqueio] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
+  const [filtro, setFiltro] = useState<"todos" | "meus" | "pendentes" | "historico">("todos");
 
   const { isOwner, pode, profissionalId } = usePermissoes();
   const isAdmin = isOwner || pode('agendaAprovarBloqueio');
@@ -50,12 +51,22 @@ export default function Bloqueios() {
   const profMap: Record<number, string> = {};
   profissionais?.forEach(p => { profMap[p.id] = p.nome; });
 
+  // Filtrar bloqueios baseado na seleção
+  const bloqueiosFiltrados = (bloqueios ?? []).filter(b => {
+    if (filtro === "meus") return b.profissionalId === profissionalId;
+    if (filtro === "pendentes") return b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId;
+    if (filtro === "historico") return b.status !== "pendente";
+    return true;
+  });
+
+  const bloqueiosPendentes = (bloqueios ?? []).filter(b => b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId).length;
+
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto animate-in-up">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Bloqueios de Agenda</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{bloqueios?.length ?? 0} solicitações</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{bloqueiosFiltrados.length} solicitações</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-3 text-xs">
           <Plus className="w-3.5 h-3.5" />
@@ -64,8 +75,61 @@ export default function Bloqueios() {
         </button>
       </div>
 
+      {/* Barra de Filtros */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setFiltro("todos")}
+          className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+            filtro === "todos"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          Todos ({bloqueios?.length ?? 0})
+        </button>
+        <button
+          onClick={() => setFiltro("meus")}
+          className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+            filtro === "meus"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
+        >
+          Meus Bloqueios
+        </button>
+        {isAdmin && (
+          <>
+            <button
+              onClick={() => setFiltro("pendentes")}
+              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors relative ${
+                filtro === "pendentes"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              Aguardando Aprovação
+              {bloqueiosPendentes > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                  {bloqueiosPendentes}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setFiltro("historico")}
+              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                filtro === "historico"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              Histórico
+            </button>
+          </>
+        )}
+      </div>
+
       <div className="card-elegant overflow-hidden">
-        {(bloqueios ?? []).length === 0 ? (
+        {bloqueiosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
               style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
@@ -79,7 +143,7 @@ export default function Bloqueios() {
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
-            {(bloqueios ?? []).map(b => {
+            {bloqueiosFiltrados.map(b => {
               const cfg = statusConfig[b.status] ?? statusConfig.pendente;
               return (
                 <div key={b.id} className="px-4 py-3.5">

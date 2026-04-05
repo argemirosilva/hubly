@@ -1226,3 +1226,9 @@
 - [x] Atualizar status: registrar aprovação/rejeição com aprovadoPorId e motivoRecusa
 - [x] UI de bloqueios: exibir status (pendente/aprovado/recusado) com cores diferenciadas
 - [x] Histórico de aprovação: mostrar quem aprovou/rejeitou e quando
+
+
+## Melhorias na Página de Bloqueios (v8)
+- [x] Indicador visual de bloqueios pendentes na sidebar para administradores
+- [x] Filtros na página de bloqueios: "Meus bloqueios", "Aguardando aprovação", "Histórico"
+- [x] Notificações para solicitante sobre aprovação/rejeição do bloqueio
