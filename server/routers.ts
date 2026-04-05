@@ -153,7 +153,7 @@ async function resolveAdminContext(
   }
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
   if (ctx.systemUser) {
-    const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.id);
+    const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.profissionalId ?? ctx.systemUser.id);
     // Verificar permissão específica ou permissão genérica de ver todos
     const temPermissao = perms ? (perms as any)[permField] === true : false;
     if (temPermissao) {
