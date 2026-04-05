@@ -1194,6 +1194,7 @@ export const appRouter = router({
         agendamentoId: z.number(),
         valor: z.string(),
         meioPagamento: z.string().optional(),
+        numeroParcelas: z.number().min(1).max(24).optional(), // apenas registro informativo
         observacao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1415,7 +1416,7 @@ export const appRouter = router({
     }),
     create: protectedProcedure
       .input(z.object({
-        profissionalId: z.number(),
+        profissionalId: z.number().optional(), // opcional: usa o profissional logado como fallback
         dataInicio: z.string(),
         horaInicio: z.string(),
         dataFim: z.string(),
@@ -1425,7 +1426,10 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-        const id = await createBloqueio({ ...input, empresaId: empresa.id });
+        // Resolver profissionalId: usa o enviado ou o do profissional logado
+        const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
+        if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });
+        const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id });
         // Notificar dona
         await createNotificacao({
           empresaId: empresa.id,
@@ -1602,6 +1606,17 @@ export const appRouter = router({
         corpoMensagem: z.string().optional(),
         ativo: z.boolean().optional(),
         flowJson: z.string().optional(),
+        // Campos de agendamento temporal (necessários para dias_antes_agendamento funcionar após edição)
+        tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento"]).optional(),
+        evento: z.string().nullable().optional(),
+        diasAntesDepois: z.number().nullable().optional(),
+        horaDisparo: z.string().nullable().optional(),
+        delayMinutos: z.number().nullable().optional(),
+        dataFixaDia: z.number().nullable().optional(),
+        dataFixaMes: z.number().nullable().optional(),
+        dataFixaHora: z.string().nullable().optional(),
+        tituloMensagem: z.string().nullable().optional(),
+        canalEnvio: z.enum(["whatsapp", "email", "sms"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

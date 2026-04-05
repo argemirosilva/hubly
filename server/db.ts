@@ -1852,6 +1852,7 @@ export async function addPagamentoAgendamento(data: {
   agendamentoId: number;
   valor: string;
   meioPagamento?: string;
+  numeroParcelas?: number;
   observacao?: string;
 }) {
   const db = await getDb();
@@ -1860,6 +1861,7 @@ export async function addPagamentoAgendamento(data: {
     agendamentoId: data.agendamentoId,
     valor: data.valor,
     meioPagamento: data.meioPagamento ?? null,
+    numeroParcelas: data.numeroParcelas ?? 1,
     observacao: data.observacao ?? null,
   });
 }

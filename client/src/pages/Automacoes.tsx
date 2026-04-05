@@ -789,12 +789,26 @@ export default function Automacoes() {
     const actionNode = nodesParaSalvar.find(n => n.type === "action");
     const flowJsonStr = JSON.stringify(nodesParaSalvar);
     if (currentFlow.id) {
-      // Atualizar automação existente
+      // Atualizar automação existente — inclui campos temporais para garantir que dias_antes_agendamento funcione
       updateMutation.mutate({
         id: currentFlow.id,
         nome: currentFlow.nome,
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
+        tipoGatilho,
+        evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
+        diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
+          ? undefined
+          : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
+        delayMinutos: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
+          ? (triggerNode.data.horas ? Number(triggerNode.data.horas) * 60 : 60)
+          : undefined,
+        horaDisparo: triggerNode.data.hora,
+        dataFixaDia: triggerNode.data.dia ? Number(triggerNode.data.dia) : undefined,
+        dataFixaMes: triggerNode.data.mes ? Number(triggerNode.data.mes) : undefined,
+        dataFixaHora: triggerNode.data.hora,
+        canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
+        tituloMensagem: actionNode?.data.titulo,
       }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); } });
     } else {
       // Criar nova automação

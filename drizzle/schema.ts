@@ -222,6 +222,7 @@ export const agendamentoPagamentos = mysqlTable("agendamento_pagamentos", {
   agendamentoId: int("agendamentoId").notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   meioPagamento: varchar("meioPagamento", { length: 100 }),
+  numeroParcelas: int("numeroParcelas").default(1), // apenas registro informativo
   observacao: text("observacao"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

@@ -46,7 +46,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const [editandoValores, setEditandoValores] = useState(false);
   // Estado para pagamentos parciais
   const [showAddPagamento, setShowAddPagamento] = useState(false);
-  const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", observacao: "" });
+  const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", numeroParcelas: 1, observacao: "" });
   // Estado para leitura de comprovante
   const comprovanteInputRef = useRef<HTMLInputElement>(null);
   const lerComprovanteMutation = trpc.agendamentos.lerComprovante.useMutation({
@@ -60,6 +60,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       setNovoPagamento({
         valor: String(dados.valor),
         meioPagamento: dados.tipo || 'PIX',
+        numeroParcelas: 1,
         observacao: `Comprovante ${dados.banco ?? ''} - ${dados.data ?? ''}`.trim(),
       });
       setShowAddPagamento(true);
@@ -123,7 +124,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       toast.success("Pagamento registrado!");
       utils.agendamentos.getPagamentos.invalidate({ agendamentoId });
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
-      setNovoPagamento({ valor: "", meioPagamento: "", observacao: "" });
+      setNovoPagamento({ valor: "", meioPagamento: "", numeroParcelas: 1, observacao: "" });
       setShowAddPagamento(false);
     },
     onError: (err: { message: string }) => toast.error(err.message),
@@ -595,6 +596,25 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           </Select>
                         </div>
                       </div>
+                      {novoPagamento.meioPagamento === "Cartão Crédito" && (
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground mb-1 block">Parcelamento</Label>
+                          <Select
+                            value={String(novoPagamento.numeroParcelas)}
+                            onValueChange={v => setNovoPagamento(p => ({ ...p, numeroParcelas: parseInt(v) }))}
+                          >
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">À vista (1x)</SelectItem>
+                              {[2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div>
                         <Label className="text-[10px] text-muted-foreground mb-1 block">Observação <span className="opacity-60">(opcional)</span></Label>
                         <Input
@@ -615,6 +635,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                               agendamentoId,
                               valor: novoPagamento.valor,
                               meioPagamento: novoPagamento.meioPagamento || undefined,
+                              numeroParcelas: novoPagamento.meioPagamento === "Cartão Crédito" ? novoPagamento.numeroParcelas : undefined,
                               observacao: novoPagamento.observacao || undefined,
                             });
                           }}

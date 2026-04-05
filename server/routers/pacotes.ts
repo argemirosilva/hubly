@@ -893,4 +893,73 @@ export const pacotesRouter = router({
       return { ok: true };
     }),
 
+  // ─── EDITAR PACOTE DO CLIENTE ─────────────────────────────────────────────────
+  editarPacote: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      nome: z.string().min(1).optional(),
+      valorPago: z.number().min(0).optional(),
+      formaPagamento: z.string().optional(),
+      numeroParcelas: z.number().min(1).max(24).optional(),
+      dataVencimento: z.string().nullable().optional(),
+      observacoes: z.string().optional(),
+      itens: z.array(z.object({
+        servicoId: z.number(),
+        quantidade: z.number().min(1),
+        sessoesUsadas: z.number().min(0).optional(),
+      })).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+
+      // Verificar que o pacote pertence à empresa
+      const [pacote] = await db.select().from(pacotesClientes)
+        .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)))
+        .limit(1);
+      if (!pacote) throw new Error("Pacote não encontrado");
+
+      // Montar campos a atualizar
+      const updates: Partial<typeof pacotesClientes.$inferInsert> = {};
+      if (input.nome !== undefined) updates.nome = input.nome;
+      if (input.valorPago !== undefined) updates.valorPago = String(input.valorPago);
+      if (input.formaPagamento !== undefined) updates.formaPagamento = input.formaPagamento;
+      if (input.numeroParcelas !== undefined) {
+        updates.numeroParcelas = input.numeroParcelas;
+        updates.valorParcela = input.valorPago !== undefined && input.numeroParcelas > 0
+          ? String((input.valorPago / input.numeroParcelas).toFixed(2))
+          : pacote.valorParcela;
+      }
+      if (input.dataVencimento !== undefined) {
+        updates.dataVencimento = input.dataVencimento ? new Date(input.dataVencimento) : null;
+      }
+      if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
+
+      if (Object.keys(updates).length > 0) {
+        await db.update(pacotesClientes).set(updates).where(eq(pacotesClientes.id, input.id));
+      }
+
+      // Atualizar itens se fornecidos
+      if (input.itens && input.itens.length > 0) {
+        // Buscar itens existentes para preservar sessoesUsadas
+        const existentes = await db.select().from(pacotesClientesItens)
+          .where(eq(pacotesClientesItens.pacoteClienteId, input.id));
+        await db.delete(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, input.id));
+        await db.insert(pacotesClientesItens).values(
+          input.itens.map(item => {
+            const existente = existentes.find(e => e.servicoId === item.servicoId);
+            return {
+              pacoteClienteId: input.id,
+              servicoId: item.servicoId,
+              quantidadeTotal: item.quantidade,
+              quantidadeUsada: item.sessoesUsadas ?? existente?.quantidadeUsada ?? 0,
+            };
+          })
+        );
+      }
+
+      return { ok: true };
+    }),
+
 });

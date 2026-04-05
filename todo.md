@@ -1178,3 +1178,10 @@
 ## Correção — Autocomplete de cliente no modal "Abrir Pacote"
 
 - [x] Substituir Select de cliente por campo de busca com autocomplete (digita nome/sobrenome, lista em tempo real)
+
+## Etapa 2 — Correções pós-testes (Fase 4)
+
+- [x] Corrigir automação dias_antes_agendamento: updateMutation agora envia todos os campos temporais (diasAntesDepois, horaDisparo, tipoGatilho)
+- [x] Adicionar parcelamento de cartão de crédito em agendamentos (campo numeroParcelas no modal de pagamento, só aparece para cartão crédito)
+- [x] Implementar edição completa de pacote do cliente (modal com todos os campos + botão Editar no card do pacote)
+- [x] Corrigir erro profissionalId undefined no bloqueio de agenda (backend usa ctx.systemUser.profissionalId como fallback)
