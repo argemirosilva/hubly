@@ -1232,3 +1232,6 @@
 - [x] Indicador visual de bloqueios pendentes na sidebar para administradores
 - [x] Filtros na página de bloqueios: "Meus bloqueios", "Aguardando aprovação", "Histórico"
 - [x] Notificações para solicitante sobre aprovação/rejeição do bloqueio
+
+- [x] Exclusão de bloqueios: qualquer usuário pode excluir qualquer registro de bloqueio
+- [x] Notificação para admins: quando bloqueio é cancelado, notificar grupo admin

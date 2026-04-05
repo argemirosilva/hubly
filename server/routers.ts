@@ -1546,6 +1546,40 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    excluir: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        
+        // Buscar bloqueio antes de excluir
+        const db = await getDb();
+        if (!db) throw new Error("Database não disponível");
+        
+        const { bloqueiosAgenda } = await import("../drizzle/schema");
+        const [bloqueio] = await db.select()
+          .from(bloqueiosAgenda)
+          .where(eq(bloqueiosAgenda.id, input.id))
+          .limit(1);
+        
+        if (!bloqueio) throw new Error("Bloqueio não encontrado");
+        
+        // Excluir bloqueio
+        await db.delete(bloqueiosAgenda).where(eq(bloqueiosAgenda.id, input.id));
+        
+        // Notificar admins que o bloqueio foi cancelado
+        await createNotificacao({
+          empresaId: empresa.id,
+          destinatarioId: null, // null = visível para todos os admins
+          tipo: "bloqueio_cancelado",
+          titulo: "Bloqueio cancelado",
+          mensagem: `Bloqueio de agenda cancelado. Profissional: ${bloqueio.profissionalId}, Período: ${bloqueio.dataInicio} a ${bloqueio.dataFim}`,
+          dadosContexto: { bloqueioId: input.id, profissionalId: bloqueio.profissionalId },
+        });
+        
+        return { success: true };
+      }),
   }),
 
   // ─── FINANCEIRO / COMISSÕES ───────────────────────────────────────────────

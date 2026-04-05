@@ -47,6 +47,13 @@ export default function Bloqueios() {
     },
     onError: (err: any) => toast.error(err.message),
   });
+  const excluirMutation = trpc.bloqueios.excluir.useMutation({
+    onSuccess: () => { 
+      toast.success("Bloqueio cancelado!"); 
+      utils.bloqueios.list.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const profMap: Record<number, string> = {};
   profissionais?.forEach(p => { profMap[p.id] = p.nome; });
@@ -181,24 +188,37 @@ export default function Bloqueios() {
                       )}
                     </div>
                   </div>
-                  {b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId && (
-                    <div className="flex gap-2 mt-3 ml-12">
-                      <button
-                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                        style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
-                        onClick={() => aprovarMutation.mutate({ id: b.id })}
-                        disabled={aprovarMutation.isPending}>
-                        <CheckCircle className="w-3 h-3" /> Aprovar
-                      </button>
-                      <button
-                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                        style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
-                        onClick={() => { setSelectedBloqueio(b); setApprovalModalOpen(true); setMotivoRecusa(""); }}
-                        disabled={recusarMutation.isPending}>
-                        <XCircle className="w-3 h-3" /> Recusar
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-2 mt-3 ml-12 flex-wrap">
+                    {b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId && (
+                      <>
+                        <button
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                          style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                          onClick={() => aprovarMutation.mutate({ id: b.id })}
+                          disabled={aprovarMutation.isPending}>
+                          <CheckCircle className="w-3 h-3" /> Aprovar
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                          style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
+                          onClick={() => { setSelectedBloqueio(b); setApprovalModalOpen(true); setMotivoRecusa(""); }}
+                          disabled={recusarMutation.isPending}>
+                          <XCircle className="w-3 h-3" /> Recusar
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                      style={{ borderColor: "oklch(55% 0.22 264 / 40%)", color: "oklch(45% 0.18 264)", background: "oklch(55% 0.22 264 / 8%)" }}
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja cancelar este bloqueio?")) {
+                          excluirMutation.mutate({ id: b.id });
+                        }
+                      }}
+                      disabled={excluirMutation.isPending}>
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               );
             })}
