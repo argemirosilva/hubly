@@ -107,7 +107,7 @@ const bottomNav = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
   const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout, register: systemRegister } = useSystemAuth();
-  const { pode, isOwner, permissoes: permsObj } = usePermissoes();
+  const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj } = usePermissoes();
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -659,8 +659,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             {naoLidas > 9 ? "9+" : naoLidas}
                           </span>
                         )}
-                        {/* Badge vermelho no WhatsApp quando desconectado */}
-                        {item.href === "/admin/whatsapp" && !waConnected && waStatus !== undefined && (
+                        {/* Badge vermelho no WhatsApp quando desconectado — apenas para admins/owners */}
+                        {hasFullAccess && item.href === "/admin/whatsapp" && !waConnected && waStatus !== undefined && (
                           <span className="text-[9px] rounded-full px-1.5 py-0.5 font-bold leading-none"
                             style={{ background: "oklch(55% 0.18 25 / 20%)", color: "oklch(62% 0.20 25)" }}>
                             OFF
@@ -775,8 +775,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </Link>
             )}
-            {/* Ícone WhatsApp com status pulsante */}
-            <Link href="/admin/whatsapp" title={waConnected ? `WhatsApp conectado${waPhoneNumber ? ` — ${waPhoneNumber}` : ''}` : 'WhatsApp desconectado'}>
+            {/* Ícone WhatsApp com status pulsante — apenas para admins/owners */}
+            {hasFullAccess && <Link href="/admin/whatsapp" title={waConnected ? `WhatsApp conectado${waPhoneNumber ? ` — ${waPhoneNumber}` : ''}` : 'WhatsApp desconectado'}>
               <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
                 <MessageCircle className="w-5 h-5" style={{ color: waConnected ? "oklch(55% 0.22 145)" : "oklch(65% 0.015 255)" }} />
                 {/* Dot de status */}
@@ -791,7 +791,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   }}
                 />
               </div>
-            </Link>
+            </Link>}
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
                 <Bell className="w-5 h-5 text-foreground" />

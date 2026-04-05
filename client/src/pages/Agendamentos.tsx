@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Clock, SlidersHorizontal, X, CheckSquare, Square, ChevronDown, Loader2 } from "lucide-react";
+import { Plus, Search, Clock, SlidersHorizontal, X, CheckSquare, Square, ChevronDown, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -58,6 +58,22 @@ export default function Agendamentos() {
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [confirmLote, setConfirmLote] = useState<{ status: string; label: string } | null>(null);
+  const [confirmExcluirLote, setConfirmExcluirLote] = useState(false);
+
+  const bulkDeleteMutation = trpc.agendamentos.bulkDelete.useMutation({
+    onSuccess: (result) => {
+      utils.agendamentos.list.invalidate();
+      setSelecionados(new Set());
+      setModoSelecao(false);
+      setConfirmExcluirLote(false);
+      if (result.falhas > 0) {
+        toast.error(`${result.sucesso} excluído${result.sucesso !== 1 ? 's' : ''}, ${result.falhas} com erro`);
+      } else {
+        toast.success(`${result.sucesso} agendamento${result.sucesso !== 1 ? 's' : ''} excluído${result.sucesso !== 1 ? 's' : ''} com sucesso`);
+      }
+    },
+    onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
+  });
 
   const bulkUpdateMutation = trpc.agendamentos.bulkUpdateStatus.useMutation({
     onSuccess: (result) => {
@@ -307,6 +323,18 @@ export default function Agendamentos() {
                   <DropdownMenuItem onClick={() => confirmarAcaoLote("agendado", "Agendado")}>Voltar para Agendado</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* Botão excluir em lote — apenas para admins */}
+              {(isAdmin || pode('__admin__')) && (
+                <button
+                  onClick={() => setConfirmExcluirLote(true)}
+                  disabled={bulkDeleteMutation.isPending}
+                  className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition-colors"
+                  style={{ background: "oklch(55% 0.22 25 / 12%)", color: "oklch(42% 0.18 25)" }}
+                >
+                  {bulkDeleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Excluir
+                </button>
+              )}
             </>
           )}
         </div>
@@ -425,6 +453,29 @@ export default function Agendamentos() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={executarAcaoLote} disabled={bulkUpdateMutation.isPending}>
               {bulkUpdateMutation.isPending ? "Atualizando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog de exclusão em lote */}
+      <AlertDialog open={confirmExcluirLote} onOpenChange={open => { if (!open) setConfirmExcluirLote(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir agendamentos selecionados</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a <strong>excluir permanentemente {selecionados.size} agendamento{selecionados.size !== 1 ? "s" : ""}</strong>.
+              Esta ação não pode ser desfeita e removerá todos os dados vinculados (pagamentos, comissões, prontuários).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selecionados) })}
+              disabled={bulkDeleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleteMutation.isPending ? "Excluindo..." : `Excluir ${selecionados.size} agendamento${selecionados.size !== 1 ? "s" : ""}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

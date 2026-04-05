@@ -670,10 +670,16 @@ export default function Pacotes() {
   }
 
   const { data: modelos = [], isLoading: loadingModelos } = trpc.pacotes.listarModelos.useQuery();
-  const { data: pacotesAtivos = [], isLoading: loadingPacotes } = trpc.pacotes.listarTodos.useQuery({
+  const { data: pacotesRaw = [], isLoading: loadingPacotes } = trpc.pacotes.listarTodos.useQuery({
     status: filtroStatus,
     busca: buscaDebounced || undefined,
   });
+  // Filtro client-side como fallback — garante busca mesmo sem suporte server-side
+  const pacotesAtivos = buscaCliente.trim()
+    ? pacotesRaw.filter(p =>
+        (p.clienteNome ?? "").toLowerCase().includes(buscaCliente.toLowerCase())
+      )
+    : pacotesRaw;
   const { data: clientesData = [] } = trpc.clientes.list.useQuery();
   const { data: servicosData = [] } = trpc.servicos.list.useQuery();
 

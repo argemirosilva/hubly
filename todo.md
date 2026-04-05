@@ -1167,3 +1167,10 @@
 - [x] Frontend: adicionar gatilho 'Pacote renovado' na UI de Automações
 - [x] Frontend: adicionar variáveis {{nome_pacote}}, {{data_vencimento}}, {{valor_pago}}, {{parcelas}} na lista de variáveis
 - [x] Frontend: adicionar preview das novas variáveis no modal de pré-visualização
+
+## Etapa 1 — Correções pós-testes
+
+- [x] Voltar o botão "Confirmar Reserva" no modal de agendamento (aparece para todos os pré-agendamentos)
+- [x] Corrigir busca de cliente na tela de Pacotes (filtro client-side + server-side)
+- [x] Filtrar alertas/notificações por usuário: PlanLimitAlert e ícone WhatsApp ocultos para profissionais
+- [x] Implementar seleção múltipla de agendamentos para exclusão em lote (botão Excluir + confirmação)

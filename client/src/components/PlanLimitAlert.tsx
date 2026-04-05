@@ -1,13 +1,18 @@
 import { AlertCircle, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 export function PlanLimitAlert() {
   const [dismissed, setDismissed] = useState(false);
+  const { isOwner, isAdmin } = usePermissoes();
   const { data: alertData } = trpc.planos.checkAlerts.useQuery(undefined, {
     refetchInterval: 60000, // Recarrega a cada 1 minuto
+    enabled: isOwner || isAdmin, // Só busca para admins/owners
   });
 
+  // Alertas de plano só para admins e owners
+  if (!isOwner && !isAdmin) return null;
   if (dismissed || !alertData?.temAlerta || !alertData.alertas.length) {
     return null;
   }

@@ -1263,6 +1263,33 @@ export const appRouter = router({
         return { sucesso, falhas, total: input.ids.length };
       }),
 
+    // Exclusão em lote de agendamentos
+    bulkDelete: protectedProcedure
+      .input(z.object({
+        ids: z.array(z.number()).min(1).max(100),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        let sucesso = 0;
+        let falhas = 0;
+        for (const id of input.ids) {
+          try {
+            const ag = await getAgendamentoById(id);
+            if (ag && ag.empresaId === empresa.id) {
+              await deleteAgendamentoCompleto(id);
+              try { await decrementAgendamentosCount(empresa.id); } catch {}
+              sucesso++;
+            } else {
+              falhas++;
+            }
+          } catch {
+            falhas++;
+          }
+        }
+        return { sucesso, falhas, total: input.ids.length };
+      }),
+
     // Métricas de conversão de pré-agendamentos
     metricasPreAgendamento: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

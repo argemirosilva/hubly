@@ -741,8 +741,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               Alterar status
             </p>
             <div className="flex flex-wrap gap-2">
-              {/* Reserva Recebida: para pre_agendado com valorReserva configurado */}
-              {ag.status === "pre_agendado" && ag.valorReserva && (
+              {/* Reserva Recebida: para qualquer pré-agendado, independente de ter valorReserva */}
+              {ag.status === "pre_agendado" && (
                 <ActionBtn
                   label={confirmarReservaMutation.isPending ? "Confirmando..." : "Reserva Recebida"}
                   icon={CheckCircle2}
