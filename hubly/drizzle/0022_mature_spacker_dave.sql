@@ -1,0 +1,20 @@
+CREATE TABLE `contas_receber` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`empresaId` int NOT NULL,
+	`descricao` varchar(200) NOT NULL,
+	`valor` decimal(10,2) NOT NULL,
+	`dataVencimento` varchar(10) NOT NULL,
+	`dataRecebimento` varchar(10),
+	`status_receber` enum('pendente','recebido','vencido','cancelado') NOT NULL DEFAULT 'pendente',
+	`origem_receber` enum('manual','agendamento','pacote') NOT NULL DEFAULT 'manual',
+	`origemId` int,
+	`clienteId` int,
+	`profissionalId` int,
+	`tipo_pagamento_receber` enum('dinheiro','pix','cartao_debito','cartao_credito','outro'),
+	`observacoes` text,
+	`recorrente` boolean NOT NULL DEFAULT false,
+	`recorrencia_tipo_receber` enum('semanal','mensal','anual'),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `contas_receber_id` PRIMARY KEY(`id`)
+);

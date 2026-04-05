@@ -1,0 +1,1 @@
+ALTER TABLE `servicos` ADD `percentualComissao` decimal(5,2) DEFAULT '0.00';
