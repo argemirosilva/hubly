@@ -1185,3 +1185,12 @@
 - [x] Adicionar parcelamento de cartão de crédito em agendamentos (campo numeroParcelas no modal de pagamento, só aparece para cartão crédito)
 - [x] Implementar edição completa de pacote do cliente (modal com todos os campos + botão Editar no card do pacote)
 - [x] Corrigir erro profissionalId undefined no bloqueio de agenda (backend usa ctx.systemUser.profissionalId como fallback)
+
+## Etapa 3 — Correções pós-testes
+
+- [ ] Modelo de pacotes: corrigir contabilização de serviços (dar baixa correta dos itens do pacote por serviço)
+- [ ] Agendamento: exibir se cliente tem pacote ativo e permitir abater serviço do pacote (se o pacote tiver o serviço)
+- [ ] Página pública /agendar: adicionar opção de upload de comprovante para confirmar reserva
+- [x] Criar novo pacote direto pelo agendamento (botão "Abrir pacote" no modal de agendamento)
+- [x] Fluxo completo de venda + consumo: vincular pacote ao cliente diretamente pelo agendamento (criar pacote + abater sessão no mesmo fluxo)
+- [ ] Pacotes por cliente: garantir edição de pacote (botão Editar já implementado — verificar se está funcionando)

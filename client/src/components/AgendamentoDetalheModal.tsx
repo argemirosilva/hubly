@@ -235,10 +235,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         servicoId: item.servicoId,
         nome: servicos?.find(s => s.id === item.servicoId)?.nome ?? "Serviço",
         valor: parseFloat(String(item.valorUnitario)),
+        pacoteClienteItemId: item.pacoteClienteItemId ?? null,
       }));
     }
     if (servico) {
-      return [{ servicoId: servico.id, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)) }];
+      return [{ servicoId: servico.id, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)), pacoteClienteItemId: null }];
     }
     return [];
   }, [itens, servico, servicos, ag]);
@@ -367,7 +368,14 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   )}
                   {servicosDoAgendamento.map((s, i) => (
                     <div key={i} className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold truncate flex-1">{s.nome}</p>
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{s.nome}</p>
+                        {s.pacoteClienteItemId && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/40 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                            📦 Pacote
+                          </span>
+                        )}
+                      </div>
                       {editandoValores ? (
                         <div className="relative w-28 flex-shrink-0">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>

@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
-import { Plus, Trash2, Zap } from "lucide-react";
+import { Plus, Trash2, Zap, Package } from "lucide-react";
+import ModalAbrirPacote from "@/components/ModalAbrirPacote";
 
 interface ServicoItem {
   servicoId: string;
@@ -188,7 +189,19 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   const temVinculos = !!profissionalIdNum && !!servicosVinculados && servicosVinculados.length > 0;
 
+  // Estado para o modal de abrir pacote
+  const [modalPacoteAberto, setModalPacoteAberto] = useState(false);
+  const [pacoteServicoIdInicial, setPacoteServicoIdInicial] = useState<number | undefined>();
+
+  // Nome do cliente selecionado para pré-preencher o modal de pacote
+  const clienteNomeSelecionado = useMemo(() => {
+    if (!clienteIdNum || !clientes) return undefined;
+    const c = clientes.find(cl => cl.id === clienteIdNum);
+    return c ? c.nome : undefined;
+  }, [clienteIdNum, clientes]);
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[90vh]">
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
@@ -281,11 +294,25 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                         ))}
                       </SelectContent>
                     </Select>
-                    {/* Linha 1.5: Vincular sessão de pacote */}
+                    {/* Linha 1.5: Vincular sessão de pacote ou abrir novo */}
                     {item.servicoId && (() => {
                       const servicoIdNum = parseInt(item.servicoId);
                       const pacotesDoServico = pacotesAtivos.filter(p => p.servicoId === servicoIdNum);
-                      if (pacotesDoServico.length === 0) return null;
+                      if (pacotesDoServico.length === 0) {
+                        if (!clienteIdNum) return null;
+                        return (
+                          <div className="flex items-center gap-2 px-1">
+                            <button
+                              type="button"
+                              onClick={() => { setPacoteServicoIdInicial(servicoIdNum); setModalPacoteAberto(true); }}
+                              className="text-[11px] text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1 hover:underline underline-offset-2"
+                            >
+                              <Package className="w-3 h-3" />
+                              Abrir pacote para este serviço
+                            </button>
+                          </div>
+                        );
+                      }
                       return (
                         <div className="flex items-center gap-2 px-1">
                           <span className="text-[11px] text-violet-600 font-medium whitespace-nowrap">📦 Usar pacote:</span>
@@ -465,5 +492,21 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Modal de abrir pacote integrado */}
+    {modalPacoteAberto && (
+      <ModalAbrirPacote
+        open={modalPacoteAberto}
+        onClose={() => { setModalPacoteAberto(false); setPacoteServicoIdInicial(undefined); }}
+        clienteIdInicial={clienteIdNum ?? undefined}
+        clienteNomeInicial={clienteNomeSelecionado}
+        servicoIdInicial={pacoteServicoIdInicial}
+        onSuccess={() => {
+          // Invalidar pacotes ativos para que o select seja atualizado automaticamente
+          utils.pacotes.listarAtivosComSessoes.invalidate();
+        }}
+      />
+    )}
+    </>
   );
 }
