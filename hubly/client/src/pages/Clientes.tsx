@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Users, Phone, Calendar, Pencil, Trash2, RotateCcw, Eye, Mail, MapPin, CreditCard, ChevronRight } from "lucide-react";
+import {
+  Plus, Search, Users, Phone, Calendar, Pencil, Trash2, RotateCcw,
+  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -20,6 +23,25 @@ function formatCurrency(v: number | string | null | undefined) {
 const FORM_VAZIO = { nome: "", telefone: "", whatsapp: "", email: "", cpf: "", dataNascimento: "", endereco: "", observacoes: "" };
 
 type FormCliente = typeof FORM_VAZIO;
+
+// ─── Mini bar chart component ────────────────────────────────────────────────
+function MiniBarChart({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1);
+  return (
+    <div className="flex items-end gap-[3px] h-10">
+      {data.map((v, i) => (
+        <div
+          key={i}
+          className="w-[6px] rounded-sm transition-all"
+          style={{
+            height: `${Math.max((v / max) * 100, 6)}%`,
+            background: i === data.length - 1 ? color : `${color}50`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Clientes() {
   const { pode } = usePermissoes();
@@ -49,6 +71,35 @@ export default function Clientes() {
       (c.cpf ?? "").includes(busca)
     );
   }, [clientesAtivos, todosClientes, busca, mostrarInativos]);
+
+  // ─── Métricas calculadas ─────────────────────────────────────────────────
+  const metricas = useMemo(() => {
+    const ativos = clientesAtivos ?? [];
+    const todos = todosClientes ?? [];
+    const inativos = todos.length - ativos.length;
+
+    const totalReceita = ativos.reduce((acc, c) => acc + Number(c.totalGasto ?? 0), 0);
+    const totalAtendimentos = ativos.reduce((acc, c) => acc + (c.totalAtendimentos ?? 0), 0);
+    const ticketMedio = ativos.length > 0 ? totalReceita / ativos.length : 0;
+
+    // Top 5 clientes por gasto
+    const top5 = [...ativos].sort((a, b) => Number(b.totalGasto ?? 0) - Number(a.totalGasto ?? 0)).slice(0, 5);
+    const top5Gastos = top5.map(c => Number(c.totalGasto ?? 0));
+
+    // Distribuição de atendimentos (últimos 6 "buckets" por faixa)
+    const atendDistrib = [0, 0, 0, 0, 0, 0]; // 0, 1-2, 3-5, 6-10, 11-20, 20+
+    ativos.forEach(c => {
+      const n = c.totalAtendimentos ?? 0;
+      if (n === 0) atendDistrib[0]++;
+      else if (n <= 2) atendDistrib[1]++;
+      else if (n <= 5) atendDistrib[2]++;
+      else if (n <= 10) atendDistrib[3]++;
+      else if (n <= 20) atendDistrib[4]++;
+      else atendDistrib[5]++;
+    });
+
+    return { ativos: ativos.length, inativos, totalReceita, totalAtendimentos, ticketMedio, top5Gastos, atendDistrib };
+  }, [clientesAtivos, todosClientes]);
 
   const invalidar = () => {
     utils.clientes.list.invalidate();
@@ -118,15 +169,15 @@ export default function Clientes() {
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto animate-in-up">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto animate-in-up flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Clientes</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {clientesAtivos?.length ?? 0} ativos
-            {mostrarInativos && todosClientes && todosClientes.length > (clientesAtivos?.length ?? 0) && (
-              <span className="ml-1 text-orange-500">· {todosClientes.length - (clientesAtivos?.length ?? 0)} inativos</span>
+            {metricas.ativos} ativos
+            {mostrarInativos && metricas.inativos > 0 && (
+              <span className="ml-1 text-orange-500">· {metricas.inativos} inativos</span>
             )}
           </p>
         </div>
@@ -137,20 +188,94 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* Busca + toggle inativos */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, telefone, email ou CPF..." className="pl-9 h-10" value={busca} onChange={e => setBusca(e.target.value)} />
+      {/* Cards de métricas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="card-elegant p-3.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
+            <UserCheck className="w-4 h-4" style={{ color: "oklch(55% 0.22 264)" }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground leading-none">Clientes ativos</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5">{metricas.ativos}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-3 rounded-lg border bg-card text-xs text-muted-foreground whitespace-nowrap">
-          <Switch checked={mostrarInativos} onCheckedChange={setMostrarInativos} id="toggle-inativos" />
-          <label htmlFor="toggle-inativos" className="cursor-pointer hidden sm:block">Ver inativos</label>
+
+        <div className="card-elegant p-3.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "oklch(50% 0.16 155 / 10%)" }}>
+            <DollarSign className="w-4 h-4" style={{ color: "oklch(50% 0.16 155)" }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground leading-none">Receita total</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5">{formatCurrency(metricas.totalReceita)}</p>
+          </div>
+        </div>
+
+        <div className="card-elegant p-3.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "oklch(60% 0.20 30 / 10%)" }}>
+            <TrendingUp className="w-4 h-4" style={{ color: "oklch(60% 0.20 30)" }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground leading-none">Ticket médio</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5">{formatCurrency(metricas.ticketMedio)}</p>
+          </div>
+        </div>
+
+        <div className="card-elegant p-3.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "oklch(55% 0.18 270 / 10%)" }}>
+            <Calendar className="w-4 h-4" style={{ color: "oklch(55% 0.18 270)" }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground leading-none">Total atendimentos</p>
+            <p className="text-lg font-bold tracking-tight mt-0.5">{metricas.totalAtendimentos}</p>
+          </div>
         </div>
       </div>
 
-      {/* Lista */}
-      <div className="card-elegant overflow-hidden">
+      {/* Mini gráficos */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="card-elegant p-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-medium text-muted-foreground">Top 5 clientes (receita)</p>
+          </div>
+          <MiniBarChart data={metricas.top5Gastos.length > 0 ? metricas.top5Gastos : [0]} color="oklch(50% 0.16 155)" />
+        </div>
+        <div className="card-elegant p-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-medium text-muted-foreground">Frequência de atendimentos</p>
+          </div>
+          <MiniBarChart data={metricas.atendDistrib} color="oklch(55% 0.22 264)" />
+          <div className="flex justify-between mt-1">
+            <span className="text-[9px] text-muted-foreground">0</span>
+            <span className="text-[9px] text-muted-foreground">1-2</span>
+            <span className="text-[9px] text-muted-foreground">3-5</span>
+            <span className="text-[9px] text-muted-foreground">6-10</span>
+            <span className="text-[9px] text-muted-foreground">11-20</span>
+            <span className="text-[9px] text-muted-foreground">20+</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Busca fixa (sticky) + toggle inativos */}
+      <div className="sticky top-0 z-10 bg-background pb-3 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-1 border-b border-border/40">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, telefone, email ou CPF..." className="pl-9 h-10" value={busca} onChange={e => setBusca(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-2 px-3 rounded-lg border bg-card text-xs text-muted-foreground whitespace-nowrap">
+            <Switch checked={mostrarInativos} onCheckedChange={setMostrarInativos} id="toggle-inativos" />
+            <label htmlFor="toggle-inativos" className="cursor-pointer hidden sm:block">Ver inativos</label>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-1.5">{clientes.length} resultado{clientes.length !== 1 ? "s" : ""}</p>
+      </div>
+
+      {/* Lista com scroll */}
+      <div className="card-elegant overflow-hidden flex-1 min-h-0 flex flex-col mt-0">
         {clientes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
@@ -170,18 +295,18 @@ export default function Clientes() {
             )}
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="overflow-y-auto flex-1 divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
             {clientes.map(c => {
               const inativo = !c.ativo;
               return (
-                <div key={c.id} className={`flex items-center gap-3 px-4 py-3.5 transition-colors group ${inativo ? "opacity-50" : "hover:bg-muted/30"}`}>
+                <div key={c.id} className={`flex items-center gap-3 px-4 py-3 transition-colors group ${inativo ? "opacity-50" : "hover:bg-muted/30"}`}>
                   {/* Avatar */}
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold text-white ${inativo ? "bg-muted-foreground/40" : ""}`}
                     style={!inativo ? { background: "oklch(55% 0.22 264)" } : {}}>
                     {c.nome.charAt(0).toUpperCase()}
                   </div>
 
-                  {/* Info — clicável para detalhes */}
+                  {/* Info */}
                   <Link href={`/admin/clientes/${c.id}`} className="flex-1 min-w-0 cursor-pointer">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground truncate">{c.nome}</p>
