@@ -1,12 +1,13 @@
-import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { trpc } from "@/lib/trpc";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pendente:  { label: "Pendente",  bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(40% 0.14 75)" },
@@ -18,6 +19,9 @@ export default function Bloqueios() {
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "" });
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const [selectedBloqueio, setSelectedBloqueio] = useState<any>(null);
+  const [motivoRecusa, setMotivoRecusa] = useState("");
 
   const { isOwner, pode } = usePermissoes();
   const isAdmin = isOwner || pode('agendaAprovarBloqueio');
@@ -34,7 +38,12 @@ export default function Bloqueios() {
     onError: (err: any) => toast.error(err.message),
   });
   const recusarMutation = trpc.bloqueios.recusar.useMutation({
-    onSuccess: () => { toast.success("Bloqueio recusado."); utils.bloqueios.list.invalidate(); },
+    onSuccess: () => { 
+      toast.success("Bloqueio recusado."); 
+      utils.bloqueios.list.invalidate();
+      setApprovalModalOpen(false);
+      setMotivoRecusa("");
+    },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -98,7 +107,13 @@ export default function Bloqueios() {
                         </span>
                       </div>
                       {b.motivo && (
-                        <p className="text-xs text-muted-foreground mt-0.5 italic truncate">"{b.motivo}"</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 italic truncate">\"{ b.motivo}\"</p>
+                      )}
+                      {b.status === "recusado" && b.motivoRecusa && (
+                        <p className="text-xs text-red-600 mt-0.5 italic">Motivo da recusa: {b.motivoRecusa}</p>
+                      )}
+                      {b.aprovadoPorId && (
+                        <p className="text-xs text-muted-foreground mt-1">Aprovado em {b.updatedAt ? new Date(b.updatedAt).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
                       )}
                     </div>
                   </div>
@@ -114,7 +129,7 @@ export default function Bloqueios() {
                       <button
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
                         style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
-                        onClick={() => recusarMutation.mutate({ id: b.id, motivoRecusa: "Recusado pela gestão" })}
+                        onClick={() => { setSelectedBloqueio(b); setApprovalModalOpen(true); setMotivoRecusa(""); }}
                         disabled={recusarMutation.isPending}>
                         <XCircle className="w-3 h-3" /> Recusar
                       </button>
@@ -160,6 +175,49 @@ export default function Bloqueios() {
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button onClick={() => criarMutation.mutate(form as any)} disabled={!form.dataInicio || !form.dataFim || criarMutation.isPending}>
               {criarMutation.isPending ? "Enviando..." : "Solicitar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-bold tracking-tight">Recusar Bloqueio</DialogTitle>
+          </DialogHeader>
+          {selectedBloqueio && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 rounded-lg" style={{ background: "oklch(94% 0.008 250)" }}>
+                <p className="text-xs text-muted-foreground mb-1">Profissional</p>
+                <p className="text-sm font-semibold">{profMap[selectedBloqueio.profissionalId] ?? "Profissional"}</p>
+                <p className="text-xs text-muted-foreground mt-2 mb-1">Período</p>
+                <p className="text-sm">{selectedBloqueio.dataInicio?.split("-").reverse().join("/")} → {selectedBloqueio.dataFim?.split("-").reverse().join("/")}</p>
+                {selectedBloqueio.motivo && (
+                  <>
+                    <p className="text-xs text-muted-foreground mt-2 mb-1">Motivo</p>
+                    <p className="text-sm italic">\"{selectedBloqueio.motivo}\"</p>
+                  </>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Observações da recusa</Label>
+                <Textarea 
+                  value={motivoRecusa} 
+                  onChange={e => setMotivoRecusa(e.target.value)}
+                  placeholder="Explique por que o bloqueio está sendo recusado..."
+                  className="text-xs h-24"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalModalOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={() => recusarMutation.mutate({ id: selectedBloqueio.id, motivoRecusa })}
+              disabled={recusarMutation.isPending}
+              style={{ background: "oklch(58% 0.22 25)", color: "white" }}
+            >
+              {recusarMutation.isPending ? "Recusando..." : "Recusar Bloqueio"}
             </Button>
           </DialogFooter>
         </DialogContent>

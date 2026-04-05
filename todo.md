@@ -1216,3 +1216,13 @@
 - [x] Registrar envios de teste na procedure testarEnvio com is_test=true
 - [x] Exibir badge "Teste" no histórico de envios para diferenciar dos envios reais
 - [x] Filtro por tipo (real/teste) na tela de histórico de envios
+
+
+## Sistema de Aprovação de Bloqueios (v7)
+- [x] Auto-aprovação para admins: bloqueios criados por admins nascem como "aprovado"
+- [x] Modal de aprovação/rejeição: ao clicar na notificação, abrir modal com opções
+- [x] Campo de observações: ao rejeitar, permitir digitar motivo
+- [x] Notificações bidirecionais: enviar notificação para o solicitante (aprovado ou rejeitado com motivo)
+- [x] Atualizar status: registrar aprovação/rejeição com aprovadoPorId e motivoRecusa
+- [x] UI de bloqueios: exibir status (pendente/aprovado/recusado) com cores diferenciadas
+- [x] Histórico de aprovação: mostrar quem aprovou/rejeitou e quando
