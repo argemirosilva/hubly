@@ -28,7 +28,7 @@ export default function Bloqueios() {
   const { isOwner, pode, profissionalId } = usePermissoes();
   const isAdmin = isOwner || pode('agendaAprovarBloqueio');
 
-  const { data: bloqueios } = trpc.bloqueios.list.useQuery();
+  const { data: bloqueios } = trpc.bloqueios.list.useQuery({});
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const criarMutation = trpc.bloqueios.create.useMutation({
