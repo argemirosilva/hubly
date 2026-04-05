@@ -713,16 +713,28 @@ export default function Automacoes() {
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao gerar pipeline"),
   });
+
+  // Gera pipeline automaticamente em segundo plano após qualquer mudança em automações
+  const gerarPipelineAutomatico = () => {
+    gerarPipelineMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        toast.success(`✅ Pipeline atualizado automaticamente — "${data.nomePipeline}"`, { duration: 3500 });
+        utils.pipeline.listar.invalidate();
+      },
+      onError: () => { /* silencioso em segundo plano */ },
+    });
+  };
+
   const { data: automacoesSalvas = [], isLoading } = trpc.automacoes.list.useQuery();
   const createMutation = trpc.automacoes.create.useMutation({
-    onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); },
+    onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => toast.error(e.message),
   });
   const updateMutation = trpc.automacoes.update.useMutation({
-    onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); },
+    onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
   });
   const deleteMutation = trpc.automacoes.delete.useMutation({
-    onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); },
+    onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => toast.error(e.message),
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -836,7 +848,7 @@ export default function Automacoes() {
         dataFixaHora: triggerNode.data.hora,
         canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
         tituloMensagem: actionNode?.data.titulo,
-      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); } });
+      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
     } else {
       // Criar nova automação
       createMutation.mutate({
@@ -858,7 +870,7 @@ export default function Automacoes() {
         tituloMensagem: actionNode?.data.titulo,
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
-      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); } });
+      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
     }
   };
 

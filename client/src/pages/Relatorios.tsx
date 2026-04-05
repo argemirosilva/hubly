@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, BarChart3, TrendingUp, TrendingDown, Calendar, Users, Target, Clock } from "lucide-react";
+import { AlertTriangle, BarChart3, TrendingUp, TrendingDown, Calendar, Users, Target, Clock, ShieldOff } from "lucide-react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -387,6 +388,18 @@ function PainelPrevisao() {
 
 // ── Página Principal ─────────────────────────────────────────────────────────
 export default function Relatorios() {
+  const { pode } = usePermissoes();
+
+  if (!pode("financeiroVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+        <ShieldOff className="w-12 h-12 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Acesso restrito</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">Você não tem permissão para visualizar os relatórios financeiros. Fale com o administrador.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">

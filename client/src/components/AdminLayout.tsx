@@ -72,7 +72,16 @@ const navGroups: NavGroup[] = [
       },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle, permissao: "automacoesVer" },
       { href: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
-      { href: "/admin/bloqueios", label: "Bloqueios", icon: Lock, permissao: "agendamentosVer" },
+      {
+        href: "/admin/bloqueios",
+        label: "Bloqueios",
+        icon: Lock,
+        permissao: "agendamentosVer",
+        children: [
+          { href: "/admin/bloqueios", label: "Gerenciar Bloqueios", icon: Lock, permissao: "agendamentosVer" },
+          { href: "/admin/relatorios/bloqueios", label: "Relatório de Bloqueios", icon: BarChart3, permissao: "agendamentosVer" },
+        ],
+      },
     ],
   },
   {

@@ -1465,6 +1465,8 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
+        // Verificar permissão: apenas quem pode ver agendamentos acessa bloqueios
+        await requirePermissao(ctx, empresa, 'agendamentosVer');
         const bloqueios = await getBloqueiosByEmpresa(empresa.id);
         // Filtrar por data e profissional se fornecidos
         return bloqueios.filter(b => {

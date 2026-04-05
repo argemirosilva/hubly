@@ -3,13 +3,26 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Lock, CheckCircle, XCircle, Calendar } from "lucide-react";
+import { Lock, CheckCircle, XCircle, Calendar, ShieldOff } from "lucide-react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 export default function RelatoriosBloqueios() {
+  const { pode } = usePermissoes();
   const [filtroMes, setFiltroMes] = useState<string>(new Date().toISOString().slice(0, 7));
   
-  const { data: bloqueios } = trpc.bloqueios.list.useQuery({});
-  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
+  const temPermissao = pode("agendamentosVer");
+  const { data: bloqueios } = trpc.bloqueios.list.useQuery({}, { enabled: temPermissao });
+  const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery(undefined, { enabled: temPermissao });
+
+  if (!temPermissao) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+        <ShieldOff className="w-12 h-12 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Acesso restrito</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">Você não tem permissão para visualizar o relatório de bloqueios. Fale com o administrador.</p>
+      </div>
+    );
+  }
 
   const profMap: Record<number, string> = {};
   profissionais?.forEach(p => { profMap[p.id] = p.nome; });
