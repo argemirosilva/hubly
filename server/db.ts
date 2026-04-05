@@ -429,19 +429,19 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
  * @param empresaId ID da empresa
  * @param tipoGatilho Tipo do gatilho (ex: 'dias_antes_agendamento', 'aniversario_mes')
  */
-export async function getAutomacaoByTipoGatilho(empresaId: number, tipoGatilho: string) {
+export async function getAutomacaoByTipoGatilho(empresaId: number, tipoGatilho: string, evento?: string) {
   const db = await getDb();
   if (!db) return null;
+  const conditions = [
+    eq(automacoes.empresaId, empresaId),
+    eq(automacoes.tipoGatilho, tipoGatilho as any),
+    eq(automacoes.ativo, true),
+  ];
+  if (evento) conditions.push(eq(automacoes.evento, evento));
   const [result] = await db
     .select()
     .from(automacoes)
-    .where(
-      and(
-        eq(automacoes.empresaId, empresaId),
-        eq(automacoes.tipoGatilho, tipoGatilho as any),
-        eq(automacoes.ativo, true),
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
   return result ?? null;
 }

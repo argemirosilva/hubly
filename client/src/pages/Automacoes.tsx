@@ -10,6 +10,7 @@ import {
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
+  Package, MousePointerClick, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,20 +46,24 @@ interface FlowAutomacao {
 //  Opções
 
 const TRIGGER_OPTIONS = [
-  { value: "evento_agendamento_criado", label: "Agendamento criado (qualquer status)", icon: Calendar, color: "#6366f1" },
-  { value: "evento_agendamento_pre_agendado", label: "Pré-agendamento criado", icon: Calendar, color: "#8b5cf6" },
-  { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981" },
-  { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444" },
-  { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9" },
-  { value: "evento_cliente_criado", label: "Novo cliente cadastrado", icon: UserPlus, color: "#10b981" },
-  { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento cancelado (expiração)", icon: UserX, color: "#f97316" },
-  { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6" },
-  { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899" },
-  { value: "data_fixa", label: "Data específica do calendário", icon: Calendar, color: "#8b5cf6" },
-  { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9" },
-  { value: "horas_antes_agendamento", label: "Horas antes do agendamento", icon: AlarmClock, color: "#f97316" },
-  { value: "horas_apos_agendamento", label: "Horas após o agendamento", icon: Clock, color: "#14b8a6" },
-  { value: "dias_depois_agendamento", label: "Dias depois do agendamento", icon: Clock, color: "#8b5cf6" },
+  { value: "evento_agendamento_criado", label: "Agendamento criado", icon: Calendar, color: "#6366f1", desc: "Dispara quando qualquer agendamento é criado, independente do status inicial." },
+  { value: "evento_agendamento_pre_agendado", label: "Pré-agendamento criado", icon: Calendar, color: "#8b5cf6", desc: "Dispara quando um pré-agendamento é criado (aguardando confirmação do salão)." },
+  { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981", desc: "Dispara quando o status do agendamento muda para confirmado." },
+  { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444", desc: "Dispara quando um agendamento é cancelado pelo salão ou pelo cliente." },
+  { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9", desc: "Dispara quando o atendimento é finalizado e marcado como concluído." },
+  { value: "evento_cliente_criado", label: "Novo cliente cadastrado", icon: UserPlus, color: "#10b981", desc: "Dispara quando um novo cliente é cadastrado no sistema (manual ou via portal)." },
+  { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento expirado", icon: UserX, color: "#f97316", desc: "Dispara quando um pré-agendamento expira sem ser confirmado." },
+  { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6", desc: "Dispara quando um pacote de serviços é renovado para o cliente." },
+  { value: "evento_pacote_vencendo", label: "Pacote vencendo", icon: Package, color: "#f59e0b", desc: "Dispara automaticamente quando um pacote está a 7 dias ou menos de vencer. Ideal para convidar o cliente a renovar." },
+  { value: "evento_sessoes_acabando", label: "Sessões acabando", icon: Package, color: "#ef4444", desc: "Dispara automaticamente quando restam apenas 1 ou 2 sessões no pacote do cliente." },
+  { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899", desc: "Dispara no mês de aniversário do cliente, no horário configurado." },
+  { value: "data_fixa", label: "Data específica", icon: Calendar, color: "#8b5cf6", desc: "Dispara em uma data e horário específicos do calendário (ex: promoção de Natal)." },
+  { value: "dias_antes_agendamento", label: "Dias antes do agendamento", icon: AlarmClock, color: "#0ea5e9", desc: "Dispara X dias antes do agendamento, no horário configurado. Ideal para lembretes." },
+  { value: "horas_antes_agendamento", label: "Horas antes do agendamento", icon: AlarmClock, color: "#f97316", desc: "Dispara X horas antes do horário do agendamento. Ideal para lembrete de última hora." },
+  { value: "horas_apos_agendamento", label: "Horas após o agendamento", icon: Clock, color: "#14b8a6", desc: "Dispara X horas após o horário do agendamento. Ideal para pedir avaliação ou feedback." },
+  { value: "dias_depois_agendamento", label: "Dias depois do agendamento", icon: Clock, color: "#8b5cf6", desc: "Dispara X dias após o agendamento. Ideal para follow-up ou reagendamento." },
+  { value: "manual_renovacao_pacote", label: "Manual: Renovação de pacote", icon: MousePointerClick, color: "#7c3aed", desc: "Não dispara automaticamente. Aparece como botão nas notificações de pacote para envio com 1 clique." },
+  { value: "manual_mensagem_avulsa", label: "Manual: Mensagem avulsa", icon: MousePointerClick, color: "#7c3aed", desc: "Não dispara automaticamente. Template de mensagem para envio manual a qualquer momento." },
 ];
 
 const ACTION_OPTIONS = [
@@ -89,6 +94,9 @@ const VARIAVEIS = [
   { var: "{{data_vencimento}}", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
   { var: "{{valor_pago}}", desc: "Valor total pago na renovação do pacote", exemplo: "Ex: R$ 350,00" },
   { var: "{{parcelas}}", desc: "Forma de pagamento parcelada ou valor único do pacote", exemplo: "Ex: 3x de R$ 116,67" },
+  { var: "{{pacote}}", desc: "Nome do pacote do cliente (para gatilhos de pacote)", exemplo: "Ex: Pacote Manicure 8x" },
+  { var: "{{sessoes_restantes}}", desc: "Quantidade de sessões ainda disponíveis no pacote", exemplo: "Ex: 2" },
+  { var: "{{sessoes_total}}", desc: "Quantidade total de sessões do pacote", exemplo: "Ex: 8" },
 ];
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -312,14 +320,28 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
               <Label className="text-xs text-gray-500 mb-1 block">Tipo de gatilho</Label>
               <Select value={data.tipo || ""} onValueChange={v => set("tipo", v)}>
                 <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   {TRIGGER_OPTIONS.map(t => (
                     <SelectItem key={t.value} value={t.value}>
-                      <div className="flex items-center gap-2"><t.icon size={13} style={{ color: t.color }} />{t.label}</div>
+                      <div className="flex items-center gap-2">
+                        <t.icon size={13} style={{ color: t.color }} />
+                        <span>{t.label}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {/* Explicação fixa do gatilho selecionado */}
+              {data.tipo && (() => {
+                const selected = TRIGGER_OPTIONS.find(t => t.value === data.tipo);
+                if (!selected) return null;
+                return (
+                  <div className="flex items-start gap-1.5 mt-1.5 px-1">
+                    <Info className="w-3 h-3 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-[11px] text-muted-foreground leading-snug">{selected.desc}</p>
+                  </div>
+                );
+              })()}
             </div>
             {data.tipo === "data_fixa" && (
               <div className="grid grid-cols-2 gap-2">
@@ -779,7 +801,8 @@ export default function Automacoes() {
     const triggerNode = nodesParaSalvar.find(n => n.type === "trigger");
     if (!triggerNode) { toast.error("Adicione um nó de gatilho"); return; }
     const tipo = triggerNode.data.tipo || "evento";
-    const tipoGatilho: any = tipo.startsWith("evento_") ? "evento"
+    const tipoGatilho: any = tipo.startsWith("manual_") ? "manual"
+      : tipo.startsWith("evento_") ? "evento"
       : tipo === "aniversario_mes" ? "aniversario_mes"
       : tipo === "data_fixa" ? "data_fixa"
       : tipo === "dias_antes_agendamento" ? "dias_antes_agendamento"
@@ -788,6 +811,7 @@ export default function Automacoes() {
       : "horas_apos_agendamento";
     const actionNode = nodesParaSalvar.find(n => n.type === "action");
     const flowJsonStr = JSON.stringify(nodesParaSalvar);
+    const eventoValue = tipo.startsWith("manual_") ? tipo.replace("manual_", "") : tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined;
     if (currentFlow.id) {
       // Atualizar automação existente — inclui campos temporais para garantir que dias_antes_agendamento funcione
       updateMutation.mutate({
@@ -796,7 +820,7 @@ export default function Automacoes() {
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
         tipoGatilho,
-        evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
+        evento: eventoValue,
         diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
           ? undefined
           : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
@@ -816,7 +840,7 @@ export default function Automacoes() {
         nome: currentFlow.nome,
         descricao: currentFlow.descricao,
         tipoGatilho,
-        evento: tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined,
+        evento: eventoValue,
         diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
           ? undefined
           : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
@@ -837,7 +861,29 @@ export default function Automacoes() {
 
   const getTriggerLabel = (a: any) => {
     switch (a.tipoGatilho) {
-      case "evento": return `Evento: ${a.evento || "agendamento"}`;
+      case "evento": {
+        const evtLabels: Record<string, string> = {
+          agendamento_criado: "Agendamento criado",
+          agendamento_pre_agendado: "Pré-agendamento",
+          agendamento_confirmado: "Confirmado",
+          agendamento_cancelado: "Cancelado",
+          agendamento_concluido: "Concluído",
+          cliente_criado: "Novo cliente",
+          pre_agendamento_cancelado: "Pré-agend. expirado",
+          pacote_renovado: "Pacote renovado",
+          pacote_vencendo: "Pacote vencendo",
+          sessoes_acabando: "Sessões acabando",
+        };
+        return evtLabels[a.evento] ?? `Evento: ${a.evento || "agendamento"}`;
+      }
+      case "manual": {
+        const manualLabels: Record<string, string> = {
+          renovacao_pacote: "Manual: Renovação",
+          mensagem_avulsa: "Manual: Avulsa",
+          lembrete_manual: "Manual: Lembrete",
+        };
+        return manualLabels[a.evento] ?? "Manual";
+      }
       case "aniversario_mes": return "Aniversariante do mês";
       case "data_fixa": return `${a.dataFixaDia}/${a.dataFixaMes ? MESES_ABREV[a.dataFixaMes - 1] : "?"} às ${a.dataFixaHora || "09:00"}`;
       case "dias_antes_agendamento": return `${a.diasAntesDepois || 1} dia(s) antes`;
