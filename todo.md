@@ -1194,3 +1194,12 @@
 - [x] Criar novo pacote direto pelo agendamento (botão "Abrir pacote" no modal de agendamento)
 - [x] Fluxo completo de venda + consumo: vincular pacote ao cliente diretamente pelo agendamento (criar pacote + abater sessão no mesmo fluxo)
 - [ ] Pacotes por cliente: garantir edição de pacote (botão Editar já implementado — verificar se está funcionando)
+
+## Sistema de Notificação de Renovação de Assinatura
+
+- [x] Backend: job diário no scheduler (às 9h) que verifica assinaturas com renovação em 1 ou 3 dias
+- [x] Backend: cooldown de 20h via usageAlerts para evitar notificações duplicadas
+- [x] Backend: notificação in-app (tipo "sistema") para o owner da empresa com link para /admin/assinatura
+- [x] Frontend: banner de renovação próxima na página Assinatura (violeta/âmbar/vermelho conforme urgência)
+- [x] Frontend: loading spinner no botão "Gerenciar" do banner
+- [x] Frontend: spinner no botão "Portal do cliente" no cabeçalho da página Assinatura

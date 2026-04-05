@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
+import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -14,7 +14,10 @@ import {
   servicos,
   historicoEnviosAutomacao,
   automacoes,
+  subscriptions,
+  usageAlerts,
 } from "../drizzle/schema";
+import { PLAN_PRICES } from "./plans";
 import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
@@ -1141,6 +1144,127 @@ async function cancelarPreAgendamentosExpirados() {
   }
 }
 
+// ── Verificar renovações de assinatura próximas ─────────────────────────────
+async function verificarRenovacoesAssinatura() {
+  const db = await getDb();
+  if (!db) return;
+
+  const agora = new Date();
+  // Janela: assinaturas que vencem entre agora e 4 dias (captura 1 e 3 dias antes)
+  const em4Dias = new Date(agora.getTime() + 4 * 24 * 60 * 60 * 1000);
+
+  try {
+    // Buscar assinaturas pagas (active) com renovação nos próximos 4 dias
+    const subsProximas = await db
+      .select({
+        id: subscriptions.id,
+        empresaId: subscriptions.empresaId,
+        planType: subscriptions.planType,
+        billingCycle: subscriptions.billingCycle,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
+        ownerId: empresas.ownerId,
+        empresaNome: empresas.nome,
+      })
+      .from(subscriptions)
+      .leftJoin(empresas, eq(subscriptions.empresaId, empresas.id))
+      .where(
+        and(
+          eq(subscriptions.status, "active"),
+          lte(subscriptions.currentPeriodEnd, em4Dias),
+          gt(subscriptions.currentPeriodEnd, agora),
+        )
+      );
+
+    let totalNotificacoes = 0;
+
+    for (const sub of subsProximas) {
+      if (!sub.currentPeriodEnd || !sub.ownerId) continue;
+
+      const diffMs = new Date(sub.currentPeriodEnd).getTime() - agora.getTime();
+      const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      // Notificar apenas em 3 dias ou 1 dia antes
+      if (diasRestantes !== 3 && diasRestantes !== 1) continue;
+
+      const alertType = `renovacao_assinatura_${diasRestantes}d`;
+      const mesAno = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+
+      // Verificar cooldown: não enviar se já enviou nas últimas 20h
+      const cooloffMs = 20 * 60 * 60 * 1000;
+      const cutoff = new Date(agora.getTime() - cooloffMs);
+      const [existente] = await db
+        .select({ id: usageAlerts.id, sentAt: usageAlerts.sentAt })
+        .from(usageAlerts)
+        .where(
+          and(
+            eq(usageAlerts.empresaId, sub.empresaId),
+            eq(usageAlerts.alertType, alertType),
+            eq(usageAlerts.mesAno, mesAno),
+          )
+        )
+        .limit(1);
+
+      if (existente && existente.sentAt > cutoff) continue;
+
+      // Montar mensagem
+      const planLabel = PLAN_PRICES[sub.planType as keyof typeof PLAN_PRICES]?.label ?? sub.planType;
+      const dataRenovacao = new Date(sub.currentPeriodEnd).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: 'long', year: 'numeric',
+      });
+
+      const titulo = sub.cancelAtPeriodEnd
+        ? `⚠️ Assinatura expira em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}`
+        : `🔄 Renovação em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}`;
+
+      const mensagem = sub.cancelAtPeriodEnd
+        ? `Sua assinatura ${planLabel} será cancelada em ${dataRenovacao}. Reative agora para não perder o acesso.`
+        : `Sua assinatura ${planLabel} será renovada automaticamente em ${dataRenovacao}. Acesse Minha Assinatura para gerenciar.`;
+
+      // Criar notificação in-app para o owner
+      await createNotificacao({
+        empresaId: sub.empresaId,
+        destinatarioId: sub.ownerId,
+        tipo: "sistema",
+        titulo,
+        mensagem,
+        dadosContexto: {
+          tipo: "renovacao_assinatura",
+          diasRestantes,
+          planType: sub.planType,
+          planLabel,
+          currentPeriodEnd: sub.currentPeriodEnd,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+          url: "/admin/assinatura",
+        },
+      });
+
+      // Registrar cooldown
+      await db.delete(usageAlerts).where(
+        and(
+          eq(usageAlerts.empresaId, sub.empresaId),
+          eq(usageAlerts.alertType, alertType),
+          eq(usageAlerts.mesAno, mesAno),
+        )
+      );
+      await db.insert(usageAlerts).values({
+        empresaId: sub.empresaId,
+        alertType,
+        mesAno,
+        sentAt: new Date(),
+      });
+
+      totalNotificacoes++;
+    }
+
+    if (totalNotificacoes > 0) {
+      console.log(`[Scheduler] ${totalNotificacoes} notificação(ões) de renovação de assinatura gerada(s)`);
+    }
+  } catch (err) {
+    console.error("[Scheduler] Erro ao verificar renovações de assinatura:", err);
+  }
+}
+
 // ── Inicializar agendamento ────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
@@ -1204,9 +1328,22 @@ export function initScheduler() {
     setTimeout(() => processarFilaPendente(), 3_000); // aguarda 3s para estabilizar
   });
 
+  // NOVO: Verificar renovações de assinatura diariamente às 9h
+  setInterval(() => {
+    if (deveExecutarNaHora(9)) {
+      verificarRenovacoesAssinatura();
+    }
+  }, LEMBRETE_CHECK_MS);
+
+  // Executar verificação de renovações imediatamente ao iniciar (após 120s)
+  setTimeout(() => {
+    verificarRenovacoesAssinatura();
+  }, 120_000);
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
   console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
   console.log("[Scheduler] Pré-registro de envios pendentes inicializado (a cada 1h).");
   console.log("[Scheduler] Worker de fila universal inicializado (a cada 1min + ao reconectar WhatsApp).");
+  console.log("[Scheduler] Verificação de renovações de assinatura inicializada (às 9h diariamente).");
 }

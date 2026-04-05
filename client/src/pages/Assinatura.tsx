@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import {
   CreditCard, Calendar, CheckCircle2, AlertTriangle, XCircle,
   Clock, FileText, ExternalLink, Download, ArrowUpRight,
-  Shield, Zap, RefreshCw, ChevronRight, Gem, Loader2,
+  Shield, Zap, RefreshCw, ChevronRight, Gem, Loader2, Bell, BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +111,13 @@ export default function Assinatura() {
 
   const isLoading = loadingPlan || loadingSub;
 
+  // Calcular dias para renovação
+  const renovacaoDate = subDetails?.proximaCobranca ?? planStatus?.currentPeriodEnd;
+  const diasParaRenovacao = renovacaoDate
+    ? Math.ceil((new Date(renovacaoDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  const renovacaoProxima = diasParaRenovacao !== null && diasParaRenovacao >= 0 && diasParaRenovacao <= 3 && plan !== "FREE";
+
   // Guarda: apenas administradores podem acessar
   if (!isAdmin) {
     return (
@@ -146,6 +153,57 @@ export default function Assinatura() {
           )}
         </div>
       </div>
+
+      {/* ── Banner de renovação próxima ── */}
+      {!isLoading && renovacaoProxima && (
+        <div className={`flex items-start gap-3 rounded-2xl border px-5 py-4 ${
+          planStatus?.cancelAtPeriodEnd
+            ? "bg-red-50 border-red-200"
+            : diasParaRenovacao === 1
+              ? "bg-amber-50 border-amber-200"
+              : "bg-violet-50 border-violet-200"
+        }`}>
+          <div className={`mt-0.5 shrink-0 ${
+            planStatus?.cancelAtPeriodEnd ? "text-red-500" : diasParaRenovacao === 1 ? "text-amber-500" : "text-violet-500"
+          }`}>
+            <BellRing className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${
+              planStatus?.cancelAtPeriodEnd ? "text-red-800" : diasParaRenovacao === 1 ? "text-amber-800" : "text-violet-800"
+            }`}>
+              {planStatus?.cancelAtPeriodEnd
+                ? `Assinatura expira em ${diasParaRenovacao} dia${diasParaRenovacao !== 1 ? "s" : ""}`
+                : `Renovação automática em ${diasParaRenovacao} dia${diasParaRenovacao !== 1 ? "s" : ""}`
+              }
+            </p>
+            <p className={`text-xs mt-0.5 ${
+              planStatus?.cancelAtPeriodEnd ? "text-red-600" : diasParaRenovacao === 1 ? "text-amber-600" : "text-violet-600"
+            }`}>
+              {planStatus?.cancelAtPeriodEnd
+                ? `Sua assinatura ${planLabel} será cancelada em ${formatDate(renovacaoDate)}. Reative agora para não perder o acesso.`
+                : `Sua assinatura ${planLabel} será renovada automaticamente em ${formatDate(renovacaoDate)}.`
+              }
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePortal}
+            disabled={loadingPortal}
+            className={`shrink-0 text-xs gap-1.5 ${
+              planStatus?.cancelAtPeriodEnd
+                ? "border-red-300 text-red-700 hover:bg-red-100"
+                : diasParaRenovacao === 1
+                  ? "border-amber-300 text-amber-700 hover:bg-amber-100"
+                  : "border-violet-300 text-violet-700 hover:bg-violet-100"
+            }`}
+          >
+            {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+            Gerenciar
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
