@@ -1,0 +1,22 @@
+project_id = "ekozrkhblqikcsniiwzz"
+
+[functions.mobile-api]
+verify_jwt = false
+
+[functions.loginCustomizado]
+verify_jwt = false
+
+[functions.pingMobile]
+verify_jwt = false
+
+[functions.receberAudioMobile]
+verify_jwt = false
+
+[functions.receberLocalizacaoGPS]
+verify_jwt = false
+
+[functions.acionarPanicoMobile]
+verify_jwt = false
+
+[functions.recuperarSenha]
+verify_jwt = false

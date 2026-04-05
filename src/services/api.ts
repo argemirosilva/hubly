@@ -1,0 +1,581 @@
+import type { ApiResponse, AppConfig, User, LocationData, LoginTipo, ContatoRedeApoio } from '@/types/app';
+import { useApiLogsStore } from '@/store/apiLogsStore';
+import { debugLog } from '@/components/AudioDebugPanel';
+
+const API_BASE_URL = 'https://ilikiajeduezvvanjejz.supabase.co/functions/v1/mobile-api';
+
+// Mantido para compatibilidade
+export const setApiBaseUrl = (url: string) => {};
+
+interface LoginApiResponse {
+  success: boolean;
+  usuario?: {
+    id: string;
+    email: string;
+    // Campos podem vir com nomes diferentes dependendo do backend
+    nome_vitima?: string;
+    nome_completo?: string;
+    telefone_vitima?: string;
+    telefone?: string;
+    tipo_interesse?: string;
+    gravacao_inicio?: string;
+    gravacao_fim?: string;
+    gravacao_dias?: string[];
+    contatos_rede_apoio?: ContatoRedeApoio[];
+  };
+  session?: {
+    token: string;
+    expires_at: string;
+  };
+  loginTipo?: LoginTipo;
+  error?: string;
+}
+
+interface GPSApiResponse {
+  success: boolean;
+  localizacao_id?: string;
+  endereco_aproximado?: string;
+  compartilhado_com?: string[];
+  error?: string;
+}
+
+interface PanicApiResponse {
+  success: boolean;
+  alerta_id?: string;
+  rede_apoio_notificada?: boolean;
+  contatos_notificados?: number;
+  autoridades_acionadas?: boolean;
+  protocolo?: string;
+  mensagem?: string;
+  error?: string;
+}
+
+interface AudioApiResponse {
+  success: boolean;
+  gravacao_id?: string;
+  file_path?: string;
+  request_id?: string;
+  processing_time_ms?: number;
+  message?: string;
+  error?: string;
+}
+
+export interface GPSPayload {
+  email_usuario: string;
+  latitude: number;
+  longitude: number;
+  precisao_metros?: number;
+  altitude?: number;
+  velocidade?: number;
+  timestamp_gps?: string;
+  bateria_percentual?: number;
+  em_movimento?: boolean;
+  tipo_localizacao: 'automatico' | 'manual' | 'panico';
+}
+
+export interface PanicPayload {
+  email_usuario: string;
+  latitude: number;
+  longitude: number;
+  precisao_metros?: number;
+  tipo_acionamento: 'botao_panico' | 'sensor_queda' | 'senha_coacao' | 'palavra_codigo';
+  bateria_percentual?: number;
+  gravacao_id?: string;
+}
+
+export interface AudioPayload {
+  file_url?: string;
+  file_base64?: string;
+  file_blob?: Blob;  // New: for multipart/form-data
+  file_name?: string;
+  duracao_segundos: number;
+  tamanho_mb: number;
+  email_usuario: string;
+}
+
+// Evento customizado para sessão expirada
+export const SESSION_EXPIRED_EVENT = 'session-expired';
+
+export function dispatchSessionExpired() {
+  window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+}
+
+async function apiRequest<T>(action: string, body: object): Promise<{ data: T | null; error: Error | null; isSessionExpired?: boolean }> {
+  const startTime = Date.now();
+  const addLog = useApiLogsStore.getState().addLog;
+  
+  // Sanitize payload for logging (remove base64 data)
+  const sanitizedBody = { ...body };
+  if ('file_base64' in sanitizedBody) {
+    (sanitizedBody as any).file_base64 = `[BASE64 - ${((body as any).file_base64?.length || 0)} chars]`;
+  }
+  
+  // Debug: log the complete request body
+  const requestBody = { action, ...body };
+  console.log(`[API DEBUG v3] Action: ${action}`);
+  console.log(`[API DEBUG v3] Body keys:`, Object.keys(body));
+  console.log(`[API DEBUG v3] Request body keys:`, Object.keys(requestBody));
+  console.log(`[API DEBUG v3] email_usuario present:`, 'email_usuario' in requestBody);
+  console.log(`[API DEBUG v3] duracao_segundos present:`, 'duracao_segundos' in requestBody);
+  
+  const jsonBody = JSON.stringify(requestBody);
+  console.log(`[API DEBUG v3] JSON length:`, jsonBody.length);
+  console.log(`[API DEBUG v3] JSON preview (first 500):`, jsonBody.substring(0, 500));
+  
+  try {
+    const response = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonBody,
+    });
+    
+    const data = await response.json();
+    const durationMs = Date.now() - startTime;
+    
+    // Detectar sessão expirada - DESABILITADO temporariamente para debug
+    // Apenas loga, não faz logout automático
+    if (response.status === 401 || (data && !data.success && data.error?.includes('Sessão inválida'))) {
+      console.warn('[API] Sessão inválida detectada (logout automático DESABILITADO)');
+      
+      addLog({
+        timestamp: new Date(),
+        action,
+        method: 'POST',
+        url: API_BASE_URL,
+        requestPayload: { action, ...sanitizedBody },
+        responseData: data,
+        responseStatus: response.status,
+        error: 'Sessão inválida (sem logout)',
+        durationMs,
+        success: false,
+      });
+      
+      // dispatchSessionExpired(); // DESABILITADO
+      return { data: null, error: new Error('Sessão inválida'), isSessionExpired: true };
+    }
+    
+    // Log success or error
+    addLog({
+      timestamp: new Date(),
+      action,
+      method: 'POST',
+      url: API_BASE_URL,
+      requestPayload: { action, ...sanitizedBody },
+      responseData: data,
+      responseStatus: response.status,
+      error: !response.ok ? (data?.error || `HTTP ${response.status}`) : null,
+      durationMs,
+      success: response.ok && data?.success !== false,
+    });
+    
+    // Retornar dados mesmo em caso de erro HTTP para permitir tratamento específico
+    if (!response.ok) {
+      return { data: data as T, error: new Error(data?.error || `HTTP error! status: ${response.status}`) };
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    console.error(`[API] Erro em ${action}:`, error);
+    
+    addLog({
+      timestamp: new Date(),
+      action,
+      method: 'POST',
+      url: API_BASE_URL,
+      requestPayload: { action, ...sanitizedBody },
+      responseData: null,
+      responseStatus: null,
+      error: (error as Error).message,
+      durationMs,
+      success: false,
+    });
+    
+    return { data: null, error: error as Error };
+  }
+}
+
+export const apiService = {
+  async recuperarSenha(email: string, baseUrl?: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('recuperarSenha', { email });
+      
+      if (error) {
+        console.error('[API] Erro recuperarSenha:', error);
+        return { success: false, error: error.message || 'Não foi possível processar a solicitação' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Não foi possível processar a solicitação' };
+      }
+      
+      return { success: true, data: { message: data.message || 'Instruções enviadas para seu e-mail' } };
+    } catch (error) {
+      console.error('Erro na recuperação de senha:', error);
+      return { success: false, error: 'Não foi possível conectar ao servidor' };
+    }
+  },
+
+  async login(
+    email: string, 
+    senha: string, 
+    baseUrl?: string,
+    tipoAcao: 'login' | 'desinstalacao' = 'login'
+  ): Promise<ApiResponse<{ user: User; config: AppConfig; loginTipo: LoginTipo }>> {
+    try {
+      console.log('[API] Tentando login para:', email);
+      
+      const { data, error } = await apiRequest<LoginApiResponse>('loginCustomizado', { 
+        email, 
+        senha, 
+        tipo_acao: tipoAcao 
+      });
+      
+      console.log('[API] Resposta login:', data, error);
+      
+      if (error) {
+        console.error('[API] Erro login:', error);
+        return { success: false, error: error.message || 'Credenciais inválidas' };
+      }
+      
+      if (!data?.success || !data?.usuario) {
+        return { 
+          success: false, 
+          error: data?.error || 'Credenciais inválidas' 
+        };
+      }
+      
+      const user: User = {
+        id: data.usuario.id,
+        email: data.usuario.email,
+        nome: data.usuario.nome_completo || data.usuario.nome_vitima || '',
+        telefone: data.usuario.telefone || data.usuario.telefone_vitima || '',
+        token: data.usuario.id,
+        sessionToken: data.session?.token,
+      };
+      
+      console.log('[API] User criado com sessionToken:', user.sessionToken ? 'SIM' : 'NÃO');
+      
+      const config: AppConfig = {
+        recordingDurationMinutes: 5,
+        gpsIntervalSeconds: 30,
+        apiBaseUrl: API_BASE_URL,
+        dialogueDetectionEnabled: true,
+        autoStartRecording: false,
+        gravacaoInicio: data.usuario.gravacao_inicio,
+        gravacaoFim: data.usuario.gravacao_fim,
+        gravacaoDias: data.usuario.gravacao_dias,
+        contatosRedeApoio: data.usuario.contatos_rede_apoio,
+      };
+      
+      return { 
+        success: true, 
+        data: { 
+          user, 
+          config, 
+          loginTipo: data.loginTipo || 'normal' 
+        } 
+      };
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return { 
+        success: false, 
+        error: 'Não foi possível conectar ao servidor' 
+      };
+    }
+  },
+
+  async sendLocation(payload: GPSPayload): Promise<ApiResponse<GPSApiResponse>> {
+    try {
+      const { data, error } = await apiRequest<GPSApiResponse>('receberLocalizacaoGPS', payload);
+      
+      if (error) {
+        console.error('[API] Erro GPS:', error);
+        return { success: false, error: error.message || 'Falha ao enviar localização' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar localização' };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao enviar GPS:', error);
+      return { success: false, error: 'Falha ao enviar localização' };
+    }
+  },
+
+  async sendPanicAlert(payload: PanicPayload): Promise<ApiResponse<PanicApiResponse>> {
+    try {
+      const { data, error } = await apiRequest<PanicApiResponse>('acionarPanicoMobile', payload);
+      
+      if (error) {
+        console.error('[API] Erro pânico:', error);
+        return { success: true };
+      }
+      
+      if (!data?.success) {
+        return { success: true };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Erro ao enviar alerta de pânico:', error);
+      return { success: true };
+    }
+  },
+
+  async sendAudio(payload: AudioPayload): Promise<ApiResponse<AudioApiResponse>> {
+    const logId = `AUDIO-${Date.now()}`;
+    const addLog = useApiLogsStore.getState().addLog;
+    const startTime = Date.now();
+    
+    // Log visual
+    debugLog.info('📤 Iniciando envio de áudio (multipart/form-data)', {
+      email_usuario: payload.email_usuario,
+      file_name: payload.file_name,
+      duracao_segundos: payload.duracao_segundos,
+      tamanho_mb: payload.tamanho_mb?.toFixed(3),
+      has_blob: !!payload.file_blob,
+      has_base64: !!payload.file_base64,
+    });
+    
+    try {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`[${logId}] ===== ENVIANDO ÁUDIO (multipart/form-data) =====`);
+      console.log(`[${logId}] Timestamp: ${new Date().toISOString()}`);
+      console.log(`[${logId}] URL API: ${API_BASE_URL}`);
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('email_usuario', payload.email_usuario);
+      formData.append('duracao_segundos', payload.duracao_segundos.toString());
+      
+      // Add audio file
+      let audioBlob: Blob;
+      let fileName = payload.file_name || 'audio.wav';
+      
+      if (payload.file_blob) {
+        audioBlob = payload.file_blob;
+      } else if (payload.file_base64) {
+        // Convert base64 to blob
+        const binaryString = atob(payload.file_base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        audioBlob = new Blob([bytes], { type: 'audio/wav' });
+      } else {
+        debugLog.error('❌ Nenhum arquivo de áudio fornecido');
+        return { success: false, error: 'Nenhum arquivo de áudio fornecido' };
+      }
+      
+      formData.append('audio', audioBlob, fileName);
+      
+      debugLog.info('📋 FormData preparado', {
+        email_usuario: payload.email_usuario,
+        duracao_segundos: payload.duracao_segundos,
+        file_name: fileName,
+        blob_size: audioBlob.size,
+        blob_type: audioBlob.type,
+      });
+      
+      console.log(`[${logId}] FormData:`, {
+        email_usuario: payload.email_usuario,
+        duracao_segundos: payload.duracao_segundos,
+        file_name: fileName,
+        blob_size: audioBlob.size,
+      });
+      
+      // Send as multipart/form-data (don't set Content-Type, let browser set it with boundary)
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
+      const elapsed = Date.now() - startTime;
+      
+      console.log(`[${logId}] ===== RESPOSTA SERVIDOR =====`);
+      console.log(`[${logId}] Tempo resposta: ${elapsed}ms`);
+      console.log(`[${logId}] Status: ${response.status}`);
+      console.log(`[${logId}] Data:`, JSON.stringify(data, null, 2));
+      
+      // Log to API logs store
+      addLog({
+        timestamp: new Date(),
+        action: 'sendAudio (multipart)',
+        method: 'POST',
+        url: API_BASE_URL,
+        requestPayload: {
+          email_usuario: payload.email_usuario,
+          duracao_segundos: payload.duracao_segundos,
+          file_name: fileName,
+          file_size: audioBlob.size,
+        },
+        responseData: data,
+        responseStatus: response.status,
+        error: !response.ok ? (data?.error || `HTTP ${response.status}`) : null,
+        durationMs: elapsed,
+        success: response.ok && data?.success !== false,
+      });
+      
+      if (!response.ok) {
+        debugLog.error(`❌ Erro HTTP ${response.status} (${elapsed}ms)`, {
+          error: data?.error,
+          status: response.status,
+        });
+        console.error(`[${logId}] ERRO HTTP:`, response.status, data?.error);
+        console.log(`${'='.repeat(60)}\n`);
+        return { success: false, error: data?.error || `HTTP ${response.status}` };
+      }
+      
+      if (!data?.success) {
+        debugLog.error(`❌ Servidor retornou erro (${elapsed}ms)`, {
+          error: data?.error,
+          data: data,
+        });
+        console.error(`[${logId}] Servidor retornou success=false:`, data?.error);
+        console.log(`${'='.repeat(60)}\n`);
+        return { success: false, error: data?.error || 'Falha ao enviar áudio' };
+      }
+      
+      debugLog.success(`✅ Áudio enviado com sucesso (${elapsed}ms)`, {
+        gravacao_id: data.gravacao_id,
+        file_path: data.file_path,
+        message: data.message,
+      });
+      
+      console.log(`[${logId}] ===== SUCESSO =====`);
+      console.log(`[${logId}] Gravação ID: ${data.gravacao_id}`);
+      console.log(`[${logId}] File path: ${data.file_path}`);
+      console.log(`[${logId}] Message: ${data.message}`);
+      console.log(`${'='.repeat(60)}\n`);
+      
+      return { success: true, data };
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      debugLog.error(`❌ Exceção ao enviar áudio (${elapsed}ms)`, {
+        error: (error as Error).message,
+      });
+      console.error(`[${logId}] EXCEÇÃO ao enviar áudio:`, error);
+      console.log(`${'='.repeat(60)}\n`);
+      return { success: false, error: 'Falha ao enviar áudio' };
+    }
+  },
+
+
+  async sendPing(payload: { email_usuario: string; dispositivo_info: string; bateria_percentual: number; versao_app: string; token_sessao?: string }): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('pingMobile', payload);
+      
+      if (error) {
+        console.error('[API] Erro ping:', error);
+        return { success: false, error: error.message || 'Falha ao enviar ping' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao enviar ping' };
+      }
+      
+      return { success: true, data: { message: data.message || 'Ping recebido' } };
+    } catch (error) {
+      console.error('Erro ao enviar ping:', error);
+      return { success: false, error: 'Falha ao enviar ping' };
+    }
+  },
+
+  async refreshConfig(email: string, sessionToken?: string): Promise<ApiResponse<{ 
+    gravacao_inicio?: string; 
+    gravacao_fim?: string; 
+    gravacao_dias?: string[]; 
+    contatos_rede_apoio?: ContatoRedeApoio[];
+  }>> {
+    try {
+      const { data, error } = await apiRequest<{ 
+        success: boolean; 
+        usuario?: {
+          gravacao_inicio?: string;
+          gravacao_fim?: string;
+          gravacao_dias?: string[];
+          contatos_rede_apoio?: ContatoRedeApoio[];
+        };
+        error?: string;
+      }>('refreshConfig', { 
+        email_usuario: email,
+        token_sessao: sessionToken
+      });
+      
+      // Se a API externa não suportar refreshConfig, retornar silenciosamente
+      const errorMsg = error?.message || data?.error || '';
+      if (error || !data?.success) {
+        if (errorMsg.includes('não reconhecida') || errorMsg.includes('Ação não reconhecida')) {
+          console.log('[API] refreshConfig não suportado pela API externa, ignorando');
+          return { success: true, data: {} };
+        }
+        if (error) {
+          console.error('[API] Erro refreshConfig:', error);
+          return { success: false, error: error.message || 'Falha ao atualizar configurações' };
+        }
+        return { success: false, error: data?.error || 'Falha ao atualizar configurações' };
+      }
+      
+      if (!data?.usuario) {
+        return { success: true, data: {} };
+      }
+      
+      return { 
+        success: true, 
+        data: {
+          gravacao_inicio: data.usuario.gravacao_inicio,
+          gravacao_fim: data.usuario.gravacao_fim,
+          gravacao_dias: data.usuario.gravacao_dias,
+          contatos_rede_apoio: data.usuario.contatos_rede_apoio,
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao atualizar configurações:', error);
+      return { success: false, error: 'Falha ao atualizar configurações' };
+    }
+  },
+
+  async logout(email: string, sessionToken?: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('[API] Enviando logout para:', email);
+      
+      const { data, error } = await apiRequest<{ success: boolean; message?: string; error?: string }>('logoutMobile', { 
+        email_usuario: email,
+        token_sessao: sessionToken
+      });
+      
+      if (error) {
+        console.error('[API] Erro logout:', error);
+        return { success: false, error: error.message || 'Falha ao fazer logout' };
+      }
+      
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Falha ao fazer logout' };
+      }
+      
+      return { success: true, data: { message: data.message || 'Logout realizado' } };
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      return { success: false, error: 'Falha ao fazer logout' };
+    }
+  },
+
+  async getBatteryLevel(): Promise<number | undefined> {
+    try {
+      if ('getBattery' in navigator) {
+        // @ts-ignore
+        const battery = await navigator.getBattery();
+        return Math.round(battery.level * 100);
+      }
+    } catch {
+      // Battery API não disponível
+    }
+    return undefined;
+  },
+};
