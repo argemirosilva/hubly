@@ -49,6 +49,7 @@ import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
 import { portalRouter } from "./routers/portal";
+import { importacaoRouter } from "./routers/importacao";
 import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
@@ -155,6 +156,7 @@ export const appRouter = router({
   iaClientes: iaClientesRouter,
   suporte: suporteRouter,
   portal: portalRouter,
+  importacao: importacaoRouter,
   pacotes: pacotesRouter,
   relatorios: relatoriosRouter,
   onboarding: onboardingRouter,
