@@ -585,6 +585,21 @@ export const pacotesRouter = router({
       return { ok: true };
     }),
 
+  // ── Ocultar notificação de pacote ──────────────────────────────────────────
+  ocultarNotificacao: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      await db.delete(notificacoesPacotes)
+        .where(and(
+          eq(notificacoesPacotes.id, input.id),
+          eq(notificacoesPacotes.empresaId, empId),
+        ));
+      return { ok: true };
+    }),
+
   // ── Verificar e gerar notificações de pacotes vencendo ────────────────────
   verificarPacotesVencendo: protectedProcedure
     .mutation(async ({ ctx }) => {

@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Bell, CheckCheck, Calendar, DollarSign, AlertCircle,
   Package, Clock, RefreshCw, ChevronRight,
@@ -80,6 +80,10 @@ export default function Notificacoes() {
   });
   const ocultarSistemaMutation = trpc.notificacoes.ocultar.useMutation({
     onSuccess: () => utils.notificacoes.list.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+  const ocultarPacoteMutation = trpc.pacotes.ocultarNotificacao.useMutation({
+    onSuccess: () => utils.pacotes.listarNotificacoes.invalidate(),
     onError: (err: any) => toast.error(err.message),
   });
   const ocultarTodasSistemaMutation = trpc.notificacoes.ocultarTodas.useMutation({
@@ -195,17 +199,6 @@ export default function Notificacoes() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Botão verificar pacotes */}
-          <button
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
-            style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
-            onClick={() => verificarMutation.mutate()}
-            disabled={verificarMutation.isPending}
-            title="Verificar pacotes vencendo e gerar alertas"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${verificarMutation.isPending ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Verificar pacotes</span>
-          </button>
           {/* Botão marcar todas lidas */}
           {naoLidas > 0 && (
             <button
@@ -247,112 +240,32 @@ export default function Notificacoes() {
             </div>
             <p className="text-sm font-medium text-foreground mb-1">Nenhuma notificação</p>
             <p className="text-xs text-muted-foreground mb-4">
-              Clique em "Verificar pacotes" para checar alertas de vencimento.
+              Você não tem notificações no momento.
             </p>
-            <button
-              className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg transition-colors"
-              style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(45% 0.18 264)" }}
-              onClick={() => verificarMutation.mutate()}
-              disabled={verificarMutation.isPending}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${verificarMutation.isPending ? "animate-spin" : ""}`} />
-              Verificar agora
-            </button>
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
-            {lista.map(n => {
-              const { icon: NIcon, bg, color } = getNotifIcon(n.tipo);
-              return (
-                <div
-                  key={`${n.origem}-${n.id}`}
-                  className="flex items-start gap-3 px-4 py-4 cursor-pointer transition-colors"
-                  style={{ background: !n.lida ? "oklch(55% 0.22 264 / 3%)" : "transparent" }}
-                  onClick={() => marcarLida(n)}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = "oklch(97% 0.006 250)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = !n.lida ? "oklch(55% 0.22 264 / 3%)" : "transparent";
-                  }}
-                >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: bg }}>
-                    <NIcon className="w-4 h-4" style={{ color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className={`text-sm leading-snug ${!n.lida ? "font-semibold text-foreground" : "text-foreground/80"}`}>
-                        {n.titulo}
-                      </p>
-                      {n.origem === "pacote" && (
-                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                          style={{ background: "oklch(72% 0.16 60 / 15%)", color: "oklch(45% 0.18 55)" }}>
-                          Pacote
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>
-                    {n.clienteNome && (
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <button
-                          className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-                          style={{ color: "oklch(55% 0.22 264)" }}
-                          onClick={e => {
-                            e.stopPropagation();
-                            if (n.clienteId) setLocation(`/admin/clientes/${n.clienteId}`);
-                          }}
-                        >
-                          {n.clienteNome}
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                        {n.origem === "pacote" && n.clienteId && n.pacoteClienteId && (
-                          <button
-                            className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
-                            style={{ background: "oklch(55% 0.18 155 / 10%)", color: "oklch(40% 0.16 155)" }}
-                            onClick={e => {
-                              e.stopPropagation();
-                              setEnvioRapido({ clienteId: n.clienteId!, clienteNome: n.clienteNome!, pacoteClienteId: n.pacoteClienteId!, notificacaoPacoteId: n.id });
-                            }}
-                          >
-                            <Send className="w-3 h-3" />
-                            Enviar mensagem
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {/* Ações rápidas para bloqueio_solicitado */}
-                    {n.tipo === "bloqueio_solicitado" && podeAprovarBloqueio && n.dadosContexto?.bloqueioId && (
-                      <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
-                        <button
-                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                          style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
-                          onClick={() => aprovarBloqueioMutation.mutate({ id: n.dadosContexto!.bloqueioId! })}
-                          disabled={aprovarBloqueioMutation.isPending}
-                        >
-                          <CheckCircle2 className="w-3 h-3" /> Aprovar
-                        </button>
-                        <button
-                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                          style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
-                          onClick={() => { setRecusaModal({ bloqueioId: n.dadosContexto!.bloqueioId!, notifId: n.id }); setMotivoRecusa(""); }}
-                          disabled={recusarBloqueioMutation.isPending}
-                        >
-                          <XCircle className="w-3 h-3" /> Recusar
-                        </button>
-                      </div>
-                    )}
-                    <p className="text-[10px] text-muted-foreground/50 mt-1.5">
-                      {formatarData(n.data)}
-                    </p>
-                  </div>
-                  {!n.lida && (
-                    <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
-                      style={{ background: "oklch(55% 0.22 264)" }} />
-                  )}
-                </div>
-              );
-            })}
+            {lista.map(n => (
+              <SwipeableNotifItem
+                key={`${n.origem}-${n.id}`}
+                n={n}
+                podeAprovarBloqueio={podeAprovarBloqueio}
+                onMarcarLida={() => marcarLida(n)}
+                onOcultar={() => {
+                  if (n.origem === "sistema") {
+                    ocultarSistemaMutation.mutate({ id: n.id });
+                  } else if (n.origem === "pacote") {
+                    ocultarPacoteMutation.mutate({ id: n.id });
+                  }
+                }}
+                onVerCliente={id => setLocation(`/admin/clientes/${id}`)}
+                onEnvioRapido={dados => setEnvioRapido(dados)}
+                onAprovarBloqueio={id => aprovarBloqueioMutation.mutate({ id })}
+                onRecusarBloqueio={(bloqueioId, notifId) => { setRecusaModal({ bloqueioId, notifId }); setMotivoRecusa(""); }}
+                aprovarPending={aprovarBloqueioMutation.isPending}
+                recusarPending={recusarBloqueioMutation.isPending}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -618,5 +531,175 @@ function EnvioRapidoModal({ clienteId, clienteNome, pacoteClienteId, notificacao
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── SwipeableNotifItem ──────────────────────────────────────────────────────
+
+function SwipeableNotifItem({
+  n,
+  podeAprovarBloqueio,
+  onMarcarLida,
+  onOcultar,
+  onVerCliente,
+  onEnvioRapido,
+  onAprovarBloqueio,
+  onRecusarBloqueio,
+  aprovarPending,
+  recusarPending,
+}: {
+  n: NotifUnificada;
+  podeAprovarBloqueio: boolean;
+  onMarcarLida: () => void;
+  onOcultar: () => void;
+  onVerCliente: (id: number) => void;
+  onEnvioRapido: (dados: { clienteId: number; clienteNome: string; pacoteClienteId: number; notificacaoPacoteId: number }) => void;
+  onAprovarBloqueio: (id: number) => void;
+  onRecusarBloqueio: (bloqueioId: number, notifId: number) => void;
+  aprovarPending: boolean;
+  recusarPending: boolean;
+}) {
+  const { icon: NIcon, bg, color } = getNotifIcon(n.tipo);
+  const [translateX, setTranslateX] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    // só ativa swipe horizontal se o movimento for mais horizontal que vertical
+    if (!isDragging.current && Math.abs(dx) < Math.abs(dy)) return;
+    isDragging.current = true;
+    if (dx < 0) {
+      setTranslateX(Math.max(dx, -100));
+    } else {
+      setTranslateX(Math.min(dx, 20));
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (translateX < -60) {
+      setDismissed(true);
+      setTimeout(() => onOcultar(), 250);
+    } else {
+      setTranslateX(0);
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+    isDragging.current = false;
+  }, [translateX, onOcultar]);
+
+  if (dismissed) return null;
+
+  return (
+    <div className="relative overflow-hidden" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+      {/* Fundo vermelho de delete (visível no swipe) */}
+      <div
+        className="absolute inset-0 flex items-center justify-end pr-5 pointer-events-none"
+        style={{ background: "oklch(58% 0.22 25)", opacity: translateX < -10 ? Math.min(1, Math.abs(translateX) / 80) : 0, transition: translateX === 0 ? "opacity 0.2s" : "none" }}
+      >
+        <Trash2 className="w-5 h-5 text-white" />
+      </div>
+
+      {/* Item principal */}
+      <div
+        className="flex items-start gap-3 px-4 py-4 cursor-pointer transition-colors relative"
+        style={{
+          background: hovered ? "oklch(97% 0.006 250)" : (!n.lida ? "oklch(55% 0.22 264 / 3%)" : "transparent"),
+          transform: `translateX(${translateX}px)`,
+          transition: isDragging.current ? "none" : "transform 0.25s cubic-bezier(.4,0,.2,1)",
+        }}
+        onClick={() => { if (!isDragging.current) onMarcarLida(); }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
+          <NIcon className="w-4 h-4" style={{ color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className={`text-sm leading-snug ${!n.lida ? "font-semibold text-foreground" : "text-foreground/80"}`}>
+              {n.titulo}
+            </p>
+            {n.origem === "pacote" && (
+              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                style={{ background: "oklch(72% 0.16 60 / 15%)", color: "oklch(45% 0.18 55)" }}>
+                Pacote
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>
+          {n.clienteNome && (
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <button
+                className="flex items-center gap-1 text-[11px] font-medium transition-colors"
+                style={{ color: "oklch(55% 0.22 264)" }}
+                onClick={e => { e.stopPropagation(); if (n.clienteId) onVerCliente(n.clienteId); }}
+              >
+                {n.clienteNome}
+                <ChevronRight className="w-3 h-3" />
+              </button>
+              {n.origem === "pacote" && n.clienteId && n.pacoteClienteId && (
+                <button
+                  className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
+                  style={{ background: "oklch(55% 0.18 155 / 10%)", color: "oklch(40% 0.16 155)" }}
+                  onClick={e => { e.stopPropagation(); onEnvioRapido({ clienteId: n.clienteId!, clienteNome: n.clienteNome!, pacoteClienteId: n.pacoteClienteId!, notificacaoPacoteId: n.id }); }}
+                >
+                  <Send className="w-3 h-3" />
+                  Enviar mensagem
+                </button>
+              )}
+            </div>
+          )}
+          {/* Ações rápidas para bloqueio_solicitado */}
+          {n.tipo === "bloqueio_solicitado" && podeAprovarBloqueio && n.dadosContexto?.bloqueioId && (
+            <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                onClick={() => onAprovarBloqueio(n.dadosContexto!.bloqueioId!)}
+                disabled={aprovarPending}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Aprovar
+              </button>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
+                onClick={() => onRecusarBloqueio(n.dadosContexto!.bloqueioId!, n.id)}
+                disabled={recusarPending}
+              >
+                <XCircle className="w-3 h-3" /> Recusar
+              </button>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground/50 mt-1.5">{formatarData(n.data)}</p>
+        </div>
+        {/* Botão X (desktop: visível no hover; mobile: oculto) */}
+        <button
+          className="hidden sm:flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+          style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s", color: "oklch(55% 0.18 25)" }}
+          onClick={e => { e.stopPropagation(); onOcultar(); }}
+          title="Remover notificação"
+        >
+          <XCircle className="w-4 h-4" />
+        </button>
+        {!n.lida && (
+          <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: "oklch(55% 0.22 264)" }} />
+        )}
+      </div>
+    </div>
   );
 }

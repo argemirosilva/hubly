@@ -834,6 +834,14 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const verificarMutation = trpc.pacotes.verificarPacotesVencendo.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Verificação concluída: ${data.criadas} nova(s) notificação(oes) gerada(s).`);
+      utils.pacotes.listarNotificacoes?.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6 p-4 lg:p-6">
         <div className="flex items-center justify-between">
@@ -841,9 +849,21 @@ export default function Pacotes() {
             <h1 className="text-2xl font-bold text-slate-800">Pacotes de Serviços</h1>
             <p className="text-sm text-slate-500 mt-0.5">Gerencie pacotes pré-pagos por cliente</p>
           </div>
-          <Button onClick={() => setModalAbrirPacote(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Pacote
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
+              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              onClick={() => verificarMutation.mutate()}
+              disabled={verificarMutation.isPending}
+              title="Verificar pacotes vencendo e gerar alertas"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${verificarMutation.isPending ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Verificar pacotes</span>
+            </button>
+            <Button onClick={() => setModalAbrirPacote(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Pacote
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="pacotes">
