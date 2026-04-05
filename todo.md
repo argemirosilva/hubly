@@ -1235,3 +1235,9 @@
 
 - [x] Exclusão de bloqueios: qualquer usuário pode excluir qualquer registro de bloqueio
 - [x] Notificação para admins: quando bloqueio é cancelado, notificar grupo admin
+
+
+## Integração de Bloqueios no Calendário (v9)
+- [ ] Integrar bloqueios no calendário visual - exibir períodos bloqueados com cor diferenciada
+- [ ] Bloqueios recorrentes - permitir repetição semanal/mensal
+- [ ] Relatório de bloqueios - página de análise com histórico e aprovações

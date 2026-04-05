@@ -1444,11 +1444,24 @@ export const appRouter = router({
   }),
   // ─── BLOQUEIOS ─────────────────────────────────────────────────────────────
   bloqueios: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-      if (!empresa) return [];
-      return getBloqueiosByEmpresa(empresa.id);
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        dataInicio: z.string().optional(),
+        dataFim: z.string().optional(),
+        profissionalId: z.number().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        const bloqueios = await getBloqueiosByEmpresa(empresa.id);
+        // Filtrar por data e profissional se fornecidos
+        return bloqueios.filter(b => {
+          if (input.dataInicio && b.dataInicio < input.dataInicio) return false;
+          if (input.dataFim && b.dataInicio > input.dataFim) return false;
+          if (input.profissionalId && b.profissionalId !== input.profissionalId) return false;
+          return true;
+        });
+      }),
     create: protectedProcedure
       .input(z.object({
         profissionalId: z.number().optional(), // opcional: usa o profissional logado como fallback
@@ -1457,6 +1470,8 @@ export const appRouter = router({
         dataFim: z.string(),
         horaFim: z.string(),
         motivo: z.string().optional(),
+        recorrencia: z.enum(["nenhuma", "semanal", "mensal"]).default("nenhuma"),
+        dataFimRecorrencia: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -1471,7 +1486,7 @@ export const appRouter = router({
         // Non-admin: force status "pendente"
         const status = isAdmin ? "aprovado" : "pendente";
 
-        const id = await createBloqueio({ ...input, profissionalId, empresaId: empresa.id, status });
+        const id = await createBloqueioRecorrente({ ...input, profissionalId, empresaId: empresa.id, status });
 
         // Se não-admin, criar notificação para admins (destinatarioId = null = visível para todos admins)
         if (!isAdmin) {

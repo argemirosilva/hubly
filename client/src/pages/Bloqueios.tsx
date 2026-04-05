@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
@@ -18,7 +19,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
 export default function Bloqueios() {
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "" });
+  const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "", recorrencia: "nenhuma", dataFimRecorrencia: "" });
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedBloqueio, setSelectedBloqueio] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
@@ -254,6 +255,25 @@ export default function Bloqueios() {
               <Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label>
               <Input value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Férias, consulta médica..." />
             </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Recorrência</Label>
+              <Select value={form.recorrencia} onValueChange={v => setForm(f => ({ ...f, recorrencia: v }))}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhuma">Sem recorrência</SelectItem>
+                  <SelectItem value="semanal">Semanal</SelectItem>
+                  <SelectItem value="mensal">Mensal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {form.recorrencia !== "nenhuma" && (
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Recorrência até *</Label>
+                <Input type="date" value={form.dataFimRecorrencia} onChange={e => setForm(f => ({ ...f, dataFimRecorrencia: e.target.value }))} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>

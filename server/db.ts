@@ -333,6 +333,43 @@ export async function createBloqueio(data: typeof bloqueiosAgenda.$inferInsert) 
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
+export async function createBloqueioRecorrente(data: typeof bloqueiosAgenda.$inferInsert & { recorrencia: string; dataFimRecorrencia?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  
+  if (data.recorrencia === "nenhuma" || !data.dataFimRecorrencia) {
+    // Sem recorrência: criar apenas um bloqueio
+    return createBloqueio(data);
+  }
+
+  const bloqueios = [];
+  let currentDate = new Date(data.dataInicio);
+  const endDate = new Date(data.dataFimRecorrencia);
+  const increment = data.recorrencia === "semanal" ? 7 : 30; // dias
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + (data.recorrencia === "semanal" ? 1 : 1)); // duração do bloqueio
+    const nextDateStr = nextDate.toISOString().split("T")[0];
+
+    const bloqueioData = {
+      ...data,
+      dataInicio: dateStr,
+      dataFim: nextDateStr,
+      recorrencia: "nenhuma", // Cada instância é armazenada como "nenhuma"
+      dataFimRecorrencia: undefined,
+    };
+
+    const id = await createBloqueio(bloqueioData as any);
+    bloqueios.push(id);
+
+    currentDate.setDate(currentDate.getDate() + increment);
+  }
+
+  return bloqueios[0]; // Retorna o ID do primeiro bloqueio criado
+}
+
 export async function updateBloqueio(id: number, data: Partial<typeof bloqueiosAgenda.$inferInsert>) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");

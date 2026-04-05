@@ -18,6 +18,7 @@ import Automacoes from "./pages/Automacoes";
 import Configuracoes from "./pages/Configuracoes";
 import Notificacoes from "./pages/Notificacoes";
 import Bloqueios from "./pages/Bloqueios";
+import RelatoriosBloqueios from "./pages/admin/RelatoriosBloqueios";
 import PortalCliente from "./pages/PortalCliente";
 import Setup from "./pages/Setup";
 import Usuarios from "./pages/Usuarios";
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/admin/automacoes">{() => <WithAdmin><Automacoes /></WithAdmin>}</Route>
       <Route path="/admin/notificacoes">{() => <WithAdmin><Notificacoes /></WithAdmin>}</Route>
       <Route path="/admin/bloqueios">{() => <WithAdmin><Bloqueios /></WithAdmin>}</Route>
+      <Route path="/admin/relatorios/bloqueios">{() => <WithAdmin><RelatoriosBloqueios /></WithAdmin>}</Route>
       <Route path="/admin/configuracoes">{() => <WithAdmin><Configuracoes /></WithAdmin>}</Route>
       <Route path="/admin/usuarios">{() => <WithAdmin><Usuarios /></WithAdmin>}</Route>
       <Route path="/admin/pipeline">{() => <WithAdmin><Pipeline /></WithAdmin>}</Route>

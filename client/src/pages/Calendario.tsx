@@ -46,6 +46,12 @@ export default function Calendario() {
     profissionalId: profissionalFiltro && profissionalFiltro !== "all" ? parseInt(profissionalFiltro) : undefined,
   });
 
+  const { data: bloqueios } = trpc.bloqueios.list.useQuery({
+    dataInicio,
+    dataFim,
+    profissionalId: profissionalFiltro && profissionalFiltro !== "all" ? parseInt(profissionalFiltro) : undefined,
+  });
+
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
 
@@ -215,6 +221,7 @@ export default function Calendario() {
         <div className="grid grid-cols-7">
           {calDays.map(({ date, day, isCurrentMonth }, idx) => {
             const ags = agendamentosPorDia[date] ?? [];
+            const bloqs = bloqueios?.filter(b => b.dataInicio.split('T')[0] === date && b.status === 'aprovado') ?? [];
             const isToday = date === today;
             const col = idx % 7;
             const isWeekend = col === 0 || col === 6;
@@ -301,6 +308,17 @@ export default function Calendario() {
                         +{ags.length - 3} mais
                       </p>
                     )}
+                    {bloqs.slice(0, 1).map(bloq => (
+                      <div
+                        key={`bloq-${bloq.id}`}
+                        className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden border border-dashed"
+                        style={{ backgroundColor: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)", borderColor: "oklch(65% 0.12 25)" }}
+                        title={`Bloqueio: ${profMap[bloq.profissionalId]?.nome ?? "Profissional"} - ${bloq.motivo}`}
+                      >
+                        <span className="text-xs">🔒</span>
+                        <span className="truncate font-medium">{bloq.motivo.slice(0, 12)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -313,6 +331,7 @@ export default function Calendario() {
       <div className={`space-y-3 ${viewMode === "grid" ? "hidden lg:hidden" : "lg:hidden"}`}>
         {diasComAgendamentos.map(({ date, day, weekday }) => {
           const ags = (agendamentosPorDia[date] ?? []).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+          const bloqs = bloqueios?.filter(b => b.dataInicio.split('T')[0] === date && b.status === 'aprovado') ?? [];
           const isToday = date === today;
 
           return (
@@ -382,6 +401,22 @@ export default function Calendario() {
                       </div>
                     );
                   })}
+                  {bloqs.map(bloq => (
+                    <div
+                      key={`bloq-${bloq.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
+                      style={{ background: "oklch(95% 0.02 25)", border: "1px dashed oklch(65% 0.12 25)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)" }}
+                    >
+                      <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: "oklch(35% 0.12 25)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">Bloqueio: {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{bloq.motivo}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ background: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)" }}>
+                        Bloqueado
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

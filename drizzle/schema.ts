@@ -243,6 +243,8 @@ export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {
   status: mysqlEnum("status", ["pendente", "aprovado", "recusado"]).default("pendente").notNull(),
   motivoRecusa: varchar("motivoRecusa", { length: 500 }),
   aprovadoPorId: int("aprovadoPorId"),
+  recorrencia: mysqlEnum("recorrencia", ["nenhuma", "semanal", "mensal"]).default("nenhuma").notNull(),
+  dataFimRecorrencia: dateField("dataFimRecorrencia"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
