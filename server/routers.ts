@@ -228,7 +228,7 @@ export const appRouter = router({
           permissoes = {}; // sem grupo = sem permissões
         }
       }
-      return {
+      const meResult = {
         ...opts.ctx.user,
         profissionalId: opts.ctx.systemUser ? opts.ctx.systemUser.id : null,
         isProfissional: opts.ctx.systemUser?.isProfissional ?? false,
@@ -236,6 +236,7 @@ export const appRouter = router({
         isAdmin,
         permissoes, // null = owner (acesso total); objeto = permissões do grupo
       };
+      return meResult;
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -3041,6 +3042,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisCriar');
+        // Validar email único globalmente (entre todas as empresas)
+        if (input.email) {
+          const db = await getDb();
+          if (db) {
+            const { profissionais: profTable } = await import('../drizzle/schema.js');
+            const existing = await db.select({ id: profTable.id }).from(profTable)
+              .where(eq(profTable.email, input.email.toLowerCase().trim())).limit(1);
+            if (existing.length > 0) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este e-mail já está cadastrado no sistema. Utilize outro e-mail.' });
+            }
+          }
+        }
         let passwordHash: string | undefined;
         if (input.temAcesso && input.senha) {
           const bcryptLib = await import('bcryptjs');
@@ -3082,6 +3095,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisEditar');
+        // Validar email único globalmente ao atualizar
+        if (input.email) {
+          const db = await getDb();
+          if (db) {
+            const { profissionais: profTable } = await import('../drizzle/schema.js');
+            const existing = await db.select({ id: profTable.id }).from(profTable)
+              .where(eq(profTable.email, input.email.toLowerCase().trim())).limit(1);
+            if (existing.length > 0 && existing[0].id !== input.id) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este e-mail já está cadastrado no sistema. Utilize outro e-mail.' });
+            }
+          }
+        }
         const { id, senha, ...data } = input;
         const updateData: Record<string, unknown> = { ...data };
         if (senha) {
