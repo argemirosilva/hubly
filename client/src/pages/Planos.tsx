@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Check, Zap, Users, Brain, MessageCircle, BarChart3, Package,
-  Globe, Sparkles, Crown, Star, ArrowRight, Loader2
+  Globe, Crown, Star, ArrowRight, Loader2
 } from "lucide-react";
 
 // ─── Dados dos planos ─────────────────────────────────────────────────────────
@@ -31,7 +31,6 @@ const PLANOS = [
       { icon: Globe, text: "Portal de agendamento online" },
       { icon: Package, text: "Pacotes de serviços" },
       { icon: BarChart3, text: "Relatórios avançados" },
-      { icon: Sparkles, text: "IA Marketing" },
       { icon: MessageCircle, text: "100 notificações WhatsApp/mês" },
     ],
     naoInclui: ["IA Financeira", "IA Clientes", "Múltiplos caixas"],
@@ -55,7 +54,6 @@ const PLANOS = [
       { icon: Globe, text: "Portal de agendamento online" },
       { icon: Package, text: "Pacotes de serviços" },
       { icon: BarChart3, text: "Relatórios avançados" },
-      { icon: Sparkles, text: "IA Marketing" },
       { icon: Brain, text: "IA Financeira" },
       { icon: MessageCircle, text: "400 notificações WhatsApp/mês" },
     ],
@@ -80,7 +78,6 @@ const PLANOS = [
       { icon: Globe, text: "Portal de agendamento online" },
       { icon: Package, text: "Pacotes de serviços" },
       { icon: BarChart3, text: "Relatórios avançados" },
-      { icon: Sparkles, text: "IA Marketing" },
       { icon: Brain, text: "IA Financeira + IA Clientes" },
       { icon: MessageCircle, text: "1.000 notificações WhatsApp/mês" },
     ],
