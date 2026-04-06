@@ -467,6 +467,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'clientesCriar');
         const id = await createCliente({ ...input, empresaId: empresa.id });
 
         // Disparar automação cliente_criado se existir e houver telefone
@@ -524,6 +525,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'clientesEditar');
         const { id, ...data } = input;
         await updateCliente(id, data as any);
         return { success: true };
@@ -577,6 +579,7 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         const cliente = await getClienteById(input.id);
         if (!cliente || cliente.empresaId !== empresa.id) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
+        await requirePermissao(ctx, empresa, 'clientesExcluir');
         await deleteCliente(input.id);
         return { success: true };
       }),
@@ -738,6 +741,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'agendamentosCriar');
         // ── Restrição: profissional sem permissão só pode agendar para si próprio ──
         if (ctx.systemUser?.profissionalId) {
           const { isAdmin } = await resolveAdminContext(ctx, empresa, 'agendamentosVerTodos');
@@ -976,6 +980,11 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Verificar permissão granular baseada na ação
+        if (input.status === "concluido") await requirePermissao(ctx, empresa, 'agendamentosConcluir');
+        else if (input.status === "cancelado") await requirePermissao(ctx, empresa, 'agendamentosCancelar');
+        else if (input.data || input.horaInicio) await requirePermissao(ctx, empresa, 'agendamentosRemarcar');
+        else await requirePermissao(ctx, empresa, 'agendamentosEditar');
         const { id, ...data } = input;
         const updates: Record<string, any> = { ...data };
         if (data.status === "confirmado") updates.confirmadoEm = new Date();
@@ -1381,6 +1390,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'agendamentosCancelar');
         // Verificar se o agendamento pertence à empresa
         const ag = await getAgendamentoById(input.id);
         if (!ag || ag.empresaId !== empresa.id) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
@@ -1790,6 +1800,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'automacoesCriar');
         const id = await createAutomacao({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -1815,6 +1826,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Ativar/desativar requer automacoesAtivar; demais edições requerem automacoesEditar
+        if (Object.keys(input).length === 2 && input.ativo !== undefined) {
+          await requirePermissao(ctx, empresa, 'automacoesAtivar');
+        } else {
+          await requirePermissao(ctx, empresa, 'automacoesEditar');
+        }
         const { id, ...data } = input;
         await updateAutomacao(id, data);
         return { success: true };
@@ -1824,6 +1841,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'automacoesExcluir');
         await deleteAutomacao(input.id);
         return { success: true };
       }),

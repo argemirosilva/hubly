@@ -16,8 +16,9 @@ import { toast } from "sonner";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
-  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw, Search, X,
+  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw, Search, X, ShieldAlert,
 } from "lucide-react";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -748,6 +749,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
 // ─── Página Principal ─────────────────────────────────────────────────────────
 
 export default function Pacotes() {
+  const { pode } = usePermissoes();
   const [modalModelo, setModalModelo] = useState(false);
   const [editandoModelo, setEditandoModelo] = useState<any>(null);
   const [modalAbrirPacote, setModalAbrirPacote] = useState(false);
@@ -834,6 +836,23 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const verificarMutation = trpc.pacotes.verificarPacotesVencendo.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Verificação concluída: ${data.criadas} nova(s) notificação(oes) gerada(s).`);
+      utils.pacotes.listarNotificacoes?.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (!pode("pacotesVer") && !pode("clientesVer")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
+        <ShieldAlert className="w-10 h-10 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Você não tem permissão para acessar pacotes.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 lg:p-6">
         <div className="flex items-center justify-between">
@@ -841,9 +860,21 @@ export default function Pacotes() {
             <h1 className="text-2xl font-bold text-slate-800">Pacotes de Serviços</h1>
             <p className="text-sm text-slate-500 mt-0.5">Gerencie pacotes pré-pagos por cliente</p>
           </div>
-          <Button onClick={() => setModalAbrirPacote(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Pacote
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
+              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              onClick={() => verificarMutation.mutate()}
+              disabled={verificarMutation.isPending}
+              title="Verificar pacotes vencendo e gerar alertas"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${verificarMutation.isPending ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Verificar pacotes</span>
+            </button>
+            <Button onClick={() => setModalAbrirPacote(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Pacote
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="pacotes">
