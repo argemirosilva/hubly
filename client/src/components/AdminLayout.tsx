@@ -307,16 +307,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Painel direito — formulário de login */}
         <div className="flex-1 flex items-center justify-center px-8">
           <div className="w-full max-w-sm">
-            <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="flex justify-center mb-8">
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
-                className="h-8 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
             {modoLogin === "login" ? (
               <>
-                <div className="space-y-2 mb-8">
+                <div className="space-y-2 mb-8 text-center">
                   <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
                     Bem-vindo de volta
                   </h1>
@@ -451,6 +451,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </p>
               </>
             )}
+            {/* Rodapé — Orizon Tech */}
+            <div className="flex items-center justify-center gap-2 mt-8 pt-5 border-t border-border">
+              <span className="text-[10px] text-muted-foreground/50 tracking-wide">Desenvolvido por</span>
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-logo-v2_fbd7f19e.png"
+                alt="Orizon Tech"
+                className="h-4 w-auto object-contain opacity-40"
+              />
+            </div>
           </div>
         </div>
       </div>
