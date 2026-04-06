@@ -1040,6 +1040,43 @@ export const appRouter = router({
           }
           } // fim if (!jaVinculadoAPacote)
         }
+        // ── Lançamento automático em Contas a Receber ao concluir ──────────────
+        if (data.status === "concluido") {
+          try {
+            const agendamento = await getAgendamentoById(id);
+            if (agendamento) {
+              const db = await getDb();
+              if (db) {
+                const { contasReceber: crTable } = await import("../drizzle/schema");
+                const jaExiste = await db.select({ id: crTable.id })
+                  .from(crTable)
+                  .where(and(eq(crTable.origemId, id), eq(crTable.origem, "agendamento")))
+                  .limit(1);
+                if (jaExiste.length === 0) {
+                  const todosServicos = await getServicosByEmpresa(empresa.id);
+                  const servico = todosServicos.find(s => s.id === agendamento.servicoId);
+                  const valorServico = parseFloat(String(servico?.preco ?? 0));
+                  const hoje = new Date().toISOString().split('T')[0];
+                  await createContaReceber({
+                    empresaId: empresa.id,
+                    descricao: `Atendimento: ${servico?.nome ?? 'Serviço'} - ${agendamento.data}`,
+                    valor: String(valorServico.toFixed(2)),
+                    dataVencimento: hoje,
+                    dataRecebimento: hoje,
+                    status: "pendente",
+                    origem: "agendamento",
+                    origemId: id,
+                    clienteId: agendamento.clienteId,
+                    profissionalId: agendamento.profissionalId,
+                  });
+                  console.log(`[ContasReceber] Lançamento criado para agendamento ${id}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("[ContasReceber] Erro ao criar lançamento:", e);
+          }
+        }
 
           // ── Enfileirar automação para confirmado, cancelado ou concluido ───────────
         if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido') {
@@ -2674,7 +2711,7 @@ export const appRouter = router({
       const { desc } = await import('drizzle-orm');
       const db = await getDb();
       if (!db) return [];
-      const rows = await db.select().from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(30);
+      const rows = await db.select().from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(10);
       return rows;
     }),
     connect: protectedProcedure.mutation(async () => {

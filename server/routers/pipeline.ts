@@ -119,7 +119,7 @@ export const pipelineRouter = router({
   // ── Gerador de Pipeline por IA ────────────────────────────────────────────
   gerarPipelinePorIA: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       const empresaId = empresa.id;
 
@@ -414,7 +414,7 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
   setPipelineFavorita: protectedProcedure
     .input(z.object({ pipelineId: z.number().nullable() }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
       await updateEmpresa(empresa.id, { pipelineFavoritaId: input.pipelineId ?? undefined });
       return { success: true };
