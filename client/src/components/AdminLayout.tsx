@@ -317,7 +317,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {modoLogin === "login" ? (
               <>
                 <div className="space-y-2 mb-8 text-center">
-                  <h1 className="font-bold tracking-tight" style={{ fontSize: "1.8rem" }}>
+                  <h1 className="font-bold tracking-tight" style={{ fontSize: "1.35rem" }}>
                     Bem-vindo de volta
                   </h1>
                   <p className="text-sm text-muted-foreground">
