@@ -6,6 +6,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
 import { getEmpresaDoContexto } from "../db";
+import { TRPCError } from "@trpc/server";
 import {
   pacotesModelos, pacotesModelosItens,
   pacotesClientes, pacotesClientesItens,
@@ -16,13 +17,24 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
-import { getAutomacaoByEvento, registrarEnvioAutomacao } from "../db";
+import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
   const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
   if (!empresa) throw new Error("Empresa não encontrada");
   return empresa.id;
+}
+
+async function requirePermissaoPacotes(
+  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId?: number | null } | null },
+  permField: string
+): Promise<void> {
+  if (!ctx.systemUser) return; // OAuth user = owner, sempre tem permissão
+  const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.profissionalId ?? ctx.systemUser.id);
+  if (!perms || !(perms as any)[permField]) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: `Sem permissão: ${permField}` });
+  }
 }
 
 // ─── MODELOS ─────────────────────────────────────────────────────────────────
@@ -73,6 +85,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      await requirePermissaoPacotes(ctx, 'pacotesEditar');
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const [result] = await db.insert(pacotesModelos).values({
         empresaId: empId,
@@ -101,6 +114,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      await requirePermissaoPacotes(ctx, 'pacotesEditar');
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesModelos).set({
         nome: input.nome,
@@ -122,6 +136,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      await requirePermissaoPacotes(ctx, 'pacotesExcluir');
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesModelos).set({ ativo: false })
         .where(and(eq(pacotesModelos.id, input.id), eq(pacotesModelos.empresaId, empId)));
@@ -299,6 +314,7 @@ export const pacotesRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
+      await requirePermissaoPacotes(ctx, 'pacotesEditar');
       let dataVencimento: Date | undefined;
       if (input.validadeDias) {
         dataVencimento = new Date();
@@ -321,7 +337,7 @@ export const pacotesRouter = router({
         dataVencimento,
         observacoes: input.observacoes,
         automacaoRenovacao: input.automacaoRenovacao ?? false,
-        dataValidade: input.dataValidade ? input.dataValidade : undefined,
+        dataValidade: input.dataValidade ? new Date(input.dataValidade) : undefined,
       });
       const pacoteId = (result as any).insertId as number;
 
@@ -497,6 +513,7 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      await requirePermissaoPacotes(ctx, 'pacotesExcluir');
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       await db.update(pacotesClientes).set({ status: "cancelado" })
         .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
@@ -581,6 +598,21 @@ export const pacotesRouter = router({
         .where(and(
           eq(notificacoesPacotes.empresaId, empId),
           eq(notificacoesPacotes.lida, false),
+        ));
+      return { ok: true };
+    }),
+
+  // ── Ocultar notificação de pacote ──────────────────────────────────────────
+  ocultarNotificacao: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      await db.delete(notificacoesPacotes)
+        .where(and(
+          eq(notificacoesPacotes.id, input.id),
+          eq(notificacoesPacotes.empresaId, empId),
         ));
       return { ok: true };
     }),
@@ -856,6 +888,7 @@ export const pacotesRouter = router({
 
        // Buscar dados do cliente para notificações
       const [clienteRow] = await db.select({
+        id: clientes.id,
         nome: clientes.nome,
         telefone: clientes.telefone,
         whatsapp: clientes.whatsapp,
@@ -943,6 +976,7 @@ export const pacotesRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requirePermissaoPacotes(ctx, 'pacotesEditar');
       const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
       const db = await getDb();
       if (!db) throw new Error("DB not available");
@@ -970,7 +1004,7 @@ export const pacotesRouter = router({
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
       if (input.automacaoRenovacao !== undefined) updates.automacaoRenovacao = input.automacaoRenovacao;
       if (input.dataValidade !== undefined) {
-        updates.dataValidade = input.dataValidade || null;
+        updates.dataValidade = input.dataValidade ? new Date(input.dataValidade) : null;
       }
 
       if (Object.keys(updates).length > 0) {

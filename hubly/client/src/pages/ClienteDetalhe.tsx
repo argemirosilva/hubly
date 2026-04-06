@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -44,6 +45,7 @@ function formatCurrency(v: number | string | null | undefined) {
 export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const id = propId ?? parseInt(window.location.pathname.split("/").pop() ?? "0");
   const [, navigate] = useLocation();
+  const { pode } = usePermissoes();
 
   // Estado de edição
   const [modoEdicao, setModoEdicao] = useState(false);
@@ -302,18 +304,18 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               ) : (
                 /* Visualização dos dados */
                 <div className="space-y-2.5">
-                  {c.telefone && (
+                  {c.telefone && pode('clientesVerContato') && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="w-4 h-4 shrink-0" />{c.telefone}
                     </div>
                   )}
-                  {c.whatsapp && c.whatsapp !== c.telefone && (
+                  {c.whatsapp && c.whatsapp !== c.telefone && pode('clientesVerContato') && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="w-4 h-4 shrink-0 text-green-500" />
                       <span>{c.whatsapp} <span className="text-xs text-green-600">(WhatsApp)</span></span>
                     </div>
                   )}
-                  {c.email && (
+                  {c.email && pode('clientesVerContato') && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="w-4 h-4 shrink-0" />{c.email}
                     </div>

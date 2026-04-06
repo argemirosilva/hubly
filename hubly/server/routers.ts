@@ -317,6 +317,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'configuracoesEditar');
         await updateEmpresa(empresa.id, input as any);
         return { success: true };
       }),
@@ -1500,6 +1501,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'agendaSolicitarBloqueio');
         // Resolver profissionalId: usa o enviado ou o do profissional logado
         const profissionalId = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (!profissionalId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Profissional não identificado. Faça login como profissional.' });

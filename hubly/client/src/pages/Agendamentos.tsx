@@ -317,8 +317,8 @@ export default function Agendamentos() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   <DropdownMenuItem onClick={() => confirmarAcaoLote("confirmado", "Confirmado")}>Confirmar</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => confirmarAcaoLote("concluido", "Concluído")}>Concluir</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => confirmarAcaoLote("cancelado", "Cancelado")}>Cancelar</DropdownMenuItem>
+                  {pode('agendamentosConcluir') && <DropdownMenuItem onClick={() => confirmarAcaoLote("concluido", "Concluído")}>Concluir</DropdownMenuItem>}
+                  {pode('agendamentosCancelar') && <DropdownMenuItem onClick={() => confirmarAcaoLote("cancelado", "Cancelado")}>Cancelar</DropdownMenuItem>}
                   <DropdownMenuItem onClick={() => confirmarAcaoLote("faltou", "Faltou")}>Marcar como Faltou</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => confirmarAcaoLote("agendado", "Agendado")}>Voltar para Agendado</DropdownMenuItem>
                 </DropdownMenuContent>
