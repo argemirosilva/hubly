@@ -311,12 +311,12 @@ export default function Calendario() {
                     {bloqs.slice(0, 1).map(bloq => (
                       <div
                         key={`bloq-${bloq.id}`}
-                        className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden border border-dashed"
-                        style={{ backgroundColor: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)", borderColor: "oklch(65% 0.12 25)" }}
-                        title={`Bloqueio: ${profMap[bloq.profissionalId]?.nome ?? "Profissional"} - ${bloq.motivo}`}
+                        className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm overflow-hidden border border-dashed select-none"
+                        style={{ backgroundColor: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)", borderColor: "oklch(65% 0.12 25)", cursor: "default" }}
+                        title={`Motivo: ${bloq.motivo ?? "Sem motivo"}\n${bloq.horaInicio?.slice(0,5) ?? ""} - ${bloq.horaFim?.slice(0,5) ?? ""}`}
                       >
                         <span className="text-xs">🔒</span>
-                        <span className="truncate font-medium">{(bloq.motivo ?? "").slice(0, 12)}</span>
+                        <span className="truncate font-medium">{(profMap[bloq.profissionalId]?.nome ?? "Profissional").split(" ")[0]}</span>
                       </div>
                     ))}
                   </div>
@@ -404,13 +404,14 @@ export default function Calendario() {
                   {bloqs.map(bloq => (
                     <div
                       key={`bloq-${bloq.id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
-                      style={{ background: "oklch(95% 0.02 25)", border: "1px dashed oklch(65% 0.12 25)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)" }}
+                      className="flex items-center gap-3 p-3 rounded-xl select-none"
+                      style={{ background: "oklch(95% 0.02 25)", border: "1px dashed oklch(65% 0.12 25)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", cursor: "default" }}
+                      title={`Motivo: ${bloq.motivo ?? "Sem motivo"}\nHorário: ${bloq.horaInicio?.slice(0,5) ?? ""} - ${bloq.horaFim?.slice(0,5) ?? ""}`}
                     >
                       <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: "oklch(35% 0.12 25)" }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">Bloqueio: {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{bloq.motivo}</p>
+                        <p className="text-xs text-muted-foreground truncate">{bloq.horaInicio?.slice(0,5)} - {bloq.horaFim?.slice(0,5)}</p>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ background: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)" }}>
                         Bloqueado
