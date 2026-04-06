@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { getServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Backend já aplica filtros via resolveAdminContext, sem necessidade de useAuth aqui
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -309,15 +310,27 @@ export default function Calendario() {
                       </p>
                     )}
                     {bloqs.slice(0, 1).map(bloq => (
-                      <div
-                        key={`bloq-${bloq.id}`}
-                        className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm overflow-hidden border border-dashed select-none"
-                        style={{ backgroundColor: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)", borderColor: "oklch(65% 0.12 25)", cursor: "default" }}
-                        title={`Motivo: ${bloq.motivo ?? "Sem motivo"}\n${bloq.horaInicio?.slice(0,5) ?? ""} - ${bloq.horaFim?.slice(0,5) ?? ""}`}
-                      >
-                        <span className="text-xs">🔒</span>
-                        <span className="truncate font-medium">{(profMap[bloq.profissionalId]?.nome ?? "Profissional").split(" ")[0]}</span>
-                      </div>
+                      <TooltipProvider key={`bloq-${bloq.id}`} delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm overflow-hidden border border-dashed select-none"
+                              style={{ backgroundColor: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)", borderColor: "oklch(65% 0.12 25)", cursor: "default" }}
+                            >
+                              <span className="text-xs">🔒</span>
+                              <span className="truncate font-medium">{(profMap[bloq.profissionalId]?.nome ?? "Profissional").split(" ")[0]}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[200px]">
+                            <div className="space-y-1">
+                              <p className="font-semibold text-xs">Bloqueio de Agenda</p>
+                              <p className="text-xs text-muted-foreground">👤 {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
+                              <p className="text-xs text-muted-foreground">⏰ {bloq.horaInicio?.slice(0,5)} – {bloq.horaFim?.slice(0,5)}</p>
+                              {bloq.motivo && <p className="text-xs text-muted-foreground">📝 {bloq.motivo}</p>}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ))}
                   </div>
                 </div>
@@ -402,21 +415,33 @@ export default function Calendario() {
                     );
                   })}
                   {bloqs.map(bloq => (
-                    <div
-                      key={`bloq-${bloq.id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl select-none"
-                      style={{ background: "oklch(95% 0.02 25)", border: "1px dashed oklch(65% 0.12 25)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", cursor: "default" }}
-                      title={`Motivo: ${bloq.motivo ?? "Sem motivo"}\nHorário: ${bloq.horaInicio?.slice(0,5) ?? ""} - ${bloq.horaFim?.slice(0,5) ?? ""}`}
-                    >
-                      <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: "oklch(35% 0.12 25)" }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">Bloqueio: {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{bloq.horaInicio?.slice(0,5)} - {bloq.horaFim?.slice(0,5)}</p>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ background: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)" }}>
-                        Bloqueado
-                      </span>
-                    </div>
+                    <TooltipProvider key={`bloq-${bloq.id}`} delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="flex items-center gap-3 p-3 rounded-xl select-none"
+                            style={{ background: "oklch(95% 0.02 25)", border: "1px dashed oklch(65% 0.12 25)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", cursor: "default" }}
+                          >
+                            <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: "oklch(35% 0.12 25)" }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">Bloqueio: {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
+                              <p className="text-xs text-muted-foreground truncate">{bloq.horaInicio?.slice(0,5)} – {bloq.horaFim?.slice(0,5)}</p>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ background: "oklch(95% 0.02 25)", color: "oklch(35% 0.12 25)" }}>
+                              Bloqueado
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[220px]">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-xs">Bloqueio de Agenda</p>
+                            <p className="text-xs text-muted-foreground">👤 {profMap[bloq.profissionalId]?.nome ?? "Profissional"}</p>
+                            <p className="text-xs text-muted-foreground">⏰ {bloq.horaInicio?.slice(0,5)} – {bloq.horaFim?.slice(0,5)}</p>
+                            {bloq.motivo && <p className="text-xs text-muted-foreground">📝 {bloq.motivo}</p>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ))}
                 </div>
               )}
