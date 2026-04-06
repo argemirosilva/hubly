@@ -181,11 +181,13 @@ export default function Clientes() {
             )}
           </p>
         </div>
-        <button onClick={() => { setForm(FORM_VAZIO); setModalCriar(true); }} className="btn-primary py-2 px-3 text-xs">
-          <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Novo Cliente</span>
-          <span className="sm:hidden">Novo</span>
-        </button>
+        {pode("clientesCriar") && (
+          <button onClick={() => { setForm(FORM_VAZIO); setModalCriar(true); }} className="btn-primary py-2 px-3 text-xs">
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Novo Cliente</span>
+            <span className="sm:hidden">Novo</span>
+          </button>
+        )}
       </div>
 
       {/* Cards de métricas — compactos no mobile */}
@@ -327,20 +329,24 @@ export default function Clientes() {
                       </button>
                     ) : (
                       <>
-                        <button
-                          onClick={e => { e.preventDefault(); abrirEditar(c); }}
-                          className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
-                          title="Editar cliente"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={e => { e.preventDefault(); setConfirmarExcluir({ id: c.id, nome: c.nome }); }}
-                          className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition-colors"
-                          title="Remover cliente"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {pode("clientesEditar") && (
+                          <button
+                            onClick={e => { e.preventDefault(); abrirEditar(c); }}
+                            className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                            title="Editar cliente"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {pode("clientesExcluir") && (
+                          <button
+                            onClick={e => { e.preventDefault(); setConfirmarExcluir({ id: c.id, nome: c.nome }); }}
+                            className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition-colors"
+                            title="Remover cliente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </>
                     )}
                     <Link href={`/admin/clientes/${c.id}`}>

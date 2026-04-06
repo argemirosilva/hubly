@@ -935,11 +935,13 @@ export default function Automacoes() {
                   <Sparkles size={14} className="mr-1" />
                   <span className="hidden sm:inline">Templates</span>
                 </Button>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
-                  <Plus size={14} className="mr-1" />
-                  <span className="hidden sm:inline">Nova automação</span>
-                  <span className="sm:hidden">Nova</span>
-                </Button>
+                {pode("automacoesCriar") && (
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
+                    <Plus size={14} className="mr-1" />
+                    <span className="hidden sm:inline">Nova automação</span>
+                    <span className="sm:hidden">Nova</span>
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => setDebugOpen(true)}>
                   <Activity size={14} className="mr-1" />
                   <span className="hidden sm:inline">Debug</span>
@@ -1322,18 +1324,22 @@ export default function Automacoes() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
+                        <Switch checked={a.ativo} disabled={!pode("automacoesAtivar")} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
-                          <Edit2 size={13} />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setConfirmDeleteId(a.id)}>
-                          <Trash2 size={13} />
-                        </Button>
+                        {pode("automacoesEditar") && (
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
+                            <Edit2 size={13} />
+                          </Button>
+                        )}
+                        {pode("automacoesExcluir") && (
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setConfirmDeleteId(a.id)}>
+                            <Trash2 size={13} />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1473,6 +1479,7 @@ export default function Automacoes() {
 
   //  EDITOR
   return (
+    <>
     <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
         {/* Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-10 flex-shrink-0">
@@ -1540,7 +1547,6 @@ export default function Automacoes() {
           ) : null}
         </div>
     </div>
-
     {/* Debug Modal */}
     {debugOpen && (
       <DebugAutomacoesModal
@@ -1558,6 +1564,7 @@ export default function Automacoes() {
         automacaoId={testeEnvioId}
       />
     )}
+    </>
   );
 }
 
@@ -1569,14 +1576,14 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
   onClose: () => void;
   automacoes: any[];
 }) {
-  const [filtroAutomacao, setFiltroAutomacao] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroAutomacao, setFiltroAutomacao] = useState("all");
+  const [filtroStatus, setFiltroStatus] = useState("all");
   const [filtroPeriodo, setFiltroPeriodo] = useState("24h");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: debugData = [], isLoading } = trpc.automacoes.debugList.useQuery({
-    automacaoId: filtroAutomacao ? parseInt(filtroAutomacao) : undefined,
-    status: filtroStatus ? (filtroStatus as any) : undefined,
+    automacaoId: filtroAutomacao && filtroAutomacao !== "all" ? parseInt(filtroAutomacao) : undefined,
+    status: filtroStatus && filtroStatus !== "all" ? (filtroStatus as any) : undefined,
     periodo: filtroPeriodo ? (filtroPeriodo as any) : undefined,
     limite: 100,
   }, { refetchInterval: 5000 });
@@ -1598,7 +1605,7 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
               <SelectValue placeholder="Todas automações" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas automações</SelectItem>
+              <SelectItem value="all">Todas automações</SelectItem>
               {automacoes.map(a => (
                 <SelectItem key={a.id} value={String(a.id)}>{a.nome}</SelectItem>
               ))}
@@ -1609,7 +1616,7 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
               <SelectValue placeholder="Todos status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos status</SelectItem>
+              <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="enviado">Enviado</SelectItem>
               <SelectItem value="falhou">Falhou</SelectItem>

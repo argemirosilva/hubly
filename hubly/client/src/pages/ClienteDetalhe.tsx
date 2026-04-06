@@ -234,19 +234,23 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmarExcluir(true)}
-                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Excluir</span>
-                </Button>
-                <Button size="sm" onClick={iniciarEdicao} className="gap-1.5">
-                  <Pencil className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Editar</span>
-                </Button>
+                {pode("clientesExcluir") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmarExcluir(true)}
+                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Excluir</span>
+                  </Button>
+                )}
+                {pode("clientesEditar") && (
+                  <Button size="sm" onClick={iniciarEdicao} className="gap-1.5">
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Editar</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
