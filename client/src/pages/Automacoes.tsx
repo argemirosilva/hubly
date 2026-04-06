@@ -714,7 +714,10 @@ export default function Automacoes() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao gerar pipeline"),
   });
 
-  // Gera pipeline automaticamente em segundo plano após qualquer mudança em automações
+  // Campos que definem o FLUXO da automação (mudança nesses campos justifica regenerar o pipeline)
+  const CAMPOS_FLUXO = ["tipoGatilho", "evento", "diasAntesDepois", "delayMinutos", "horaDisparo", "dataFixaDia", "dataFixaMes", "canalEnvio", "ativo"] as const;
+
+  // Gera pipeline automaticamente apenas se campos de fluxo mudaram
   const gerarPipelineAutomatico = () => {
     gerarPipelineMutation.mutate(undefined, {
       onSuccess: (data) => {
@@ -725,13 +728,24 @@ export default function Automacoes() {
     });
   };
 
+  // Verifica se campos de fluxo mudaram comparando com os dados salvos
+  const fluxoMudou = (id: number, novosDados: Record<string, any>): boolean => {
+    const automacaoAtual = automacoesSalvas.find((a: any) => a.id === id);
+    if (!automacaoAtual) return true; // nova automação, sempre gera
+    return CAMPOS_FLUXO.some(campo => {
+      const antes = (automacaoAtual as any)[campo];
+      const depois = novosDados[campo];
+      return antes !== depois;
+    });
+  };
+
   const { data: automacoesSalvas = [], isLoading } = trpc.automacoes.list.useQuery();
   const createMutation = trpc.automacoes.create.useMutation({
     onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => toast.error(e.message),
   });
   const updateMutation = trpc.automacoes.update.useMutation({
-    onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
+    onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); },
   });
   const deleteMutation = trpc.automacoes.delete.useMutation({
     onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
@@ -848,7 +862,13 @@ export default function Automacoes() {
         dataFixaHora: triggerNode.data.hora,
         canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
         tituloMensagem: actionNode?.data.titulo,
-      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
+      }, { onSuccess: () => {
+        toast.success("Automação salva!");
+        if (!updatedNodeData) setView("list");
+        // Só regenera o pipeline se campos de fluxo mudaram
+        const novosDadosFluxo = { tipoGatilho, evento: eventoValue, diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento') ? undefined : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined), delayMinutos: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento') ? (triggerNode.data.horas ? Number(triggerNode.data.horas) * 60 : 60) : undefined, horaDisparo: triggerNode.data.hora, dataFixaDia: triggerNode.data.dia ? Number(triggerNode.data.dia) : undefined, dataFixaMes: triggerNode.data.mes ? Number(triggerNode.data.mes) : undefined, canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp" };
+        if (currentFlow.id && fluxoMudou(currentFlow.id, novosDadosFluxo)) gerarPipelineAutomatico();
+      } });
     } else {
       // Criar nova automação
       createMutation.mutate({
@@ -1334,7 +1354,7 @@ export default function Automacoes() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo })} />
+                        <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo }, { onSuccess: () => gerarPipelineAutomatico() })} />
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
