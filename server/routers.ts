@@ -1055,7 +1055,7 @@ export const appRouter = router({
                 if (jaExiste.length === 0) {
                   const todosServicos = await getServicosByEmpresa(empresa.id);
                   const servico = todosServicos.find(s => s.id === agendamento.servicoId);
-                  const valorServico = parseFloat(String(servico?.preco ?? 0));
+                  const valorServico = parseFloat(String(servico?.valor ?? 0));
                   const hoje = new Date().toISOString().split('T')[0];
                   await createContaReceber({
                     empresaId: empresa.id,

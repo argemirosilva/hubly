@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -472,12 +473,42 @@ function CardConta({ conta, onEditar, onMarcarPago, onDeletar }: {
 export default function ContasPagar() {
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
+  const search = useSearch();
 
   // Filtros
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [filtroDataInicio, setFiltroDataInicio] = useState<string | undefined>(undefined);
+  const [filtroDataFim, setFiltroDataFim] = useState<string | undefined>(undefined);
+  const [filtroAtivo, setFiltroAtivo] = useState<string | null>(null);
+
+  // Lê o parâmetro ?filtro= da URL e aplica o filtro correspondente
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const filtro = params.get("filtro");
+    if (filtro === "vencidas") {
+      setFiltroStatus("vencido");
+      setFiltroDataInicio(undefined);
+      setFiltroDataFim(undefined);
+      setFiltroAtivo("vencidas");
+    } else if (filtro === "hoje") {
+      const hoje = new Date().toISOString().split("T")[0];
+      setFiltroStatus("todos");
+      setFiltroDataInicio(hoje);
+      setFiltroDataFim(hoje);
+      setFiltroAtivo("hoje");
+    } else if (filtro === "semana") {
+      const hoje = new Date();
+      const fim = new Date(hoje);
+      fim.setDate(hoje.getDate() + 7);
+      setFiltroStatus("todos");
+      setFiltroDataInicio(hoje.toISOString().split("T")[0]);
+      setFiltroDataFim(fim.toISOString().split("T")[0]);
+      setFiltroAtivo("semana");
+    }
+  }, [search]);
 
   // Modais
   const [modalConta, setModalConta] = useState(false);
@@ -488,6 +519,8 @@ export default function ContasPagar() {
   const { data: contas = [], isLoading } = trpc.contasPagar.list.useQuery({
     status: filtroStatus !== "todos" ? filtroStatus : undefined,
     categoriaId: (filtroCategoria && filtroCategoria !== "todas") ? parseInt(filtroCategoria) : undefined,
+    dataInicio: filtroDataInicio,
+    dataFim: filtroDataFim,
   });
   const { data: metricas } = trpc.contasPagar.metricas.useQuery();
   const { data: categorias = [] } = trpc.contasPagar.categorias.list.useQuery();
@@ -614,6 +647,32 @@ export default function ContasPagar() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Indicador de filtro ativo vindo do dashboard */}
+      {filtroAtivo && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+          <Filter className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-xs font-medium text-primary">
+            {filtroAtivo === "vencidas" && "Exibindo: Contas Vencidas"}
+            {filtroAtivo === "hoje" && "Exibindo: Vencimentos de Hoje"}
+            {filtroAtivo === "semana" && "Exibindo: Vencimentos dos Próximos 7 Dias"}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs ml-auto text-primary hover:text-primary"
+            onClick={() => {
+              setFiltroAtivo(null);
+              setFiltroStatus("todos");
+              setFiltroDataInicio(undefined);
+              setFiltroDataFim(undefined);
+            }}
+          >
+            <X className="w-3 h-3 mr-1" />
+            Limpar
+          </Button>
+        </div>
+      )}
 
       {/* Barra de busca e filtros */}
       <div className="space-y-3">

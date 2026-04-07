@@ -1259,3 +1259,11 @@
 - [ ] Backend: filtrar notificações por escopo do grupo do usuário logado
 - [ ] Backend: filtrar agenda/calendário por escopo do grupo do usuário logado
 - [ ] Frontend: seção de escopo de visibilidade no modal de permissões dos grupos
+
+## Filtros Dinâmicos no Dashboard → Contas a Pagar (v-atual)
+- [x] Dashboard: corrigir URLs dos cards de contas (de /admin/financeiro/contas-pagar para /admin/contas-pagar)
+- [x] Dashboard: adicionar parâmetros ?filtro=vencidas, ?filtro=hoje, ?filtro=semana nos links dos cards
+- [x] ContasPagar: implementar leitura do parâmetro ?filtro= da URL com useSearch() do wouter
+- [x] ContasPagar: aplicar filtros automaticamente ao carregar a página (vencidas=status vencido, hoje=data de hoje, semana=próximos 7 dias)
+- [x] ContasPagar: exibir indicador visual do filtro ativo com botão para limpar
+- [x] Backend: getContasPagarByEmpresa já suporta dataInicio e dataFim como filtros SQL
