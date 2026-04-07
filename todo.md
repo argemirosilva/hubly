@@ -1301,3 +1301,15 @@
 - [x] Reduzir backoff de reconexão (15s→5s, 30s→10s, 60s→15s, 120s→30s, 300s→60s)
 - [x] Tratar código 408 (timeout) com reconexão imediata sem backoff
 - [x] Adicionar keepalive/ping para evitar timeout 408
+
+## Logs Detalhados WhatsApp (v-atual)
+- [ ] Expandir tabela wa_connection_log com: statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico
+- [ ] Aplicar migration SQL com novos campos
+- [ ] Atualizar whatsapp.ts para registrar logs detalhados em todos os eventos
+- [ ] Atualizar página WhatsApp para exibir logs detalhados com filtros e cores por tipo
+
+## Logs Detalhados WhatsApp (v-atual - concluído)
+- [x] Expandir tabela wa_connection_log com: statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone
+- [x] Aplicar migration SQL com novos campos (8 colunas adicionadas)
+- [x] Atualizar whatsapp.ts para registrar logs detalhados em todos os eventos (connected, disconnected, qr_ready, logged_out, reconnecting, reconnect_attempt, error, shutdown)
+- [x] Atualizar página WhatsApp com seção "Diagnóstico de Conexão" com badges de statusCode, motivo, duração de sessão, tentativas e detalhe técnico colapsável

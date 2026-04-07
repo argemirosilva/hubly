@@ -446,44 +446,121 @@ export default function WhatsAppPage() {
       )}
 
       {/* Log de eventos de conexão */}
-      {connectionLog && connectionLog.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">Histórico de Conexão</CardTitle>
+              <CardTitle className="text-base">Diagnóstico de Conexão</CardTitle>
             </div>
-            <CardDescription>Últimos eventos registrados</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {connectionLog.filter(entry => !['reconnecting', 'connecting'].includes(entry.event)).map((entry) => {
-                const eventConfig: Record<string, { label: string; color: string; dot: string }> = {
-                  connected:     { label: "Conectado",         color: "text-green-700",  dot: "bg-green-500" },
-                  disconnected:  { label: "Desconectado",      color: "text-gray-600",   dot: "bg-gray-400" },
-                  qr_ready:      { label: "QR Code gerado",    color: "text-blue-700",   dot: "bg-blue-500" },
-                  logged_out:    { label: "Sessão encerrada",  color: "text-red-700",    dot: "bg-red-500" },
+            {connectionLog && connectionLog.length > 0 && (
+              <span className="text-xs text-muted-foreground">{connectionLog.length} eventos</span>
+            )}
+          </div>
+          <CardDescription>Monitoramento detalhado de cada evento de conexão</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {(!connectionLog || connectionLog.length === 0) ? (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              Nenhum evento registrado ainda. Conecte o WhatsApp para iniciar o monitoramento.
+            </div>
+          ) : (
+            <div className="divide-y max-h-[500px] overflow-y-auto">
+              {connectionLog.map((entry) => {
+                const eventConfig: Record<string, { label: string; color: string; dot: string; bg: string }> = {
+                  connected:        { label: "Conectado",           color: "text-green-700",  dot: "bg-green-500",  bg: "hover:bg-green-50/50" },
+                  disconnected:     { label: "Desconectado",        color: "text-gray-600",   dot: "bg-gray-400",   bg: "hover:bg-gray-50/50" },
+                  qr_ready:         { label: "QR Code gerado",      color: "text-blue-700",   dot: "bg-blue-500",   bg: "hover:bg-blue-50/50" },
+                  logged_out:       { label: "Sessão encerrada",    color: "text-red-700",    dot: "bg-red-500",    bg: "hover:bg-red-50/50" },
+                  reconnecting:     { label: "Reconectando",        color: "text-yellow-700", dot: "bg-yellow-500", bg: "hover:bg-yellow-50/50" },
+                  reconnect_attempt:{ label: "Tentativa de reconexão", color: "text-orange-700", dot: "bg-orange-400", bg: "hover:bg-orange-50/50" },
+                  error:            { label: "Erro",                 color: "text-red-700",    dot: "bg-red-600",    bg: "hover:bg-red-50/50" },
                 };
-                const cfg = eventConfig[entry.event] ?? { label: entry.event, color: "text-muted-foreground", dot: "bg-gray-300" };
+                const cfg = eventConfig[entry.event] ?? { label: entry.event, color: "text-muted-foreground", dot: "bg-gray-300", bg: "" };
+                const duracaoFormatada = entry.duracaoSessaoMs
+                  ? entry.duracaoSessaoMs < 60000
+                    ? `${Math.round(entry.duracaoSessaoMs / 1000)}s`
+                    : entry.duracaoSessaoMs < 3600000
+                    ? `${Math.round(entry.duracaoSessaoMs / 60000)}min`
+                    : `${(entry.duracaoSessaoMs / 3600000).toFixed(1)}h`
+                  : null;
+                const motivoLabel: Record<string, string> = {
+                  timeout_rede: "Timeout de rede",
+                  logout_dispositivo: "Logout no celular",
+                  nao_autorizado: "Não autorizado",
+                  acesso_negado: "Acesso negado",
+                  sessao_expirada: "Sessão expirada",
+                  erro_servidor_wa: "Erro no servidor WA",
+                  servidor_wa_indisponivel: "Servidor WA indisponível",
+                  reinicio_servidor: "Reinicio do servidor",
+                  shutdown_servidor: "Shutdown do servidor",
+                  conexao_estabelecida: "Conexão estabelecida",
+                  aguardando_qr: "Aguardando QR",
+                  erro_conexao: "Erro de conexão",
+                };
                 return (
-                  <div key={entry.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
-                      {entry.detail && (
-                        <span className="text-xs text-muted-foreground ml-2">{entry.detail}</span>
-                      )}
+                  <div key={entry.id} className={`px-4 py-3 transition-colors ${cfg.bg}`}>
+                    <div className="flex items-start gap-3">
+                      <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${cfg.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        {/* Linha principal */}
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className={`text-sm font-semibold ${cfg.color}`}>{cfg.label}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {new Date(entry.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                          </span>
+                        </div>
+                        {/* Descrição */}
+                        {entry.detail && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{entry.detail}</p>
+                        )}
+                        {/* Badges de metadados */}
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {entry.statusCode && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-gray-100 text-gray-600 border border-gray-200">
+                              Cód. {entry.statusCode}
+                            </span>
+                          )}
+                          {entry.motivo && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 border border-slate-200">
+                              {motivoLabel[entry.motivo] ?? entry.motivo}
+                            </span>
+                          )}
+                          {duracaoFormatada && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600 border border-blue-200">
+                              <Zap className="w-2.5 h-2.5" />
+                              Sessão: {duracaoFormatada}
+                            </span>
+                          )}
+                          {entry.tentativa && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-orange-50 text-orange-600 border border-orange-200">
+                              <RotateCcw className="w-2.5 h-2.5" />
+                              Tentativa {entry.tentativa}
+                            </span>
+                          )}
+                          {entry.telefone && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-green-50 text-green-600 border border-green-200">
+                              <Smartphone className="w-2.5 h-2.5" />
+                              {entry.telefone}
+                            </span>
+                          )}
+                        </div>
+                        {/* Detalhe técnico (colapsável) */}
+                        {entry.detalheTecnico && (
+                          <details className="mt-1.5">
+                            <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground select-none">Ver detalhe técnico</summary>
+                            <pre className="mt-1 text-[10px] text-muted-foreground bg-muted/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">{entry.detalheTecnico}</pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(entry.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                    </span>
                   </div>
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Info Card */}
       <Card className="border-dashed">

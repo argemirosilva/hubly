@@ -2713,15 +2713,30 @@ export const appRouter = router({
         nextReconnectAt: state.nextReconnectAt ?? null,
       };
     }),
-    getConnectionLog: protectedProcedure.query(async () => {
-      const { getDb } = await import('./db');
-      const { waConnectionLog } = await import('../drizzle/schema');
-      const { desc } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) return [];
-      const rows = await db.select().from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(10);
-      return rows;
-    }),
+    getConnectionLog: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(200).default(50) }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const rows = await db.execute(
+          sql`SELECT id, event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone, createdAt
+              FROM wa_connection_log
+              ORDER BY createdAt DESC
+              LIMIT ${input?.limit ?? 50}`
+        );
+        return (rows[0] as any[]).map((r: any) => ({
+          id: r.id as number,
+          event: r.event as string,
+          detail: r.detail as string | null,
+          statusCode: r.statusCode as number | null,
+          motivo: r.motivo as string | null,
+          duracaoSessaoMs: r.duracaoSessaoMs ? Number(r.duracaoSessaoMs) : null,
+          tentativa: r.tentativa as number | null,
+          detalheTecnico: r.detalheTecnico as string | null,
+          telefone: r.telefone as string | null,
+          createdAt: new Date(r.createdAt),
+        }));
+      }),
     connect: protectedProcedure.mutation(async () => {
       const { waManager } = await import('./whatsapp');
       const state = waManager.getState();

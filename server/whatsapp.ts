@@ -12,27 +12,74 @@ import { Boom } from "@hapi/boom";
 import * as QRCode from "qrcode";
 import { EventEmitter } from "events";
 import { getDb } from "./db";
-import { waSession, waConnectionLog } from "../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { waSession } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // ─── HELPER: registrar evento de conexão no banco ────────────────────────────
+interface WaLogOptions {
+  detail?: string;
+  statusCode?: number;
+  motivo?: string;
+  duracaoSessaoMs?: number;
+  tentativa?: number;
+  detalheTecnico?: string;
+  telefone?: string;
+}
+
 async function logWaEvent(
-  event: "connected" | "disconnected" | "qr_ready" | "logged_out" | "reconnecting",
-  detail?: string
+  event: "connected" | "disconnected" | "qr_ready" | "logged_out" | "reconnecting" | "reconnect_attempt" | "error",
+  detailOrOptions?: string | WaLogOptions
 ): Promise<void> {
   try {
     const db = await getDb();
     if (!db) return;
-    await db.insert(waConnectionLog).values({ event, detail: detail ?? null });
-    // Manter apenas os últimos 50 registros
-    const rows = await db.select({ id: waConnectionLog.id }).from(waConnectionLog).orderBy(desc(waConnectionLog.createdAt)).limit(100);
-    if (rows.length > 50) {
-      const idsToDelete = rows.slice(50).map(r => r.id);
-      for (const id of idsToDelete) {
-        await db.delete(waConnectionLog).where(eq(waConnectionLog.id, id));
-      }
-    }
+    const opts: WaLogOptions = typeof detailOrOptions === "string"
+      ? { detail: detailOrOptions }
+      : (detailOrOptions ?? {});
+    // Usar SQL raw para evitar conflito de tipo do enum no tsc --watch
+    await db.execute(sql`
+      INSERT INTO wa_connection_log (event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone)
+      VALUES (
+        ${event},
+        ${opts.detail ?? null},
+        ${opts.statusCode ?? null},
+        ${opts.motivo ?? null},
+        ${opts.duracaoSessaoMs ?? null},
+        ${opts.tentativa ?? null},
+        ${opts.detalheTecnico ?? null},
+        ${opts.telefone ?? null}
+      )
+    `);
+    // Manter apenas os últimos 200 registros
+    await db.execute(sql`
+      DELETE FROM wa_connection_log
+      WHERE id NOT IN (
+        SELECT id FROM (
+          SELECT id FROM wa_connection_log ORDER BY createdAt DESC LIMIT 200
+        ) AS keep
+      )
+    `);
   } catch { /* ignorar erros de log */ }
+}
+
+// Classifica o código de desconexão em um motivo human-readable
+function classificarMotivo(statusCode?: number, errorMessage?: string): string {
+  if (!statusCode) return errorMessage ? "erro_desconhecido" : "desconexao_limpa";
+  switch (statusCode) {
+    case 408: return "timeout_rede";
+    case 401: return "nao_autorizado";
+    case 403: return "acesso_negado";
+    case 405: return "metodo_invalido";
+    case 410: return "logout_dispositivo";
+    case 411: return "logout_dispositivo";
+    case 428: return "precondition_required";
+    case 440: return "sessao_expirada";
+    case 500: return "erro_servidor_wa";
+    case 503: return "servidor_wa_indisponivel";
+    case 515: return "reinicio_servidor";
+    default: return `codigo_${statusCode}`;
+  }
 }
 
 // ─── AUTH STATE PERSISTENTE NO BANCO ─────────────────────────────────────────
@@ -241,6 +288,7 @@ class WhatsAppManager extends EventEmitter {
             });
             this.setState({ status: "qr_ready", qrDataUrl });
             this.emit("qr", qrDataUrl);
+            logWaEvent("qr_ready", { detail: "QR Code gerado — aguardando leitura pelo celular", motivo: "aguardando_qr" }).catch(() => {});
           } catch (err) {
             console.error("[WhatsApp] Erro ao gerar QR Code:", err);
           }
@@ -265,7 +313,11 @@ class WhatsAppManager extends EventEmitter {
           });
           this.emit("connected", phoneNumber);
           console.log(`[WhatsApp] ✅ Conectado: ${phoneNumber}`);
-          logWaEvent("connected", phoneNumber ?? undefined).catch(() => {});
+          logWaEvent("connected", {
+            detail: `Conectado com sucesso ao número ${phoneNumber}`,
+            motivo: "conexao_estabelecida",
+            telefone: phoneNumber ?? undefined,
+          }).catch(() => {});
         }
 
           if (connection === "close") {
@@ -282,7 +334,13 @@ class WhatsAppManager extends EventEmitter {
             await this.dbAuth?.clearSession();
             this.dbAuth = null;
             this.emit("logged_out");
-            logWaEvent("logged_out", "Deslogado pelo dispositivo").catch(() => {});
+            logWaEvent("logged_out", {
+              detail: "Deslogado pelo dispositivo — sessão encerrada",
+              statusCode,
+              motivo: "logout_dispositivo",
+              duracaoSessaoMs: this.state.connectedAt ? Date.now() - this.state.connectedAt.getTime() : undefined,
+              telefone: this.state.phoneNumber ?? undefined,
+            }).catch(() => {});
           } else if (!this.isShuttingDown) {
             // Verificar se atingiu o limite de tentativas
             if (this.reconnectCount >= MAX_RECONNECT_ATTEMPTS) {
@@ -296,7 +354,13 @@ class WhatsAppManager extends EventEmitter {
               console.log(`[WhatsApp] ⚡ Timeout de rede (408) — reconectando imediatamente...`);
               this.setState({ status: "disconnected", nextReconnectAt: null });
               this.emit("disconnected");
-              logWaEvent("disconnected", `Timeout de rede (408) — reconectando imediatamente`).catch(() => {});
+              logWaEvent("disconnected", {
+                detail: "Timeout de rede (408) — reconectando imediatamente em 500ms",
+                statusCode: 408,
+                motivo: "timeout_rede",
+                duracaoSessaoMs: this.state.connectedAt ? Date.now() - this.state.connectedAt.getTime() : undefined,
+                telefone: this.state.phoneNumber ?? undefined,
+              }).catch(() => {});
               this.scheduleReconnect(500);
               return;
             }
@@ -309,11 +373,25 @@ class WhatsAppManager extends EventEmitter {
             this.setState({ status: "disconnected", nextReconnectAt: nextAt });
             this.emit("disconnected");
             this.scheduleReconnect(delay);
-            logWaEvent("disconnected", `Código ${statusCode} — reconectando em ${delay / 1000}s (tentativa ${this.reconnectCount}/${MAX_RECONNECT_ATTEMPTS})`).catch(() => {});
+            logWaEvent("reconnect_attempt", {
+              detail: `Desconectado (código ${statusCode}) — tentativa ${this.reconnectCount}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s`,
+              statusCode,
+              motivo: classificarMotivo(statusCode, (lastDisconnect?.error as any)?.message),
+              duracaoSessaoMs: this.state.connectedAt ? Date.now() - this.state.connectedAt.getTime() : undefined,
+              tentativa: this.reconnectCount,
+              detalheTecnico: (lastDisconnect?.error as any)?.message ?? undefined,
+              telefone: this.state.phoneNumber ?? undefined,
+            }).catch(() => {});
           } else {
             this.setState({ status: "disconnected", nextReconnectAt: null });
             this.emit("disconnected");
-            logWaEvent("disconnected", `Código ${statusCode}`).catch(() => {});
+            logWaEvent("disconnected", {
+              detail: `Desconectado (código ${statusCode}) — shutdown solicitado`,
+              statusCode,
+              motivo: "shutdown_servidor",
+              duracaoSessaoMs: this.state.connectedAt ? Date.now() - this.state.connectedAt.getTime() : undefined,
+              telefone: this.state.phoneNumber ?? undefined,
+            }).catch(() => {});
           }
         }
       });
@@ -321,6 +399,11 @@ class WhatsAppManager extends EventEmitter {
       console.error("[WhatsApp] Erro ao conectar:", err);
       this.isConnecting = false; // Liberar flag em caso de erro
       this.setState({ status: "disconnected" });
+      logWaEvent("error", {
+        detail: `Erro ao estabelecer conexão: ${(err as any)?.message ?? String(err)}`,
+        motivo: "erro_conexao",
+        detalheTecnico: (err as any)?.stack ?? String(err),
+      }).catch(() => {});
       if (!this.isShuttingDown && this.reconnectCount < MAX_RECONNECT_ATTEMPTS) {
         this.reconnectCount++;
         const delayIndex = Math.min(this.reconnectCount - 1, RECONNECT_DELAYS.length - 1);

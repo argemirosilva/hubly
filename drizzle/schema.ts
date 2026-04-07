@@ -1,5 +1,6 @@
 import {
   boolean,
+  bigint,
   date,
   decimal,
   int,
@@ -846,8 +847,14 @@ export type WaSession = typeof waSession.$inferSelect;
 // ─── LOG DE EVENTOS WHATSAPP ──────────────────────────────────────────────────
 export const waConnectionLog = mysqlTable("wa_connection_log", {
   id: int("id").autoincrement().primaryKey(),
-  event: mysqlEnum("event", ["connected", "disconnected", "qr_ready", "logged_out", "reconnecting"]).notNull(),
-  detail: varchar("detail", { length: 255 }),  // ex: motivo da desconexão, número conectado
+  event: mysqlEnum("event", ["connected", "disconnected", "qr_ready", "logged_out", "reconnecting", "reconnect_attempt", "error"]).notNull(),
+  detail: varchar("detail", { length: 500 }),          // descrição human-readable
+  statusCode: int("statusCode"),                       // código HTTP/Baileys da desconexão (ex: 408, 401, 515)
+  motivo: varchar("motivo", { length: 100 }),           // classificação: timeout_rede, logout_dispositivo, erro_auth, servidor_reiniciou, etc.
+  duracaoSessaoMs: bigint("duracaoSessaoMs", { mode: "number" }),  // ms desde último connected até este evento
+  tentativa: int("tentativa"),                         // número da tentativa de reconexão
+  detalheTecnico: text("detalheTecnico"),               // stack trace ou mensagem de erro completa
+  telefone: varchar("telefone", { length: 30 }),        // número conectado (quando disponível)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type WaConnectionLog = typeof waConnectionLog.$inferSelect;
