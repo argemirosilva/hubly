@@ -168,8 +168,13 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: 0.625rem 0.75rem;
+    padding: 0.4rem 0.55rem;
     transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  @media (min-width: 1024px) {
+    .stat-card {
+      padding: 0.625rem 0.75rem;
+    }
   }
   .stat-card:hover {
     box-shadow: 0 4px 24px oklch(55% 0.22 264 / 8%);

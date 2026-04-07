@@ -93,11 +93,9 @@ const navGroups: NavGroup[] = [
   {
     label: "Sistema",
     items: [
-      { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
-      { href: "/admin/importacao-inteligente", label: "Importar Dados", icon: Download, permissao: "configuracoesEditar" },
+      { href: '/admin/importacao-inteligente', label: 'Importar Dados', icon: Download, permissao: 'configuracoesEditar' },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings, permissao: "configuracoesVer" },
       { href: "/admin/assinatura", label: "Assinatura", icon: CreditCard, permissao: "__admin__" },
-      { href: "/admin/manual", label: "Manual do Sistema", icon: BookOpen },
     ],
   },
 ];
@@ -766,8 +764,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/*  Main  */}
+        {/*  Main  */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Topbar desktop — sininho + plano */}
+        <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
+          style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          {planStatus && (
+            <Link href="/admin/assinatura">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
+                style={{
+                  background: getPlanColor(planStatus.plan) + "12",
+                  borderColor: getPlanColor(planStatus.plan) + "30",
+                  color: getPlanColor(planStatus.plan),
+                }}>
+                <CreditCard className="w-3 h-3" />
+                <span className="text-[11px] font-semibold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
+              </div>
+            </Link>
+          )}
+          <Link href="/admin/notificacoes">
+            <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
+              <Bell className="w-5 h-5 text-foreground" />
+              {naoLidas > 0 && (
+                <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                  style={{ background: "oklch(62% 0.16 225)" }}>
+                  {naoLidas > 9 ? "9+" : naoLidas}
+                </span>
+              )}
+            </div>
+          </Link>
+        </header>
+
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
           style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)" }}>

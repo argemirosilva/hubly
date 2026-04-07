@@ -1267,3 +1267,9 @@
 - [x] ContasPagar: aplicar filtros automaticamente ao carregar a página (vencidas=status vencido, hoje=data de hoje, semana=próximos 7 dias)
 - [x] ContasPagar: exibir indicador visual do filtro ativo com botão para limpar
 - [x] Backend: getContasPagarByEmpresa já suporta dataInicio e dataFim como filtros SQL
+
+## Melhorias de UI/UX (v-atual)
+- [x] Notificações: remover da sidebar e adicionar sininho com badge no header desktop e mobile
+- [x] Escopo de visibilidade: mover card para o topo do modal de permissões e tornar compacto
+- [x] Manual: remover página separada da sidebar e incorporar no chat de Suporte
+- [x] Cards do Dashboard: reduzir padding e fontes no mobile sem perder informações

@@ -4,8 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, Send, Bot, User, Loader2, BookOpen } from "lucide-react";
-import { Link } from "wouter";
+import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -28,7 +27,6 @@ const PAGE_LABELS: Record<string, string> = {
   "/admin/importacao-zandu": "Importação Zandu",
   "/admin/ia-financeiro": "IA Financeira",
   "/admin/ia-clientes": "IA Clientes",
-  "/admin/manual": "Manual do Sistema",
 };
 
 const QUICK_QUESTIONS = [
@@ -121,15 +119,6 @@ export function SupportChat() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Link href="/admin/manual">
-                <button
-                  onClick={() => setOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-                  title="Ver manual completo"
-                >
-                  <BookOpen size={16} />
-                </button>
-              </Link>
               <button
                 onClick={() => setOpen(false)}
                 className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
