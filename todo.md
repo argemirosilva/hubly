@@ -1273,3 +1273,6 @@
 - [x] Escopo de visibilidade: mover card para o topo do modal de permissões e tornar compacto
 - [x] Manual: remover página separada da sidebar e incorporar no chat de Suporte
 - [x] Cards do Dashboard: reduzir padding e fontes no mobile sem perder informações
+
+## Formatação de Variáveis nas Automações (v-atual)
+- [x] Corrigir formatação de horário nas variáveis: usar HH:mm sem segundos

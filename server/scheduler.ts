@@ -28,6 +28,13 @@ function getDataStr(data: unknown): string {
   return String(data).slice(0, 10);
 }
 
+// Helper: garantir formato HH:mm sem segundos
+function formatarHora(hora: string | null | undefined): string {
+  if (!hora) return '';
+  // Pegar apenas HH:mm (primeiros 5 caracteres)
+  return String(hora).slice(0, 5);
+}
+
 // ── Verificar pacotes vencendo para todas as empresas ─────────────────────────
 async function verificarPacotesVencendoGlobal() {
   const db = await getDb();
@@ -494,7 +501,7 @@ async function enviarLembretesAgendamentos() {
       const dataFormatada = ag.data
         ? new Date(ag.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : '';
-      const horaFormatada = ag.horaInicio ?? '';
+      const horaFormatada = formatarHora(ag.horaInicio);
 
       // Buscar automação configurada para lembrete (dias_antes_agendamento) da empresa
       const automacaoLembrete = await getAutomacaoByTipoGatilho(ag.empresaId, 'dias_antes_agendamento');
@@ -687,7 +694,7 @@ async function processarAutomacoesAgendadas() {
           const dataFormatada = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
-          const horaFormatada = ag.horaInicio ?? '';
+          const horaFormatada = formatarHora(ag.horaInicio);
 
           const templateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
@@ -818,7 +825,7 @@ async function processarAutomacoesAgendadas() {
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
-            hora: ag.horaInicio ?? '',
+            hora: formatarHora(ag.horaInicio),
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
@@ -834,7 +841,7 @@ async function processarAutomacoesAgendadas() {
               `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
               `Você tem um agendamento em *${Math.round(delayMin / 60)}h*:\n` +
               `📌 *${ag.servicoNome ?? ''}* com *${ag.profissionalNome ?? ''}*\n` +
-              `📅 *${dataFormatada}* às *${ag.horaInicio ?? ''}*\n\n` +
+              `📅 *${dataFormatada}* às *${formatarHora(ag.horaInicio)}*\n\n` +
               `Nos vemos em breve! 😊`;
           }
 
@@ -936,7 +943,7 @@ async function processarAutomacoesAgendadas() {
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
-            hora: ag.horaInicio ?? '',
+            hora: formatarHora(ag.horaInicio),
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
@@ -1049,7 +1056,7 @@ async function processarAutomacoesAgendadas() {
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
-            hora: ag.horaInicio ?? '',
+            hora: formatarHora(ag.horaInicio),
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
@@ -1438,7 +1445,7 @@ async function preRegistrarEnviosPendentes() {
             agendamentoId: ag.id,
             telefone: ag.clienteTelefone,
             canal: (automacao.canalEnvio ?? 'whatsapp') as any,
-            mensagem: `[Pendente] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${ag.horaInicio}`,
+             mensagem: `[Pendente] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${formatarHora(ag.horaInicio)}`,
             status: 'pendente',
             enviarEm,
           }).catch(() => {}); // Ignorar erros de duplicata
@@ -1669,7 +1676,7 @@ async function cancelarPreAgendamentosExpirados() {
                   primeiro_nome: nomeCliente.split(' ')[0],
                   empresa: empresa.nome ?? '',
                   data: agCompleto.data ?? '',
-                  hora: agCompleto.horaInicio ?? '',
+                  hora: formatarHora(agCompleto.horaInicio),
                 };
                 let mensagem = automacao.corpoMensagem ?? '';
                 for (const [k, v] of Object.entries(templateVars)) {
