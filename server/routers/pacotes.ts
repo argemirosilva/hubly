@@ -16,13 +16,43 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
-import { getAutomacaoByEvento, registrarEnvioAutomacao } from "../db";
+import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
+import { TRPCError } from "@trpc/server";
+
+/**
+ * Verifica se o usuário tem permissão de pacotes.
+ * Owner OAuth sempre tem permissão. SystemUser precisa ter o campo true no grupo.
+ */
+async function requirePermissaoPacotes(
+  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId?: number | null } | null },
+  empresa: { ownerId: number },
+  permField: 'pacotesVer' | 'pacotesEditar' | 'pacotesExcluir'
+): Promise<void> {
+  // Owner OAuth: sempre tem permissão
+  if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) return;
+  // OAuth sem ser owner: também tem
+  if (!ctx.systemUser) return;
+  // SystemUser: verificar permissões do grupo
+  const perms = await getPermissoesGrupoByProfissional(ctx.systemUser.profissionalId ?? ctx.systemUser.id);
+  if (!perms || !(perms as any)[permField]) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Sem permissão para realizar esta ação (${permField}).`,
+    });
+  }
+}
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null): Promise<number> {
   const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
   if (!empresa) throw new Error("Empresa não encontrada");
   return empresa.id;
+}
+
+async function getEmpresaCompleta(userId: number, systemUserEmpresaId?: number | null) {
+  const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
+  if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+  return empresa;
 }
 
 // ─── MODELOS ─────────────────────────────────────────────────────────────────
@@ -39,7 +69,9 @@ export const pacotesRouter = router({
     .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesVer');
+      const empId = empresa.id;
       const modelos = await db.select().from(pacotesModelos)
         .where(eq(pacotesModelos.empresaId, empId))
         .orderBy(sql`${pacotesModelos.criadoEm} DESC`);
@@ -73,7 +105,9 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
       const [result] = await db.insert(pacotesModelos).values({
         empresaId: empId,
         nome: input.nome,
@@ -101,7 +135,9 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
       await db.update(pacotesModelos).set({
         nome: input.nome,
         descricao: input.descricao,
@@ -122,7 +158,9 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesExcluir');
+      const empId = empresa.id;
       await db.update(pacotesModelos).set({ ativo: false })
         .where(and(eq(pacotesModelos.id, input.id), eq(pacotesModelos.empresaId, empId)));
       return { ok: true };
@@ -139,7 +177,9 @@ export const pacotesRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesVer');
+      const empId = empresa.id;
       const rows = await db.select({
         id: pacotesClientes.id,
         nome: pacotesClientes.nome,
@@ -308,7 +348,9 @@ export const pacotesRouter = router({
       const numeroParcelas = input.numeroParcelas ?? 1;
       const valorParcela = numeroParcelas > 1 ? input.valorPago / numeroParcelas : null;
 
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
       const [result] = await db.insert(pacotesClientes).values({
         empresaId: empId,
         clienteId: input.clienteId,
@@ -320,9 +362,9 @@ export const pacotesRouter = router({
         valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
         dataVencimento,
         observacoes: input.observacoes,
-        automacaoRenovacao: input.automacaoRenovacao ?? false,
-        dataValidade: input.dataValidade ? new Date(input.dataValidade) : undefined,
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(({ automacaoRenovacao: input.automacaoRenovacao ?? false, dataValidade: input.dataValidade ? input.dataValidade.substring(0, 10) : undefined }) as any),
+      } as any);
       const pacoteId = (result as any).insertId as number;
 
       await db.insert(pacotesClientesItens).values(
@@ -497,7 +539,9 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesExcluir');
+      const empId = empresa.id;
       await db.update(pacotesClientes).set({ status: "cancelado" })
         .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
       return { ok: true };
@@ -821,7 +865,9 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
 
       // Verificar que o pacote pertence à empresa e está concluído ou vencido
       const [pacote] = await db.select({
@@ -917,7 +963,7 @@ export const pacotesRouter = router({
               } catch { /* ignorar erro de parse */ }
             }
             // Enfileirar na fila universal em vez de enviar diretamente
-            await registrarEnvioAutomacao({
+            await (registrarEnvioAutomacao as any)({
               empresaId: empId,
               automacaoId: automacao.id,
               automacaoNome: automacao.nome,
@@ -959,7 +1005,9 @@ export const pacotesRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
       const db = await getDb();
       if (!db) throw new Error("DB not available");
 
@@ -970,6 +1018,7 @@ export const pacotesRouter = router({
       if (!pacote) throw new Error("Pacote não encontrado");
 
       // Montar campos a atualizar
+      // Nota: dataValidade usa date() no Drizzle MySQL → tipo string | null
       const updates: Partial<typeof pacotesClientes.$inferInsert> = {};
       if (input.nome !== undefined) updates.nome = input.nome;
       if (input.valorPago !== undefined) updates.valorPago = String(input.valorPago);
@@ -984,9 +1033,10 @@ export const pacotesRouter = router({
         updates.dataVencimento = input.dataVencimento ? new Date(input.dataVencimento) : null;
       }
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
-      if (input.automacaoRenovacao !== undefined) updates.automacaoRenovacao = input.automacaoRenovacao;
+      if (input.automacaoRenovacao !== undefined) (updates as any).automacaoRenovacao = input.automacaoRenovacao;
       if (input.dataValidade !== undefined) {
-        updates.dataValidade = input.dataValidade ? new Date(input.dataValidade) : null;
+        // date() no Drizzle MySQL aceita string 'YYYY-MM-DD' ou null
+        (updates as any).dataValidade = input.dataValidade ? input.dataValidade.substring(0, 10) : null;
       }
 
       if (Object.keys(updates).length > 0) {

@@ -1286,3 +1286,13 @@
 - [x] Adicionar {{link_agendamento}} em todos os templateVars do scheduler.ts (lembretes, horas antes/após, dias depois, aniversários, campanhas)
 - [x] Adicionar {{link_agendamento}} nos templateVars do routers.ts (criação e atualização de agendamentos)
 - [x] Exibir {{link_agendamento}} na lista de variáveis disponíveis no editor de automações
+
+## Permissões de Pacotes nos Grupos
+- [ ] Adicionar seção Pacotes no PermissoesEditor do Equipe.tsx (toggles pacotesVer, pacotesEditar, pacotesExcluir)
+- [ ] Validar permissão pacotesVer nos endpoints de listagem de pacotes
+- [ ] Validar permissão pacotesEditar nos endpoints de criação/edição de pacotes
+- [ ] Validar permissão pacotesExcluir nos endpoints de exclusão de pacotes
+
+## Permissões de Pacotes nos Grupos (v-atual)
+- [x] Seção Pacotes com toggles pacotesVer/Editar/Excluir já existia no PermissoesEditor (frontend completo)
+- [x] Validar permissões nos endpoints backend: listarModelos, criarModelo, editarModelo, desativarModelo, listarTodos, abrirPacote, cancelarPacote, editarPacote, renovarPacote
