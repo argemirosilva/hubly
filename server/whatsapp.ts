@@ -134,11 +134,11 @@ interface WAState {
 
 // ─── MANAGER ──────────────────────────────────────────────────────────────────
 
-// Delays de backoff exponencial: 15s, 30s, 60s, 120s, 300s
-// Começa em 15s para dar tempo ao servidor reiniciar sem spam de reconexão
-const RECONNECT_DELAYS = [15_000, 30_000, 60_000, 120_000, 300_000];
+// Delays de backoff exponencial: 3s, 5s, 10s, 20s, 40s, 60s
+// Reconexão rápida — código 408 (timeout) é tratado com reconexão imediata
+const RECONNECT_DELAYS = [3_000, 5_000, 10_000, 20_000, 40_000, 60_000];
 // Máximo de tentativas automáticas antes de parar (evita loop infinito)
-const MAX_RECONNECT_ATTEMPTS = 10;
+const MAX_RECONNECT_ATTEMPTS = 20;
 
 class WhatsAppManager extends EventEmitter {
   private sock: WASocket | null = null;
@@ -210,7 +210,8 @@ class WhatsAppManager extends EventEmitter {
         browser: ["Hubly", "Chrome", "1.0.0"],
         connectTimeoutMs: 60_000,
         defaultQueryTimeoutMs: 30_000,
-        keepAliveIntervalMs: 25_000,
+        keepAliveIntervalMs: 10_000,
+        retryRequestDelayMs: 2_000,
         markOnlineOnConnect: false,
         syncFullHistory: false,
         logger: {
@@ -271,7 +272,9 @@ class WhatsAppManager extends EventEmitter {
           this.isConnecting = false; // Liberar flag ao fechar
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
           const isLoggedOut = statusCode === DisconnectReason.loggedOut;
-          console.log(`[WhatsApp] Conexão fechada. Código: ${statusCode}. LoggedOut: ${isLoggedOut}`);
+          // Código 408 = Connection Timeout (rede caiu, servidor do WA encerrou por inatividade)
+          const isTimeout = statusCode === 408;
+          console.log(`[WhatsApp] Conexão fechada. Código: ${statusCode}. LoggedOut: ${isLoggedOut}. Timeout: ${isTimeout}`);
           if (isLoggedOut) {
             // Usuário deslogou explicitamente no celular — única situação onde limpamos a sessão
             console.log("[WhatsApp] 🚪 Deslogado pelo dispositivo. Limpando sessão.");
@@ -286,6 +289,15 @@ class WhatsAppManager extends EventEmitter {
               console.warn(`[WhatsApp] ⛔ Limite de ${MAX_RECONNECT_ATTEMPTS} tentativas atingido. Aguardando reconexão manual.`);
               this.setState({ status: "disconnected", nextReconnectAt: null });
               this.emit("disconnected");
+              return;
+            }
+            // Código 408 (timeout de rede) → reconectar imediatamente sem backoff
+            if (isTimeout) {
+              console.log(`[WhatsApp] ⚡ Timeout de rede (408) — reconectando imediatamente...`);
+              this.setState({ status: "disconnected", nextReconnectAt: null });
+              this.emit("disconnected");
+              logWaEvent("disconnected", `Timeout de rede (408) — reconectando imediatamente`).catch(() => {});
+              this.scheduleReconnect(500);
               return;
             }
             // Qualquer outro motivo (rede, deploy, timeout) → reconectar com backoff exponencial

@@ -1296,3 +1296,8 @@
 ## Permissões de Pacotes nos Grupos (v-atual)
 - [x] Seção Pacotes com toggles pacotesVer/Editar/Excluir já existia no PermissoesEditor (frontend completo)
 - [x] Validar permissões nos endpoints backend: listarModelos, criarModelo, editarModelo, desativarModelo, listarTodos, abrirPacote, cancelarPacote, editarPacote, renovarPacote
+
+## Estabilidade WhatsApp (v-atual)
+- [x] Reduzir backoff de reconexão (15s→5s, 30s→10s, 60s→15s, 120s→30s, 300s→60s)
+- [x] Tratar código 408 (timeout) com reconexão imediata sem backoff
+- [x] Adicionar keepalive/ping para evitar timeout 408
