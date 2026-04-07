@@ -458,6 +458,7 @@ async function enviarLembretesAgendamentos() {
         profissionalNome: profissionais.nome,
         servicoNome: servicos.nome,
         empresaNome: empresas.nome,
+        empresaPortalSlug: empresas.portalSlug,
         waMsgLembrete: empresas.waMsgLembrete,
         reservaPercentual: empresas.reservaPercentual,
       })
@@ -507,6 +508,8 @@ async function enviarLembretesAgendamentos() {
       const automacaoLembrete = await getAutomacaoByTipoGatilho(ag.empresaId, 'dias_antes_agendamento');
 
       // Montar variáveis de template
+      const _schedulerOriginLembrete = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+      const _linkAgendamentoLembrete = ag.empresaPortalSlug ? `${_schedulerOriginLembrete}/agendar/${ag.empresaPortalSlug}` : `${_schedulerOriginLembrete}/agendar?e=${ag.empresaId}`;
       const templateVarsLembrete = {
         nome_cliente: ag.clienteNome || 'Cliente',
         primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -518,6 +521,7 @@ async function enviarLembretesAgendamentos() {
         valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
         valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
         link_confirmacao: linkConfirmacao,
+        link_agendamento: _linkAgendamentoLembrete,
       };
 
       // Montar mensagem: usar corpoMensagem da automação configurada, ou fallback no campo waMsgLembrete da empresa, ou mensagem padrão
@@ -657,6 +661,7 @@ async function processarAutomacoesAgendadas() {
             profissionalNome: profissionais.nome,
             servicoNome: servicos.nome,
             empresaNome: empresas.nome,
+            empresaPortalSlug: empresas.portalSlug,
             waMsgLembrete: empresas.waMsgLembrete,
             reservaPercentual: empresas.reservaPercentual,
           })
@@ -696,6 +701,8 @@ async function processarAutomacoesAgendadas() {
             : '';
           const horaFormatada = formatarHora(ag.horaInicio);
 
+          const _schOriginDiasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _linkAgDiasAntes = ag.empresaPortalSlug ? `${_schOriginDiasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -707,6 +714,7 @@ async function processarAutomacoesAgendadas() {
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
             link_confirmacao: linkConfirmacao,
+            link_agendamento: _linkAgDiasAntes,
             dias_antes: String(dias),
           };
 
@@ -785,6 +793,7 @@ async function processarAutomacoesAgendadas() {
             profissionalNome: profissionais.nome,
             servicoNome: servicos.nome,
             empresaNome: empresas.nome,
+            empresaPortalSlug: empresas.portalSlug,
             reservaPercentual: empresas.reservaPercentual,
           })
           .from(agendamentos)
@@ -820,6 +829,8 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
+          const _schOriginHorasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _linkAgHorasAntes = ag.empresaPortalSlug ? `${_schOriginHorasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -829,6 +840,7 @@ async function processarAutomacoesAgendadas() {
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            link_agendamento: _linkAgHorasAntes,
             horas_antes: String(Math.round(delayMin / 60)),
           };
 
@@ -903,6 +915,7 @@ async function processarAutomacoesAgendadas() {
             profissionalNome: profissionais.nome,
             servicoNome: servicos.nome,
             empresaNome: empresas.nome,
+            empresaPortalSlug: empresas.portalSlug,
             reservaPercentual: empresas.reservaPercentual,
           })
           .from(agendamentos)
@@ -938,6 +951,8 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
+          const _schOriginHorasApos = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _linkAgHorasApos = ag.empresaPortalSlug ? `${_schOriginHorasApos}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasApos}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -947,6 +962,7 @@ async function processarAutomacoesAgendadas() {
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            link_agendamento: _linkAgHorasApos,
             horas_apos: String(Math.round(delayMin / 60)),
           };
 
@@ -1020,6 +1036,7 @@ async function processarAutomacoesAgendadas() {
             profissionalNome: profissionais.nome,
             servicoNome: servicos.nome,
             empresaNome: empresas.nome,
+            empresaPortalSlug: empresas.portalSlug,
           })
           .from(agendamentos)
           .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -1051,6 +1068,8 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
+          const _schOriginDiasDepois = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _linkAgDiasDepois = ag.empresaPortalSlug ? `${_schOriginDiasDepois}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasDepois}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -1060,6 +1079,7 @@ async function processarAutomacoesAgendadas() {
             profissional: ag.profissionalNome ?? '',
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+            link_agendamento: _linkAgDiasDepois,
             dias_depois: String(diasDepois),
           };
 
@@ -1154,7 +1174,9 @@ async function processarAniversarioMes() {
             sql`MONTH(${clientes.dataNascimento}) = ${mesAtual}`,
           ));
 
-        const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+        const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+        const _schOriginAniv = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+        const _linkAgAniv = empresaData?.portalSlug ? `${_schOriginAniv}/agendar/${empresaData.portalSlug}` : `${_schOriginAniv}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesAniversario) {
           const tel = cliente.whatsapp || cliente.telefone;
@@ -1168,6 +1190,7 @@ async function processarAniversarioMes() {
             nome_cliente: cliente.nome || 'Cliente',
             primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
             empresa: empresaData?.nome ?? '',
+            link_agendamento: _linkAgAniv,
           };
 
           let mensagem: string;
@@ -1262,7 +1285,9 @@ async function processarDataFixa() {
             eq(clientes.ativo, true),
           ));
 
-        const [empresaData] = await db.select({ nome: empresas.nome }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+        const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+        const _schOriginCamp = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+        const _linkAgCamp = empresaData?.portalSlug ? `${_schOriginCamp}/agendar/${empresaData.portalSlug}` : `${_schOriginCamp}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesEmpresa) {
           const tel = cliente.whatsapp || cliente.telefone;
@@ -1276,6 +1301,7 @@ async function processarDataFixa() {
             nome_cliente: cliente.nome || 'Cliente',
             primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
             empresa: empresaData?.nome ?? '',
+            link_agendamento: _linkAgCamp,
           };
 
           let mensagem: string;

@@ -92,6 +92,7 @@ function processarVariaveisTemplate(template: string, vars: {
   valor?: string;
   valor_reserva?: string;
   link_confirmacao?: string;
+  link_agendamento?: string;
 }): string {
   return template
     .replace(/\{\{nome_cliente\}\}/g, vars.nome_cliente ?? '')
@@ -103,7 +104,8 @@ function processarVariaveisTemplate(template: string, vars: {
     .replace(/\{\{empresa\}\}/g, vars.empresa ?? '')
     .replace(/\{\{valor\}\}/g, vars.valor ?? '')
     .replace(/\{\{valor_reserva\}\}/g, vars.valor_reserva ?? '')
-    .replace(/\{\{link_confirmacao\}\}/g, vars.link_confirmacao ?? '');
+    .replace(/\{\{link_confirmacao\}\}/g, vars.link_confirmacao ?? '')
+    .replace(/\{\{link_agendamento\}\}/g, vars.link_agendamento ?? '');
 }
 
 /**
@@ -858,6 +860,8 @@ export const appRouter = router({
             const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
             const valorServico = parseFloat(rest.valorTotal ?? '0');
             const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
+            const _portalOrigin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const _linkAgendamento = empresa.portalSlug ? `${_portalOrigin}/agendar/${empresa.portalSlug}` : `${_portalOrigin}/agendar?e=${empresa.id}`;
             const templateVars = {
               nome_cliente: cliente.nome || 'Cliente',
               primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
@@ -868,6 +872,7 @@ export const appRouter = router({
               empresa: empresa.nome,
               valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
               valor_reserva: valorReservaCalc,
+              link_agendamento: _linkAgendamento,
             };
             // ── Lógica de prioridade de automação por status inicial ────────────────
             let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
@@ -1097,6 +1102,8 @@ export const appRouter = router({
                 const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
                 const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
                 const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
+                const _portalOrigin2 = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+                const _linkAgendamento2 = empresa.portalSlug ? `${_portalOrigin2}/agendar/${empresa.portalSlug}` : `${_portalOrigin2}/agendar?e=${empresa.id}`;
                 const templateVars2 = {
                   nome_cliente: cliente.nome,
                   primeiro_nome: cliente.nome.split(' ')[0],
@@ -1107,6 +1114,7 @@ export const appRouter = router({
                   empresa: empresa.nome,
                   valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
                   valor_reserva: valorReservaCalc2,
+                  link_agendamento: _linkAgendamento2,
                 };
 
                 // Determinar evento e mensagem padrão por status

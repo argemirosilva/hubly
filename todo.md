@@ -1276,3 +1276,13 @@
 
 ## Formatação de Variáveis nas Automações (v-atual)
 - [x] Corrigir formatação de horário nas variáveis: usar HH:mm sem segundos
+
+## Variável link_agendamento nas Automações (v-atual)
+- [ ] Buscar slug da empresa e construir link do portal em todos os templateVars do scheduler.ts
+- [ ] Adicionar link_agendamento nos templateVars do routers.ts (criação/atualização de agendamentos)
+- [ ] Exibir {{link_agendamento}} na lista de variáveis disponíveis no editor de automações
+
+## Variável link_agendamento nas Automações
+- [x] Adicionar {{link_agendamento}} em todos os templateVars do scheduler.ts (lembretes, horas antes/após, dias depois, aniversários, campanhas)
+- [x] Adicionar {{link_agendamento}} nos templateVars do routers.ts (criação e atualização de agendamentos)
+- [x] Exibir {{link_agendamento}} na lista de variáveis disponíveis no editor de automações

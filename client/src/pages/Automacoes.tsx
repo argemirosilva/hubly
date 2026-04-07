@@ -89,6 +89,7 @@ const VARIAVEIS = [
   { var: "{{valor}}", desc: "Valor total do serviço", exemplo: "Ex: R$ 150,00" },
   { var: "{{empresa}}", desc: "Nome do seu salão/empresa", exemplo: "Ex: Studio Beléza" },
   { var: "{{link_confirmacao}}", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
+  { var: "{{link_agendamento}}", desc: "Link do portal público de agendamento da sua empresa. Ideal para campanhas de reativação e convites.", exemplo: "Ex: https://agendei.../agendar/meu-salao" },
   { var: "{{valor_reserva}}", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
   { var: "{{nome_pacote}}", desc: "Nome do pacote renovado (disponível no evento Pacote renovado)", exemplo: "Ex: Pacote Progressiva 5x" },
   { var: "{{data_vencimento}}", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
