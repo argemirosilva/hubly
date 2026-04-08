@@ -2719,7 +2719,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) return [];
         const rows = await db.execute(
-          sql`SELECT id, event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone, createdAt
+          drizzleSql`SELECT id, event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone, createdAt
               FROM wa_connection_log
               ORDER BY createdAt DESC
               LIMIT ${input?.limit ?? 50}`
