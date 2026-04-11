@@ -367,13 +367,15 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     <p className="text-sm font-semibold">{servico?.nome ?? "—"}</p>
                   )}
                   {servicosDoAgendamento.map((s, i) => {
-                    const profItem = s.profissionalId ? profissionais?.find(p => p.id === s.profissionalId) : null;
+                    const profItem = s.profissionalId
+                      ? profissionais?.find(p => p.id === s.profissionalId)
+                      : profissional;
                     return (
                     <div key={i} className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{s.nome}</p>
-                          {profItem && profItem.id !== ag?.profissionalId && (
+                          {profItem && (
                             <p className="text-[10px] text-muted-foreground">{profItem.nome}</p>
                           )}
                         </div>
@@ -404,7 +406,6 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   })}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
                   {!editandoValores ? (
                     servicosDoAgendamento.length > 0 && (
                       <button
@@ -449,24 +450,48 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       <Plus className="w-3 h-3" /> adicionar
                     </button>
                   </div>
-                  {servicosEdit.map((item, index) => (
+                  {servicosEdit.map((item, index) => {
+                    // Serviços filtrados pelo profissional do item
+                    const profIdNum = item.profissionalId ? parseInt(item.profissionalId) : null;
+                    const servicosDisponiveis = servicos?.filter((s: any) => s.ativo) ?? [];
+                    return (
                     <div key={index} className="space-y-1.5 p-2 rounded-lg border border-border/40 bg-muted/20">
+                      {/* Passo 1: Profissional */}
+                      <Select
+                        value={item.profissionalId || "__none__"}
+                        onValueChange={(v) => setServicosEdit(prev => prev.map((it, i) =>
+                          i === index ? { ...it, profissionalId: v === "__none__" ? "" : v, servicoId: "", valorUnitario: "" } : it
+                        ))}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-full">
+                          <SelectValue placeholder="Selecionar profissional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__" disabled>Selecionar profissional</SelectItem>
+                          {profissionais?.filter((p: any) => p.ativo).map((p: any) => (
+                            <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {/* Passo 2: Serviço + valor + remover */}
                       <div className="flex gap-1.5 items-center">
                         <Select
-                          value={item.servicoId}
+                          value={item.servicoId || "__none__"}
                           onValueChange={(v) => {
-                            const s = servicos?.find(sv => sv.id === parseInt(v));
+                            const s = servicos?.find((sv: any) => sv.id === parseInt(v));
                             setServicosEdit(prev => prev.map((it, i) => i === index
-                              ? { ...it, servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
+                              ? { ...it, servicoId: v === "__none__" ? "" : v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
                               : it
                             ));
                           }}
+                          disabled={!item.profissionalId}
                         >
                           <SelectTrigger className="h-8 text-xs flex-1">
-                            <SelectValue placeholder="Serviço" />
+                            <SelectValue placeholder={!item.profissionalId ? "Selecione o profissional" : "Serviço"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {servicos?.filter(s => s.ativo).map(s => (
+                            <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>
+                            {servicosDisponiveis.map((s: any) => (
                               <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
                             ))}
                           </SelectContent>
@@ -488,24 +513,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      {servicosEdit.length > 1 && (
-                        <Select
-                          value={item.profissionalId || ""}
-                          onValueChange={(v) => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, profissionalId: v } : it))}
-                        >
-                          <SelectTrigger className="h-7 text-[10px] w-full">
-                            <SelectValue placeholder="Profissional (padrão: principal)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Profissional principal</SelectItem>
-                            {profissionais?.map(p => (
-                              <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                   <div className="flex gap-2 pt-1">
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditandoServicos(false)}>Cancelar</Button>
                     <Button size="sm" className="h-7 text-xs" onClick={salvarEdicaoServicos} disabled={updateServicosMutation.isPending}>

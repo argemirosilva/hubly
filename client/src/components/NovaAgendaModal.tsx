@@ -14,10 +14,10 @@ import { Plus, Trash2, Zap, Package } from "lucide-react";
 import ModalAbrirPacote from "@/components/ModalAbrirPacote";
 
 interface ServicoItem {
+  profissionalId: string;  // obrigatório: selecionado antes do serviço
   servicoId: string;
-  profissionalId?: string; // profissional específico para este serviço
   valorUnitario: string;
-  pacoteClienteItemId?: number; // vincular sessão de pacote
+  pacoteClienteItemId?: number;
 }
 
 interface Props {
@@ -41,19 +41,22 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   const [form, setForm] = useState({
     clienteId: "",
-    profissionalId: profissionalIdInicial ? String(profissionalIdInicial) : (meuProfissionalId && !podeAgendarParaOutros ? String(meuProfissionalId) : ""),
     data: dataInicial ?? new Date().toISOString().split("T")[0],
     horaInicio: "09:00",
     horaFim: "10:00",
     observacoes: "",
     comReserva: true,
-    // Padrão: pré-agendado
     status: "pre_agendado" as "pre_agendado" | "agendado" | "confirmado",
   });
 
-  // Lista de serviços selecionados (múltiplos)
+  // Profissional padrão para pré-preencher o primeiro card
+  const profissionalPadrao = profissionalIdInicial
+    ? String(profissionalIdInicial)
+    : (meuProfissionalId && !podeAgendarParaOutros ? String(meuProfissionalId) : "");
+
+  // Lista de itens: cada um tem profissional + serviço
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoItem[]>([
-    { servicoId: "", valorUnitario: "" }
+    { profissionalId: profissionalPadrao, servicoId: "", valorUnitario: "" }
   ]);
 
   // Buscar pacotes ativos do cliente com sessões disponíveis
@@ -63,23 +66,42 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     { enabled: !!clienteIdNum }
   );
 
-  // Buscar serviços vinculados ao profissional selecionado
-  const profissionalIdNum = form.profissionalId ? parseInt(form.profissionalId) : null;
-  const { data: servicosVinculados } = trpc.profissionalServicos.getByProfissional.useQuery(
-    { profissionalId: profissionalIdNum! },
-    { enabled: !!profissionalIdNum }
-  );
+  // Buscar vínculos de serviços por profissional (cache por profissionalId)
+  // Usamos um mapa: profissionalId → Set<servicoId>
+  const profissionaisIds = useMemo(() => {
+    const ids = new Set<number>();
+    servicosSelecionados.forEach(item => {
+      if (item.profissionalId) ids.add(parseInt(item.profissionalId));
+    });
+    return Array.from(ids);
+  }, [servicosSelecionados]);
 
-  // Filtrar serviços disponíveis para o profissional
-  const servicosFiltrados = useMemo(() => {
+  // Busca vínculos para todos os profissionais usados nos cards
+  // Como o tRPC não suporta batch nativo aqui, usamos um endpoint por profissional
+  // Para simplificar: buscamos todos os vínculos de todos os profissionais da empresa
+  const { data: todosVinculos = [] } = trpc.profissionalServicos.getAll.useQuery(undefined, {
+    enabled: !!profissionais && profissionais.length > 0,
+  });
+
+  // Mapa: profissionalId → Set<servicoId>
+  const vinculosMap = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    (todosVinculos as Array<{ profissionalId: number; servicoId: number }>).forEach((v) => {
+      if (!map.has(v.profissionalId)) map.set(v.profissionalId, new Set());
+      map.get(v.profissionalId)!.add(v.servicoId);
+    });
+    return map;
+  }, [todosVinculos]);
+
+  // Retorna serviços filtrados para um profissional específico
+  const getServicosFiltrados = (profissionalId: string) => {
     if (!servicos) return [];
-    if (!profissionalIdNum) return servicos.filter(s => s.ativo);
-    if (!servicosVinculados || servicosVinculados.length === 0) {
-      return servicos.filter(s => s.ativo);
-    }
-    const idsVinculados = new Set(servicosVinculados.map(v => v.servicoId));
-    return servicos.filter(s => s.ativo && idsVinculados.has(s.id));
-  }, [servicos, servicosVinculados, profissionalIdNum]);
+    if (!profissionalId) return servicos.filter((s: any) => s.ativo);
+    const profId = parseInt(profissionalId);
+    const vinculados = vinculosMap.get(profId);
+    if (!vinculados || vinculados.size === 0) return servicos.filter((s: any) => s.ativo);
+    return servicos.filter((s: any) => s.ativo && vinculados.has(s.id));
+  };
 
   const criarMutation = trpc.agendamentos.create.useMutation({
     onSuccess: () => {
@@ -87,8 +109,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       utils.agendamentos.list.invalidate();
       utils.financeiro.dashboard.invalidate();
       onClose();
-      // Reset form
-      setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
+      setServicosSelecionados([{ profissionalId: profissionalPadrao, servicoId: "", valorUnitario: "" }]);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -111,16 +132,19 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     }
   };
 
-  const handleProfissionalChange = (id: string) => {
-    setForm(f => ({ ...f, profissionalId: id }));
-    setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
+  // Ao trocar o profissional de um card, limpa o serviço selecionado
+  const handleProfissionalItemChange = (index: number, profissionalId: string) => {
+    const novaLista = servicosSelecionados.map((item, i) =>
+      i === index ? { ...item, profissionalId, servicoId: "", valorUnitario: "", pacoteClienteItemId: undefined } : item
+    );
+    setServicosSelecionados(novaLista);
   };
 
   const handleServicoChange = (index: number, servicoId: string) => {
     const servico = servicos?.find(s => s.id === parseInt(servicoId));
     const novaLista = servicosSelecionados.map((item, i) =>
       i === index
-        ? { servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "", pacoteClienteItemId: undefined }
+        ? { ...item, servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "", pacoteClienteItemId: undefined }
         : item
     );
     setServicosSelecionados(novaLista);
@@ -138,11 +162,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   };
 
   const adicionarServico = () => {
-    setServicosSelecionados(prev => [...prev, { servicoId: "", profissionalId: "", valorUnitario: "" }]);
+    setServicosSelecionados(prev => [...prev, { profissionalId: profissionalPadrao, servicoId: "", valorUnitario: "" }]);
   };
 
   const removerServico = (index: number) => {
-    if (servicosSelecionados.length === 1) return; // manter pelo menos 1
+    if (servicosSelecionados.length === 1) return;
     const novaLista = servicosSelecionados.filter((_, i) => i !== index);
     setServicosSelecionados(novaLista);
     recalcularHoraFim(form.horaInicio, novaLista);
@@ -157,23 +181,32 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const valorSinal = percentualReserva > 0 ? valorTotal * (percentualReserva / 100) : 0;
 
   const handleSubmit = () => {
-    if (!form.clienteId || !form.profissionalId) {
-      toast.error("Preencha cliente e profissional");
+    if (!form.clienteId) {
+      toast.error("Selecione o cliente");
       return;
     }
-    const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
+    const servicosValidos = servicosSelecionados.filter(s => s.servicoId && s.profissionalId);
     if (servicosValidos.length === 0) {
-      toast.error("Selecione pelo menos um serviço");
+      toast.error("Selecione pelo menos um profissional e serviço");
       return;
     }
+    // Verifica se todos os itens têm profissional selecionado
+    const semProfissional = servicosSelecionados.filter(s => s.servicoId && !s.profissionalId);
+    if (semProfissional.length > 0) {
+      toast.error("Selecione o profissional para todos os serviços");
+      return;
+    }
+
+    const primeiroProfissionalId = parseInt(servicosValidos[0].profissionalId);
     const servicoPrincipal = servicosValidos[0];
+
     criarMutation.mutate({
       clienteId: parseInt(form.clienteId),
-      profissionalId: parseInt(servicoPrincipal.profissionalId || form.profissionalId),
+      profissionalId: primeiroProfissionalId,
       servicoId: parseInt(servicoPrincipal.servicoId),
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
-        profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
+        profissionalId: parseInt(s.profissionalId),
         valorUnitario: s.valorUnitario || "0",
         pacoteClienteItemId: s.pacoteClienteItemId,
       })),
@@ -181,15 +214,12 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       horaInicio: form.horaInicio + ":00",
       horaFim: form.horaFim + ":00",
       valorTotal: valorTotal.toFixed(2),
-      // Status sempre é o escolhido pelo usuário (pre_agendado por padrão)
       status: form.status,
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
       pacoteClienteItemId: servicoPrincipal.pacoteClienteItemId,
     });
   };
-
-  const temVinculos = !!profissionalIdNum && !!servicosVinculados && servicosVinculados.length > 0;
 
   // Estado para o modal de abrir pacote
   const [modalPacoteAberto, setModalPacoteAberto] = useState(false);
@@ -225,29 +255,6 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            {/* Profissional */}
-            <div className="sm:col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional *</Label>
-              {podeAgendarParaOutros ? (
-                <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profissionais?.filter(p => p.ativo).map(p => (
-                      <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={profissionais?.find(p => p.id === meuProfissionalId)?.nome ?? "Carregando..."}
-                  disabled
-                  className="bg-muted"
-                />
-              )}
-            </div>
-
             {/* Pacotes Ativos do Cliente */}
             {clienteIdNum && pacotesAtivos.length > 0 && (
               <div className="sm:col-span-2">
@@ -268,15 +275,15 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                           background: isSelected ? "oklch(55% 0.22 264 / 6%)" : "oklch(98% 0.006 250)",
                         }}
                         onClick={() => {
-                          // Auto-fill service and link pacoteClienteItemId
                           const servico = servicos?.find(s => s.id === p.servicoId);
                           if (servico) {
                             setServicosSelecionados([{
+                              profissionalId: profissionalPadrao,
                               servicoId: String(p.servicoId),
                               valorUnitario: String(parseFloat(String(servico.valor)).toFixed(2)),
                               pacoteClienteItemId: p.pacoteClienteItemId,
                             }]);
-                            recalcularHoraFim(form.horaInicio, [{ servicoId: String(p.servicoId), valorUnitario: "0" }]);
+                            recalcularHoraFim(form.horaInicio, [{ profissionalId: profissionalPadrao, servicoId: String(p.servicoId), valorUnitario: "0" }]);
                           }
                         }}
                       >
@@ -297,17 +304,10 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
             )}
 
-            {/* Serviços (múltiplos) */}
+            {/* Serviços (múltiplos) — fluxo: profissional → serviço */}
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-xs text-muted-foreground">
-                  Serviços *
-                  {temVinculos && (
-                    <span className="ml-1.5 text-[10px] text-primary font-normal">
-                      ({servicosFiltrados.length} disponível{servicosFiltrados.length !== 1 ? "is" : ""})
-                    </span>
-                  )}
-                </Label>
+                <Label className="text-xs text-muted-foreground">Serviços *</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -321,119 +321,130 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
 
               <div className="space-y-2">
-                {servicosSelecionados.map((item, index) => (
-                  <div key={index} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
-                    {/* Linha 1: Select do serviço */}
-                    <Select
-                      value={item.servicoId}
-                      onValueChange={(v) => handleServicoChange(index, v)}
-                      disabled={!form.profissionalId && servicosFiltrados.length === 0}
-                    >
-                      <SelectTrigger className="h-9 w-full">
-                        <SelectValue placeholder={
-                          !form.profissionalId
-                            ? "Selecione o profissional primeiro"
-                            : "Selecionar serviço"
-                        } />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {servicosFiltrados.map(s => (
-                          <SelectItem key={s.id} value={String(s.id)}>
-                            {s.nome}
-                            {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {/* Linha 1.5: Vincular sessão de pacote ou abrir novo */}
-                    {item.servicoId && (() => {
-                      const servicoIdNum = parseInt(item.servicoId);
-                      const pacotesDoServico = pacotesAtivos.filter(p => p.servicoId === servicoIdNum);
-                      if (pacotesDoServico.length === 0) {
-                        if (!clienteIdNum) return null;
-                        return (
-                          <div className="flex items-center gap-2 px-1">
-                            <button
-                              type="button"
-                              onClick={() => { setPacoteServicoIdInicial(servicoIdNum); setModalPacoteAberto(true); }}
-                              className="text-[11px] text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1 hover:underline underline-offset-2"
-                            >
-                              <Package className="w-3 h-3" />
-                              Abrir pacote para este serviço
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="flex items-center gap-2 px-1">
-                          <span className="text-[11px] text-violet-600 font-medium whitespace-nowrap">📦 Usar pacote:</span>
-                          <Select
-                            value={item.pacoteClienteItemId ? String(item.pacoteClienteItemId) : "nenhum"}
-                            onValueChange={v => handlePacoteChange(index, v === "nenhum" ? undefined : parseInt(v))}
-                          >
-                            <SelectTrigger className="h-7 text-xs flex-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="nenhum">Sem pacote</SelectItem>
-                              {pacotesDoServico.map(p => (
-                                <SelectItem key={p.pacoteClienteItemId} value={String(p.pacoteClienteItemId)}>
-                                  {p.pacoteNome} — {p.sessoesDisponiveis} sessões restantes
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })()}
-                    {/* Linha 2: Profissional específico para este serviço */}
-                    {servicosSelecionados.length > 1 && (
+                {servicosSelecionados.map((item, index) => {
+                  const servicosFiltrados = getServicosFiltrados(item.profissionalId);
+                  return (
+                    <div key={index} className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
+                      {/* Passo 1: Selecionar profissional */}
+                      {podeAgendarParaOutros ? (
+                        <Select
+                          value={item.profissionalId || "__none__"}
+                          onValueChange={(v) => handleProfissionalItemChange(index, v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder="Selecionar profissional" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__" disabled>Selecionar profissional</SelectItem>
+                            {profissionais?.filter(p => p.ativo).map(p => (
+                              <SelectItem key={p.id} value={String(p.id)}>
+                                {p.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={profissionais?.find(p => p.id === meuProfissionalId)?.nome ?? "Carregando..."}
+                          disabled
+                          className="bg-muted h-9 text-sm"
+                        />
+                      )}
+
+                      {/* Passo 2: Selecionar serviço (filtrado pelo profissional) */}
                       <Select
-                        value={item.profissionalId || ""}
-                        onValueChange={(v) => setServicosSelecionados(prev =>
-                          prev.map((it, i) => i === index ? { ...it, profissionalId: v } : it)
-                        )}
+                        value={item.servicoId || "__none__"}
+                        onValueChange={(v) => handleServicoChange(index, v === "__none__" ? "" : v)}
+                        disabled={!item.profissionalId && podeAgendarParaOutros}
                       >
-                        <SelectTrigger className="h-8 w-full text-xs">
-                          <SelectValue placeholder="Profissional (padrão: principal)" />
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder={
+                            !item.profissionalId && podeAgendarParaOutros
+                              ? "Selecione o profissional primeiro"
+                              : "Selecionar serviço"
+                          } />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Profissional principal</SelectItem>
-                          {profissionais?.map(p => (
-                            <SelectItem key={p.id} value={String(p.id)}>
-                              {p.nome}
+                          <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>
+                          {servicosFiltrados.map(s => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.nome}
+                              {s.duracaoMinutos ? ` · ${s.duracaoMinutos}min` : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    )}
-                    {/* Linha 3: Valor + botão remover */}
-                    <div className="flex gap-2 items-center">
-                      <div className="relative flex-1">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.valorUnitario}
-                          onChange={e => handleValorChange(index, e.target.value)}
-                          className="pl-8"
-                          placeholder="0,00"
-                        />
+
+                      {/* Vincular sessão de pacote ou abrir novo */}
+                      {item.servicoId && (() => {
+                        const servicoIdNum = parseInt(item.servicoId);
+                        const pacotesDoServico = pacotesAtivos.filter(p => p.servicoId === servicoIdNum);
+                        if (pacotesDoServico.length === 0) {
+                          if (!clienteIdNum) return null;
+                          return (
+                            <div className="flex items-center gap-2 px-1">
+                              <button
+                                type="button"
+                                onClick={() => { setPacoteServicoIdInicial(servicoIdNum); setModalPacoteAberto(true); }}
+                                className="text-[11px] text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1 hover:underline underline-offset-2"
+                              >
+                                <Package className="w-3 h-3" />
+                                Abrir pacote para este serviço
+                              </button>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex items-center gap-2 px-1">
+                            <span className="text-[11px] text-violet-600 font-medium whitespace-nowrap">📦 Usar pacote:</span>
+                            <Select
+                              value={item.pacoteClienteItemId ? String(item.pacoteClienteItemId) : "nenhum"}
+                              onValueChange={v => handlePacoteChange(index, v === "nenhum" ? undefined : parseInt(v))}
+                            >
+                              <SelectTrigger className="h-7 text-xs flex-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="nenhum">Sem pacote</SelectItem>
+                                {pacotesDoServico.map(p => (
+                                  <SelectItem key={p.pacoteClienteItemId} value={String(p.pacoteClienteItemId)}>
+                                    {p.pacoteNome} — {p.sessoesDisponiveis} sessões restantes
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Valor + botão remover */}
+                      <div className="flex gap-2 items-center">
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.valorUnitario}
+                            onChange={e => handleValorChange(index, e.target.value)}
+                            className="pl-8"
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removerServico(index)}
+                          disabled={servicosSelecionados.length === 1}
+                          className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removerServico(index)}
-                        disabled={servicosSelecionados.length === 1}
-                        className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -447,7 +458,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
-            {/* Horários — linha própria, sempre 2 colunas */}
+            {/* Horários */}
             <div className="sm:col-span-2 grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
@@ -558,24 +569,26 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
         <DialogFooter className="px-5 py-4 flex-shrink-0 border-t" style={{ borderColor: "oklch(91% 0.010 250)" }}>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={criarMutation.isPending}>
-            {criarMutation.isPending ? "Criando..." : "Criar Agendamento"}
+          <Button
+            onClick={handleSubmit}
+            disabled={criarMutation.isPending}
+          >
+            {criarMutation.isPending ? "Salvando..." : "Criar Agendamento"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
-    {/* Modal de abrir pacote integrado */}
-    {modalPacoteAberto && (
+    {/* Modal de abrir pacote */}
+    {modalPacoteAberto && clienteIdNum && (
       <ModalAbrirPacote
         open={modalPacoteAberto}
-        onClose={() => { setModalPacoteAberto(false); setPacoteServicoIdInicial(undefined); }}
-        clienteIdInicial={clienteIdNum ?? undefined}
+        onClose={() => setModalPacoteAberto(false)}
+        clienteIdInicial={clienteIdNum}
         clienteNomeInicial={clienteNomeSelecionado}
         servicoIdInicial={pacoteServicoIdInicial}
         onSuccess={() => {
-          // Invalidar pacotes ativos para que o select seja atualizado automaticamente
-          utils.pacotes.listarAtivosComSessoes.invalidate();
+          utils.pacotes.listarAtivosComSessoes.invalidate({ clienteId: clienteIdNum });
         }}
       />
     )}

@@ -1337,3 +1337,11 @@
 - [x] Frontend NovaAgendaModal: seletor de profissional por linha de serviço
 - [x] Frontend AgendamentoDetalheModal: exibir e editar profissional por serviço
 - [x] Calendário: agendamento aparece na agenda de todos os profissionais vinculados via itens
+
+## Fluxo Profissional→Serviço por Card (NovaAgendaModal)
+- [x] Remover seletor de profissional global do modal
+- [x] Cada card de serviço: selecionar profissional primeiro → filtra serviços → seleciona serviço
+- [x] profissionalId do agendamento derivado do primeiro item
+- [x] Sem conceito de "profissional principal"
+- [x] AgendamentoDetalheModal: modo de edição também segue fluxo profissional→serviço
+- [x] Endpoint getAll adicionado em profissionalServicos para carregar vínculos em batch

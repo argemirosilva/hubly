@@ -3147,6 +3147,21 @@ export const appRouter = router({
   }),
   // ─── VÍNCULO PROFISSIONAL-SERVIÇO ──────────────────────────────────────────
   profissionalServicos: router({
+    getAll: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        const db = await getDb();
+        if (!db) return [];
+        // Busca todos os vínculos profissional-serviço da empresa
+        const { profissionalServicos: ps, profissionais: pf } = await import('../drizzle/schema');
+        const { eq } = await import('drizzle-orm');
+        return db
+          .select({ profissionalId: ps.profissionalId, servicoId: ps.servicoId })
+          .from(ps)
+          .innerJoin(pf, eq(ps.profissionalId, pf.id))
+          .where(eq(pf.empresaId, empresa.id));
+      }),
     getByProfissional: protectedProcedure
       .input(z.object({ profissionalId: z.number() }))
       .query(async ({ input }) => {
