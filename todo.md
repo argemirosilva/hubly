@@ -1362,3 +1362,8 @@
 - [x] Atualizar steps: identificacao → profissional → servico → data → confirmacao
 - [x] Filtrar serviços disponíveis pelo profissional selecionado
 - [x] Endpoint getServicosPorProfissional adicionado no portal router
+
+## Filtro por Automação na Caixa de Saída (v-atual)
+- [x] Backend: adicionar parâmetro automacaoNome no getFilaEnvios e endpoint getAutomacoesNomes para listar automações distintas
+- [x] Frontend: seletor de automação nos filtros da Caixa de Saída
+- [x] Botão "Limpar filtros" limpa status e automação ao mesmo tempo

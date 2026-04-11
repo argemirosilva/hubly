@@ -2099,6 +2099,7 @@ export const appRouter = router({
         status: z.enum(["pendente", "enviado", "falhou", "todos"]).default("todos"),
         periodo: z.enum(["hoje", "semana", "mes", "todos"]).default("todos"),
         tipoAutomacao: z.string().optional(),
+        automacaoNome: z.string().optional(),
         ordenacao: z.enum(["proximos", "recentes"]).default("proximos"),
         limit: z.number().min(1).max(200).default(100),
       }))
@@ -2113,6 +2114,11 @@ export const appRouter = router({
 
         if (input.status !== "todos") {
           conditions.push(eq(historicoEnviosAutomacao.status, input.status));
+        }
+
+        // Filtro por automação específica
+        if (input.automacaoNome && input.automacaoNome !== "__todos__") {
+          conditions.push(eq(historicoEnviosAutomacao.automacaoNome, input.automacaoNome));
         }
 
         // Filtro de período
@@ -2154,6 +2160,24 @@ export const appRouter = router({
         });
 
         return { rows: result, total: result.length };
+      }),
+
+    // Lista de nomes de automações distintos para o seletor de filtro
+    getAutomacoesNomes: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { nomes: [] };
+        const db = await getDb();
+        if (!db) return { nomes: [] };
+        const rows = await db
+          .selectDistinct({ automacaoNome: historicoEnviosAutomacao.automacaoNome })
+          .from(historicoEnviosAutomacao)
+          .where(eq(historicoEnviosAutomacao.empresaId, empresa.id));
+        const nomes = rows
+          .map(r => r.automacaoNome)
+          .filter((n): n is string => !!n)
+          .sort((a, b) => a.localeCompare(b));
+        return { nomes };
       }),
 
     // Contadores de status (sem filtro de status) para os cards da fila

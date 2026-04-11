@@ -196,13 +196,20 @@ export default function FilaAutomacoes() {
   const [status, setStatus] = useState<StatusFila>("todos");
   const [periodo, setPeriodo] = useState<Periodo>("semana");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recentes");
+  const [automacaoFiltro, setAutomacaoFiltro] = useState<string>("__todos__");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
   const [reenviarLoading, setReenviarLoading] = useState(false);
 
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
-    { status, periodo, ordenacao, limit: 100 },
+    { status, periodo, ordenacao, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro, limit: 100 },
     { refetchInterval: autoRefresh ? 15000 : false }
+  );
+
+  // Lista de automações distintas para o seletor de filtro
+  const { data: automacoesNomesData } = trpc.automacoes.getAutomacoesNomes.useQuery(
+    undefined,
+    { staleTime: 60000 }
   );
 
   // Query separada para totais (sem filtro de status) — garante que os cards não zeram ao filtrar
@@ -313,9 +320,24 @@ export default function FilaAutomacoes() {
             <SelectItem value="proximos">Próximos envios</SelectItem>
           </SelectContent>
         </Select>
-        {status !== "todos" && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setStatus("todos")}>
-            Limpar filtro
+        {/* Seletor de automação */}
+        {automacoesNomesData && automacoesNomesData.nomes.length > 0 && (
+          <Select value={automacaoFiltro} onValueChange={setAutomacaoFiltro}>
+            <SelectTrigger className="w-44 h-8 text-xs">
+              <Bot className="w-3 h-3 mr-1 shrink-0" />
+              <SelectValue placeholder="Automação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__todos__">Todas as automações</SelectItem>
+              {automacoesNomesData.nomes.map(nome => (
+                <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {(status !== "todos" || automacaoFiltro !== "__todos__") && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setStatus("todos"); setAutomacaoFiltro("__todos__"); }}>
+            Limpar filtros
           </Button>
         )}
       </div>
