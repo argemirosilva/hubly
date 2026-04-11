@@ -1404,3 +1404,13 @@
 - [x] Barra de progresso visual mostrando % pago
 - [x] Contador de comissões no período
 - [x] Card só aparece quando há comissões no período
+
+## Capacitor - App Nativo iOS e Android (v-atual)
+- [x] Instalar @capacitor/core, @capacitor/cli, @capacitor/ios, @capacitor/android
+- [x] Instalar plugins: @capacitor/status-bar, @capacitor/splash-screen, @capacitor/push-notifications, @capacitor/app
+- [x] Configurar capacitor.config.ts com appId com.orizontech.hubly
+- [x] Atualizar manifest.json com theme_color e background_color corretos
+- [x] Atualizar meta tags mobile no index.html (viewport-fit=cover, format-detection)
+- [x] Executar npx cap add android - projeto android/ gerado com sucesso
+- [x] Executar npx cap add ios - projeto ios/ gerado com sucesso
+- [x] Criar MOBILE_BUILD_GUIDE.md com guia completo de build e publicação
