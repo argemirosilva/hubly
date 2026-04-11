@@ -127,6 +127,18 @@ export default function Financeiro() {
 
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
   const totalPago = filtradas.filter(c => c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
+  const totalGeral = totalPendente + totalPago;
+
+  const labelPeriodo = (() => {
+    if (periodoAtivo === "mes") return "Mês atual";
+    if (periodoAtivo === "mes_ant") return "Mês anterior";
+    if (periodoAtivo === "30d") return "Últimos 30 dias";
+    if (dataInicio && dataFim) {
+      const fmt = (d: string) => new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      return `${fmt(dataInicio)} – ${fmt(dataFim)}`;
+    }
+    return "Período personalizado";
+  })();
 
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
@@ -152,6 +164,51 @@ export default function Financeiro() {
           );
         })}
       </div>
+
+      {/* Card de resumo do período */}
+      {filtradas.length > 0 && (
+        <div className="card-elegant px-5 py-4" style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 20%)" }}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium" style={{ color: "oklch(45% 0.18 264)" }}>{labelPeriodo}</p>
+              <p className="text-2xl font-bold tracking-tight mt-0.5" style={{ color: "oklch(25% 0.12 264)" }}>
+                {formatCurrency(totalGeral)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Total de comissões no período</p>
+            </div>
+            <div className="flex gap-4 sm:gap-6">
+              <div className="text-center">
+                <p className="text-base font-bold" style={{ color: "oklch(35% 0.14 155)" }}>{formatCurrency(totalPago)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Pagas</p>
+              </div>
+              <div className="w-px" style={{ background: "oklch(88% 0.012 250)" }} />
+              <div className="text-center">
+                <p className="text-base font-bold" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalPendente)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Pendentes</p>
+              </div>
+              <div className="w-px" style={{ background: "oklch(88% 0.012 250)" }} />
+              <div className="text-center">
+                <p className="text-base font-bold text-foreground">{filtradas.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Comissões</p>
+              </div>
+            </div>
+          </div>
+          {/* Barra de progresso pago/pendente */}
+          {totalGeral > 0 && (
+            <div className="mt-3">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(88% 0.012 250)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(totalPago / totalGeral) * 100}%`, background: "oklch(62% 0.18 155)" }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {((totalPago / totalGeral) * 100).toFixed(0)}% pago
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Comissões agrupadas por profissional */}
       <div className="card-elegant overflow-hidden">

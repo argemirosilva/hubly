@@ -1396,3 +1396,11 @@
 - [x] Passar dataInicio/dataFim para o endpoint financeiro.comissoes
 - [x] Atalhos rápidos: Mês atual, Mês anterior, Últimos 30 dias
 - [x] Inputs de data personalizada com destaque visual quando ativo
+
+## Card de Resumo do Período no Financeiro (v-atual)
+- [x] Card de resumo entre os métricas e a tabela de comissões
+- [x] Exibir total geral, total pago e total pendente do período filtrado
+- [x] Mostrar o intervalo de datas selecionado no card
+- [x] Barra de progresso visual mostrando % pago
+- [x] Contador de comissões no período
+- [x] Card só aparece quando há comissões no período
