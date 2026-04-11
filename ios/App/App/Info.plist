@@ -47,5 +47,28 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- Deep links: hubly:// -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.orizontech.hubly</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>hubly</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Push Notifications -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>O Hubly usa notificações para alertar sobre novos agendamentos e confirmações.</string>
+
+	<!-- Orientação apenas portrait em iPhone -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
 </dict>
 </plist>

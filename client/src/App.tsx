@@ -44,6 +44,7 @@ import Relatorios from "./pages/Relatorios";
 import FilaAutomacoes from "./pages/FilaAutomacoes";
 import Onboarding from "./pages/Onboarding";
 import { SupportChat } from "./components/SupportChat";
+import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
 import { ReactNode } from "react";
@@ -56,6 +57,11 @@ function WithAdmin({ children }: { children: ReactNode }) {
       {children}
     </AdminLayout>
   );
+}
+
+function MobileAppInit() {
+  useMobileApp();
+  return null;
 }
 
 function Router() {
@@ -116,6 +122,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-right" />
+          <MobileAppInit />
           <PWAInstallBanner />
           <Router />
         </TooltipProvider>

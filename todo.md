@@ -1414,3 +1414,23 @@
 - [x] Executar npx cap add android - projeto android/ gerado com sucesso
 - [x] Executar npx cap add ios - projeto ios/ gerado com sucesso
 - [x] Criar MOBILE_BUILD_GUIDE.md com guia completo de build e publicação
+
+## Ícones e Splash Screen Nativos (v-atual)
+- [x] Gerar ícone do Hubly a partir do CDN (512x512)
+- [x] Gerar todos os tamanhos para Android (mdpi 48px ao xxxhdpi 192px + round)
+- [x] Gerar todos os tamanhos para iOS (20px ao 1024px) com Contents.json
+- [x] Gerar splash screens Android (320x480 ao 1440x2560) com fundo #0f172a
+- [x] Substituir ícones nos projetos android/ e ios/
+
+## Notificações Push Nativas (v-atual)
+- [x] Hook useMobileApp.ts criado com handler completo de push notifications
+- [x] Solicita permissão, registra token e navega ao tocar na notificação
+- [x] Permissões POST_NOTIFICATIONS adicionadas no AndroidManifest.xml
+- [x] NSUserNotificationUsageDescription adicionada no Info.plist
+- [x] MobileAppInit integrado no App.tsx
+
+## Deep Links hubly:// (v-atual)
+- [x] intent-filter hubly:// e https://hubly.orizontech.com.br no AndroidManifest.xml
+- [x] CFBundleURLSchemes hubly:// no Info.plist do iOS
+- [x] Handler appUrlOpen no useMobileApp.ts (hubly:// e https://)
+- [x] Suporte a hubly://agendamento/:id e hubly://cliente/:id
