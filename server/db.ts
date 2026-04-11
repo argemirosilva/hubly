@@ -201,18 +201,31 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
   const conditions = [eq(agendamentos.empresaId, empresaId)];
   if (dataInicio) conditions.push(sql`${agendamentos.data} >= ${dataInicio}`);
   if (dataFim) conditions.push(sql`${agendamentos.data} <= ${dataFim}`);
-  // Filtro por profissional — apenas quando vinculado (não aplica para administradores)
-  if (profissionalId) conditions.push(eq(agendamentos.profissionalId, profissionalId));
-  const rows = await db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
+  // Filtro por profissional — busca agendamentos onde o profissional é o principal OU aparece em algum item
+  let rows;
+  const { inArray, or } = await import('drizzle-orm');
+  if (profissionalId) {
+    // Buscar IDs de agendamentos onde o profissional aparece em algum item
+    const agIdsViaItens = await db
+      .select({ agendamentoId: agendamentoItens.agendamentoId })
+      .from(agendamentoItens)
+      .where(eq(agendamentoItens.profissionalId, profissionalId));
+    const idsViaItens = agIdsViaItens.map(r => r.agendamentoId);
+    // Filtro: profissional principal OU aparece em item
+    const filtroProfissional = idsViaItens.length > 0
+      ? or(eq(agendamentos.profissionalId, profissionalId), inArray(agendamentos.id, idsViaItens))!
+      : eq(agendamentos.profissionalId, profissionalId);
+    conditions.push(filtroProfissional);
+  }
+  rows = await db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
   if (rows.length === 0) return rows;
 
   // Enriquecer com servicoNome e itens (múltiplos serviços)
   const agIds = rows.map(r => r.id);
-  const { inArray } = await import('drizzle-orm');
 
-  // Buscar todos os itens de uma vez
+  // Buscar todos os itens de uma vez (incluindo profissionalId por item)
   const itensRows = await db
-    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
+    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, profissionalId: agendamentoItens.profissionalId, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
     .from(agendamentoItens)
     .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
     .where(inArray(agendamentoItens.agendamentoId, agIds));

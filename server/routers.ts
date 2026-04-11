@@ -754,6 +754,7 @@ export const appRouter = router({
         // Lista de serviços adicionais (múltiplos serviços por agendamento)
         servicos: z.array(z.object({
           servicoId: z.number(),
+          profissionalId: z.number().optional(), // profissional específico para este serviço
           valorUnitario: z.string(),
           pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote
         })).optional(),
@@ -813,6 +814,7 @@ export const appRouter = router({
           await createAgendamentoItens(servicosInput.map(s => ({
             agendamentoId: id,
             servicoId: s.servicoId,
+            profissionalId: s.profissionalId ?? null,
             valorUnitario: s.valorUnitario,
             pacoteClienteItemId: s.pacoteClienteItemId,
           })));
@@ -1260,8 +1262,10 @@ export const appRouter = router({
       .input(z.object({
         agendamentoId: z.number(),
         servicoIdPrincipal: z.number(),
+        profissionalIdPrincipal: z.number().optional(),
         servicos: z.array(z.object({
           servicoId: z.number(),
+          profissionalId: z.number().optional(),
           valorUnitario: z.string(),
         })),
         valorTotal: z.string(),
@@ -1276,12 +1280,14 @@ export const appRouter = router({
           valorTotal: input.valorTotal,
         };
         if (input.horaFim) updates.horaFim = input.horaFim;
+        if (input.profissionalIdPrincipal) updates.profissionalId = input.profissionalIdPrincipal;
         await updateAgendamento(input.agendamentoId, updates);
         // Substituir os itens
         await deleteItensByAgendamento(input.agendamentoId);
         await createAgendamentoItens(input.servicos.map(s => ({
           agendamentoId: input.agendamentoId,
           servicoId: s.servicoId,
+          profissionalId: s.profissionalId ?? null,
           valorUnitario: s.valorUnitario,
         })));
         return { success: true };
@@ -1291,6 +1297,7 @@ export const appRouter = router({
         agendamentoId: z.number(),
         itens: z.array(z.object({
           servicoId: z.number(),
+          profissionalId: z.number().optional(),
           valorUnitario: z.string(),
         })),
       }))
@@ -1307,6 +1314,7 @@ export const appRouter = router({
           await createAgendamentoItens(input.itens.map(s => ({
             agendamentoId: input.agendamentoId,
             servicoId: s.servicoId,
+            profissionalId: s.profissionalId ?? null,
             valorUnitario: s.valorUnitario,
           })));
         }

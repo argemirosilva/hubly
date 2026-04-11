@@ -1328,3 +1328,12 @@
 - [ ] Frontend: modal de agendamento com seletor de profissional por serviço
 - [ ] Calendário: agendamento aparece na agenda de todos os profissionais vinculados
 - [ ] Automações: enviar mensagem uma única vez mesmo com múltiplos profissionais
+
+## Multi-profissional por Agendamento (v-atual)
+- [x] Schema: adicionar profissionalId (nullable) na tabela agendamento_itens
+- [x] Migration SQL: ALTER TABLE agendamento_itens ADD COLUMN profissionalId
+- [x] Backend db.ts: incluir profissionalId nos selects de itens e no filtro de calendário por profissional
+- [x] Backend routers.ts: aceitar profissionalId por item em create, updateServicos e updateValores
+- [x] Frontend NovaAgendaModal: seletor de profissional por linha de serviço
+- [x] Frontend AgendamentoDetalheModal: exibir e editar profissional por serviço
+- [x] Calendário: agendamento aparece na agenda de todos os profissionais vinculados via itens

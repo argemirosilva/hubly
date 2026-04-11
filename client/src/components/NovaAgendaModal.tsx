@@ -15,6 +15,7 @@ import ModalAbrirPacote from "@/components/ModalAbrirPacote";
 
 interface ServicoItem {
   servicoId: string;
+  profissionalId?: string; // profissional específico para este serviço
   valorUnitario: string;
   pacoteClienteItemId?: number; // vincular sessão de pacote
 }
@@ -137,7 +138,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   };
 
   const adicionarServico = () => {
-    setServicosSelecionados(prev => [...prev, { servicoId: "", valorUnitario: "" }]);
+    setServicosSelecionados(prev => [...prev, { servicoId: "", profissionalId: "", valorUnitario: "" }]);
   };
 
   const removerServico = (index: number) => {
@@ -168,10 +169,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     const servicoPrincipal = servicosValidos[0];
     criarMutation.mutate({
       clienteId: parseInt(form.clienteId),
-      profissionalId: parseInt(form.profissionalId),
+      profissionalId: parseInt(servicoPrincipal.profissionalId || form.profissionalId),
       servicoId: parseInt(servicoPrincipal.servicoId),
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
+        profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
         valorUnitario: s.valorUnitario || "0",
         pacoteClienteItemId: s.pacoteClienteItemId,
       })),
@@ -384,7 +386,28 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                         </div>
                       );
                     })()}
-                    {/* Linha 2: Valor + botão remover */}
+                    {/* Linha 2: Profissional específico para este serviço */}
+                    {servicosSelecionados.length > 1 && (
+                      <Select
+                        value={item.profissionalId || ""}
+                        onValueChange={(v) => setServicosSelecionados(prev =>
+                          prev.map((it, i) => i === index ? { ...it, profissionalId: v } : it)
+                        )}
+                      >
+                        <SelectTrigger className="h-8 w-full text-xs">
+                          <SelectValue placeholder="Profissional (padrão: principal)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Profissional principal</SelectItem>
+                          {profissionais?.map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {/* Linha 3: Valor + botão remover */}
                     <div className="flex gap-2 items-center">
                       <div className="relative flex-1">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>

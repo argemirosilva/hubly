@@ -40,7 +40,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
-  const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; valorUnitario: string }[]>([]);
+  const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; profissionalId?: string; valorUnitario: string }[]>([]);
   // Estado para edição inline de valores
   const [valoresEdit, setValoresEdit] = useState<Record<number, string>>({});
   const [editandoValores, setEditandoValores] = useState(false);
@@ -226,13 +226,14 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     if (itens && itens.length > 0) {
       return itens.map(item => ({
         servicoId: item.servicoId,
+        profissionalId: (item as any).profissionalId ?? null,
         nome: servicos?.find(s => s.id === item.servicoId)?.nome ?? "Serviço",
         valor: parseFloat(String(item.valorUnitario)),
         pacoteClienteItemId: item.pacoteClienteItemId ?? null,
       }));
     }
     if (servico) {
-      return [{ servicoId: servico.id, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)), pacoteClienteItemId: null }];
+      return [{ servicoId: servico.id, profissionalId: null, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)), pacoteClienteItemId: null }];
     }
     return [];
   }, [itens, servico, servicos, ag]);
@@ -241,10 +242,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     if (servicosDoAgendamento.length > 0) {
       setServicosEdit(servicosDoAgendamento.map(s => ({
         servicoId: String(s.servicoId),
+        profissionalId: s.profissionalId ? String(s.profissionalId) : "",
         valorUnitario: s.valor.toFixed(2),
       })));
     } else {
-      setServicosEdit([{ servicoId: "", valorUnitario: "" }]);
+      setServicosEdit([{ servicoId: "", profissionalId: "", valorUnitario: "" }]);
     }
     setEditandoServicos(true);
   };
@@ -256,7 +258,12 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     updateServicosMutation.mutate({
       agendamentoId,
       servicoIdPrincipal: parseInt(validos[0].servicoId),
-      servicos: validos.map(s => ({ servicoId: parseInt(s.servicoId), valorUnitario: s.valorUnitario || "0" })),
+      profissionalIdPrincipal: validos[0].profissionalId ? parseInt(validos[0].profissionalId) : undefined,
+      servicos: validos.map(s => ({
+        servicoId: parseInt(s.servicoId),
+        profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
+        valorUnitario: s.valorUnitario || "0",
+      })),
       valorTotal: total.toFixed(2),
     });
   };
@@ -359,10 +366,17 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   {servicosDoAgendamento.length === 0 && (
                     <p className="text-sm font-semibold">{servico?.nome ?? "—"}</p>
                   )}
-                  {servicosDoAgendamento.map((s, i) => (
+                  {servicosDoAgendamento.map((s, i) => {
+                    const profItem = s.profissionalId ? profissionais?.find(p => p.id === s.profissionalId) : null;
+                    return (
                     <div key={i} className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{s.nome}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{s.nome}</p>
+                          {profItem && profItem.id !== ag?.profissionalId && (
+                            <p className="text-[10px] text-muted-foreground">{profItem.nome}</p>
+                          )}
+                        </div>
                         {s.pacoteClienteItemId && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/40 rounded-full px-1.5 py-0.5 flex-shrink-0">
                             📦 Pacote
@@ -386,7 +400,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                         </span>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-xs text-muted-foreground">com {profissional?.nome ?? "—"}</p>
@@ -435,42 +450,60 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     </button>
                   </div>
                   {servicosEdit.map((item, index) => (
-                    <div key={index} className="flex gap-1.5 items-center">
-                      <Select
-                        value={item.servicoId}
-                        onValueChange={(v) => {
-                          const s = servicos?.find(sv => sv.id === parseInt(v));
-                          setServicosEdit(prev => prev.map((it, i) => i === index
-                            ? { servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
-                            : it
-                          ));
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs flex-1">
-                          <SelectValue placeholder="Serviço" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {servicos?.filter(s => s.ativo).map(s => (
-                            <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="relative w-24">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
-                        <Input
-                          type="number" step="0.01" min="0"
-                          value={item.valorUnitario}
-                          onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, valorUnitario: e.target.value } : it))}
-                          className="pl-7 h-8 text-xs"
-                        />
+                    <div key={index} className="space-y-1.5 p-2 rounded-lg border border-border/40 bg-muted/20">
+                      <div className="flex gap-1.5 items-center">
+                        <Select
+                          value={item.servicoId}
+                          onValueChange={(v) => {
+                            const s = servicos?.find(sv => sv.id === parseInt(v));
+                            setServicosEdit(prev => prev.map((it, i) => i === index
+                              ? { ...it, servicoId: v, valorUnitario: s ? String(parseFloat(String(s.valor)).toFixed(2)) : it.valorUnitario }
+                              : it
+                            ));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs flex-1">
+                            <SelectValue placeholder="Serviço" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {servicos?.filter(s => s.ativo).map(s => (
+                              <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative w-24">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                          <Input
+                            type="number" step="0.01" min="0"
+                            value={item.valorUnitario}
+                            onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, valorUnitario: e.target.value } : it))}
+                            className="pl-7 h-8 text-xs"
+                          />
+                        </div>
+                        <button
+                          onClick={() => setServicosEdit(prev => prev.filter((_, i) => i !== index))}
+                          disabled={servicosEdit.length === 1}
+                          className="text-muted-foreground hover:text-destructive disabled:opacity-30"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setServicosEdit(prev => prev.filter((_, i) => i !== index))}
-                        disabled={servicosEdit.length === 1}
-                        className="text-muted-foreground hover:text-destructive disabled:opacity-30"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {servicosEdit.length > 1 && (
+                        <Select
+                          value={item.profissionalId || ""}
+                          onValueChange={(v) => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, profissionalId: v } : it))}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] w-full">
+                            <SelectValue placeholder="Profissional (padrão: principal)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Profissional principal</SelectItem>
+                            {profissionais?.map(p => (
+                              <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   ))}
                   <div className="flex gap-2 pt-1">
