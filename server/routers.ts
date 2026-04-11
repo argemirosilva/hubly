@@ -78,6 +78,36 @@ function extrairMidiaUrl(flowJson: string | null | undefined): string | null {
 }
 
 /**
+ * Verifica se um agendamento passa pelas condições do flowJson.
+ * Retorna true se deve receber a mensagem (sem condições = envia para todos).
+ */
+function verificarCondicoesFlowRouter(flowJson: string | null | undefined, servicoNome: string | null | undefined): boolean {
+  if (!flowJson) return true;
+  try {
+    const flow = JSON.parse(flowJson);
+    if (!Array.isArray(flow)) return true;
+    const condicoes = flow.filter((n: any) => n?.type === 'condition');
+    if (condicoes.length === 0) return true;
+    for (const cond of condicoes) {
+      const tipo = cond?.data?.tipo;
+      const valor = cond?.data?.valor;
+      if (tipo === 'por_servico' && valor) {
+        const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
+        const servicoAtual = (servicoNome ?? '').trim().toLowerCase();
+        if (!servicoAtual) return false;
+        const passou = servicosFiltro.some((sf: string) =>
+          servicoAtual.includes(sf) || sf.includes(servicoAtual)
+        );
+        if (!passou) return false;
+      }
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Processa variáveis de template em mensagens de WhatsApp/automações.
  * Substitui {{variavel}} pelos valores reais do agendamento.
  */
@@ -919,27 +949,33 @@ export const appRouter = router({
               `_${empresa.nome}_`,
             ].filter(Boolean).join('\n');
 
-            const mensagem = automacaoAtiva?.corpoMensagem
-              ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
-              : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
+            // Verificar condições do flowJson (ex: filtro por serviço)
+            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome);
+            if (!passouFiltroServico) {
+              console.log(`[Fila] Automação "${automacaoAtiva!.nome}" ignorada para ag. ${id}: serviço "${servico?.nome}" não está no filtro`);
+            } else {
+              const mensagem = automacaoAtiva?.corpoMensagem
+                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
+                : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
 
-            // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
-            const midiaUrlCriado = automacaoAtiva ? extrairMidiaUrl(automacaoAtiva.flowJson) : null;
-            await registrarEnvioAutomacao({
-              empresaId: empresa.id,
-              automacaoId: automacaoAtiva?.id,
-              automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
-              clienteId: cliente.id,
-              clienteNome: cliente.nome,
-              agendamentoId: id,
-              telefone,
-              canal: 'whatsapp',
-              mensagem,
-              status: 'pendente',
-              enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
-              midiaUrl: midiaUrlCriado ?? undefined,
-            });
-            console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
+              // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
+              const midiaUrlCriado = automacaoAtiva ? extrairMidiaUrl(automacaoAtiva.flowJson) : null;
+              await registrarEnvioAutomacao({
+                empresaId: empresa.id,
+                automacaoId: automacaoAtiva?.id,
+                automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
+                clienteId: cliente.id,
+                clienteNome: cliente.nome,
+                agendamentoId: id,
+                telefone,
+                canal: 'whatsapp',
+                mensagem,
+                status: 'pendente',
+                enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
+                midiaUrl: midiaUrlCriado ?? undefined,
+              });
+              console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
+            } // fim do else (passou pelo filtro de serviço)
           }
         } catch (e) {
           // Não bloquear o fluxo principal se o enfileiramento falhar
@@ -1172,6 +1208,11 @@ export const appRouter = router({
                       ].filter(Boolean).join('\n');
                 }
 
+                // Verificar condições do flowJson (ex: filtro por serviço)
+                if (automacaoUsada && !verificarCondicoesFlowRouter(automacaoUsada.flowJson, servico?.nome)) {
+                  console.log(`[Fila] Automação "${automacaoUsada.nome}" ignorada para ag. ${id} (status=${data.status}): serviço "${servico?.nome}" não está no filtro`);
+                } else {
+
                 // Enfileirar na fila universal (envia imediatamente quando WA conectar)
                 const nomeEvento = data.status === 'confirmado' ? 'Confirmação de Agendamento'
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
@@ -1193,6 +1234,7 @@ export const appRouter = router({
                 });
                 console.log(`[Fila] ${nomeEvento} enfileirado para ag. ${id} (${telefone})`);
                 try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+                } // fim do else (passou pelo filtro de serviço)
               }
             }
           } catch (e) {
@@ -2724,7 +2766,7 @@ export const appRouter = router({
               ORDER BY createdAt DESC
               LIMIT ${input?.limit ?? 50}`
         );
-        return (rows[0] as any[]).map((r: any) => ({
+        return (rows[0] as unknown as any[]).map((r: any) => ({
           id: r.id as number,
           event: r.event as string,
           detail: r.detail as string | null,

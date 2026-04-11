@@ -1313,3 +1313,18 @@
 - [x] Aplicar migration SQL com novos campos (8 colunas adicionadas)
 - [x] Atualizar whatsapp.ts para registrar logs detalhados em todos os eventos (connected, disconnected, qr_ready, logged_out, reconnecting, reconnect_attempt, error, shutdown)
 - [x] Atualizar página WhatsApp com seção "Diagnóstico de Conexão" com badges de statusCode, motivo, duração de sessão, tentativas e detalhe técnico colapsável
+
+## Filtro de Serviço nas Automações (bug - v-atual)
+- [x] Corrigir filtro de servicoId nas automações: mensagem está indo para todos os agendamentos ignorando o filtro de serviço configurado
+  - Função verificarCondicoesFlow() adicionada no scheduler.ts
+  - Função verificarCondicoesFlowRouter() adicionada no routers.ts
+  - Verificado em todos os 4 tipos de lembrete (dias antes, horas antes, horas após, dias depois)
+  - Verificado no disparo imediato ao criar agendamento
+  - Verificado no disparo ao atualizar status (confirmado/cancelado/concluído)
+
+## Múltiplos Profissionais por Agendamento (v-atual)
+- [ ] Schema/migration: adicionar profissionalId por serviço na tabela agendamentos_servicos
+- [ ] Backend: atualizar endpoints de criação/edição de agendamento para múltiplos profissionais
+- [ ] Frontend: modal de agendamento com seletor de profissional por serviço
+- [ ] Calendário: agendamento aparece na agenda de todos os profissionais vinculados
+- [ ] Automações: enviar mensagem uma única vez mesmo com múltiplos profissionais

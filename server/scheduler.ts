@@ -35,6 +35,42 @@ function formatarHora(hora: string | null | undefined): string {
   return String(hora).slice(0, 5);
 }
 
+// Helper: verificar se um agendamento passa pelas condições do flowJson
+// Retorna true se o agendamento deve receber a mensagem (sem condições = envia para todos)
+function verificarCondicoesFlow(flowJson: string | null | undefined, servicoNome: string | null | undefined): boolean {
+  if (!flowJson) return true; // sem flow = sem filtro = envia para todos
+  try {
+    const flow = JSON.parse(flowJson);
+    if (!Array.isArray(flow)) return true;
+
+    // Encontrar nós de condição
+    const condicoes = flow.filter((n: any) => n?.type === 'condition');
+    if (condicoes.length === 0) return true; // sem condições = envia para todos
+
+    // Verificar cada condição
+    for (const cond of condicoes) {
+      const tipo = cond?.data?.tipo;
+      const valor = cond?.data?.valor;
+
+      if (tipo === 'por_servico' && valor) {
+        // valor é uma string com nomes separados por vírgula
+        const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
+        const servicoAtual = (servicoNome ?? '').trim().toLowerCase();
+        if (!servicoAtual) return false; // sem serviço no agendamento, não passa
+        // Verificar se o serviço do agendamento está na lista (comparação parcial para tolerância)
+        const passou = servicosFiltro.some((sf: string) =>
+          servicoAtual.includes(sf) || sf.includes(servicoAtual)
+        );
+        if (!passou) return false;
+      }
+      // Outros tipos de condição podem ser adicionados aqui no futuro
+    }
+    return true;
+  } catch {
+    return true; // em caso de erro de parse, não bloqueia
+  }
+}
+
 // ── Verificar pacotes vencendo para todas as empresas ─────────────────────────
 async function verificarPacotesVencendoGlobal() {
   const db = await getDb();
@@ -679,6 +715,12 @@ async function processarAutomacoesAgendadas() {
         for (const ag of ags) {
           if (!ag.clienteTelefone) continue;
 
+          // Verificar condições do flowJson (ex: filtro por serviço)
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+            continue;
+          }
+
           // Deduplicação: verificar se já enviou para este agendamento+automação
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
@@ -820,6 +862,12 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
+          // Verificar condições do flowJson (ex: filtro por serviço)
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+            continue;
+          }
+
           // Deduplicação
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
@@ -942,6 +990,12 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
+          // Verificar condições do flowJson (ex: filtro por serviço)
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+            continue;
+          }
+
           // Deduplicação
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
@@ -1059,6 +1113,12 @@ async function processarAutomacoesAgendadas() {
           const tsDisparo = dataDisparo.getTime();
 
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
+
+          // Verificar condições do flowJson (ex: filtro por serviço)
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+            continue;
+          }
 
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
