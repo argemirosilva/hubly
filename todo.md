@@ -1367,3 +1367,12 @@
 - [x] Backend: adicionar parâmetro automacaoNome no getFilaEnvios e endpoint getAutomacoesNomes para listar automações distintas
 - [x] Frontend: seletor de automação nos filtros da Caixa de Saída
 - [x] Botão "Limpar filtros" limpa status e automação ao mesmo tempo
+
+## Horário por Item em Agendamentos Multi-profissional (v-atual)
+- [x] Migration SQL: adicionar horaInicio e horaFim na tabela agendamento_itens
+- [x] Schema Drizzle: atualizar agendamentoItens com horaInicio e horaFim
+- [x] Backend db.ts: retornar horaInicio/horaFim nos selects de itens
+- [x] Backend routers.ts: aceitar horaInicio/horaFim por item em create e updateServicos
+- [x] Frontend NovaAgendaModal: cálculo automático sequencial de horário por item (soma duração do serviço anterior)
+- [x] Frontend NovaAgendaModal: seletor de hora por item (editável manualmente)
+- [x] Frontend AgendamentoDetalheModal: exibir e editar horaInicio/horaFim por item

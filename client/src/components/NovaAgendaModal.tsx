@@ -18,6 +18,8 @@ interface ServicoItem {
   servicoId: string;
   valorUnitario: string;
   pacoteClienteItemId?: number;
+  horaInicio?: string; // ex: "14:00" — calculado automaticamente ou editado manualmente
+  horaFim?: string;   // ex: "15:00"
 }
 
 interface Props {
@@ -114,22 +116,34 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     onError: (err) => toast.error(err.message),
   });
 
-  // Recalcular horaFim com base na soma das durações de todos os serviços
-  const recalcularHoraFim = (horaInicio: string, itens: ServicoItem[]) => {
+  // Converte "HH:MM" em minutos desde meia-noite
+  const toMin = (h: string) => { const [hh, mm] = h.split(":").map(Number); return hh * 60 + mm; };
+  const fromMin = (m: number) => `${Math.floor(m / 60).toString().padStart(2, "0")}:${(m % 60).toString().padStart(2, "0")}`;
+
+  // Recalcular horaInicio/horaFim de cada item sequencialmente e horaFim do agendamento
+  const recalcularHorarios = (horaInicioAg: string, itens: ServicoItem[], setItens = true) => {
     if (!servicos) return;
-    const [h, m] = horaInicio.split(":").map(Number);
-    let totalMin = h * 60 + m;
-    for (const item of itens) {
-      if (item.servicoId) {
-        const s = servicos.find(sv => sv.id === parseInt(item.servicoId));
-        totalMin += s?.duracaoMinutos ?? 0;
-      }
+    let cursor = toMin(horaInicioAg);
+    const novosItens = itens.map(item => {
+      const s = servicos.find(sv => sv.id === parseInt(item.servicoId));
+      const dur = s?.duracaoMinutos ?? 0;
+      const inicio = fromMin(cursor);
+      const fim = fromMin(cursor + dur);
+      cursor += dur;
+      return { ...item, horaInicio: item.servicoId ? inicio : item.horaInicio, horaFim: item.servicoId ? fim : item.horaFim };
+    });
+    if (setItens) setServicosSelecionados(novosItens);
+    // Atualizar horaFim do agendamento com o fim do último item com serviço
+    const ultimoComServico = [...novosItens].reverse().find(i => i.servicoId);
+    if (ultimoComServico?.horaFim) {
+      setForm(f => ({ ...f, horaFim: ultimoComServico.horaFim! }));
     }
-    if (totalMin > h * 60 + m) {
-      const hFim = Math.floor(totalMin / 60).toString().padStart(2, "0");
-      const mFim = (totalMin % 60).toString().padStart(2, "0");
-      setForm(f => ({ ...f, horaFim: `${hFim}:${mFim}` }));
-    }
+    return novosItens;
+  };
+
+  // Recalcular horaFim com base na soma das durações de todos os serviços (compat. legado)
+  const recalcularHoraFim = (horaInicio: string, itens: ServicoItem[]) => {
+    recalcularHorarios(horaInicio, itens);
   };
 
   // Ao trocar o profissional de um card, limpa o serviço selecionado
@@ -147,8 +161,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
         ? { ...item, servicoId, valorUnitario: servico ? String(parseFloat(String(servico.valor)).toFixed(2)) : "", pacoteClienteItemId: undefined }
         : item
     );
-    setServicosSelecionados(novaLista);
-    recalcularHoraFim(form.horaInicio, novaLista);
+    recalcularHorarios(form.horaInicio, novaLista);
   };
 
   const handlePacoteChange = (index: number, pacoteClienteItemId: number | undefined) => {
@@ -168,8 +181,30 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const removerServico = (index: number) => {
     if (servicosSelecionados.length === 1) return;
     const novaLista = servicosSelecionados.filter((_, i) => i !== index);
-    setServicosSelecionados(novaLista);
-    recalcularHoraFim(form.horaInicio, novaLista);
+    recalcularHorarios(form.horaInicio, novaLista);
+  };
+
+  // Ao editar manualmente o horário de um item, atualiza o item e recalcula os seguintes
+  const handleItemHoraChange = (index: number, campo: "horaInicio" | "horaFim", valor: string) => {
+    const novaLista = servicosSelecionados.map((item, i) => i === index ? { ...item, [campo]: valor } : item);
+    // Se mudou horaInicio de um item, recalcula os itens seguintes a partir desse ponto
+    if (campo === "horaInicio" && valor) {
+      let cursor = toMin(valor);
+      const recalculados = novaLista.map((item, i) => {
+        if (i < index) return item;
+        const s = servicos?.find(sv => sv.id === parseInt(item.servicoId));
+        const dur = s?.duracaoMinutos ?? 0;
+        const inicio = fromMin(cursor);
+        const fim = fromMin(cursor + dur);
+        cursor += dur;
+        return { ...item, horaInicio: item.servicoId ? inicio : item.horaInicio, horaFim: item.servicoId ? fim : item.horaFim };
+      });
+      setServicosSelecionados(recalculados);
+      const ultimo = [...recalculados].reverse().find(i => i.servicoId);
+      if (ultimo?.horaFim) setForm(f => ({ ...f, horaFim: ultimo.horaFim! }));
+    } else {
+      setServicosSelecionados(novaLista);
+    }
   };
 
   // Valor total calculado
@@ -207,6 +242,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
         profissionalId: parseInt(s.profissionalId),
+        horaInicio: s.horaInicio ? s.horaInicio + ":00" : undefined,
+        horaFim: s.horaFim ? s.horaFim + ":00" : undefined,
         valorUnitario: s.valorUnitario || "0",
         pacoteClienteItemId: s.pacoteClienteItemId,
       })),
@@ -416,6 +453,30 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                           </div>
                         );
                       })()}
+
+                      {/* Horário por item (exibido quando há serviço selecionado) */}
+                      {item.servicoId && (
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground mb-1 block">Início</Label>
+                            <Input
+                              type="time"
+                              value={item.horaInicio ?? ""}
+                              onChange={e => handleItemHoraChange(index, "horaInicio", e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground mb-1 block">Fim</Label>
+                            <Input
+                              type="time"
+                              value={item.horaFim ?? ""}
+                              onChange={e => handleItemHoraChange(index, "horaFim", e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {/* Valor + botão remover */}
                       <div className="flex gap-2 items-center">

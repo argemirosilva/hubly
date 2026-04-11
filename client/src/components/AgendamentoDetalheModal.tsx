@@ -40,7 +40,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
-  const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; profissionalId?: string; valorUnitario: string }[]>([]);
+  const [servicosEdit, setServicosEdit] = useState<{ servicoId: string; profissionalId?: string; valorUnitario: string; horaInicio?: string; horaFim?: string }[]>([]);
   // Estado para edição inline de valores
   const [valoresEdit, setValoresEdit] = useState<Record<number, string>>({});
   const [editandoValores, setEditandoValores] = useState(false);
@@ -227,13 +227,15 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       return itens.map(item => ({
         servicoId: item.servicoId,
         profissionalId: (item as any).profissionalId ?? null,
+        horaInicio: (item as any).horaInicio ?? null,
+        horaFim: (item as any).horaFim ?? null,
         nome: servicos?.find(s => s.id === item.servicoId)?.nome ?? "Serviço",
         valor: parseFloat(String(item.valorUnitario)),
         pacoteClienteItemId: item.pacoteClienteItemId ?? null,
       }));
     }
     if (servico) {
-      return [{ servicoId: servico.id, profissionalId: null, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)), pacoteClienteItemId: null }];
+      return [{ servicoId: servico.id, profissionalId: null, horaInicio: null, horaFim: null, nome: servico.nome, valor: parseFloat(String(ag?.valorTotal ?? 0)), pacoteClienteItemId: null }];
     }
     return [];
   }, [itens, servico, servicos, ag]);
@@ -244,9 +246,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         servicoId: String(s.servicoId),
         profissionalId: s.profissionalId ? String(s.profissionalId) : "",
         valorUnitario: s.valor.toFixed(2),
+        horaInicio: s.horaInicio ? String(s.horaInicio).slice(0, 5) : "",
+        horaFim: s.horaFim ? String(s.horaFim).slice(0, 5) : "",
       })));
     } else {
-      setServicosEdit([{ servicoId: "", profissionalId: "", valorUnitario: "" }]);
+      setServicosEdit([{ servicoId: "", profissionalId: "", valorUnitario: "", horaInicio: "", horaFim: "" }]);
     }
     setEditandoServicos(true);
   };
@@ -262,6 +266,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       servicos: validos.map(s => ({
         servicoId: parseInt(s.servicoId),
         profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
+        horaInicio: s.horaInicio ? s.horaInicio + ":00" : undefined,
+        horaFim: s.horaFim ? s.horaFim + ":00" : undefined,
         valorUnitario: s.valorUnitario || "0",
       })),
       valorTotal: total.toFixed(2),
@@ -370,13 +376,18 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     const profItem = s.profissionalId
                       ? profissionais?.find(p => p.id === s.profissionalId)
                       : profissional;
+                    const horaItemStr = s.horaInicio && s.horaFim
+                      ? `${String(s.horaInicio).slice(0, 5)} – ${String(s.horaFim).slice(0, 5)}`
+                      : null;
                     return (
                     <div key={i} className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{s.nome}</p>
-                          {profItem && (
-                            <p className="text-[10px] text-muted-foreground">{profItem.nome}</p>
+                          {(profItem || horaItemStr) && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {profItem?.nome}{profItem && horaItemStr ? " · " : ""}{horaItemStr}
+                            </p>
                           )}
                         </div>
                         {s.pacoteClienteItemId && (
@@ -513,6 +524,23 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                      {/* Horário por item */}
+                      {item.servicoId && (
+                        <div className="flex gap-1.5 items-center">
+                          <div className="flex-1">
+                            <Label className="text-[9px] text-muted-foreground mb-0.5 block">Início</Label>
+                            <Input type="time" value={item.horaInicio ?? ""}
+                              onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, horaInicio: e.target.value } : it))}
+                              className="h-7 text-xs" />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[9px] text-muted-foreground mb-0.5 block">Fim</Label>
+                            <Input type="time" value={item.horaFim ?? ""}
+                              onChange={e => setServicosEdit(prev => prev.map((it, i) => i === index ? { ...it, horaFim: e.target.value } : it))}
+                              className="h-7 text-xs" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     );
                   })}

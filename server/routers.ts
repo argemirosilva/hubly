@@ -755,6 +755,8 @@ export const appRouter = router({
         servicos: z.array(z.object({
           servicoId: z.number(),
           profissionalId: z.number().optional(), // profissional específico para este serviço
+          horaInicio: z.string().optional(), // ex: "14:00" — null = usa hora do agendamento
+          horaFim: z.string().optional(),    // ex: "15:00" — null = calculado pela duração
           valorUnitario: z.string(),
           pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote
         })).optional(),
@@ -815,6 +817,8 @@ export const appRouter = router({
             agendamentoId: id,
             servicoId: s.servicoId,
             profissionalId: s.profissionalId ?? null,
+            horaInicio: s.horaInicio ?? null,
+            horaFim: s.horaFim ?? null,
             valorUnitario: s.valorUnitario,
             pacoteClienteItemId: s.pacoteClienteItemId,
           })));
@@ -1351,6 +1355,8 @@ export const appRouter = router({
         servicos: z.array(z.object({
           servicoId: z.number(),
           profissionalId: z.number().optional(),
+          horaInicio: z.string().optional(),
+          horaFim: z.string().optional(),
           valorUnitario: z.string(),
         })),
         valorTotal: z.string(),
@@ -1373,6 +1379,8 @@ export const appRouter = router({
           agendamentoId: input.agendamentoId,
           servicoId: s.servicoId,
           profissionalId: s.profissionalId ?? null,
+          horaInicio: s.horaInicio ?? null,
+          horaFim: s.horaFim ?? null,
           valorUnitario: s.valorUnitario,
         })));
         return { success: true };

@@ -212,6 +212,8 @@ export const agendamentoItens = mysqlTable("agendamento_itens", {
   agendamentoId: int("agendamentoId").notNull(),
   servicoId: int("servicoId").notNull(),
   profissionalId: int("profissionalId"), // null = usa o profissional principal do agendamento
+  horaInicio: varchar("horaInicio", { length: 5 }), // ex: "14:00" — null = usa hora do agendamento
+  horaFim: varchar("horaFim", { length: 5 }),       // ex: "15:00" — null = calculado pela duração do serviço
   valorUnitario: decimal("valorUnitario", { precision: 10, scale: 2 }).notNull(),
   pacoteClienteItemId: int("pacoteClienteItemId"), // null = sessão avulsa, preenchido = sessão de pacote
   createdAt: timestamp("createdAt").defaultNow().notNull(),

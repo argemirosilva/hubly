@@ -223,9 +223,9 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
   // Enriquecer com servicoNome e itens (múltiplos serviços)
   const agIds = rows.map(r => r.id);
 
-  // Buscar todos os itens de uma vez (incluindo profissionalId por item)
+  // Buscar todos os itens de uma vez (incluindo profissionalId, horaInicio e horaFim por item)
   const itensRows = await db
-    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, profissionalId: agendamentoItens.profissionalId, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
+    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, profissionalId: agendamentoItens.profissionalId, horaInicio: agendamentoItens.horaInicio, horaFim: agendamentoItens.horaFim, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
     .from(agendamentoItens)
     .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
     .where(inArray(agendamentoItens.agendamentoId, agIds));
