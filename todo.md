@@ -1376,3 +1376,10 @@
 - [x] Frontend NovaAgendaModal: cálculo automático sequencial de horário por item (soma duração do serviço anterior)
 - [x] Frontend NovaAgendaModal: seletor de hora por item (editável manualmente)
 - [x] Frontend AgendamentoDetalheModal: exibir e editar horaInicio/horaFim por item
+
+## Calendário com Bloco por Item (v-atual)
+- [x] Backend: incluir itens (horaInicio/horaFim/profissionalId/servicoNome) na resposta do endpoint de listagem do calendário
+- [x] Frontend: expandir agendamentos multi-profissional em blocos por item no calendário mensal
+- [x] Frontend: cada bloco usa a cor do profissional do item
+- [x] Frontend: blocos de item único (sem horaInicio/horaFim) mantêm comportamento atual
+- [x] Frontend: view lista também usa blocos por item com borda colorida do profissional

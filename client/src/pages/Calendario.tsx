@@ -68,14 +68,66 @@ export default function Calendario() {
     return m;
   }, [profissionais]);
 
-  const agendamentosPorDia = useMemo(() => {
-    const m: Record<string, typeof agendamentos> = {};
+  // Tipo para blocos do calendário (pode ser agendamento normal ou item expandido)
+  type CalBloco = {
+    id: number; // agendamentoId
+    clienteId: number;
+    data: string;
+    horaInicio: string;
+    horaFim: string;
+    status: string;
+    profissionalId: number;
+    servicoNome: string;
+    isItemBloco: boolean; // true = bloco expandido de item multi-profissional
+  };
+
+  // Expandir agendamentos multi-profissional em blocos por item (quando item tem horaInicio próprio)
+  const blocosExpandidos = useMemo((): CalBloco[] => {
+    const result: CalBloco[] = [];
     agendamentos?.forEach(ag => {
-      if (!m[ag.data]) m[ag.data] = [];
-      m[ag.data]!.push(ag);
+      const itens = (ag as any).itens as Array<{ servicoId: number; profissionalId?: number | null; horaInicio?: string | null; horaFim?: string | null; servicoNome?: string | null }> | undefined;
+      // Se tem múltiplos itens com horaInicio próprio, expandir em blocos separados
+      const itensComHorario = itens?.filter(it => it.horaInicio && it.horaFim) ?? [];
+      if (itensComHorario.length > 1) {
+        itensComHorario.forEach(item => {
+          result.push({
+            id: ag.id,
+            clienteId: ag.clienteId,
+            data: ag.data,
+            horaInicio: item.horaInicio!,
+            horaFim: item.horaFim!,
+            status: ag.status,
+            profissionalId: item.profissionalId ?? ag.profissionalId,
+            servicoNome: item.servicoNome ?? (ag as any).servicoNome ?? "",
+            isItemBloco: true,
+          });
+        });
+      } else {
+        // Agendamento normal (único serviço ou sem horários por item)
+        result.push({
+          id: ag.id,
+          clienteId: ag.clienteId,
+          data: ag.data,
+          horaInicio: ag.horaInicio,
+          horaFim: ag.horaFim,
+          status: ag.status,
+          profissionalId: ag.profissionalId,
+          servicoNome: (ag as any).servicoNome ?? "",
+          isItemBloco: false,
+        });
+      }
+    });
+    return result;
+  }, [agendamentos]);
+
+  const agendamentosPorDia = useMemo(() => {
+    const m: Record<string, CalBloco[]> = {};
+    blocosExpandidos.forEach(bloco => {
+      if (!m[bloco.data]) m[bloco.data] = [];
+      m[bloco.data]!.push(bloco);
     });
     return m;
-  }, [agendamentos]);
+  }, [blocosExpandidos]);
 
   const calDays = useMemo(() => {
     const firstDay = new Date(year, month, 1).getDay();
@@ -287,20 +339,20 @@ export default function Calendario() {
                   </div>
                   {/* Desktop: chips com nome */}
                   <div className="hidden sm:block space-y-0.5">
-                    {ags.slice(0, 3).map(ag => {
-                      const cor = profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
-                      const servicoNome = (ag as any).servicoNome ?? "";
-                      const { icon: SvcIcon } = getServiceIcon(servicoNome);
+                    {ags.slice(0, 3).map((bloco, bi) => {
+                      const cor = profMap[bloco.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                      const { icon: SvcIcon } = getServiceIcon(bloco.servicoNome);
+                      const profNome = profMap[bloco.profissionalId]?.nome?.split(" ")[0] ?? "";
                       return (
                         <div
-                          key={ag.id}
+                          key={`${bloco.id}-${bi}`}
                           className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
-                          style={{ backgroundColor: cor, color: "white", lineHeight: "1.4" }}
-                          onClick={e => { e.stopPropagation(); setAgendamentoSelecionado(ag.id); }}
-                          title={`${ag.horaInicio.slice(0, 5)} — ${clienteMap[ag.clienteId] ?? "Cliente"}${servicoNome ? ` • ${servicoNome}` : ""}`}
+                          style={{ backgroundColor: cor, color: "white", lineHeight: "1.4", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.55 : 1 }}
+                          onClick={e => { e.stopPropagation(); setAgendamentoSelecionado(bloco.id); }}
+                          title={`${bloco.horaInicio.slice(0, 5)} — ${clienteMap[bloco.clienteId] ?? "Cliente"}${bloco.servicoNome ? ` • ${bloco.servicoNome}` : ""}${bloco.isItemBloco ? ` (· ${profNome})` : ""}`}
                         >
                           <SvcIcon className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
-                          <span className="truncate font-medium">{ag.horaInicio.slice(0, 5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}</span>
+                          <span className="truncate font-medium">{bloco.horaInicio.slice(0, 5)} {clienteMap[bloco.clienteId]?.split(" ")[0] ?? ""}{bloco.isItemBloco ? ` · ${profNome}` : ""}</span>
                         </div>
                       );
                     })}
@@ -374,25 +426,24 @@ export default function Calendario() {
                 </div>
               ) : (
                 <div className="ml-11 space-y-2">
-                  {ags.map(ag => {
-                    const cor = profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
-                    const prof = profMap[ag.profissionalId];
-                    const servicoNome = (ag as any).servicoNome ?? "";
-                    const { icon: SvcIcon } = getServiceIcon(servicoNome);
-                    const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
+                  {ags.map((bloco, bi) => {
+                    const cor = profMap[bloco.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                    const prof = profMap[bloco.profissionalId];
+                    const { icon: SvcIcon } = getServiceIcon(bloco.servicoNome);
+                    const cfg = statusConfig[bloco.status] ?? statusConfig.agendado;
                     return (
                       <div
-                        key={ag.id}
+                        key={`${bloco.id}-${bi}`}
                         className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
-                        style={{ background: "white", border: "1px solid oklch(92% 0.010 250)", boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)" }}
-                        onClick={() => setAgendamentoSelecionado(ag.id)}
+                        style={{ background: "white", border: `1px solid ${bloco.isItemBloco ? cor + "40" : "oklch(92% 0.010 250)"}`, boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.6 : 1 }}
+                        onClick={() => setAgendamentoSelecionado(bloco.id)}
                       >
                         {/* Barra colorida */}
                         <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: cor }} />
                         {/* Hora */}
                         <div className="text-center flex-shrink-0 w-10">
-                          <p className="text-xs font-bold">{ag.horaInicio.slice(0, 5)}</p>
-                          <p className="text-[10px] text-muted-foreground">{ag.horaFim.slice(0, 5)}</p>
+                          <p className="text-xs font-bold">{bloco.horaInicio.slice(0, 5)}</p>
+                          <p className="text-[10px] text-muted-foreground">{bloco.horaFim.slice(0, 5)}</p>
                         </div>
                         {/* Ícone do serviço */}
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -401,9 +452,9 @@ export default function Calendario() {
                         </div>
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{clienteMap[ag.clienteId] ?? "Cliente"}</p>
+                          <p className="text-sm font-semibold truncate">{clienteMap[bloco.clienteId] ?? "Cliente"}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {servicoNome || "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
+                            {bloco.servicoNome || "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
                           </p>
                         </div>
                         {/* Status */}
