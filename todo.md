@@ -1390,3 +1390,9 @@
 - [x] Exibir corretamente comissões de agendamentos multi-profissional (um item por profissional)
 - [x] Totais de pendente/pago por profissional exibidos no cabeçalho do grupo
 - [x] Linha colorida com cor do profissional em cada detalhe de comissão
+
+## Filtro por Período no Financeiro (v-atual)
+- [x] Seletores de data início e fim na tela de Financeiro
+- [x] Passar dataInicio/dataFim para o endpoint financeiro.comissoes
+- [x] Atalhos rápidos: Mês atual, Mês anterior, Últimos 30 dias
+- [x] Inputs de data personalizada com destaque visual quando ativo

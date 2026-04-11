@@ -1,9 +1,28 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+
+function getInicioMes(offset = 0) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + offset, 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+function getFimMes(offset = 0) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + offset + 1, 0);
+  d.setHours(23, 59, 59, 999);
+  return d.toISOString().slice(0, 10);
+}
+function getUltimos30() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -14,12 +33,24 @@ export default function Financeiro() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroProfId, setFiltroProfId] = useState("todos");
   const [expandidos, setExpandidos] = useState<Record<number, boolean>>({});
+  const [dataInicio, setDataInicio] = useState(getInicioMes());
+  const [dataFim, setDataFim] = useState(getFimMes());
+  const [periodoAtivo, setPeriodoAtivo] = useState<"mes" | "mes_ant" | "30d" | "custom">("mes");
+
+  function aplicarPeriodo(tipo: "mes" | "mes_ant" | "30d") {
+    setPeriodoAtivo(tipo);
+    if (tipo === "mes") { setDataInicio(getInicioMes()); setDataFim(getFimMes()); }
+    else if (tipo === "mes_ant") { setDataInicio(getInicioMes(-1)); setDataFim(getFimMes(-1)); }
+    else if (tipo === "30d") { setDataInicio(getUltimos30()); setDataFim(new Date().toISOString().slice(0, 10)); }
+  }
 
   const { pode, isAdmin } = usePermissoes();
   const podeMarcarPaga = pode("financeiroMarcarPago");
 
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
-  const { data: comissoes } = trpc.financeiro.comissoes.useQuery();
+  const { data: comissoes } = trpc.financeiro.comissoes.useQuery(
+    dataInicio || dataFim ? { dataInicio: dataInicio || undefined, dataFim: dataFim || undefined } : undefined
+  );
   const { data: profissionais } = trpc.profissionais.list.useQuery();
 
   const pagarMutation = trpc.financeiro.marcarPaga.useMutation({
@@ -124,40 +155,77 @@ export default function Financeiro() {
 
       {/* Comissões agrupadas por profissional */}
       <div className="card-elegant overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4"
+        <div className="flex flex-col gap-3 px-5 py-4"
           style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-          <div>
-            <h3 className="font-semibold text-sm tracking-tight">Comissões por Profissional</h3>
-            {totalPendente > 0 && (
-              <p className="text-xs mt-0.5" style={{ color: "oklch(40% 0.14 75)" }}>
-                {formatCurrency(totalPendente)} pendente
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {isAdmin && (
-              <Select value={filtroProfId} onValueChange={setFiltroProfId}>
-                <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
-                  <SelectValue placeholder="Profissional" />
+          {/* Linha 1: título + filtros de status/profissional */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-sm tracking-tight">Comissões por Profissional</h3>
+              {totalPendente > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "oklch(40% 0.14 75)" }}>
+                  {formatCurrency(totalPendente)} pendente
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {isAdmin && (
+                <Select value={filtroProfId} onValueChange={setFiltroProfId}>
+                  <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
+                    <SelectValue placeholder="Profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {profissionais?.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="w-auto min-w-[110px] h-8 text-xs">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  {profissionais?.map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
-                  ))}
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                  <SelectItem value="paga">Pagas</SelectItem>
                 </SelectContent>
               </Select>
-            )}
-            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-              <SelectTrigger className="w-auto min-w-[110px] h-8 text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="pendente">Pendentes</SelectItem>
-                <SelectItem value="paga">Pagas</SelectItem>
-              </SelectContent>
-            </Select>
+            </div>
+          </div>
+          {/* Linha 2: filtro de período */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            {/* Atalhos rápidos */}
+            {(["mes", "mes_ant", "30d"] as const).map(tipo => (
+              <button
+                key={tipo}
+                onClick={() => aplicarPeriodo(tipo)}
+                className="text-xs px-2.5 py-1 rounded-md border transition-colors"
+                style={periodoAtivo === tipo
+                  ? { background: "oklch(55% 0.22 264 / 14%)", borderColor: "oklch(55% 0.22 264 / 50%)", color: "oklch(35% 0.18 264)" }
+                  : { background: "transparent", borderColor: "oklch(88% 0.012 250)", color: "oklch(50% 0.04 250)" }
+                }
+              >
+                {tipo === "mes" ? "Mês atual" : tipo === "mes_ant" ? "Mês anterior" : "Últimos 30 dias"}
+              </button>
+            ))}
+            {/* Inputs de data personalizada */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Input
+                type="date"
+                value={dataInicio}
+                onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }}
+                className="h-7 text-xs w-[130px]"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={dataFim}
+                onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }}
+                className="h-7 text-xs w-[130px]"
+              />
+            </div>
           </div>
         </div>
 
