@@ -1,8 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, CheckCircle, Clock } from "lucide-react";
+import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 
@@ -14,37 +13,78 @@ export default function Financeiro() {
   const utils = trpc.useUtils();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroProfId, setFiltroProfId] = useState("todos");
+  const [expandidos, setExpandidos] = useState<Record<number, boolean>>({});
 
-  // Permissões centralizadas
-  const { pode, isAdmin, profissionalId: profissionalVinculadoId } = usePermissoes();
-  const podeMarcarPaga = pode("financeiroMarcarPago"); // apenas quem pode marcar como pago pode clicar no botão
+  const { pode, isAdmin } = usePermissoes();
+  const podeMarcarPaga = pode("financeiroMarcarPago");
 
-  // Backend já aplica o filtro correto via resolveAdminContext
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
   const { data: comissoes } = trpc.financeiro.comissoes.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
 
   const pagarMutation = trpc.financeiro.marcarPaga.useMutation({
-    onSuccess: () => { toast.success("Comissão marcada como paga!"); utils.financeiro.comissoes.invalidate(); utils.financeiro.dashboard.invalidate(); },
+    onSuccess: () => {
+      toast.success("Comissão marcada como paga!");
+      utils.financeiro.comissoes.invalidate();
+      utils.financeiro.dashboard.invalidate();
+    },
     onError: (err: any) => toast.error(err.message),
   });
 
   const profMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    profissionais?.forEach(p => { m[p.id] = p.nome; });
+    const m: Record<number, { nome: string; cor?: string | null }> = {};
+    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: (p as any).corCalendario }; });
     return m;
   }, [profissionais]);
 
+  // Filtrar comissões
   const filtradas = useMemo(() => {
     return (comissoes ?? []).filter(c => {
       const matchStatus = filtroStatus === "todos" || (filtroStatus === "paga" ? c.paga : !c.paga);
-      // Admin pode filtrar por profissional específico via select; profissional já recebe apenas os seus do backend
       const matchProf = !isAdmin || filtroProfId === "todos" || c.profissionalId === parseInt(filtroProfId);
       return matchStatus && matchProf;
     });
   }, [comissoes, filtroStatus, filtroProfId, isAdmin]);
 
-  // Profissional sem permissão financeiroVer não deve ver esta página
+  // Agrupar por profissional
+  const grupos = useMemo(() => {
+    const g: Record<number, {
+      profissionalId: number;
+      nome: string;
+      cor: string;
+      totalComissao: number;
+      totalPendente: number;
+      totalPago: number;
+      comissoes: typeof filtradas;
+    }> = {};
+
+    filtradas.forEach(c => {
+      if (!g[c.profissionalId]) {
+        const prof = profMap[c.profissionalId];
+        g[c.profissionalId] = {
+          profissionalId: c.profissionalId,
+          nome: prof?.nome ?? "Profissional",
+          cor: prof?.cor ?? "oklch(50% 0.06 68)",
+          totalComissao: 0,
+          totalPendente: 0,
+          totalPago: 0,
+          comissoes: [],
+        };
+      }
+      const val = parseFloat(String(c.valorComissao));
+      g[c.profissionalId].totalComissao += val;
+      if (c.paga) g[c.profissionalId].totalPago += val;
+      else g[c.profissionalId].totalPendente += val;
+      g[c.profissionalId].comissoes.push(c);
+    });
+
+    return Object.values(g).sort((a, b) => b.totalComissao - a.totalComissao);
+  }, [filtradas, profMap]);
+
+  const toggleExpand = (profId: number) => {
+    setExpandidos(prev => ({ ...prev, [profId]: !prev[profId] }));
+  };
+
   if (!pode("financeiroVer")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
@@ -55,6 +95,7 @@ export default function Financeiro() {
   }
 
   const totalPendente = filtradas.filter(c => !c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
+  const totalPago = filtradas.filter(c => c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
 
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
@@ -65,14 +106,13 @@ export default function Financeiro() {
         {[
           { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)" },
           { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), icon: TrendingUp, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
-          { label: "Comissões pagas", value: formatCurrency(comissoes?.filter(c => c.paga).reduce((a, c) => a + parseFloat(String(c.valorComissao)), 0) ?? 0), icon: CheckCircle, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
-          { label: "Comissões pendentes", value: formatCurrency(metrics?.comissoesPendentes ?? 0), icon: Clock, iconBg: "oklch(72% 0.16 80 / 12%)", iconColor: "oklch(40% 0.14 75)" },
+          { label: "Comissões pagas", value: formatCurrency(totalPago), icon: CheckCircle, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
+          { label: "Comissões pendentes", value: formatCurrency(metrics?.comissoesPendentes ?? totalPendente), icon: Clock, iconBg: "oklch(72% 0.16 80 / 12%)", iconColor: "oklch(40% 0.14 75)" },
         ].map(stat => {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="stat-card">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5"
-                style={{ background: stat.iconBg }}>
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: stat.iconBg }}>
                 <Icon className="w-3 h-3" style={{ color: stat.iconColor }} />
               </div>
               <p className="text-base font-bold text-foreground tracking-tight">{stat.value}</p>
@@ -82,12 +122,12 @@ export default function Financeiro() {
         })}
       </div>
 
-      {/* Comissões */}
+      {/* Comissões agrupadas por profissional */}
       <div className="card-elegant overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4"
           style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
           <div>
-            <h3 className="font-semibold text-sm tracking-tight">Comissões</h3>
+            <h3 className="font-semibold text-sm tracking-tight">Comissões por Profissional</h3>
             {totalPendente > 0 && (
               <p className="text-xs mt-0.5" style={{ color: "oklch(40% 0.14 75)" }}>
                 {formatCurrency(totalPendente)} pendente
@@ -95,7 +135,6 @@ export default function Financeiro() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* Seletor de profissional: visível apenas para admins */}
             {isAdmin && (
               <Select value={filtroProfId} onValueChange={setFiltroProfId}>
                 <SelectTrigger className="w-auto min-w-[130px] h-8 text-xs">
@@ -121,48 +160,105 @@ export default function Financeiro() {
             </Select>
           </div>
         </div>
-        <div>
-          {filtradas.length === 0 ? (
-            <div className="py-12 text-center">
-              <DollarSign className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhuma comissão encontrada</p>
-            </div>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
-              {filtradas.map(c => (
-                <div key={c.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{profMap[c.profissionalId] ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : "—"}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold">{formatCurrency(parseFloat(String(c.valorComissao)))}</p>
-                    <p className="text-xs text-muted-foreground">{parseFloat(String(c.percentualComissao ?? 0)).toFixed(0)}%</p>
-                  </div>
-                  {c.paga ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                      style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
-                  ) : podeMarcarPaga ? (
-                    <button
-                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border font-medium flex-shrink-0 transition-colors"
-                      style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
-                      onClick={() => pagarMutation.mutate({ id: c.id })}
-                      disabled={pagarMutation.isPending}
-                    >
-                      <CheckCircle className="w-3 h-3" />
-                      Pagar
-                    </button>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                      style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>Pendente</span>
+
+        {grupos.length === 0 ? (
+          <div className="py-12 text-center">
+            <DollarSign className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Nenhuma comissão encontrada</p>
+          </div>
+        ) : (
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+            {grupos.map(grupo => {
+              const isOpen = expandidos[grupo.profissionalId] ?? false;
+              const cor = grupo.cor;
+              return (
+                <div key={grupo.profissionalId}>
+                  {/* Cabeçalho do grupo (profissional) */}
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors text-left"
+                    onClick={() => toggleExpand(grupo.profissionalId)}
+                  >
+                    {/* Avatar colorido */}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: cor + "22", border: `2px solid ${cor}` }}>
+                      <User className="w-4 h-4" style={{ color: cor }} />
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{grupo.nome}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-muted-foreground">{grupo.comissoes.length} comissão{grupo.comissoes.length !== 1 ? "ões" : ""}</span>
+                        {grupo.totalPendente > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>
+                            {formatCurrency(grupo.totalPendente)} pendente
+                          </span>
+                        )}
+                        {grupo.totalPago > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>
+                            {formatCurrency(grupo.totalPago)} pago
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Total */}
+                    <div className="text-right flex-shrink-0 mr-2">
+                      <p className="text-sm font-bold">{formatCurrency(grupo.totalComissao)}</p>
+                      <p className="text-[10px] text-muted-foreground">total</p>
+                    </div>
+                    {/* Chevron */}
+                    {isOpen
+                      ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    }
+                  </button>
+
+                  {/* Detalhes expandidos: comissões individuais */}
+                  {isOpen && (
+                    <div className="divide-y" style={{ background: "oklch(98.5% 0.004 250)", borderColor: "oklch(94% 0.008 250)" }}>
+                      {grupo.comissoes.map(c => (
+                        <div key={c.id} className="flex items-center gap-3 px-4 py-3 pl-14">
+                          {/* Linha colorida */}
+                          <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: cor }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {(c as any).servicoNome ?? "Serviço"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {(c as any).clienteNome ?? "Cliente"} · {c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : "—"}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs font-bold">{formatCurrency(parseFloat(String(c.valorComissao)))}</p>
+                            <p className="text-[10px] text-muted-foreground">{parseFloat(String(c.percentualComissao ?? 0)).toFixed(0)}% · {formatCurrency(parseFloat(String(c.valorServico)))}</p>
+                          </div>
+                          {c.paga ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                              style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
+                          ) : podeMarcarPaga ? (
+                            <button
+                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border font-medium flex-shrink-0 transition-colors"
+                              style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                              onClick={() => pagarMutation.mutate({ id: c.id })}
+                              disabled={pagarMutation.isPending}
+                            >
+                              <CheckCircle className="w-2.5 h-2.5" />
+                              Pagar
+                            </button>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                              style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>Pendente</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

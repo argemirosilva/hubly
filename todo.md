@@ -1383,3 +1383,10 @@
 - [x] Frontend: cada bloco usa a cor do profissional do item
 - [x] Frontend: blocos de item único (sem horaInicio/horaFim) mantêm comportamento atual
 - [x] Frontend: view lista também usa blocos por item com borda colorida do profissional
+
+## Comissões Agrupadas por Profissional no Financeiro (v-atual)
+- [x] Backend: getComissoesByEmpresa enriquecido com servicoNome e clienteNome via join
+- [x] Frontend Financeiro: seção de comissões com cards por profissional, expansível com detalhe por serviço
+- [x] Exibir corretamente comissões de agendamentos multi-profissional (um item por profissional)
+- [x] Totais de pendente/pago por profissional exibidos no cabeçalho do grupo
+- [x] Linha colorida com cor do profissional em cada detalhe de comissão

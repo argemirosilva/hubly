@@ -397,7 +397,52 @@ export async function getComissoesByEmpresa(empresaId: number, profissionalId?: 
   if (profissionalId) conditions.push(eq(comissoes.profissionalId, profissionalId));
   if (dataInicio) conditions.push(gte(comissoes.createdAt, dataInicio));
   if (dataFim) conditions.push(lte(comissoes.createdAt, dataFim));
-  return db.select().from(comissoes).where(and(...conditions)).orderBy(desc(comissoes.createdAt));
+  const rows = await db.select().from(comissoes).where(and(...conditions)).orderBy(desc(comissoes.createdAt));
+  if (rows.length === 0) return rows;
+
+  // Enriquecer com servicoNome (via agendamento_itens) e clienteNome (via agendamentos)
+  const { inArray } = await import('drizzle-orm');
+  const agIds = Array.from(new Set(rows.map(r => r.agendamentoId)));
+
+  // Buscar agendamentos para obter clienteId e servicoId
+  const agsRows = await db
+    .select({ id: agendamentos.id, clienteId: agendamentos.clienteId, servicoId: agendamentos.servicoId })
+    .from(agendamentos)
+    .where(inArray(agendamentos.id, agIds));
+  const agMap: Record<number, { clienteId: number; servicoId: number | null }> = {};
+  agsRows.forEach(a => { agMap[a.id] = { clienteId: a.clienteId, servicoId: a.servicoId }; });
+
+  // Buscar itens de agendamento para obter servicoNome por profissional
+  const itensRows = await db
+    .select({ agendamentoId: agendamentoItens.agendamentoId, profissionalId: agendamentoItens.profissionalId, servicoNome: servicos.nome })
+    .from(agendamentoItens)
+    .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+    .where(inArray(agendamentoItens.agendamentoId, agIds));
+
+  // Buscar clientes
+  const clienteIds = Array.from(new Set(agsRows.map(a => a.clienteId)));
+  const clientesRows = clienteIds.length > 0
+    ? await db.select({ id: clientes.id, nome: clientes.nome }).from(clientes).where(inArray(clientes.id, clienteIds))
+    : [];
+  const clienteMap: Record<number, string> = {};
+  clientesRows.forEach(c => { clienteMap[c.id] = c.nome; });
+
+  // Buscar nomes de serviços principais
+  const servicoIds = Array.from(new Set(agsRows.map(a => a.servicoId).filter(Boolean) as number[]));
+  const servicosMainMap: Record<number, string> = {};
+  if (servicoIds.length > 0) {
+    const sRows = await db.select({ id: servicos.id, nome: servicos.nome }).from(servicos).where(inArray(servicos.id, servicoIds));
+    sRows.forEach(s => { servicosMainMap[s.id] = s.nome; });
+  }
+
+  return rows.map(c => {
+    // Tentar encontrar o item do agendamento que pertence a este profissional
+    const itemDoProf = itensRows.find(it => it.agendamentoId === c.agendamentoId && it.profissionalId === c.profissionalId);
+    const ag = agMap[c.agendamentoId];
+    const servicoNome = itemDoProf?.servicoNome ?? (ag?.servicoId ? servicosMainMap[ag.servicoId] : null) ?? null;
+    const clienteNome = ag ? (clienteMap[ag.clienteId] ?? null) : null;
+    return { ...c, servicoNome, clienteNome };
+  });
 }
 
 export async function createComissao(data: typeof comissoes.$inferInsert) {
