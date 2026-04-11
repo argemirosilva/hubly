@@ -25,6 +25,7 @@ type FilaRow = {
   criadoEm: string;
   tempoRestante: string | null;
   agendamentoId: number | null;
+  servicoNome: string | null;
 };
 
 function StatusBadge({ status, tempoRestante }: { status: string; tempoRestante?: string | null }) {
@@ -132,6 +133,17 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading }: {
             </div>
           </div>
 
+          {/* Serviço */}
+          {row.servicoNome && (
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground">✂️</div>
+              <div>
+                <p className="text-xs text-muted-foreground">Serviço</p>
+                <p className="text-sm font-medium">{row.servicoNome}</p>
+              </div>
+            </div>
+          )}
+
           {/* Agendamento vinculado */}
           {row.agendamentoId && (
             <div className="text-xs text-muted-foreground">
@@ -229,8 +241,8 @@ export default function FilaAutomacoes() {
             <Send className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Fila de Envios</h1>
-            <p className="text-sm text-muted-foreground">Acompanhe os envios de automações em tempo real</p>
+            <h1 className="text-xl font-bold">Caixa de Saída</h1>
+            <p className="text-sm text-muted-foreground">Log de mensagens enviadas, pendentes e com falha</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -340,6 +352,12 @@ export default function FilaAutomacoes() {
                       <span className="text-sm font-medium truncate">{row.clienteNome ?? "Cliente"}</span>
                       <span className="text-xs text-muted-foreground">·</span>
                       <span className="text-xs text-muted-foreground truncate">{row.automacaoNome ?? "Automação"}</span>
+                      {row.servicoNome && (
+                        <>
+                          <span className="text-xs text-muted-foreground">·</span>
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full truncate">{row.servicoNome}</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {row.telefone && (

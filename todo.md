@@ -1345,3 +1345,20 @@
 - [x] Sem conceito de "profissional principal"
 - [x] AgendamentoDetalheModal: modo de edição também segue fluxo profissional→serviço
 - [x] Endpoint getAll adicionado em profissionalServicos para carregar vínculos em batch
+
+## Caixa de Saída de Automações (v-atual)
+- [x] Melhorar FilaAutomacoes.tsx: adicionar coluna de serviço, filtro por automação e renomear para Caixa de Saída
+- [x] Adicionar campo servicoNome na tabela historico_envios_automacao
+- [x] Persistir servicoNome ao enfileirar automações no routers.ts e scheduler.ts
+- [x] Integrar na sidebar como "Caixa de Saída" sob Automações
+
+## Comissão Multi-profissional (v-atual)
+- [x] Ao concluir agendamento: iterar pelos itens e criar comissão separada por profissional de cada item
+- [x] Usar percentualComissao do profissional do item (não do agendamento principal)
+- [x] Evitar duplicação: verificar se já existe comissão para o agendamento antes de criar
+
+## Portal Público: Fluxo Profissional→Serviço (v-atual)
+- [x] Inverter fluxo: profissional primeiro, depois serviços filtrados por profissional
+- [x] Atualizar steps: identificacao → profissional → servico → data → confirmacao
+- [x] Filtrar serviços disponíveis pelo profissional selecionado
+- [x] Endpoint getServicosPorProfissional adicionado no portal router

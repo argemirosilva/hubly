@@ -354,6 +354,7 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   midiaUrl: text("midiaUrl"),
   isTeste: boolean("isTeste").default(false),
   enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
+  servicoNome: varchar("servicoNome", { length: 255 }), // Nome do serviço do agendamento
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
 

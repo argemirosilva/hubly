@@ -1690,6 +1690,7 @@ export async function registrarEnvioAutomacao(data: {
   enviarEm?: Date; // Data/hora programada para envio (para status pendente)
   midiaUrl?: string; // URL da mídia para envio (imagem/documento)
   isTeste?: boolean; // Flag de envio de teste
+  servicoNome?: string; // Nome do serviço do agendamento
 }) {
   const db = await getDb();
   if (!db) return;
@@ -1735,6 +1736,7 @@ export async function registrarEnvioAutomacao(data: {
     enviarEm: data.enviarEm ?? null,
     midiaUrl: data.midiaUrl ?? null,
     isTeste: data.isTeste ?? false,
+    servicoNome: data.servicoNome ?? null,
   });
 }
 

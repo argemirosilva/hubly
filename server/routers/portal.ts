@@ -589,6 +589,49 @@ export const portalRouter = router({
         .limit(10);
     }),
 
+  /** Lista serviços que um profissional atende (para o novo fluxo profissional→serviço) */
+  getServicosPorProfissional: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      profissionalId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      // Buscar serviços vinculados ao profissional via profissionalServicos
+      const vinculados = await db.select({
+        id: servicos.id,
+        nome: servicos.nome,
+        descricao: servicos.descricao,
+        valor: servicos.valor,
+        duracaoMinutos: servicos.duracaoMinutos,
+        cor: servicos.cor,
+      })
+        .from(servicos)
+        .innerJoin(profissionalServicos, eq(profissionalServicos.servicoId, servicos.id))
+        .where(and(
+          eq(servicos.empresaId, input.empresaId),
+          eq(servicos.ativo, true),
+          eq(profissionalServicos.profissionalId, input.profissionalId),
+        ))
+        .orderBy(servicos.nome);
+
+      // Se nenhum vínculo existe, retornar todos os serviços ativos (fallback)
+      if (vinculados.length === 0) {
+        return db.select({
+          id: servicos.id,
+          nome: servicos.nome,
+          descricao: servicos.descricao,
+          valor: servicos.valor,
+          duracaoMinutos: servicos.duracaoMinutos,
+          cor: servicos.cor,
+        }).from(servicos)
+          .where(and(eq(servicos.empresaId, input.empresaId), eq(servicos.ativo, true)))
+          .orderBy(servicos.nome);
+      }
+      return vinculados;
+    }),
+
   /** Lista profissionais que atendem um serviço específico */
   getProfissionaisPorServico: publicProcedure
     .input(z.object({

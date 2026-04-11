@@ -975,6 +975,7 @@ export const appRouter = router({
                 status: 'pendente',
                 enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
                 midiaUrl: midiaUrlCriado ?? undefined,
+                servicoNome: servico?.nome ?? undefined,
               });
               console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
             } // fim do else (passou pelo filtro de serviço)
@@ -1121,6 +1122,89 @@ export const appRouter = router({
           }
         }
 
+        // ── Comissões multi-profissional ao concluir ─────────────────────────────────
+        if (data.status === "concluido") {
+          try {
+            const agendamento = await getAgendamentoById(id);
+            if (agendamento) {
+              const db = await getDb();
+              if (db) {
+                const { comissoes: comissoesTable } = await import("../drizzle/schema");
+                // Verificar se já existem comissões para este agendamento
+                const jaTemComissao = await db.select({ id: comissoesTable.id })
+                  .from(comissoesTable)
+                  .where(eq(comissoesTable.agendamentoId, id))
+                  .limit(1);
+                if (jaTemComissao.length === 0) {
+                  // Buscar itens do agendamento (multi-serviço)
+                  const itens = await getItensByAgendamento(id);
+                  const todosServicos = await getServicosByEmpresa(empresa.id);
+                  const todosProfissionais = await getProfissionaisByEmpresa(empresa.id);
+                  if (itens.length > 0) {
+                    // Agrupar itens por profissional
+                    const itensPorProfissional = new Map<number, { valorTotal: number; nomes: string[] }>();
+                    for (const item of itens) {
+                      const profId = item.profissionalId ?? agendamento.profissionalId;
+                      const valor = parseFloat(String(item.valorUnitario ?? 0));
+                      const servNome = todosServicos.find(s => s.id === item.servicoId)?.nome ?? 'Serviço';
+                      if (!itensPorProfissional.has(profId)) {
+                        itensPorProfissional.set(profId, { valorTotal: 0, nomes: [] });
+                      }
+                      const entry = itensPorProfissional.get(profId)!;
+                      entry.valorTotal += valor;
+                      entry.nomes.push(servNome);
+                    }
+                    // Criar comissão para cada profissional
+                    for (const [profId, { valorTotal }] of itensPorProfissional) {
+                      const prof = todosProfissionais.find(p => p.id === profId);
+                      const percentual = parseFloat(String(prof?.percentualComissao ?? empresa.percentualDona ?? 0));
+                      const valorLiquido = valorTotal;
+                      const valorComissao = valorLiquido * (percentual / 100);
+                      const receitaDona = valorLiquido * (parseFloat(String(empresa.percentualDona ?? 0)) / 100);
+                      await createComissao({
+                        empresaId: empresa.id,
+                        profissionalId: profId,
+                        agendamentoId: id,
+                        valorServico: valorTotal.toFixed(2),
+                        percentualComissao: percentual.toFixed(2),
+                        taxaMaquininha: '0.00',
+                        custoReposicao: '0.00',
+                        valorLiquido: valorLiquido.toFixed(2),
+                        valorComissao: valorComissao.toFixed(2),
+                        receitaDona: receitaDona.toFixed(2),
+                      } as any);
+                      console.log(`[Comissao] Criada para prof ${profId}: R$ ${valorComissao.toFixed(2)} (${percentual}% de R$ ${valorTotal.toFixed(2)})`);
+                    }
+                  } else {
+                    // Sem itens: usar profissional principal e serviço principal
+                    const prof = todosProfissionais.find(p => p.id === agendamento.profissionalId);
+                    const percentual = parseFloat(String(prof?.percentualComissao ?? 0));
+                    if (percentual > 0) {
+                      const valorServico = parseFloat(String(agendamento.valorTotal ?? 0));
+                      const valorComissao = valorServico * (percentual / 100);
+                      const receitaDona = valorServico * (parseFloat(String(empresa.percentualDona ?? 0)) / 100);
+                      await createComissao({
+                        empresaId: empresa.id,
+                        profissionalId: agendamento.profissionalId,
+                        agendamentoId: id,
+                        valorServico: valorServico.toFixed(2),
+                        percentualComissao: percentual.toFixed(2),
+                        taxaMaquininha: '0.00',
+                        custoReposicao: '0.00',
+                        valorLiquido: valorServico.toFixed(2),
+                        valorComissao: valorComissao.toFixed(2),
+                        receitaDona: receitaDona.toFixed(2),
+                      } as any);
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error("[Comissao] Erro ao criar comissões multi-profissional:", e);
+          }
+        }
+
           // ── Enfileirar automação para confirmado, cancelado ou concluido ───────────
         if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido') {
           try {
@@ -1233,6 +1317,7 @@ export const appRouter = router({
                   status: 'pendente',
                   enviarEm: new Date(),
                   midiaUrl: midiaUrlStatus ?? undefined,
+                  servicoNome: servico?.nome ?? undefined,
                 });
                 console.log(`[Fila] ${nomeEvento} enfileirado para ag. ${id} (${telefone})`);
                 try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}

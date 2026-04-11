@@ -39,10 +39,10 @@ function gerarDatasDisponiveis(diasFuncionamento: number[]): string[] {
   return datas;
 }
 
-type Step = "identificacao" | "servico" | "profissional" | "data" | "confirmacao" | "sucesso";
-const STEPS: Step[] = ["identificacao", "servico", "profissional", "data", "confirmacao"];
-const STEP_LABELS = ["Identificação", "Serviço", "Profissional", "Data & Hora", "Confirmar"];
-const STEP_ICONS = [User, Scissors, User, Calendar, CheckCircle2];
+type Step = "identificacao" | "profissional" | "servico" | "data" | "confirmacao" | "sucesso";
+const STEPS: Step[] = ["identificacao", "profissional", "servico", "data", "confirmacao"];
+const STEP_LABELS = ["Identificação", "Profissional", "Serviço", "Data & Hora", "Confirmar"];
+const STEP_ICONS = [User, User, Scissors, Calendar, CheckCircle2];
 
 export default function PortalCliente() {
   const [matchSlug, paramsSlug] = useRoute("/agendar/:slug");
@@ -110,14 +110,19 @@ export default function PortalCliente() {
     );
   };
 
-  const { data: servicos } = trpc.portal.getServicos.useQuery({ empresaId });
-  const { data: profissionaisTodos } = trpc.portal.getProfissionais.useQuery({ empresaId });
-  // Profissionais filtrados pelo serviço selecionado (com fallback para todos)
-  const { data: profissionaisFiltrados } = trpc.portal.getProfissionaisPorServico.useQuery(
-    { empresaId, servicoId: servicoId! },
-    { enabled: !!servicoId },
+  // No novo fluxo: primeiro seleciona profissional, depois filtra serviços desse profissional
+  const { data: profissionais } = trpc.portal.getProfissionais.useQuery({ empresaId });
+  // Serviços filtrados pelo profissional selecionado
+  const { data: servicosFiltrados } = trpc.portal.getServicosPorProfissional.useQuery(
+    { empresaId, profissionalId: profissionalId! },
+    { enabled: !!profissionalId },
   );
-  const profissionais = servicoId ? profissionaisFiltrados : profissionaisTodos;
+  // Se nenhum profissional selecionado, busca todos os serviços (fallback)
+  const { data: todosServicos } = trpc.portal.getServicos.useQuery(
+    { empresaId },
+    { enabled: !profissionalId },
+  );
+  const servicos = profissionalId ? servicosFiltrados : todosServicos;
   const { data: meusAgendamentos } = trpc.portal.getMeusAgendamentos.useQuery(
     { empresaId, telefone },
     { enabled: clienteIdentificado && !!telefone },
@@ -534,7 +539,7 @@ export default function PortalCliente() {
               {/* Botão Continuar */}
               <BtnPrimary
                 disabled={!telefone || !nome || (clienteEncontrado === true && temCpf && !cpfValidado)}
-                onClick={() => { setClienteIdentificado(true); setStep("servico"); }}
+                onClick={() => { setClienteIdentificado(true); setStep("profissional"); }}
                 cor={corPrimaria}>
                 Continuar <ChevronRight className="w-4 h-4" />
               </BtnPrimary>
@@ -546,8 +551,43 @@ export default function PortalCliente() {
           </StepCard>
         )}
 
+        {step === "profissional" && (
+          <StepCard title="Com quem?" subtitle="Escolha o profissional que vai atendê-lo">
+            <div className="space-y-2">
+              {profissionais?.map(p => (
+                <button key={p.id} onClick={() => {
+                  // Ao trocar profissional, limpar serviços selecionados
+                  if (p.id !== profissionalId) setServicosIds([]);
+                  setProfissionalId(p.id);
+                  setStep("servico");
+                }}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                  style={{
+                    borderColor: profissionalId === p.id ? corPrimaria : "#e2e8f0",
+                    background: profissionalId === p.id ? corSecundaria + "50" : "white",
+                  }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm overflow-hidden"
+                    style={{ background: corPrimaria }}>
+                    {p.avatarUrl
+                      ? <img src={p.avatarUrl} alt={p.nome} className="w-full h-full object-cover" />
+                      : p.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-slate-800">{p.nome}</p>
+                    {p.especialidade && <p className="text-xs text-slate-500">{p.especialidade}</p>}
+                  </div>
+                  {profissionalId === p.id && <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: corPrimaria }} />}
+                </button>
+              ))}
+            </div>
+            <BtnSecundario onClick={() => setStep("identificacao")} cor={corPrimaria}>
+              <ChevronLeft className="w-4 h-4" /> Voltar
+            </BtnSecundario>
+          </StepCard>
+        )}
+
         {step === "servico" && (
-          <StepCard title="Qual serviço?" subtitle="Selecione um ou mais serviços">
+          <StepCard title="Qual serviço?" subtitle={profSelecionado ? `Serviços de ${profSelecionado.nome}` : "Selecione um ou mais serviços"}>
             <div className="space-y-2">
               {servicos?.map(s => {
                 const selecionado = servicosIds.includes(s.id);
@@ -598,59 +638,17 @@ export default function PortalCliente() {
             )}
 
             <div className="flex gap-2">
-              <BtnSecundario onClick={() => setStep("identificacao")} cor={corPrimaria}>
+              <BtnSecundario onClick={() => setStep("profissional")} cor={corPrimaria}>
                 <ChevronLeft className="w-4 h-4" /> Voltar
               </BtnSecundario>
-              <BtnPrimary disabled={servicosIds.length === 0} onClick={() => setStep("profissional")} cor={corPrimaria}>
+              <BtnPrimary disabled={servicosIds.length === 0} onClick={() => setStep("data")} cor={corPrimaria}>
                 Continuar <ChevronRight className="w-4 h-4" />
               </BtnPrimary>
             </div>
           </StepCard>
         )}
 
-        {step === "profissional" && (
-          <StepCard title="Com quem?" subtitle="Escolha o profissional ou deixe em aberto">
-            <div className="space-y-2">
-              <button onClick={() => { setProfissionalId(null); setStep("data"); }}
-                className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
-                style={{
-                  borderColor: profissionalId === null ? corPrimaria : "#e2e8f0",
-                  background: profissionalId === null ? corSecundaria + "50" : "white",
-                }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: corPrimaria }}>
-                  <Star className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-slate-800">Qualquer profissional</p>
-                  <p className="text-xs text-slate-500">Primeiro horário disponível</p>
-                </div>
-              </button>
-              {profissionais?.map(p => (
-                <button key={p.id} onClick={() => { setProfissionalId(p.id); setStep("data"); }}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
-                  style={{
-                    borderColor: profissionalId === p.id ? corPrimaria : "#e2e8f0",
-                    background: profissionalId === p.id ? corSecundaria + "50" : "white",
-                  }}>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm overflow-hidden"
-                    style={{ background: corPrimaria }}>
-                    {p.avatarUrl
-                      ? <img src={p.avatarUrl} alt={p.nome} className="w-full h-full object-cover" />
-                      : p.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-slate-800">{p.nome}</p>
-                    {p.especialidade && <p className="text-xs text-slate-500">{p.especialidade}</p>}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <BtnSecundario onClick={() => setStep("servico")} cor={corPrimaria}>
-              <ChevronLeft className="w-4 h-4" /> Voltar
-            </BtnSecundario>
-          </StepCard>
-        )}
+
 
         {step === "data" && (
           <StepCard title="Quando?" subtitle="Escolha a data e horário">
@@ -712,10 +710,10 @@ export default function PortalCliente() {
               )}
 
               <div className="flex gap-2">
-                <BtnSecundario onClick={() => setStep("profissional")} cor={corPrimaria}>
-                  <ChevronLeft className="w-4 h-4" /> Voltar
-                </BtnSecundario>
-                <BtnPrimary disabled={!data || !hora} onClick={() => setStep("confirmacao")} cor={corPrimaria}>
+              <BtnSecundario onClick={() => setStep("servico")} cor={corPrimaria}>
+                <ChevronLeft className="w-4 h-4" /> Voltar
+              </BtnSecundario>
+              <BtnPrimary disabled={!data || !hora} onClick={() => setStep("confirmacao")} cor={corPrimaria}>
                   Continuar <ChevronRight className="w-4 h-4" />
                 </BtnPrimary>
               </div>
