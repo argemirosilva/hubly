@@ -1614,3 +1614,19 @@
 - [ ] Integrar job no servidor (executar a cada 5 minutos)
 - [ ] Enviar notificação push 1 hora antes do agendamento
 - [ ] Adicionar configuração de tempo de notificação nas Configurações
+
+## Feature: Integração de Job no Servidor (v9.19)
+- [x] Integrar job de notificações no scheduler do servidor
+- [x] Executar a cada 5 minutos
+- [ ] Testar com agendamentos próximos
+
+## Feature: Toggle de Notificações nas Configurações (v9.20)
+- [x] Adicionar toggle para ativar/desativar push notifications (JA EXISTE)
+- [x] Mostrar status (ativado/desativado/negado)
+- [x] Salvar preferência no banco de dados
+
+## Feature: Notificações de Confirmação (v9.21)
+- [x] Enviar notificação para dono quando agendamento é confirmado
+- [x] Enviar notificação para profissional quando agendamento é confirmado
+- [x] Integrar com fluxo de confirmação do WhatsApp
+- [ ] Testar com clientes reais

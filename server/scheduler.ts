@@ -3,6 +3,7 @@
  * Executa verificações periódicas sem depender de ação do usuário.
  */
 import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
+import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
 import {
   pacotesClientes,
   pacotesClientesItens,
@@ -1887,10 +1888,20 @@ export function initScheduler() {
     }, LIMPEZA_NOTIF_MS);
   }, 120_000); // aguarda 2min para o DB estar pronto
 
+  // NOVO: Enviar notificações de agendamentos próximos (1 hora antes) a cada 5 minutos
+  const NOTIF_AGENDAMENTO_MS = 5 * 60 * 1000;
+  setTimeout(() => {
+    enviarNotificacoesAgendamento();
+    setInterval(() => {
+      enviarNotificacoesAgendamento();
+    }, NOTIF_AGENDAMENTO_MS);
+  }, 120_000); // aguarda 2min para o DB estar pronto
+
   console.log("[Scheduler] Verificação automática de pacotes inicializada (a cada 6h).");
   console.log("[Scheduler] Lembretes automáticos de agendamento inicializados (às 9h diariamente).");
   console.log("[Scheduler] Processamento de automações configuradas inicializado (a cada 15min).");
   console.log("[Scheduler] Pré-registro de envios pendentes inicializado (a cada 1h).");
   console.log("[Scheduler] Worker de fila universal inicializado (a cada 1min + ao reconectar WhatsApp).");
   console.log("[Scheduler] Limpeza de notificações antigas inicializada (diariamente às 3h).");
+  console.log("[Scheduler] Notificações de agendamentos próximos inicializadas (a cada 5min).");
 }

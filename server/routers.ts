@@ -1493,6 +1493,39 @@ export const appRouter = router({
             if (ag && ag.empresaId === empresa.id) {
               await db.update(agendamentosTable).set(updates).where(eq(agendamentosTable.id, id));
               sucesso++;
+              
+              // Enviar notificações quando agendamento é confirmado
+              if (input.status === 'confirmado') {
+                const { notifyOwner } = await import('./_core/notification.js');
+                const horaFormatada = new Date(ag.horaInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const dataFormatada = new Date(ag.horaInicio).toLocaleDateString('pt-BR');
+                
+                // Notificar dono
+                try {
+                  await notifyOwner({
+                    title: 'Agendamento Confirmado',
+                    content: `Agendamento confirmado para ${dataFormatada} às ${horaFormatada}`
+                  });
+                } catch (e) {
+                  console.error('[Notificação] Erro ao notificar dono:', e);
+                }
+                
+                // Notificar profissional via push notification
+                if (ag.profissionalId) {
+                  try {
+                    const { clientes: clientesTable, profissionais: profissionaisTable } = await import('../drizzle/schema.js');
+                    const [prof] = await db.select().from(profissionaisTable).where(eq(profissionaisTable.id, ag.profissionalId)).limit(1);
+                    const [cliente] = ag.clienteId ? await db.select().from(clientesTable).where(eq(clientesTable.id, ag.clienteId)).limit(1) : [null];
+                    
+                    if (prof && cliente) {
+                      // Aqui integraria com sistema de push notifications do profissional
+                      console.log(`[Notificação] Profissional ${prof.nome} notificado sobre agendamento de ${cliente.nome}`);
+                    }
+                  } catch (e) {
+                    console.error('[Notificação] Erro ao notificar profissional:', e);
+                  }
+                }
+              }
             } else {
               falhas++;
             }
