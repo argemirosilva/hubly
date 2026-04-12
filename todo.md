@@ -1547,3 +1547,6 @@
 
 ## UX: Dashboard (v9.11.7)
 - [x] Remover alerta de "WhatsApp desconectado" para evitar confusão com sininho de notificações
+
+## UX: Header (v9.11.8)
+- [x] Remover ícone de WhatsApp com badge de status do header mobile

@@ -823,23 +823,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </Link>
             )}
-            {/* Ícone WhatsApp com status pulsante — apenas para admins/owners */}
-            {hasFullAccess && <Link href="/admin/whatsapp" title={waConnected ? `WhatsApp conectado${waPhoneNumber ? ` — ${waPhoneNumber}` : ''}` : 'WhatsApp desconectado'}>
-              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                <MessageCircle className="w-5 h-5" style={{ color: waConnected ? "oklch(55% 0.22 145)" : "oklch(65% 0.015 255)" }} />
-                {/* Dot de status */}
-                <span
-                  className="absolute bottom-1 right-1 rounded-full"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    background: waConnected ? "oklch(62% 0.22 145)" : "oklch(55% 0.18 25)",
-                    boxShadow: waConnected ? "0 0 0 2px white" : "0 0 0 2px white",
-                    animation: waConnected ? "wa-pulse 2.4s ease-in-out infinite" : "none",
-                  }}
-                />
-              </div>
-            </Link>}
+
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
                 <Bell className="w-5 h-5 text-foreground" />
