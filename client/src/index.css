@@ -303,4 +303,15 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50%       { opacity: 0.55; transform: scale(0.82); }
   }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

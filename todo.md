@@ -1550,3 +1550,24 @@
 
 ## UX: Header (v9.11.8)
 - [x] Remover ícone de WhatsApp com badge de status do header mobile
+
+## Feature: Sistema de Notificações em Overlay (v9.12)
+- [ ] Criar componente NotificationStack para empilhar notificações
+- [ ] Implementar notificações como cards flutuantes (bottom overlay)
+- [ ] Adicionar botão de fechar (X) em cada notificação
+- [ ] Auto-desaparecer após 5 segundos
+- [ ] Animação suave de entrada/saída (fade-in/slide-up)
+- [ ] Suportar múltiplas notificações empilhadas
+- [ ] Integrar com sistema de toasts existente
+
+## Feature: Sistema de Notificações em Overlay (v9.12) - IMPLEMENTAÇÃO COMPLETA
+- [x] Criar componente NotificationStack para empilhar notificações
+- [x] Implementar notificações como cards flutuantes (bottom overlay)
+- [x] Adicionar botão de fechar (X) em cada notificação
+- [x] Auto-desaparecer após 5 segundos
+- [x] Animação suave de entrada/saída (slideUp)
+- [x] Suportar múltiplas notificações empilhadas
+- [x] Integrar NotificationProvider ao main.tsx
+- [x] Adicionar animação slideUp ao index.css
+- [ ] Testar com exemplos de notificações (success, error, warning, info)
+- [ ] Integrar com sistema de toasts existente
