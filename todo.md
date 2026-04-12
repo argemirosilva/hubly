@@ -1544,3 +1544,6 @@
 
 ## UX: Dashboard (v9.11.6)
 - [x] Remover botão "+ Novo Agendamento" do Dashboard
+
+## UX: Dashboard (v9.11.7)
+- [x] Remover alerta de "WhatsApp desconectado" para evitar confusão com sininho de notificações

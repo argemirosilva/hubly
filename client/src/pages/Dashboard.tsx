@@ -733,15 +733,6 @@ export default function Dashboard() {
   return (
     <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5 animate-in-up">
 
-      {/* Alerta WhatsApp desconectado */}
-      {waDesconectado && (
-        <Link href="/admin/whatsapp">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-            style={{ background: "oklch(55% 0.18 25 / 10%)", border: "1px solid oklch(55% 0.18 25 / 25%)", color: "oklch(42% 0.18 25)" }}>
-            <MessageCircle className="w-3 h-3 shrink-0" /><span>WhatsApp desconectado</span><ArrowRight className="w-3 h-3 shrink-0" />
-          </div>
-        </Link>
-      )}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
