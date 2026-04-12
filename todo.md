@@ -1478,3 +1478,7 @@
 ## Atalhos de Período (v9.2)
 - [x] Agendamentos: adicionar botões Hoje/Semana/Mês nos filtros de data
 - [x] Dashboard: adicionar atalhos Hoje/Semana/Mês no widget de agenda
+
+## Bug: Ordenação de Agendamentos (v9.3)
+- [x] Corrigir ordenação: exibir por data + hora (não por ordem de criação)
+- [x] Adicionar separadores de data na lista quando período é maior que um dia

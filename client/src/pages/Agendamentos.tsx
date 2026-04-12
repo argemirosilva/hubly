@@ -178,7 +178,11 @@ export default function Agendamentos() {
       const emAberto = (ag as any).emAberto ?? 0;
       const matchSaldo = !filtroSaldoAberto || emAberto > 0;
       return matchStatus && matchBusca && matchProfissional && matchSaldo;
-    }).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+    }).sort((a, b) => {
+      const dataA = (a.data ?? "") + " " + (a.horaInicio ?? "");
+      const dataB = (b.data ?? "") + " " + (b.horaInicio ?? "");
+      return dataA.localeCompare(dataB);
+    });
   }, [agendamentos, filtroStatus, busca, clienteMap, filtroProfissional, filtroSaldoAberto]);
 
   const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today || filtroProfissional !== "todos" || filtroSaldoAberto;
@@ -388,12 +392,25 @@ export default function Agendamentos() {
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
-            {filtrados.map(ag => {
-              // Suporte a múltiplos serviços: usar servicoNome do backend se disponível
-              const servicoNome = (ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "";
-              const prof = profMap[ag.profissionalId];
-              const st = statusStyle[ag.status] ?? statusStyle.agendado;
-              return (
+            {(() => {
+              const multiDia = dataInicio !== dataFim;
+              let ultimaData = "";
+              return filtrados.flatMap(ag => {
+                const servicoNome = (ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "";
+                const prof = profMap[ag.profissionalId];
+                const st = statusStyle[ag.status] ?? statusStyle.agendado;
+                const items: React.ReactNode[] = [];
+                if (multiDia && ag.data !== ultimaData) {
+                  ultimaData = ag.data;
+                  const [ano, mes, dia] = ag.data.split("-");
+                  const dataFormatada = new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+                  items.push(
+                    <div key={`sep-${ag.data}`} className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide" style={{ background: "oklch(97% 0.005 250)", borderBottom: "1px solid oklch(94% 0.008 250)" }}>
+                      {dataFormatada}
+                    </div>
+                  );
+                }
+                items.push(
                 <div
                   key={ag.id}
                   className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer ${modoSelecao && selecionados.has(ag.id) ? "bg-primary/5" : ""}`}
@@ -459,8 +476,10 @@ export default function Agendamentos() {
                     )}
                   </div>
                 </div>
-              );
-            })}
+                );
+                return items;
+              });
+            })()}
           </div>
         )}
       </div>
