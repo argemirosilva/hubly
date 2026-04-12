@@ -1571,3 +1571,20 @@
 - [x] Adicionar animação slideUp ao index.css
 - [ ] Testar com exemplos de notificações (success, error, warning, info)
 - [ ] Integrar com sistema de toasts existente
+
+## Feature: Web Push Notifications (v9.13)
+- [ ] Criar Service Worker para gerenciar push notifications
+- [ ] Implementar subscription a push notifications no app
+- [ ] Adicionar backend para enviar push notifications
+- [ ] Testar notificações em background/bloqueado
+- [ ] Adicionar permissão de notificações no primeiro acesso
+
+## Feature: Permissões Nativas do Sistema Operacional (v9.14)
+- [x] Adicionar manifest.json com permissões de notificação
+- [x] Implementar Notification API com permissões do SO
+- [x] Adicionar meta tags de notificação no index.html
+- [x] Adicionar screenshots e share_target no manifest.json
+- [ ] Testar em Android (Chrome, Firefox, Samsung Internet)
+- [ ] Testar em iOS (Safari, PWA)
+- [ ] Adicionar botão nas Configurações para ativar/desativar
+- [ ] Mostrar status de permissão (ativado/desativado/negado)
