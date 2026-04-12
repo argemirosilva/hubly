@@ -2,7 +2,8 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3 } from "lucide-react";
+import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
 import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -157,6 +158,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     updateValoresMutation.mutate({ agendamentoId, itens });
   }
 
+  const [editarModal, setEditarModal] = useState(false);
   const [comissaoModal, setComissaoModal] = useState(false);
   const [resumoConclusaoModal, setResumoConclusaoModal] = useState(false);
   const [confirmarExclusaoModal, setConfirmarExclusaoModal] = useState(false);
@@ -828,6 +830,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             </div>
           )}
 
+          {/* Botão Editar Agendamento */}
+          {isAdmin && (
+            <div>
+              <button
+                onClick={() => setEditarModal(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(45% 0.18 264)", border: "1px solid oklch(55% 0.22 264 / 25%)" }}
+              >
+                <Edit3 className="w-4 h-4" />
+                Editar Agendamento
+              </button>
+            </div>
+          )}
+
           {/* Ações */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
@@ -986,6 +1002,13 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
       </DialogContent>
     </Dialog>
+
+    {/* Modal de Edição Completa */}
+    <EditarAgendamentoModal
+      agendamentoId={agendamentoId}
+      open={editarModal}
+      onClose={() => setEditarModal(false)}
+    />
 
     {/* Modal de Comissão Automática */}
     <Dialog open={comissaoModal} onOpenChange={setComissaoModal}>

@@ -1013,6 +1013,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         status: z.enum(["pre_agendado", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]).optional(),
+        clienteId: z.number().optional(),
         data: z.string().optional(),
         horaInicio: z.string().optional(),
         horaFim: z.string().optional(),

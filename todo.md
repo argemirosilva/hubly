@@ -1463,3 +1463,9 @@
 - [ ] Backend: respeitar preferências ao enviar push (filtrar por tipo)
 - [x] Frontend: seção "Notificações Push" na página Configurações com toggles por tipo
 - [x] Frontend: integrar usePushNotifications na seção de configurações
+
+## Edição Completa de Agendamento (v9)
+- [x] Modal de edição completa: trocar cliente, profissional, serviço, data, hora
+- [x] Adicionar/remover itens de serviço no agendamento existente
+- [x] Backend: clienteId adicionado ao endpoint agendamentos.update
+- [x] Botão "Editar Agendamento" no modal de detalhe (AgendamentoDetalheModal)
