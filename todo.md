@@ -1526,3 +1526,9 @@
 ## UX: Menu de Contexto do Calendário (v9.11.2)
 - [x] Remover botão "Novo Agendamento" da barra de navegação
 - [x] Centralizar menu de contexto com opções "Novo Agendamento" e "Ver Agendamentos"
+
+## Bug: Onboarding de Configuracao da Empresa (v9.11.3)
+- [x] Verificar por quanto tempo o onboarding de "Configurar empresa" aparece apos a configuracao ser feita
+- [x] Adicionar cache (staleTime: 5 minutos) para evitar recarregamentos desnecessarios
+- [x] Implementar verificacao mais robusta: nao exibir onboarding durante carregamento da query
+- [x] Mostrar loading spinner enquanto a empresa esta sendo carregada

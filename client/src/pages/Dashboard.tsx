@@ -278,7 +278,7 @@ export default function Dashboard() {
   const isProfissional = !!profissionalIdVinculado;
   const podeVerFinanceiro = pode("financeiroVer");
 
-  const { data: empresa } = trpc.empresa.get.useQuery();
+  const { data: empresa, isLoading: empresaLoading } = trpc.empresa.get.useQuery(undefined, { staleTime: 5 * 60 * 1000 }); // Cache de 5 minutos
   const { data: metrics } = trpc.financeiro.dashboard.useQuery(undefined);
   const { data: metricasPreAg } = trpc.agendamentos.metricasPreAgendamento.useQuery();
   const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
@@ -702,16 +702,29 @@ export default function Dashboard() {
   const mainWidgets = ["agenda_hoje"];
   const sideWidgets = ["acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe"];
 
-  if (!empresa) {
+  // Mostrar onboarding apenas se a empresa nao foi configurada (nao durante carregamento)
+  if (!empresaLoading && !empresa) {
     return (
       <div className="flex items-center justify-center min-h-screen p-8">
         <div className="text-center max-w-sm space-y-5">
           <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto"><Sparkles className="w-7 h-7 text-white" /></div>
           <div>
             <h2 className="text-xl font-bold tracking-tight mb-2">Configure sua empresa</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">Para começar a usar o Hubly, configure as informações do seu estabelecimento.</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Para começar a usar o Hubly, configure as informacoes do seu estabelecimento.</p>
           </div>
           <Link href="/admin/configuracoes"><button className="btn-primary mx-auto">Configurar agora <ChevronRight className="w-4 h-4" /></button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar loading enquanto carrega a empresa
+  if (empresaLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-8">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-2 border-muted border-t-primary animate-spin mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
         </div>
       </div>
     );
@@ -736,7 +749,7 @@ export default function Dashboard() {
           <p className="text-xs text-muted-foreground font-medium capitalize mb-0.5 hidden sm:block">{dataFormatada}</p>
           <h1 className="font-bold tracking-tight text-xl lg:text-2xl truncate">{saudacao(user?.name ?? undefined)}</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">{empresa.nome}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{empresa?.nome}</p>
             {isProfissional && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />Minha agenda
