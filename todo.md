@@ -1519,3 +1519,6 @@
 - [x] Botões "Mês" truncados em vermelho no mobile — falta espaço na barra de navegação (ocultos no mobile com `hidden lg:flex`)
 - [x] Erro 404 ao clicar "Ver Agendamentos do Dia" — corrigido para usar `navigate()` do wouter com rota correta `/admin/agendamentos?data=...`
 - [x] Página de Agendamentos agora lê parâmetro `?data` da URL e pré-preenche o filtro de data
+
+## UX: Botão Novo no Calendário (v9.11.1)
+- [x] Alterar botão "Novo" para exibir apenas o ícone de mais (+) no mobile
