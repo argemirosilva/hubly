@@ -1514,3 +1514,8 @@
 ## Calendário: Menu de Ações ao Clicar em Dia (v9.10)
 - [x] Ao clicar em dia com agendamentos, abrir menu com opções: "Novo Agendamento" ou "Ver Agendamentos do Dia"
 - [x] Se dia sem agendamentos, abrir diretamente o modal de novo agendamento
+
+## Bugs: Menu Calendário (v9.11)
+- [x] Botões "Mês" truncados em vermelho no mobile — falta espaço na barra de navegação (ocultos no mobile com `hidden lg:flex`)
+- [x] Erro 404 ao clicar "Ver Agendamentos do Dia" — corrigido para usar `navigate()` do wouter com rota correta `/admin/agendamentos?data=...`
+- [x] Página de Agendamentos agora lê parâmetro `?data` da URL e pré-preenche o filtro de data

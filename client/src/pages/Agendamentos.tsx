@@ -25,6 +25,7 @@ import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { getLocalDateString } from "@/lib/utils";
+import { useSearch } from "wouter";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
@@ -125,6 +126,18 @@ export default function Agendamentos() {
   const [filtroSaldoAberto, setFiltroSaldoAberto] = useState(false);
 
   const today = getLocalDateString();
+  const search = useSearch();
+
+  // Verificar se há um parâmetro ?data na URL
+  const dataDoCalendario = (() => {
+    try {
+      const params = new URLSearchParams(search);
+      const data = params.get('data');
+      return data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : null;
+    } catch {
+      return null;
+    }
+  })();
 
   // Calcular datas para um período sem depender de estado
   const calcularDatas = (tipo: "hoje" | "semana" | "mes"): { inicio: string; fim: string } => {
@@ -151,10 +164,15 @@ export default function Agendamentos() {
     return "hoje" as const;
   })();
 
-  const datasIniciais = calcularDatas(periodoSalvo);
+  // Se há data do calendário, usar essa; senão usar o período salvo
+  const datasIniciais = dataDoCalendario
+    ? { inicio: dataDoCalendario, fim: dataDoCalendario }
+    : calcularDatas(periodoSalvo);
   const [dataInicio, setDataInicio] = useState(datasIniciais.inicio);
   const [dataFim, setDataFim] = useState(datasIniciais.fim);
-  const [periodoAtivo, setPeriodoAtivo] = useState<"hoje" | "semana" | "mes" | "custom">(periodoSalvo);
+  const [periodoAtivo, setPeriodoAtivo] = useState<"hoje" | "semana" | "mes" | "custom">(
+    dataDoCalendario ? "custom" : periodoSalvo
+  );
 
   const aplicarPeriodo = (tipo: "hoje" | "semana" | "mes") => {
     const { inicio, fim } = calcularDatas(tipo);

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2 } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
@@ -25,6 +26,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
 };
 
 export default function Calendario() {
+  const [, navigate] = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();
@@ -222,7 +224,7 @@ export default function Calendario() {
             </button>
           </div>
           {/* Atalhos de período */}
-          <div className="flex items-center gap-1 ml-1">
+          <div className="hidden lg:flex items-center gap-1 ml-1 flex-wrap">
             {([
               { key: "hoje",  label: "Hoje",  count: contagemHoje,  fn: irParaHoje },
               { key: "semana", label: "Semana", count: contagemSemana, fn: irParaSemanaAtual },
@@ -231,7 +233,7 @@ export default function Calendario() {
               <button
                 key={key}
                 onClick={fn}
-                className="h-7 px-2.5 rounded-lg border text-xs font-medium transition-all"
+                className="h-7 px-2.5 rounded-lg border text-xs font-medium transition-all shrink-0"
                 style={{
                   background: (key === "mes" && eHoje) || (key === "semana" && eHoje) || (key === "hoje" && eHoje)
                     ? "oklch(55% 0.22 264 / 10%)"
@@ -589,9 +591,8 @@ export default function Calendario() {
             onClick={() => {
               // Filtrar agendamentos do dia selecionado
               const dataFiltro = menuAberto.data;
-              // Aqui você pode navegar para a página de Agendamentos com o filtro pré-aplicado
-              // ou abrir um modal mostrando os agendamentos do dia
-              window.location.href = `/agendamentos?data=${dataFiltro}`;
+              navigate(`/admin/agendamentos?data=${dataFiltro}`);
+              setMenuAberto(null);
             }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2"
           >
