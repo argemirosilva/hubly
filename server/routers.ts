@@ -813,12 +813,14 @@ export const appRouter = router({
 
         // ── Criar itens de agendamento (múltiplos serviços) ────────────────────────────────────────────────
         if (servicosInput && servicosInput.length > 0) {
+          // Sanitizar horaInicio/horaFim: garantir formato HH:MM (5 chars) para varchar(5)
+          const sanitizarHoraCreate = (h: string | undefined | null) => h ? h.slice(0, 5) : null;
           await createAgendamentoItens(servicosInput.map(s => ({
             agendamentoId: id,
             servicoId: s.servicoId,
             profissionalId: s.profissionalId ?? null,
-            horaInicio: s.horaInicio ?? null,
-            horaFim: s.horaFim ?? null,
+            horaInicio: sanitizarHoraCreate(s.horaInicio),
+            horaFim: sanitizarHoraCreate(s.horaFim),
             valorUnitario: s.valorUnitario,
             pacoteClienteItemId: s.pacoteClienteItemId,
           })));
@@ -1376,12 +1378,14 @@ export const appRouter = router({
         await updateAgendamento(input.agendamentoId, updates);
         // Substituir os itens
         await deleteItensByAgendamento(input.agendamentoId);
+        // Sanitizar horaInicio/horaFim: garantir formato HH:MM (5 chars) para varchar(5)
+        const sanitizarHora = (h: string | undefined | null) => h ? h.slice(0, 5) : null;
         await createAgendamentoItens(input.servicos.map(s => ({
           agendamentoId: input.agendamentoId,
           servicoId: s.servicoId,
           profissionalId: s.profissionalId ?? null,
-          horaInicio: s.horaInicio ?? null,
-          horaFim: s.horaFim ?? null,
+          horaInicio: sanitizarHora(s.horaInicio),
+          horaFim: sanitizarHora(s.horaFim),
           valorUnitario: s.valorUnitario,
         })));
         return { success: true };

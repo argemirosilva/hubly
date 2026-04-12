@@ -243,8 +243,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
         profissionalId: parseInt(s.profissionalId),
-        horaInicio: s.horaInicio ? s.horaInicio + ":00" : undefined,
-        horaFim: s.horaFim ? s.horaFim + ":00" : undefined,
+        horaInicio: s.horaInicio ?? undefined,
+        horaFim: s.horaFim ?? undefined,
         valorUnitario: s.valorUnitario || "0",
         pacoteClienteItemId: s.pacoteClienteItemId,
       })),

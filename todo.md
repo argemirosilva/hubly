@@ -1469,3 +1469,8 @@
 - [x] Adicionar/remover itens de serviço no agendamento existente
 - [x] Backend: clienteId adicionado ao endpoint agendamentos.update
 - [x] Botão "Editar Agendamento" no modal de detalhe (AgendamentoDetalheModal)
+
+## Bug: Agendamento Simultâneo (v9)
+- [x] Corrigir erro ao criar agendamento com múltiplas profissionais no mesmo horário
+- [x] Frontend: remover :00 extra nos horários dos itens (NovaAgendaModal e EditarAgendamentoModal)
+- [x] Backend: sanitizar horaInicio/horaFim para varchar(5) nos endpoints create e updateServicos
