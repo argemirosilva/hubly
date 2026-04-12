@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { getLocalDateString } from "@/lib/utils";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -40,8 +41,8 @@ export default function ReceitaDetalheModal({ open, onClose }: Props) {
     const targetDate = new Date(hoje.getFullYear(), hoje.getMonth() + mesOffset, 1);
     const ano = targetDate.getFullYear();
     const mes = targetDate.getMonth();
-    const inicio = new Date(ano, mes, 1).toISOString().split("T")[0];
-    const fim = new Date(ano, mes + 1, 0).toISOString().split("T")[0];
+    const inicio = getLocalDateString(new Date(ano, mes, 1));
+    const fim = getLocalDateString(new Date(ano, mes + 1, 0));
     return {
       dataInicio: inicio,
       dataFim: fim,
@@ -96,8 +97,8 @@ export default function ReceitaDetalheModal({ open, onClose }: Props) {
     const ano = targetDate.getFullYear();
     const mes = targetDate.getMonth();
     return {
-      dataInicio: new Date(ano, mes, 1).toISOString().split("T")[0],
-      dataFim: new Date(ano, mes + 1, 0).toISOString().split("T")[0],
+      dataInicio: getLocalDateString(new Date(ano, mes, 1)),
+      dataFim: getLocalDateString(new Date(ano, mes + 1, 0)),
     };
   }, [mesOffset]);
 

@@ -3762,6 +3762,68 @@ export const appRouter = router({
       });
       return result;
     }),
+    /** Retorna as preferências de notificações push do usuário atual */
+    getPreferencias: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      let userId = ctx.user.id;
+      if (ctx.systemUser) {
+        const { profissionais: profTable } = await import('../drizzle/schema');
+        const [prof] = await db.select({ userId: profTable.userId }).from(profTable).where(eq(profTable.id, ctx.systemUser.id)).limit(1);
+        if (prof?.userId) userId = prof.userId;
+      }
+      if (userId < 0) {
+        return { novoAgendamento: true, confirmacao: true, cancelamento: true, lembrete: true, pagamento: true, comissao: true };
+      }
+      const { users: usersTable } = await import('../drizzle/schema');
+      const [user] = await db.select({
+        notifNovoAgendamento: usersTable.notifNovoAgendamento,
+        notifConfirmacao: usersTable.notifConfirmacao,
+        notifCancelamento: usersTable.notifCancelamento,
+        notifLembrete: usersTable.notifLembrete,
+        notifPagamento: usersTable.notifPagamento,
+        notifComissao: usersTable.notifComissao,
+      }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      return {
+        novoAgendamento: user?.notifNovoAgendamento ?? true,
+        confirmacao: user?.notifConfirmacao ?? true,
+        cancelamento: user?.notifCancelamento ?? true,
+        lembrete: user?.notifLembrete ?? true,
+        pagamento: user?.notifPagamento ?? true,
+        comissao: user?.notifComissao ?? true,
+      };
+    }),
+    /** Salva as preferências de notificações push do usuário atual */
+    salvarPreferencias: protectedProcedure
+      .input(z.object({
+        novoAgendamento: z.boolean(),
+        confirmacao: z.boolean(),
+        cancelamento: z.boolean(),
+        lembrete: z.boolean(),
+        pagamento: z.boolean(),
+        comissao: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        let userId = ctx.user.id;
+        if (ctx.systemUser) {
+          const { profissionais: profTable } = await import('../drizzle/schema');
+          const [prof] = await db.select({ userId: profTable.userId }).from(profTable).where(eq(profTable.id, ctx.systemUser.id)).limit(1);
+          if (prof?.userId) userId = prof.userId;
+        }
+        if (userId < 0) return { success: true };
+        const { users: usersTable } = await import('../drizzle/schema');
+        await db.update(usersTable).set({
+          notifNovoAgendamento: input.novoAgendamento,
+          notifConfirmacao: input.confirmacao,
+          notifCancelamento: input.cancelamento,
+          notifLembrete: input.lembrete,
+          notifPagamento: input.pagamento,
+          notifComissao: input.comissao,
+        }).where(eq(usersTable.id, userId));
+        return { success: true };
+      }),
   }),
 
   // ─── CONFIRMAÇÃO DE AGENDAMENTO ──────────────────────────────────────────────

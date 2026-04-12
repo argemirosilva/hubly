@@ -1434,3 +1434,32 @@
 - [x] CFBundleURLSchemes hubly:// no Info.plist do iOS
 - [x] Handler appUrlOpen no useMobileApp.ts (hubly:// e https://)
 - [x] Suporte a hubly://agendamento/:id e hubly://cliente/:id
+
+## Firebase Cloud Messaging + APNs (v-atual)
+- [ ] Configurar build.gradle Android com plugin google-services
+- [ ] Criar google-services.json placeholder com instruções
+- [ ] Criar guia APNs iOS (certificado, capability, entitlements)
+- [ ] Atualizar useMobileApp.ts para registrar token FCM no backend
+- [ ] Endpoint backend para salvar push token por usuário
+
+## Publicação nas Lojas - Guia Completo (v-atual)
+- [ ] Atualizar MOBILE_BUILD_GUIDE.md com passo a passo Play Store
+- [ ] Adicionar passo a passo App Store (TestFlight + produção)
+- [ ] Incluir checklist de screenshots, descrições e metadados
+- [ ] Documentar processo de atualização de versão
+
+## Tela de Configurações de Notificações (v-atual)
+- [x] Schema: campos notif* já existiam na tabela users (novoAgendamento, confirmacao, cancelamento, lembrete, pagamento, comissao)
+- [x] Backend: endpoints push.getPreferencias e push.salvarPreferencias
+- [x] Frontend: seção "Notificações Push" na página Configuracoes.tsx com toggles por tipo
+- [ ] Integrar na sidebar e registrar rota
+
+## Bugs (v8 — Timezone)
+- [x] Bug crítico: página de Agendamentos não exibia registros — causa: `new Date().toISOString()` retorna data UTC que diverge da data local do usuário (GMT-3). Corrigido com função `getLocalDateString()` em utils.ts, aplicada em Agendamentos.tsx, Calendario.tsx, Dashboard.tsx, ContasPagar.tsx, ContasReceber.tsx, ComissoesPagar.tsx, NovaAgendaModal.tsx, ReceitaDetalheModal.tsx e PortalCliente.tsx
+
+## Configurações de Notificações Push (v8)
+- [x] Schema: campos notif* já existiam na tabela users
+- [x] Backend: push.getPreferencias e push.salvarPreferencias implementados
+- [ ] Backend: respeitar preferências ao enviar push (filtrar por tipo)
+- [x] Frontend: seção "Notificações Push" na página Configurações com toggles por tipo
+- [x] Frontend: integrar usePushNotifications na seção de configurações

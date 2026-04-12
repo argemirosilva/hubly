@@ -24,6 +24,7 @@ import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { getLocalDateString } from "@/lib/utils";
 
 const statusLabel: Record<string, string> = {
   pre_agendado: "Pré-agendado",
@@ -123,7 +124,7 @@ export default function Agendamentos() {
   const [filtroProfissional, setFiltroProfissional] = useState<string>("todos");
   const [filtroSaldoAberto, setFiltroSaldoAberto] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const [dataInicio, setDataInicio] = useState(today);
   const [dataFim, setDataFim] = useState(today);
 

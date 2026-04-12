@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getLocalDateString } from "@/lib/utils";
 import { CheckCircle2, Clock, Search, Filter, DollarSign, Users, TrendingUp, AlertCircle } from "lucide-react";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -40,7 +41,7 @@ export default function ComissoesPagar() {
   const [busca, setBusca] = useState("");
   const [pagarModalOpen, setPagarModalOpen] = useState(false);
   const [selectedComissoes, setSelectedComissoes] = useState<number[]>([]);
-  const [dataPagamento, setDataPagamento] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dataPagamento, setDataPagamento] = useState(() => getLocalDateString());
 
   // Datas do período
   const dataInicio = useMemo(() => new Date(ano, mes - 1, 1), [mes, ano]);

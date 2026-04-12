@@ -13,6 +13,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import ReceitaDetalheModal from "@/components/ReceitaDetalheModal";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { getLocalDateString } from "@/lib/utils";
 import {
   DndContext,
   closestCenter,
@@ -252,7 +253,7 @@ export default function Dashboard() {
   const [editMode, setEditMode] = useState(false);
   const [layout, setLayout] = useState<WidgetConfig[]>(DEFAULT_LAYOUT);
   const [layoutDirty, setLayoutDirty] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
 
   const { pode, isOwner, isAdmin, hasFullAccess, profissionalId: profissionalIdVinculado } = usePermissoes();
   const isProfissional = !!profissionalIdVinculado;
@@ -272,8 +273,8 @@ export default function Dashboard() {
   const { data: waStatus } = trpc.whatsapp.getStatus.useQuery(undefined, { staleTime: 30000, refetchInterval: 60000 });
   const waDesconectado = waStatus !== undefined && waStatus.status !== "connected" && waStatus.status !== "connecting" && waStatus.status !== "qr_ready";
 
-  const [hojeStr] = useState(() => new Date().toISOString().split("T")[0]);
-  const [fimSemanaStr] = useState(() => new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
+  const [hojeStr] = useState(() => getLocalDateString());
+  const [fimSemanaStr] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 6); return getLocalDateString(d); });
   const { data: contasHoje } = trpc.contasPagar.list.useQuery({ status: "pendente", dataInicio: hojeStr, dataFim: hojeStr }, { enabled: podeVerFinanceiro });
   const { data: contasSemana } = trpc.contasPagar.list.useQuery({ status: "pendente", dataInicio: hojeStr, dataFim: fimSemanaStr }, { enabled: podeVerFinanceiro });
   const { data: contasVencidas } = trpc.contasPagar.list.useQuery({ status: "vencido" }, { enabled: podeVerFinanceiro });

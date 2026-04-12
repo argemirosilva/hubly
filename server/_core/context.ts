@@ -63,6 +63,15 @@ export async function createContext(
               createdAt: new Date(),
               updatedAt: new Date(),
               lastSignedIn: new Date(),
+              pushToken: null,
+              pushTokenPlatform: null,
+              pushTokenUpdatedAt: null,
+              notifNovoAgendamento: true,
+              notifConfirmacao: true,
+              notifCancelamento: true,
+              notifLembrete: true,
+              notifPagamento: true,
+              notifComissao: true,
             };
             return {
               req: opts.req,

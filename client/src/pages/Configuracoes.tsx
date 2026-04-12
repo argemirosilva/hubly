@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image, Bell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const DIAS_SEMANA = [
@@ -64,6 +65,24 @@ export default function Configuracoes() {
     }
   }, [empresa]);
 
+  // ─── Preferências de Notificações Push ─────────────────────────────────────
+  const { data: prefNotif, isLoading: loadingPref } = trpc.push.getPreferencias.useQuery();
+  const [notifPrefs, setNotifPrefs] = useState({
+    novoAgendamento: true,
+    confirmacao: true,
+    cancelamento: true,
+    lembrete: true,
+    pagamento: true,
+    comissao: true,
+  });
+  useEffect(() => {
+    if (prefNotif) setNotifPrefs(prefNotif);
+  }, [prefNotif]);
+  const salvarPrefsMutation = trpc.push.salvarPreferencias.useMutation({
+    onSuccess: () => toast.success("Preferências de notificações salvas!"),
+    onError: (err: any) => toast.error(err.message),
+  });
+  // ─────────────────────────────────────────────────────────────────────────────
   const updateMutation = trpc.empresa.update.useMutation({
     onSuccess: () => { toast.success("Configurações salvas!"); utils.empresa.get.invalidate(); },
     onError: (err: any) => toast.error(err.message),
@@ -566,6 +585,50 @@ export default function Configuracoes() {
         </div>
       </div>
 
+      {/* Notificações Push */}
+      <div className="card-elegant">
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          <Bell className="w-4 h-4 text-muted-foreground" />
+          <h3 className="font-semibold text-sm">Notificações Push</h3>
+          <span className="ml-auto text-xs text-muted-foreground">Escolha quais alertas receber no dispositivo</span>
+        </div>
+        <div className="p-5 space-y-3">
+          {loadingPref ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Carregando preferências...</div>
+          ) : (
+            <>
+              {([
+                { key: "novoAgendamento" as const, label: "Novo agendamento", desc: "Quando um novo agendamento é criado" },
+                { key: "confirmacao" as const, label: "Confirmação de agendamento", desc: "Quando o cliente confirma o horário" },
+                { key: "cancelamento" as const, label: "Cancelamento", desc: "Quando um agendamento é cancelado" },
+                { key: "lembrete" as const, label: "Lembretes", desc: "Lembretes automáticos antes do horário" },
+                { key: "pagamento" as const, label: "Pagamentos e financeiro", desc: "Contas a pagar/receber e movimentações" },
+                { key: "comissao" as const, label: "Comissões", desc: "Atualizações de comissões dos profissionais" },
+              ] as const).map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={notifPrefs[key]}
+                    onCheckedChange={(val) => setNotifPrefs(prev => ({ ...prev, [key]: val }))}
+                  />
+                </div>
+              ))}
+              <div className="pt-3">
+                <button
+                  onClick={() => salvarPrefsMutation.mutate(notifPrefs)}
+                  disabled={salvarPrefsMutation.isPending}
+                  className="btn-primary py-2 px-4 text-sm"
+                >
+                  {salvarPrefsMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : <><Bell className="w-4 h-4" /> Salvar preferências</>}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
       <button onClick={handleSave} disabled={updateMutation.isPending} className="btn-primary">
         <Save className="w-4 h-4" />
         {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}

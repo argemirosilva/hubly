@@ -1,0 +1,41 @@
+{
+  "_INSTRUCOES": [
+    "1. Acesse https://console.firebase.google.com",
+    "2. Clique em 'Adicionar projeto' e nomeie como 'Hubly'",
+    "3. No painel do projeto, clique em 'Adicionar app' → Android",
+    "4. Use o package name: com.orizontech.hubly",
+    "5. Baixe o google-services.json gerado",
+    "6. Renomeie este arquivo para google-services.json (remova o .example)",
+    "7. Coloque-o nesta mesma pasta: android/app/google-services.json",
+    "8. No Firebase Console, vá em Cloud Messaging e copie a Server Key",
+    "9. Adicione a Server Key como variável FIREBASE_SERVER_KEY no projeto Hubly",
+    "10. Rode: npx cap sync android"
+  ],
+  "project_info": {
+    "project_number": "SEU_PROJECT_NUMBER",
+    "project_id": "hubly-XXXXX",
+    "storage_bucket": "hubly-XXXXX.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:SEU_PROJECT_NUMBER:android:XXXXXXXXXXXXXXXX",
+        "android_client_info": {
+          "package_name": "com.orizontech.hubly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "SUA_API_KEY_AQUI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

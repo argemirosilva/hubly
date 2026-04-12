@@ -1,202 +1,233 @@
-# Hubly — Guia de Build para iOS e Android
+# Hubly — Guia Completo de Build e Publicação nas Lojas
 
-Este guia explica como gerar os arquivos `.apk`/`.aab` (Android) e `.ipa` (iOS) do Hubly usando o Capacitor.
+O Hubly usa **Capacitor** para empacotar o web app como app nativo iOS e Android.
+O app carrega `https://hubly.orizontech.com.br` dentro de um WebView nativo.
+
+> **Quando atualizar o código do Hubly:** se apenas o código web mudou (sem alterações nativas), **não é necessário gerar novo build** — o app já carrega a versão mais recente automaticamente. Só gere novo build quando mudar ícones, permissões, plugins Capacitor ou a versão nas lojas.
 
 ---
 
 ## Pré-requisitos
 
-### Para Android
-- [Android Studio](https://developer.android.com/studio) instalado
-- JDK 17 ou superior
-- Conta no [Google Play Console](https://play.google.com/console) (US$25 taxa única)
-
-### Para iOS
-- Mac com macOS 13 ou superior
-- [Xcode 15+](https://developer.apple.com/xcode/) instalado
-- Conta no [Apple Developer Program](https://developer.apple.com/programs/) (US$99/ano)
+| Ferramenta | Versão | Download |
+|---|---|---|
+| Node.js | 18+ | https://nodejs.org |
+| pnpm | 8+ | `npm i -g pnpm` |
+| Android Studio | Hedgehog+ | https://developer.android.com/studio |
+| JDK | 17+ | https://adoptium.net |
+| Xcode (Mac) | 15+ | Mac App Store |
 
 ---
 
-## Fluxo de Atualização (toda vez que o código mudar)
+## Passo inicial (ambas as plataformas)
 
-Sempre que o código do Hubly for atualizado e publicado em `https://hubly.orizontech.com.br`, **não é necessário gerar um novo APK** — o app já carrega a versão mais recente automaticamente, pois aponta para o servidor remoto.
+```bash
+# Clonar o repositório
+git clone <URL_DO_REPO> && cd agendei
 
-Só é necessário gerar um novo build quando:
-- Mudar configurações nativas (ícones, splash screen, permissões)
-- Adicionar novos plugins Capacitor
-- Atualizar a versão do app nas lojas
+# Instalar dependências
+pnpm install
+
+# Sincronizar Capacitor (sempre antes de abrir Android Studio / Xcode)
+npx cap sync
+```
 
 ---
 
 ## Android
 
-### 1. Clonar o repositório no seu computador
-
-```bash
-git clone https://github.com/seu-usuario/agendei.git
-cd agendei
-pnpm install
-```
-
-### 2. Sincronizar o Capacitor
-
-```bash
-npx cap sync android
-```
-
-### 3. Abrir no Android Studio
+### Build de debug (para testar no celular)
 
 ```bash
 npx cap open android
 ```
 
-### 4. Configurar o app no Android Studio
+No Android Studio:
+1. Aguarde o Gradle sync terminar (2–5 min na primeira vez)
+2. Conecte um dispositivo físico via USB ou inicie um emulador
+3. Clique em **Run ▶** (`Shift+F10`)
 
-No Android Studio, abra `android/app/build.gradle` e verifique:
+> **Atualização:** ao instalar uma nova versão de debug em dispositivo que já tem o app, **não é necessário desinstalar** — o Android Studio substitui automaticamente.
 
+### Build de produção (AAB para Play Store)
+
+```bash
+npx cap open android
+```
+
+No Android Studio:
+1. **Build → Generate Signed Bundle / APK**
+2. Selecione **Android App Bundle (.aab)**
+3. Crie ou selecione um **Keystore** (`.jks`) — guarde o arquivo e as senhas em local seguro!
+4. Preencha Key alias, Key password, Store password
+5. Selecione **release** como Build Variant → **Finish**
+6. Arquivo gerado em `android/app/release/app-release.aab`
+
+> **CRÍTICO:** O Keystore é necessário para **todas as atualizações futuras**. Se perdê-lo, não poderá atualizar o app na Play Store.
+
+### Publicar na Google Play Store
+
+1. Acesse https://play.google.com/console
+2. Crie conta de desenvolvedor (US$25 — pagamento único)
+3. **Criar app** → preencha nome, idioma, categoria (Negócios)
+4. Complete o **Formulário de conteúdo** (classificação etária, política de privacidade)
+5. Em **Produção → Criar nova versão**, faça upload do `.aab`
+6. Preencha **Notas da versão**
+7. Adicione **screenshots** (mínimo 2 por dispositivo):
+   - Telefone: mínimo 1080×1920px
+   - Tablet 7": mínimo 1200×1920px
+8. **Ícone da loja:** 512×512px PNG (já gerado em `android/app/src/main/res/`)
+9. **Enviar para revisão** (aprovação: 1–3 dias úteis)
+
+### Atualizar versão no Android
+
+Em `android/app/build.gradle`:
 ```gradle
-android {
-    defaultConfig {
-        applicationId "com.orizontech.hubly"
-        minSdkVersion 23
-        targetSdkVersion 34
-        versionCode 1
-        versionName "1.0.0"
-    }
+defaultConfig {
+    versionCode 2        // Incrementar +1 a cada publicação
+    versionName "1.1"    // Versão visível ao usuário
 }
 ```
-
-### 5. Adicionar ícones do app
-
-Substitua os ícones em `android/app/src/main/res/`:
-- `mipmap-mdpi/ic_launcher.png` — 48x48px
-- `mipmap-hdpi/ic_launcher.png` — 72x72px
-- `mipmap-xhdpi/ic_launcher.png` — 96x96px
-- `mipmap-xxhdpi/ic_launcher.png` — 144x144px
-- `mipmap-xxxhdpi/ic_launcher.png` — 192x192px
-
-> Dica: use o [Android Asset Studio](https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html) para gerar todos os tamanhos automaticamente.
-
-### 6. Gerar APK de debug (para testar)
-
-No Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**
-
-O arquivo será gerado em: `android/app/build/outputs/apk/debug/app-debug.apk`
-
-**Para instalar no celular:**
-```bash
-adb install android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-> ⚠️ Se já tiver uma versão instalada, **desinstale o app do celular antes** de instalar a nova versão de debug.
-
-### 7. Gerar AAB para o Play Store (produção)
-
-No Android Studio: **Build → Generate Signed Bundle / APK → Android App Bundle**
-
-- Crie ou use um keystore existente
-- Preencha as informações de assinatura
-- O arquivo `.aab` será gerado em `android/app/release/`
 
 ---
 
 ## iOS
 
-> ⚠️ **Requer Mac com Xcode instalado.** Não é possível gerar builds iOS no Windows ou Linux.
+> **Requisito obrigatório:** Mac com Xcode 15+. Build iOS não é possível no Windows ou Linux.
 
-### 1. Clonar o repositório no Mac
+### Configurar notificações push (APNs) — antes do primeiro build
 
-```bash
-git clone https://github.com/seu-usuario/agendei.git
-cd agendei
-pnpm install
-```
+Siga o guia detalhado em `ios/APNS_SETUP_GUIDE.md`.
 
-### 2. Sincronizar o Capacitor
-
-```bash
-npx cap sync ios
-```
-
-### 3. Abrir no Xcode
+### Build de desenvolvimento (simulador)
 
 ```bash
 npx cap open ios
 ```
 
-### 4. Configurar o projeto no Xcode
+No Xcode:
+1. Selecione simulador (ex: iPhone 15) na barra superior
+2. Clique em **Run ▶** (`Cmd+R`)
 
-No Xcode, selecione o target **App** e configure:
-- **Bundle Identifier**: `com.orizontech.hubly`
-- **Version**: `1.0.0`
-- **Build**: `1`
-- **Team**: selecione sua conta Apple Developer
+### Build para dispositivo físico
 
-### 5. Adicionar ícones do app
+1. Conecte o iPhone via USB e desbloqueie
+2. No Xcode, selecione o dispositivo na barra superior
+3. Em **Signing & Capabilities → Team**, selecione sua conta Apple Developer
+4. Clique em **Run ▶**
 
-No Xcode, abra `ios/App/App/Assets.xcassets/AppIcon.appiconset/` e substitua os ícones.
+> **Atualização:** ao instalar nova versão via Xcode em dispositivo que já tem o app, **não é necessário desinstalar** — o Xcode substitui automaticamente.
 
-> Dica: use o [AppIcon Generator](https://www.appicon.co/) para gerar todos os tamanhos necessários para iOS.
+### Build de produção (IPA para App Store)
 
-### 6. Testar no simulador
-
-No Xcode, selecione um simulador (ex: iPhone 15) e clique em **Run (▶)**.
-
-### 7. Gerar IPA para a App Store (produção)
-
+No Xcode:
 1. Selecione **Any iOS Device (arm64)** como destino
-2. Menu: **Product → Archive**
-3. Na janela de Organizer, clique em **Distribute App**
-4. Selecione **App Store Connect** e siga o wizard
+2. **Product → Archive** (5–10 minutos)
+3. Na janela **Organizer**, selecione o archive
+4. **Distribute App → App Store Connect → Upload**
+5. Aguarde o processamento no App Store Connect (10–30 min)
+
+### Publicar na Apple App Store
+
+1. Acesse https://appstoreconnect.apple.com
+2. **Meus Apps → +** → preencha nome, bundle ID (`com.orizontech.hubly`), SKU
+3. **TestFlight:** distribua para testadores internos antes de publicar
+4. Em **App Store → Versão iOS**, preencha:
+   - **Descrição** (até 4000 caracteres)
+   - **Palavras-chave** (até 100 caracteres)
+   - **Screenshots obrigatórios:**
+     - iPhone 6.5": 1284×2778px
+     - iPhone 5.5": 1242×2208px
+   - **Ícone da App Store:** 1024×1024px PNG sem transparência
+5. Selecione o build enviado pelo Xcode
+6. **Enviar para revisão** (aprovação: 1–3 dias úteis)
+
+### Atualizar versão no iOS
+
+No Xcode → target **App** → aba **General**:
+- **Version:** 1.1 (visível ao usuário)
+- **Build:** 2 (deve incrementar a cada envio para App Store Connect)
 
 ---
 
-## Configurações de Permissões
+## Firebase Cloud Messaging (Push Notifications)
 
-### Android (`android/app/src/main/AndroidManifest.xml`)
+### Android
 
-As seguintes permissões já estão configuradas pelo Capacitor:
+1. Acesse https://console.firebase.google.com → Criar projeto **Hubly**
+2. **Adicionar app → Android** → package: `com.orizontech.hubly`
+3. Baixe `google-services.json` e coloque em `android/app/`
+4. Execute: `npx cap sync android`
+5. No Firebase Console → **Cloud Messaging → Server Key** → copie a chave
+6. Adicione como `FIREBASE_SERVER_KEY` nas variáveis do projeto Hubly
 
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+### iOS
+
+Siga o guia completo em `ios/APNS_SETUP_GUIDE.md`.
+
+---
+
+## Checklist de Publicação
+
+### Android (Play Store)
+- [ ] `versionCode` incrementado em `android/app/build.gradle`
+- [ ] `versionName` atualizado
+- [ ] Keystore disponível (arquivo `.jks` + senhas)
+- [ ] `google-services.json` em `android/app/` (para push)
+- [ ] `npx cap sync android` executado
+- [ ] Build `.aab` gerado em modo **release** com assinatura
+- [ ] Screenshots preparados (1080×1920px mínimo)
+- [ ] Ícone 512×512px pronto
+- [ ] Notas da versão escritas
+
+### iOS (App Store)
+- [ ] Version e Build incrementados no Xcode
+- [ ] Certificado de distribuição válido no Apple Developer Portal
+- [ ] `App.entitlements` com `aps-environment: production`
+- [ ] `npx cap sync ios` executado
+- [ ] Archive gerado e enviado para App Store Connect
+- [ ] Screenshots preparados (1284×2778px e 1242×2208px)
+- [ ] Ícone 1024×1024px PNG sem transparência
+- [ ] Notas da versão escritas
+
+---
+
+## Comandos de Referência
+
+```bash
+npx cap sync                    # Sincronizar código web com projetos nativos
+npx cap sync android            # Sincronizar apenas Android
+npx cap sync ios                # Sincronizar apenas iOS
+npx cap open android            # Abrir Android Studio
+npx cap open ios                # Abrir Xcode
+adb devices                     # Listar dispositivos Android conectados
+adb install app-debug.apk       # Instalar APK via linha de comando
 ```
 
-### iOS (`ios/App/App/Info.plist`)
-
-Adicione as seguintes chaves para notificações push:
-
-```xml
-<key>NSUserNotificationUsageDescription</key>
-<string>O Hubly usa notificações para alertar sobre novos agendamentos.</string>
-```
-
 ---
 
-## Atualizar o App nas Lojas
-
-Quando precisar publicar uma nova versão nativa:
-
-1. Incremente `versionCode` (Android) ou `Build` (iOS)
-2. Rode `npx cap sync` para sincronizar plugins
-3. Gere o novo build assinado
-4. Faça upload no Google Play Console ou App Store Connect
-
----
-
-## Estrutura de Arquivos Gerados
+## Estrutura de Arquivos
 
 ```
 agendei/
-├── android/          ← Projeto Android Studio (abrir com Android Studio)
-├── ios/              ← Projeto Xcode (abrir com Xcode no Mac)
-├── capacitor.config.ts  ← Configuração principal do Capacitor
-└── client/dist/      ← Build do frontend (gerado por pnpm build)
+├── android/                    ← Projeto Android Studio
+│   └── app/
+│       ├── google-services.json.example  ← Renomear para .json após configurar Firebase
+│       └── src/main/res/       ← Ícones gerados automaticamente
+├── ios/
+│   ├── App/App/
+│   │   ├── App.entitlements    ← Permissões APNs
+│   │   └── Info.plist          ← Configurações iOS
+│   └── APNS_SETUP_GUIDE.md     ← Guia de configuração APNs
+├── capacitor.config.ts         ← Configuração principal do Capacitor
+└── MOBILE_BUILD_GUIDE.md       ← Este arquivo
 ```
 
 ---
 
 ## Suporte
 
-Para dúvidas sobre o Capacitor: [https://capacitorjs.com/docs](https://capacitorjs.com/docs)
+- Capacitor: https://capacitorjs.com/docs
+- Google Play Console: https://support.google.com/googleplay/android-developer
+- App Store Connect: https://developer.apple.com/support/app-store-connect/
+- Firebase Console: https://console.firebase.google.com

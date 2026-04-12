@@ -28,6 +28,17 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  // Push notifications
+  pushToken: text("pushToken"),
+  pushTokenPlatform: mysqlEnum("pushTokenPlatform", ["ios", "android", "web"]),
+  pushTokenUpdatedAt: timestamp("pushTokenUpdatedAt"),
+  // Preferências de notificação
+  notifNovoAgendamento: boolean("notifNovoAgendamento").default(true),
+  notifConfirmacao: boolean("notifConfirmacao").default(true),
+  notifCancelamento: boolean("notifCancelamento").default(true),
+  notifLembrete: boolean("notifLembrete").default(true),
+  notifPagamento: boolean("notifPagamento").default(true),
+  notifComissao: boolean("notifComissao").default(true),
 });
 
 export type User = typeof users.$inferSelect;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { toast } from "sonner";
+import { getLocalDateString } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,7 @@ const fmtDate = (d: string) => {
   return `${day}/${m}/${y}`;
 };
 
-const hoje = () => new Date().toISOString().split("T")[0];
+const hoje = () => getLocalDateString();
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },

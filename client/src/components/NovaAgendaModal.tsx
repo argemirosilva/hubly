@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { getLocalDateString } from "@/lib/utils";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
 import { Plus, Trash2, Zap, Package } from "lucide-react";
 import ModalAbrirPacote from "@/components/ModalAbrirPacote";
@@ -43,7 +44,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   const [form, setForm] = useState({
     clienteId: "",
-    data: dataInicial ?? new Date().toISOString().split("T")[0],
+    data: dataInicial ?? getLocalDateString(),
     horaInicio: "09:00",
     horaFim: "10:00",
     observacoes: "",

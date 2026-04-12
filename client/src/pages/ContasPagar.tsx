@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { getLocalDateString } from "@/lib/utils";
 import {
   AlertTriangle, CheckCircle2, Clock, Plus, Search, Filter,
   Pencil, Trash2, Check, Tag, ChevronDown, ChevronUp, X,
@@ -95,7 +96,7 @@ function ModalConta({
 
   const [descricao, setDescricao] = useState(conta?.descricao ?? "");
   const [valor, setValor] = useState(conta ? String(parseFloat(String(conta.valor))) : "");
-  const [dataVencimento, setDataVencimento] = useState(conta?.dataVencimento ?? new Date().toISOString().split("T")[0]);
+  const [dataVencimento, setDataVencimento] = useState(conta?.dataVencimento ?? getLocalDateString());
   const [categoriaId, setCategoriaId] = useState<string>(conta?.categoriaId ? String(conta.categoriaId) : "none");
   const [meioPagamentoId, setMeioPagamentoId] = useState<string>("none");
   const [recorrente, setRecorrente] = useState(conta?.recorrente ?? false);
@@ -381,7 +382,7 @@ function CardConta({ conta, onEditar, onMarcarPago, onDeletar }: {
 }) {
   const cfg = statusConfig[conta.status] ?? statusConfig.pendente;
   const StatusIcon = cfg.icon;
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = getLocalDateString();
   const diasParaVencer = conta.status === "pendente"
     ? Math.ceil((new Date(conta.dataVencimento).getTime() - new Date(hoje).getTime()) / (1000 * 60 * 60 * 24))
     : null;
@@ -494,7 +495,7 @@ export default function ContasPagar() {
       setFiltroDataFim(undefined);
       setFiltroAtivo("vencidas");
     } else if (filtro === "hoje") {
-      const hoje = new Date().toISOString().split("T")[0];
+      const hoje = getLocalDateString();
       setFiltroStatus("todos");
       setFiltroDataInicio(hoje);
       setFiltroDataFim(hoje);
@@ -504,8 +505,8 @@ export default function ContasPagar() {
       const fim = new Date(hoje);
       fim.setDate(hoje.getDate() + 7);
       setFiltroStatus("todos");
-      setFiltroDataInicio(hoje.toISOString().split("T")[0]);
-      setFiltroDataFim(fim.toISOString().split("T")[0]);
+      setFiltroDataInicio(getLocalDateString(hoje));
+      setFiltroDataFim(getLocalDateString(fim));
       setFiltroAtivo("semana");
     }
   }, [search]);

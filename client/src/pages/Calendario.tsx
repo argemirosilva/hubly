@@ -7,6 +7,7 @@ import { getServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getLocalDateString } from "@/lib/utils";
 // Backend já aplica filtros via resolveAdminContext, sem necessidade de useAuth aqui
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -165,7 +166,7 @@ export default function Calendario() {
     return result;
   }, [year, month]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
