@@ -164,6 +164,21 @@ export default function Agendamentos() {
     try { localStorage.setItem("hubly_periodo_agendamentos", tipo); } catch {}
   };
 
+  // Datas fixas para contadores (sempre o dia/semana/mês atual)
+  const datasHoje = useMemo(() => calcularDatas("hoje"), [today]);
+  const datasSemana = useMemo(() => calcularDatas("semana"), [today]);
+  const datasMes = useMemo(() => calcularDatas("mes"), [today]);
+
+  const { data: countHoje } = trpc.agendamentos.list.useQuery({ dataInicio: datasHoje.inicio, dataFim: datasHoje.fim });
+  const { data: countSemana } = trpc.agendamentos.list.useQuery({ dataInicio: datasSemana.inicio, dataFim: datasSemana.fim });
+  const { data: countMes } = trpc.agendamentos.list.useQuery({ dataInicio: datasMes.inicio, dataFim: datasMes.fim });
+
+  const contadores = useMemo(() => ({
+    hoje: countHoje?.length ?? 0,
+    semana: countSemana?.length ?? 0,
+    mes: countMes?.length ?? 0,
+  }), [countHoje, countSemana, countMes]);
+
   // Backend já aplica o filtro correto via resolveAdminContext
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
   const { data: clientes } = trpc.clientes.list.useQuery();
@@ -278,7 +293,10 @@ export default function Agendamentos() {
               fontWeight: periodoAtivo === p ? 600 : 400,
             }}
           >
-            {p === "hoje" ? "Hoje" : p === "semana" ? "Semana" : "Mês"}
+            <span>{p === "hoje" ? "Hoje" : p === "semana" ? "Semana" : "Mês"}</span>
+            {contadores[p] > 0 && (
+              <span className="ml-1 opacity-60">· {contadores[p]}</span>
+            )}
           </button>
         ))}
       </div>

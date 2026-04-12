@@ -1493,3 +1493,7 @@
 ## Persistência de Filtro de Período (v9.6)
 - [x] Salvar último período selecionado em localStorage ao trocar
 - [x] Restaurar período salvo ao carregar a página de Agendamentos
+
+## Atalhos Calendário + Contador (v9.7)
+- [x] Calendário: adicionar botões Hoje/Semana/Mês na barra de navegação com contadores
+- [x] Agendamentos: exibir contador de agendamentos em cada botão de período (ex: "Hoje · 5")

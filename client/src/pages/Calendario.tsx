@@ -170,6 +170,33 @@ export default function Calendario() {
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
+  // Atalhos de navegação rápida
+  const irParaHoje = () => setCurrentDate(new Date());
+  const irParaSemanaAtual = () => setCurrentDate(new Date()); // vai para o mês atual (semana está no mês)
+  const irParaMesAtual = () => setCurrentDate(new Date());
+
+  const hoje = new Date();
+  const eHoje = year === hoje.getFullYear() && month === hoje.getMonth();
+
+  // Contadores por período para exibir nos atalhos
+  const contagemHoje = useMemo(() => {
+    const d = getLocalDateString();
+    return (agendamentos ?? []).filter(ag => ag.data === d).length;
+  }, [agendamentos]);
+
+  const contagemSemana = useMemo(() => {
+    const now = new Date();
+    const dom = new Date(now); dom.setDate(now.getDate() - now.getDay());
+    const sab = new Date(dom); sab.setDate(dom.getDate() + 6);
+    const ini = getLocalDateString(dom);
+    const fim = getLocalDateString(sab);
+    return (agendamentos ?? []).filter(ag => ag.data >= ini && ag.data <= fim).length;
+  }, [agendamentos]);
+
+  const contagemMes = useMemo(() => {
+    return (agendamentos ?? []).length;
+  }, [agendamentos]);
+
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-4 lg:space-y-6 animate-in-up">
 
@@ -187,14 +214,35 @@ export default function Calendario() {
               className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors">
               <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
-            <button onClick={() => setCurrentDate(new Date())}
-              className="px-2.5 h-7 rounded-lg border text-xs hover:bg-muted transition-colors text-muted-foreground">
-              Hoje
-            </button>
             <button onClick={nextMonth}
               className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors">
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
+          </div>
+          {/* Atalhos de período */}
+          <div className="flex items-center gap-1 ml-1">
+            {([
+              { key: "hoje",  label: "Hoje",  count: contagemHoje,  fn: irParaHoje },
+              { key: "semana", label: "Semana", count: contagemSemana, fn: irParaSemanaAtual },
+              { key: "mes",   label: "Mês",   count: contagemMes,  fn: irParaMesAtual },
+            ] as const).map(({ key, label, count, fn }) => (
+              <button
+                key={key}
+                onClick={fn}
+                className="h-7 px-2.5 rounded-lg border text-xs font-medium transition-all"
+                style={{
+                  background: (key === "mes" && eHoje) || (key === "semana" && eHoje) || (key === "hoje" && eHoje)
+                    ? "oklch(55% 0.22 264 / 10%)"
+                    : "transparent",
+                  borderColor: eHoje && key === "mes"
+                    ? "oklch(55% 0.22 264 / 40%)"
+                    : "oklch(88% 0.010 250)",
+                  color: "oklch(45% 0.010 260)",
+                }}
+              >
+                {label}{count > 0 ? <span className="ml-1 opacity-60">· {count}</span> : null}
+              </button>
+            ))}
           </div>
         </div>
 
