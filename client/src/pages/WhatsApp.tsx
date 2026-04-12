@@ -454,7 +454,9 @@ export default function WhatsAppPage() {
               <CardTitle className="text-base">Diagnóstico de Conexão</CardTitle>
             </div>
             {connectionLog && connectionLog.length > 0 && (
-              <span className="text-xs text-muted-foreground">{connectionLog.length} eventos</span>
+              <span className="text-xs text-muted-foreground">
+                {Math.min(connectionLog.length, 5)} de {connectionLog.length} eventos
+              </span>
             )}
           </div>
           <CardDescription>Monitoramento detalhado de cada evento de conexão</CardDescription>
@@ -466,7 +468,7 @@ export default function WhatsAppPage() {
             </div>
           ) : (
             <div className="divide-y max-h-[500px] overflow-y-auto">
-              {connectionLog.map((entry) => {
+              {connectionLog.slice(-5).reverse().map((entry) => {
                 const eventConfig: Record<string, { label: string; color: string; dot: string; bg: string }> = {
                   connected:        { label: "Conectado",           color: "text-green-700",  dot: "bg-green-500",  bg: "hover:bg-green-50/50" },
                   disconnected:     { label: "Desconectado",        color: "text-gray-600",   dot: "bg-gray-400",   bg: "hover:bg-gray-50/50" },

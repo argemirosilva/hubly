@@ -1497,3 +1497,6 @@
 ## Atalhos Calendário + Contador (v9.7)
 - [x] Calendário: adicionar botões Hoje/Semana/Mês na barra de navegação com contadores
 - [x] Agendamentos: exibir contador de agendamentos em cada botão de período (ex: "Hoje · 5")
+
+## WhatsApp: Limite de Eventos (v9.8)
+- [x] Limitar exibição de eventos na lista de diagnóstico para apenas 5 mais recentes
