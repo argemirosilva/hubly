@@ -1482,3 +1482,7 @@
 ## Bug: Ordenação de Agendamentos (v9.3)
 - [x] Corrigir ordenação: exibir por data + hora (não por ordem de criação)
 - [x] Adicionar separadores de data na lista quando período é maior que um dia
+
+## Bug: Layout Mobile Modais de Agendamento (v9.4)
+- [x] NovaAgendaModal: corrigir campos truncados/sobrepostos no mobile
+- [x] EditarAgendamentoModal: corrigir campos truncados/sobrepostos no mobile

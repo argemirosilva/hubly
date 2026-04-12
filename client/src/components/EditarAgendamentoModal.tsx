@@ -230,7 +230,7 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 max-h-[92vh] flex flex-col">
+      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 max-h-[95dvh] sm:max-h-[92vh] flex flex-col w-[calc(100%-1rem)] sm:w-full">
         {/* Header */}
         <DialogHeader className="px-5 py-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-sm font-bold">
@@ -253,36 +253,38 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
           </div>
 
           {/* Data e Hora */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Data *</Label>
               <Input
                 type="date"
                 value={form.data}
                 onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                className="h-9 text-sm"
+                className="h-9 text-sm w-full"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Início *</Label>
-              <Input
-                type="time"
-                value={form.horaInicio}
-                onChange={e => {
-                  setForm(f => ({ ...f, horaInicio: e.target.value }));
-                  recalcularHorarios(e.target.value, servicosSelecionados);
-                }}
-                className="h-9 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Fim</Label>
-              <Input
-                type="time"
-                value={form.horaFim}
-                onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
-                className="h-9 text-sm"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Início *</Label>
+                <Input
+                  type="time"
+                  value={form.horaInicio}
+                  onChange={e => {
+                    setForm(f => ({ ...f, horaInicio: e.target.value }));
+                    recalcularHorarios(e.target.value, servicosSelecionados);
+                  }}
+                  className="h-9 text-sm w-full"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Fim</Label>
+                <Input
+                  type="time"
+                  value={form.horaFim}
+                  onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
+                  className="h-9 text-sm w-full"
+                />
+              </div>
             </div>
           </div>
 
@@ -318,24 +320,26 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
                     </SelectContent>
                   </Select>
 
-                  {/* Serviço + Valor + Remover */}
+                  {/* Serviço */}
+                  <Select
+                    value={item.servicoId || "__none__"}
+                    onValueChange={(v) => handleServicoChange(index, v === "__none__" ? "" : v)}
+                    disabled={!item.profissionalId}
+                  >
+                    <SelectTrigger className="h-9 text-sm w-full">
+                      <SelectValue placeholder={!item.profissionalId ? "Selecione o profissional" : "Serviço"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>
+                      {servicosFiltrados.map((s: any) => (
+                        <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Valor + Remover */}
                   <div className="flex gap-2 items-center">
-                    <Select
-                      value={item.servicoId || "__none__"}
-                      onValueChange={(v) => handleServicoChange(index, v === "__none__" ? "" : v)}
-                      disabled={!item.profissionalId}
-                    >
-                      <SelectTrigger className="h-9 text-sm flex-1">
-                        <SelectValue placeholder={!item.profissionalId ? "Selecione o profissional" : "Serviço"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>
-                        {servicosFiltrados.map((s: any) => (
-                          <SelectItem key={s.id} value={String(s.id)}>{s.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="relative w-28 flex-shrink-0">
+                    <div className="relative flex-1">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                       <Input
                         type="number" step="0.01" min="0"
@@ -349,7 +353,7 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
                     <button
                       onClick={() => removerServico(index)}
                       disabled={servicosSelecionados.length === 1}
-                      className="text-muted-foreground hover:text-destructive disabled:opacity-30 flex-shrink-0"
+                      className="text-muted-foreground hover:text-destructive disabled:opacity-30 flex-shrink-0 p-1"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

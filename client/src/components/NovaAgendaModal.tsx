@@ -273,7 +273,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[95dvh] sm:max-h-[90vh] w-[calc(100%-1rem)] sm:w-full">
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
@@ -457,23 +457,23 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
                       {/* Horário por item (exibido quando há serviço selecionado) */}
                       {item.servicoId && (
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Início</Label>
                             <Input
                               type="time"
                               value={item.horaInicio ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaInicio", e.target.value)}
-                              className="h-8 text-xs"
+                              className="h-8 text-xs w-full"
                             />
                           </div>
-                          <div className="flex-1">
+                          <div>
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Fim</Label>
                             <Input
                               type="time"
                               value={item.horaFim ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaFim", e.target.value)}
-                              className="h-8 text-xs"
+                              className="h-8 text-xs w-full"
                             />
                           </div>
                         </div>
@@ -481,7 +481,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
                       {/* Valor + botão remover */}
                       <div className="flex gap-2 items-center">
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 min-w-0">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                           <Input
                             type="number"
@@ -489,7 +489,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                             min="0"
                             value={item.valorUnitario}
                             onChange={e => handleValorChange(index, e.target.value)}
-                            className="pl-8"
+                            className="pl-8 w-full"
                             placeholder="0,00"
                           />
                         </div>
@@ -531,6 +531,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                     setForm(f => ({ ...f, horaInicio: e.target.value }));
                     recalcularHoraFim(e.target.value, servicosSelecionados);
                   }}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -539,6 +540,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                   type="time"
                   value={form.horaFim}
                   onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
+                  className="w-full"
                 />
               </div>
             </div>
