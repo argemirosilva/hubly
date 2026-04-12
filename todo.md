@@ -1588,3 +1588,10 @@
 - [ ] Testar em iOS (Safari, PWA)
 - [ ] Adicionar botão nas Configurações para ativar/desativar
 - [ ] Mostrar status de permissão (ativado/desativado/negado)
+
+## Feature: Suporte a PDF em Comprovantes (v9.15)
+- [x] Adicionar suporte a PDF no input de arquivo (accept="image/*,application/pdf")
+- [x] Atualizar backend para processar PDF com LLM (file_url em vez de image_url)
+- [x] Atualizar prompt do LLM para suportar PDF
+- [ ] Implementar preview de PDF antes de enviar
+- [ ] Testar com PDFs reais

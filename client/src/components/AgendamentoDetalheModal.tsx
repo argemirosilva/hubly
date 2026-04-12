@@ -741,7 +741,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       <input
                         ref={comprovanteInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/*,application/pdf"
                         className="hidden"
                         onChange={handleComprovanteUpload}
                       />
