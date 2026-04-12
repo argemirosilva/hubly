@@ -1474,3 +1474,7 @@
 - [x] Corrigir erro ao criar agendamento com múltiplas profissionais no mesmo horário
 - [x] Frontend: remover :00 extra nos horários dos itens (NovaAgendaModal e EditarAgendamentoModal)
 - [x] Backend: sanitizar horaInicio/horaFim para varchar(5) nos endpoints create e updateServicos
+
+## Atalhos de Período (v9.2)
+- [x] Agendamentos: adicionar botões Hoje/Semana/Mês nos filtros de data
+- [x] Dashboard: adicionar atalhos Hoje/Semana/Mês no widget de agenda

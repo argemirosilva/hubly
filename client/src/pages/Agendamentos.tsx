@@ -127,6 +127,23 @@ export default function Agendamentos() {
   const today = getLocalDateString();
   const [dataInicio, setDataInicio] = useState(today);
   const [dataFim, setDataFim] = useState(today);
+  const [periodoAtivo, setPeriodoAtivo] = useState<"hoje" | "semana" | "mes" | "custom">("hoje");
+
+  const aplicarPeriodo = (tipo: "hoje" | "semana" | "mes") => {
+    const d = new Date();
+    if (tipo === "hoje") {
+      setDataInicio(today); setDataFim(today);
+    } else if (tipo === "semana") {
+      const dom = new Date(d); dom.setDate(d.getDate() - d.getDay());
+      const sab = new Date(dom); sab.setDate(dom.getDate() + 6);
+      setDataInicio(getLocalDateString(dom)); setDataFim(getLocalDateString(sab));
+    } else {
+      const ini = new Date(d.getFullYear(), d.getMonth(), 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      setDataInicio(getLocalDateString(ini)); setDataFim(getLocalDateString(fim));
+    }
+    setPeriodoAtivo(tipo);
+  };
 
   // Backend já aplica o filtro correto via resolveAdminContext
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
@@ -226,13 +243,30 @@ export default function Agendamentos() {
 
       {/* Filtros expandidos (mobile) / sempre visíveis (desktop) */}
       <div className={`${filtrosAbertos ? "flex" : "hidden"} lg:flex flex-wrap gap-2`}>
+        {/* Atalhos de período */}
+        {(["hoje", "semana", "mes"] as const).map(p => (
+          <button
+            key={p}
+            onClick={() => aplicarPeriodo(p)}
+            className="h-9 px-3 rounded-lg border text-xs font-medium transition-all"
+            style={{
+              background: periodoAtivo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
+              borderColor: periodoAtivo === p ? "oklch(55% 0.22 264 / 50%)" : "oklch(88% 0.010 250)",
+              color: periodoAtivo === p ? "oklch(45% 0.18 264)" : "oklch(45% 0.010 260)",
+              fontWeight: periodoAtivo === p ? 600 : 400,
+            }}
+          >
+            {p === "hoje" ? "Hoje" : p === "semana" ? "Semana" : "Mês"}
+          </button>
+        ))}
+        <div className="w-px h-9 bg-border self-center" />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 self-center">
           <span>De</span>
         </div>
         <Input
           type="date"
           value={dataInicio}
-          onChange={e => setDataInicio(e.target.value)}
+          onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }}
           className="w-auto h-9 text-sm"
         />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 self-center">
@@ -241,7 +275,7 @@ export default function Agendamentos() {
         <Input
           type="date"
           value={dataFim}
-          onChange={e => setDataFim(e.target.value)}
+          onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }}
           className="w-auto h-9 text-sm"
         />
         <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -282,7 +316,7 @@ export default function Agendamentos() {
         </button>
         {filtrosAtivos && (
           <button
-            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); setFiltroProfissional("todos"); setFiltroSaldoAberto(false); }}
+            onClick={() => { setFiltroStatus("todos"); setDataInicio(today); setDataFim(today); setFiltroProfissional("todos"); setFiltroSaldoAberto(false); setPeriodoAtivo("hoje"); }}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors h-9 px-2">
             <X className="w-3.5 h-3.5" />
             Limpar

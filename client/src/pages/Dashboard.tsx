@@ -254,6 +254,25 @@ export default function Dashboard() {
   const [layout, setLayout] = useState<WidgetConfig[]>(DEFAULT_LAYOUT);
   const [layoutDirty, setLayoutDirty] = useState(false);
   const today = getLocalDateString();
+  const [agendaPeriodo, setAgendaPeriodo] = useState<"hoje" | "semana" | "mes">("hoje");
+  const [agendaDataInicio, setAgendaDataInicio] = useState(today);
+  const [agendaDataFim, setAgendaDataFim] = useState(today);
+
+  const aplicarPeriodoAgenda = (tipo: "hoje" | "semana" | "mes") => {
+    const d = new Date();
+    if (tipo === "hoje") {
+      setAgendaDataInicio(today); setAgendaDataFim(today);
+    } else if (tipo === "semana") {
+      const dom = new Date(d); dom.setDate(d.getDate() - d.getDay());
+      const sab = new Date(dom); sab.setDate(dom.getDate() + 6);
+      setAgendaDataInicio(getLocalDateString(dom)); setAgendaDataFim(getLocalDateString(sab));
+    } else {
+      const ini = new Date(d.getFullYear(), d.getMonth(), 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      setAgendaDataInicio(getLocalDateString(ini)); setAgendaDataFim(getLocalDateString(fim));
+    }
+    setAgendaPeriodo(tipo);
+  };
 
   const { pode, isOwner, isAdmin, hasFullAccess, profissionalId: profissionalIdVinculado } = usePermissoes();
   const isProfissional = !!profissionalIdVinculado;
@@ -265,7 +284,7 @@ export default function Dashboard() {
   const { data: scoreIA } = trpc.iaFinanceiro.getScore.useQuery();
   const { data: alertasIA } = trpc.iaFinanceiro.getAlertas.useQuery({ apenasNaoLidos: true });
   const alertasNaoLidos = (alertasIA ?? []).length;
-  const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery({ dataInicio: today, dataFim: today });
+  const { data: agendamentosHoje } = trpc.agendamentos.list.useQuery({ dataInicio: agendaDataInicio, dataFim: agendaDataFim });
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.list.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
@@ -454,20 +473,39 @@ export default function Dashboard() {
       case "agenda_hoje":
         return (
           <div className="card-elegant overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 10%)" }}><Clock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} /></div>
-                <div>
-                  <h3 className="font-semibold text-sm tracking-tight">{isProfissional ? "Minha Agenda" : "Agenda de Hoje"}</h3>
-                  <p className="text-xs text-muted-foreground">Hoje · {agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}</p>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 10%)" }}><Clock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} /></div>
+                  <div>
+                    <h3 className="font-semibold text-sm tracking-tight">{isProfissional ? "Minha Agenda" : "Agenda"}</h3>
+                    <p className="text-xs text-muted-foreground">{agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}</p>
+                  </div>
                 </div>
+                <Link href="/admin/calendario"><button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Ver calendário <ChevronRight className="w-3.5 h-3.5" /></button></Link>
               </div>
-              <Link href="/admin/calendario"><button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Ver calendário <ChevronRight className="w-3.5 h-3.5" /></button></Link>
+              <div className="flex gap-1.5">
+                {(["hoje", "semana", "mes"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => aplicarPeriodoAgenda(p)}
+                    className="h-7 px-2.5 rounded-md border text-[11px] font-medium transition-all"
+                    style={{
+                      background: agendaPeriodo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
+                      borderColor: agendaPeriodo === p ? "oklch(55% 0.22 264 / 50%)" : "oklch(88% 0.010 250)",
+                      color: agendaPeriodo === p ? "oklch(45% 0.18 264)" : "oklch(50% 0.010 260)",
+                      fontWeight: agendaPeriodo === p ? 600 : 400,
+                    }}
+                  >
+                    {p === "hoje" ? "Hoje" : p === "semana" ? "Semana" : "Mês"}
+                  </button>
+                ))}
+              </div>
             </div>
             {agendamentosOrdenados.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 text-center px-6">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: "oklch(55% 0.22 264 / 8%)" }}><Calendar className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} /></div>
-                <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento hoje</p>
+                <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento {agendaPeriodo === "hoje" ? "hoje" : agendaPeriodo === "semana" ? "esta semana" : "este mês"}</p>
                 <p className="text-xs text-muted-foreground mb-5">Que tal criar o primeiro?</p>
                 <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary text-xs py-1.5"><Plus className="w-3.5 h-3.5" /> Criar agendamento</button>
               </div>
