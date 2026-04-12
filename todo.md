@@ -1532,3 +1532,7 @@
 - [x] Adicionar cache (staleTime: 5 minutos) para evitar recarregamentos desnecessarios
 - [x] Implementar verificacao mais robusta: nao exibir onboarding durante carregamento da query
 - [x] Mostrar loading spinner enquanto a empresa esta sendo carregada
+
+## UX: Menu Centralizado no Calendário (v9.11.4)
+- [x] Centralizar menu de contexto usando transform: translate(-50%, -50%)
+- [x] Aumentar minWidth do menu para 250px para melhor legibilidade

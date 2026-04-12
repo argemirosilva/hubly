@@ -564,9 +564,10 @@ export default function Calendario() {
         <div
           className="fixed z-50 bg-white border rounded-lg shadow-lg overflow-hidden"
           style={{
-            left: `${menuAberto.x}px`,
-            top: `${menuAberto.y}px`,
-            minWidth: "200px",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            minWidth: "250px",
           }}
           onClick={(e) => e.stopPropagation()}
         >
