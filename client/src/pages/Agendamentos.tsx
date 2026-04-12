@@ -125,24 +125,43 @@ export default function Agendamentos() {
   const [filtroSaldoAberto, setFiltroSaldoAberto] = useState(false);
 
   const today = getLocalDateString();
-  const [dataInicio, setDataInicio] = useState(today);
-  const [dataFim, setDataFim] = useState(today);
-  const [periodoAtivo, setPeriodoAtivo] = useState<"hoje" | "semana" | "mes" | "custom">("hoje");
 
-  const aplicarPeriodo = (tipo: "hoje" | "semana" | "mes") => {
+  // Calcular datas para um período sem depender de estado
+  const calcularDatas = (tipo: "hoje" | "semana" | "mes"): { inicio: string; fim: string } => {
     const d = new Date();
     if (tipo === "hoje") {
-      setDataInicio(today); setDataFim(today);
+      return { inicio: today, fim: today };
     } else if (tipo === "semana") {
       const dom = new Date(d); dom.setDate(d.getDate() - d.getDay());
       const sab = new Date(dom); sab.setDate(dom.getDate() + 6);
-      setDataInicio(getLocalDateString(dom)); setDataFim(getLocalDateString(sab));
+      return { inicio: getLocalDateString(dom), fim: getLocalDateString(sab) };
     } else {
       const ini = new Date(d.getFullYear(), d.getMonth(), 1);
       const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      setDataInicio(getLocalDateString(ini)); setDataFim(getLocalDateString(fim));
+      return { inicio: getLocalDateString(ini), fim: getLocalDateString(fim) };
     }
+  };
+
+  // Restaurar último período salvo no localStorage (padrão: "hoje")
+  const periodoSalvo = (() => {
+    try {
+      const v = localStorage.getItem("hubly_periodo_agendamentos");
+      if (v === "hoje" || v === "semana" || v === "mes") return v;
+    } catch {}
+    return "hoje" as const;
+  })();
+
+  const datasIniciais = calcularDatas(periodoSalvo);
+  const [dataInicio, setDataInicio] = useState(datasIniciais.inicio);
+  const [dataFim, setDataFim] = useState(datasIniciais.fim);
+  const [periodoAtivo, setPeriodoAtivo] = useState<"hoje" | "semana" | "mes" | "custom">(periodoSalvo);
+
+  const aplicarPeriodo = (tipo: "hoje" | "semana" | "mes") => {
+    const { inicio, fim } = calcularDatas(tipo);
+    setDataInicio(inicio);
+    setDataFim(fim);
     setPeriodoAtivo(tipo);
+    try { localStorage.setItem("hubly_periodo_agendamentos", tipo); } catch {}
   };
 
   // Backend já aplica o filtro correto via resolveAdminContext

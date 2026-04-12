@@ -1489,3 +1489,7 @@
 
 ## UX Mobile: Atalhos Agendamentos (v9.5)
 - [x] Mover atalhos Hoje/Semana/Mês para fora do painel de filtros (sempre visíveis no mobile)
+
+## Persistência de Filtro de Período (v9.6)
+- [x] Salvar último período selecionado em localStorage ao trocar
+- [x] Restaurar período salvo ao carregar a página de Agendamentos
