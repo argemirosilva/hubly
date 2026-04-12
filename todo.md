@@ -1536,3 +1536,8 @@
 ## UX: Menu Centralizado no Calendário (v9.11.4)
 - [x] Centralizar menu de contexto usando transform: translate(-50%, -50%)
 - [x] Aumentar minWidth do menu para 250px para melhor legibilidade
+
+## UX: Animação do Menu (v9.11.5)
+- [x] Adicionar animação fade-in + scale ao menu de contexto
+- [x] Usar cubic-bezier para easing suave (0.16, 1, 0.3, 1)
+- [x] Duração de 0.2s para animação rápida e responsiva

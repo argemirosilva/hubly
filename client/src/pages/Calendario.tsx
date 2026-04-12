@@ -562,11 +562,10 @@ export default function Calendario() {
       {/* Menu de ações ao clicar em dia */}
       {menuAberto && (
         <div
-          className="fixed z-50 bg-white border rounded-lg shadow-lg overflow-hidden"
+          className="fixed z-50 bg-white border rounded-lg shadow-lg overflow-hidden animate-menu-pop"
           style={{
             left: "50%",
             top: "50%",
-            transform: "translate(-50%, -50%)",
             minWidth: "250px",
           }}
           onClick={(e) => e.stopPropagation()}
