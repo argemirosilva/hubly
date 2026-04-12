@@ -455,7 +455,7 @@ export default function WhatsAppPage() {
             </div>
             {connectionLog && connectionLog.length > 0 && (
               <span className="text-xs text-muted-foreground">
-                {Math.min(connectionLog.length, 5)} de {connectionLog.length} eventos
+                {connectionLog.length > 5 ? "Últimos 5" : `${connectionLog.length} evento${connectionLog.length !== 1 ? "s" : ""}`}
               </span>
             )}
           </div>
