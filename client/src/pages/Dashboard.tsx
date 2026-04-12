@@ -778,11 +778,11 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={resetLayout} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors">
-                <RotateCcw className="w-3.5 h-3.5" />Restaurar padrão
+                <RotateCcw className="w-3.5 h-3.5" />Padrão
               </button>
               <button onClick={handleSave} disabled={saveConfig.isPending}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg btn-primary transition-colors disabled:opacity-60">
-                <Save className="w-3.5 h-3.5" />{saveConfig.isPending ? "Salvando..." : "Salvar layout"}
+                <Save className="w-3.5 h-3.5" />{saveConfig.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>

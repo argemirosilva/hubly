@@ -1500,3 +1500,17 @@
 
 ## WhatsApp: Limite de Eventos (v9.8)
 - [x] Limitar exibição de eventos na lista de diagnóstico para apenas 5 mais recentes
+
+## Auditoria Mobile: Responsividade (v10)
+- [ ] Calendário: botões Hoje/Semana/Mês + botão Novo em layout responsivo (não sobrepostos)
+- [ ] Dashboard: botões Personalizar/Restaurar/Salvar em layout responsivo (não sobrepostos com conteúdo)
+- [ ] Todas as páginas: verificar truncamento de campos, botões e elementos no mobile
+- [ ] Verificar overflow e scroll em modais, cards e listas
+
+## UX: Encurtamento de Textos (v9.9)
+- [ ] Dashboard: trocar "Salvar layout" por "Salvar"
+- [ ] Dashboard: trocar "Restaurar padrão" por "Padrão"
+
+## Calendário: Menu de Ações ao Clicar em Dia (v9.10)
+- [x] Ao clicar em dia com agendamentos, abrir menu com opções: "Novo Agendamento" ou "Ver Agendamentos do Dia"
+- [x] Se dia sem agendamentos, abrir diretamente o modal de novo agendamento

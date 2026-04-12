@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2 } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -31,6 +31,8 @@ export default function Calendario() {
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
   const [profissionalFiltro, setProfissionalFiltro] = useState<string>("all");
+  const [menuAberto, setMenuAberto] = useState<{ x: number; y: number; data: string } | null>(null);
+  const [agendamentosDodia, setAgendamentosDodia] = useState<number>(0);
 
   const { isOwner, pode } = usePermissoes();
   const isAdmin = isOwner || pode('agendamentosVerTodos');
@@ -343,7 +345,18 @@ export default function Calendario() {
                     ? "oklch(98.5% 0.006 68)"
                     : "oklch(99% 0.004 68)",
                 }}
-                onClick={() => { setNovaAgendaData(date); setNovaAgendaOpen(true); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const agsDodia = ags.length;
+                  if (agsDodia > 0) {
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setMenuAberto({ x: rect.left, y: rect.top + rect.height, data: date });
+                    setAgendamentosDodia(agsDodia);
+                  } else {
+                    setNovaAgendaData(date);
+                    setNovaAgendaOpen(true);
+                  }
+                }}
               >
                 {/* Número do dia */}
                 <div className="flex items-center justify-between mb-1">
@@ -549,6 +562,52 @@ export default function Calendario() {
           );
         })}
       </div>
+
+      {/* Menu de ações ao clicar em dia */}
+      {menuAberto && (
+        <div
+          className="fixed z-50 bg-white border rounded-lg shadow-lg overflow-hidden"
+          style={{
+            left: `${menuAberto.x}px`,
+            top: `${menuAberto.y}px`,
+            minWidth: "200px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              setNovaAgendaData(menuAberto.data);
+              setNovaAgendaOpen(true);
+              setMenuAberto(null);
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors border-b flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Agendamento
+          </button>
+          <button
+            onClick={() => {
+              // Filtrar agendamentos do dia selecionado
+              const dataFiltro = menuAberto.data;
+              // Aqui você pode navegar para a página de Agendamentos com o filtro pré-aplicado
+              // ou abrir um modal mostrando os agendamentos do dia
+              window.location.href = `/agendamentos?data=${dataFiltro}`;
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Ver {agendamentosDodia} Agendamento{agendamentosDodia !== 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
+
+      {/* Fechar menu ao clicar fora */}
+      {menuAberto && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setMenuAberto(null)}
+        />
+      )}
 
       {novaAgendaOpen && (
         <NovaAgendaModal
