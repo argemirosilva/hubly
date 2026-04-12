@@ -309,6 +309,13 @@
       "when": 1775389028800,
       "tag": "0043_melhorias_automacoes_agendamentos",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1776021056891,
+      "tag": "0044_next_famine",
+      "breakpoints": true
     }
   ]
 }

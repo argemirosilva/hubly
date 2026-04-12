@@ -50,6 +50,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", numeroParcelas: 1, observacao: "" });
   // Estado para leitura de comprovante
   const comprovanteInputRef = useRef<HTMLInputElement>(null);
+  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const lerComprovanteMutation = trpc.agendamentos.lerComprovante.useMutation({
     onSuccess: (result) => {
       if (!result.sucesso) {
@@ -73,18 +75,34 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const handleComprovanteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Converter imagem para base64 data URL e enviar diretamente na mutation
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
-      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
+      if (file.type === 'application/pdf') {
+        setPdfPreview(dataUrl);
+        setShowPdfPreview(true);
+      } else {
+        lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
+      }
     };
     reader.onerror = () => {
       toast.error('Erro ao ler arquivo. Tente novamente.');
     };
     reader.readAsDataURL(file);
-    // Limpar input para permitir re-upload do mesmo arquivo
     e.target.value = '';
+  };
+
+  const handleConfirmPdfPreview = () => {
+    if (pdfPreview) {
+      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: pdfPreview });
+      setShowPdfPreview(false);
+      setPdfPreview(null);
+    }
+  };
+
+  const handleCancelPdfPreview = () => {
+    setShowPdfPreview(false);
+    setPdfPreview(null);
   };
 
   // Estado para desconto
@@ -1188,6 +1206,32 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {updateMutation.isPending ? "Concluindo..." : "Confirmar Conclusão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Preview de PDF */}
+    <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Preview do Comprovante (PDF)</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto bg-muted rounded-lg">
+          {pdfPreview && (
+            <iframe
+              src={pdfPreview}
+              className="w-full h-full min-h-[400px]"
+              title="PDF Preview"
+            />
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleCancelPdfPreview}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmPdfPreview} disabled={lerComprovanteMutation.isPending}>
+            {lerComprovanteMutation.isPending ? "Processando..." : "Confirmar e Processar"}
           </Button>
         </DialogFooter>
       </DialogContent>

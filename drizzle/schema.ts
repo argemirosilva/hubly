@@ -211,6 +211,8 @@ export const agendamentos = mysqlTable("agendamentos", {
   observacoesInternas: text("observacoesInternas"),
   confirmadoEm: timestamp("confirmadoEm"),
   concluidoEm: timestamp("concluidoEm"),
+  notificacaoEnviada: boolean("notificacaoEnviada").default(false),
+  notificacaoEnviadaEm: timestamp("notificacaoEnviadaEm"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

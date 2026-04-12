@@ -1595,3 +1595,22 @@
 - [x] Atualizar prompt do LLM para suportar PDF
 - [ ] Implementar preview de PDF antes de enviar
 - [ ] Testar com PDFs reais
+
+## Feature: Preview de PDF (v9.16)
+- [ ] Adicionar modal para visualizar PDF antes de processar
+- [ ] Implementar visualização de página do PDF
+- [ ] Adicionar botão para confirmar/cancelar
+
+## Feature: Notificações de Agendamento (v9.17)
+- [ ] Criar job para verificar agendamentos próximos
+- [ ] Enviar notificação 1 hora antes do agendamento
+- [ ] Adicionar configuração de tempo de notificação
+
+## Feature: Notificações de Agendamento (v9.17)
+- [x] Implementar preview de PDF no modal de comprovante
+- [x] Adicionar campos notificacaoEnviada e notificacaoEnviadaEm no banco
+- [x] Gerar e aplicar migração SQL
+- [x] Criar job para verificar agendamentos próximos (1 hora antes)
+- [ ] Integrar job no servidor (executar a cada 5 minutos)
+- [ ] Enviar notificação push 1 hora antes do agendamento
+- [ ] Adicionar configuração de tempo de notificação nas Configurações
