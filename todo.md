@@ -1630,3 +1630,4 @@
 - [x] Enviar notificação para profissional quando agendamento é confirmado
 - [x] Integrar com fluxo de confirmação do WhatsApp
 - [ ] Testar com clientes reais
+
