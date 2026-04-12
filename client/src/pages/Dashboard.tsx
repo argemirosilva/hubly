@@ -772,9 +772,7 @@ export default function Dashboard() {
             <Settings2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{editMode ? "Editando..." : "Personalizar"}</span>
           </button>
-          <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary py-2 px-3 text-xs">
-            <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Novo Agendamento</span><span className="sm:hidden">Novo</span>
-          </button>
+
         </div>
       </div>
 

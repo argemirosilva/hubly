@@ -1541,3 +1541,6 @@
 - [x] Adicionar animação fade-in + scale ao menu de contexto
 - [x] Usar cubic-bezier para easing suave (0.16, 1, 0.3, 1)
 - [x] Duração de 0.2s para animação rápida e responsiva
+
+## UX: Dashboard (v9.11.6)
+- [x] Remover botão "+ Novo Agendamento" do Dashboard
