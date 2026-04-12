@@ -1522,3 +1522,7 @@
 
 ## UX: Botão Novo no Calendário (v9.11.1)
 - [x] Alterar botão "Novo" para exibir apenas o ícone de mais (+) no mobile
+
+## UX: Menu de Contexto do Calendário (v9.11.2)
+- [x] Remover botão "Novo Agendamento" da barra de navegação
+- [x] Centralizar menu de contexto com opções "Novo Agendamento" e "Ver Agendamentos"

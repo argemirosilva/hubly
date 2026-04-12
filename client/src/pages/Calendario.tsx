@@ -282,12 +282,7 @@ export default function Calendario() {
             </button>
           </div>
 
-          <button
-            onClick={() => { setNovaAgendaData(today); setNovaAgendaOpen(true); }}
-            className="btn-primary py-2 px-3 text-xs">
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Novo Agendamento</span>
-          </button>
+
         </div>
       </div>
 
@@ -581,7 +576,7 @@ export default function Calendario() {
               setNovaAgendaOpen(true);
               setMenuAberto(null);
             }}
-            className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors border-b flex items-center gap-2"
+            className="w-full px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors border-b flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Novo Agendamento
@@ -593,7 +588,7 @@ export default function Calendario() {
               navigate(`/admin/agendamentos?data=${dataFiltro}`);
               setMenuAberto(null);
             }}
-            className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2"
+            className="w-full px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             Ver {agendamentosDodia} Agendamento{agendamentosDodia !== 1 ? 's' : ''}
