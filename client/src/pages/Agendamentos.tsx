@@ -245,14 +245,13 @@ export default function Agendamentos() {
         </button>
       </div>
 
-      {/* Filtros expandidos (mobile) / sempre visíveis (desktop) */}
-      <div className={`${filtrosAbertos ? "flex" : "hidden"} lg:flex flex-wrap gap-2`}>
-        {/* Atalhos de período */}
+      {/* Atalhos de período — sempre visíveis (mobile e desktop) */}
+      <div className="flex gap-2">
         {(["hoje", "semana", "mes"] as const).map(p => (
           <button
             key={p}
             onClick={() => aplicarPeriodo(p)}
-            className="h-9 px-3 rounded-lg border text-xs font-medium transition-all"
+            className="h-9 px-3 rounded-lg border text-xs font-medium transition-all flex-1 sm:flex-none"
             style={{
               background: periodoAtivo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
               borderColor: periodoAtivo === p ? "oklch(55% 0.22 264 / 50%)" : "oklch(88% 0.010 250)",
@@ -263,7 +262,11 @@ export default function Agendamentos() {
             {p === "hoje" ? "Hoje" : p === "semana" ? "Semana" : "Mês"}
           </button>
         ))}
-        <div className="w-px h-9 bg-border self-center" />
+      </div>
+
+      {/* Filtros expandidos (mobile) / sempre visíveis (desktop) */}
+      <div className={`${filtrosAbertos ? "flex" : "hidden"} lg:flex flex-wrap gap-2`}>
+        <div className="w-px h-9 bg-border self-center hidden lg:block" />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 self-center">
           <span>De</span>
         </div>

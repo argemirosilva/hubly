@@ -1486,3 +1486,6 @@
 ## Bug: Layout Mobile Modais de Agendamento (v9.4)
 - [x] NovaAgendaModal: corrigir campos truncados/sobrepostos no mobile
 - [x] EditarAgendamentoModal: corrigir campos truncados/sobrepostos no mobile
+
+## UX Mobile: Atalhos Agendamentos (v9.5)
+- [x] Mover atalhos Hoje/Semana/Mês para fora do painel de filtros (sempre visíveis no mobile)
