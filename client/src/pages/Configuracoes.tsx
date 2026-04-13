@@ -110,15 +110,18 @@ export default function Configuracoes() {
           .map(([filename, content]) => `# ${filename}\n\n${content}`)
           .join("\n\n---\n\n");
         
-        const blob = new Blob([content], { type: "text/markdown" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "agendei-documentacao.md";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const blob = new Blob([content], { type: "text/markdown; charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "agendei-documentacao.md";
+        link.style.display = "none";
+        
+        document.body.appendChild(link);
+        setTimeout(() => {
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+        }, 100);
         
         toast.success("Documentacao exportada com sucesso!");
       }
