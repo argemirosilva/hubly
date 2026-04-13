@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect, useCallback } from "react";
+import JSZip from "jszip";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,14 +107,43 @@ export default function Configuracoes() {
     try {
       const { data: result } = await exportQuery.refetch();
       if (result) {
-        const content = Object.entries(result as Record<string, string>)
-          .map(([filename, content]) => `# ${filename}\n\n${content}`)
-          .join("\n\n---\n\n");
+        // Criar ZIP com todos os arquivos
+        const zip = new JSZip();
+        const docs = result as Record<string, string>;
         
-        const blob = new Blob([content], { type: "text/markdown; charset=utf-8" });
+        Object.entries(docs).forEach(([filename, content]) => {
+          zip.file(`${filename}.md`, content);
+        });
+        
+        // Gerar blob do ZIP
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        
+        // Tentar usar File System Access API (Chrome, Edge)
+        if ("showSaveFilePicker" in window) {
+          try {
+            const handle = await (window as any).showSaveFilePicker({
+              suggestedName: "agendei-documentacao.zip",
+              types: [{ description: "ZIP Files", accept: { "application/zip": [".zip"] } }],
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(zipBlob);
+            await writable.close();
+            
+            toast.success("Documentacao exportada com sucesso!");
+            return;
+          } catch (err: any) {
+            // Se o usuário cancelar, cair para o método padrão
+            if (err.name !== "AbortError") {
+              console.error("Erro ao salvar:", err);
+            }
+          }
+        }
+        
+        // Fallback: download direto (sem diálogo de localização)
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "agendei-documentacao.md";
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = "agendei-documentacao.zip";
         link.style.display = "none";
         
         document.body.appendChild(link);
@@ -121,7 +151,7 @@ export default function Configuracoes() {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(link.href);
-        }, 100);
+        }, 500);
         
         toast.success("Documentacao exportada com sucesso!");
       }
