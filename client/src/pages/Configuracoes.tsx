@@ -99,10 +99,12 @@ export default function Configuracoes() {
   });
   
   const [exportandoObsidian, setExportandoObsidian] = useState(false);
-  const handleExportarObsidian = async () => {
+  const exportQuery = trpc.documentacao.exportarParaObsidian.useQuery(undefined, { enabled: false });
+  
+  const handleExportarObsidian = useCallback(async () => {
     setExportandoObsidian(true);
     try {
-      const { data: result } = await trpc.documentacao.exportarParaObsidian.useQuery().refetch();
+      const { data: result } = await exportQuery.refetch();
       if (result) {
         const content = Object.entries(result as Record<string, string>)
           .map(([filename, content]) => `# ${filename}\n\n${content}`)
@@ -125,7 +127,7 @@ export default function Configuracoes() {
     } finally {
       setExportandoObsidian(false);
     }
-  };
+  }, [exportQuery]);
 
   // Validação de slug em tempo real
   const [slugParaVerificar, setSlugParaVerificar] = useState("");
