@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image, Bell } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image, Bell, Download } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
@@ -97,6 +97,35 @@ export default function Configuracoes() {
     onSuccess: () => utils.empresa.get.invalidate(),
     onError: (err: any) => toast.error(err.message),
   });
+  
+  const [exportandoObsidian, setExportandoObsidian] = useState(false);
+  const handleExportarObsidian = async () => {
+    setExportandoObsidian(true);
+    try {
+      const result = await trpc.documentacao.exportarParaObsidian.useQuery().refetch();
+      if (result.data) {
+        const content = Object.entries(result.data as Record<string, string>)
+          .map(([filename, content]) => `# ${filename}\n\n${content}`)
+          .join("\n\n---\n\n");
+        
+        const blob = new Blob([content], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "agendei-documentacao.md";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success("Documentacao exportada com sucesso!");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao exportar: " + err.message);
+    } finally {
+      setExportandoObsidian(false);
+    }
+  };
 
   // Validação de slug em tempo real
   const [slugParaVerificar, setSlugParaVerificar] = useState("");
@@ -629,6 +658,28 @@ export default function Configuracoes() {
           )}
         </div>
       </div>
+
+      <div className="border-t pt-6 mt-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Download className="w-5 h-5" />
+          Exportar Documentação
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Exporte a documentação completa do projeto para importar no Obsidian e manter o conhecimento centralizado.
+        </p>
+        <button
+          onClick={handleExportarObsidian}
+          disabled={exportandoObsidian}
+          className="btn-primary py-2 px-4 text-sm"
+        >
+          {exportandoObsidian ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Exportando...</>
+          ) : (
+            <><Download className="w-4 h-4" /> Exportar para Obsidian</>
+          )}
+        </button>
+      </div>
+
       <button onClick={handleSave} disabled={updateMutation.isPending} className="btn-primary">
         <Save className="w-4 h-4" />
         {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}
