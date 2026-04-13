@@ -1652,3 +1652,7 @@
 - [x] Gerar documentação estruturada (5 arquivos MD)
 - [x] Download automático de arquivo .md com toda documentação
 - [ ] Testar importação no Obsidian
+
+## Bug: Erro ao Exportar para Obsidian (v9.32.1)
+- [x] Erro React 321 ao clicar em "Exportar para Obsidian" (corrigido)
+- [x] Corrigir função de exportação (usar .query() em vez de .useQuery().refetch())

@@ -102,9 +102,9 @@ export default function Configuracoes() {
   const handleExportarObsidian = async () => {
     setExportandoObsidian(true);
     try {
-      const result = await trpc.documentacao.exportarParaObsidian.useQuery().refetch();
-      if (result.data) {
-        const content = Object.entries(result.data as Record<string, string>)
+      const { data: result } = await trpc.documentacao.exportarParaObsidian.useQuery().refetch();
+      if (result) {
+        const content = Object.entries(result as Record<string, string>)
           .map(([filename, content]) => `# ${filename}\n\n${content}`)
           .join("\n\n---\n\n");
         
