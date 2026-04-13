@@ -1631,3 +1631,12 @@
 - [x] Integrar com fluxo de confirmação do WhatsApp
 - [ ] Testar com clientes reais
 
+
+## Feature: Atualização de Ícones (v9.26)
+- [x] Fazer upload do novo ícone do app (CDN)
+- [x] Atualizar favicon.ico (múltiplas resoluções)
+- [x] Atualizar apple-touch-icon.png (iOS)
+- [x] Criar ícones para Android (192x192, 256x256, 384x384, 512x512)
+- [x] Atualizar manifest.json com novos ícones
+- [x] Atualizar index.html com referências aos novos ícones
+- [ ] Testar em Android e iOS
