@@ -1643,3 +1643,11 @@
 
 ## Bug: Sino em Push Notifications (v9.27.1)
 - [x] Remover sino/badge das push notifications (removido do Service Worker)
+
+## Feature: Integração com Obsidian (v9.29)
+- [x] Criar gerador de documentação do projeto em Markdown
+- [x] Exportar arquitetura, fluxos e configurações
+- [x] Criar endpoint de sincronização sob demanda (tRPC)
+- [ ] Adicionar botão "Exportar para Obsidian" nas Configurações
+- [x] Gerar documentação estruturada (5 arquivos MD)
+- [ ] Testar importação no Obsidian

@@ -48,6 +48,7 @@ import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { suporteRouter } from "./routers/suporte";
+import { gerarDocumentacaoObsidian } from "./jobs/gerar-documentacao";
 import { portalRouter } from "./routers/portal";
 import { importacaoRouter } from "./routers/importacao";
 import { pacotesRouter } from "./routers/pacotes";
@@ -211,6 +212,16 @@ export const appRouter = router({
   pacotes: pacotesRouter,
   relatorios: relatoriosRouter,
   onboarding: onboardingRouter,
+
+  documentacao: router({
+    exportarParaObsidian: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa || empresa.ownerId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o owner pode exportar documentacao" });
+      }
+      return gerarDocumentacaoObsidian();
+    }),
+  }),
 
   dashboardConfig: router({
     get: protectedProcedure.query(async ({ ctx }) => {
