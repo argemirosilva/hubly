@@ -155,13 +155,13 @@ export default function Agendamentos() {
     }
   };
 
-  // Restaurar último período salvo no localStorage (padrão: "hoje")
+  // Restaurar último período salvo no localStorage (padrão: "mes" para melhor experiência)
   const periodoSalvo = (() => {
     try {
       const v = localStorage.getItem("hubly_periodo_agendamentos");
       if (v === "hoje" || v === "semana" || v === "mes") return v;
     } catch {}
-    return "hoje" as const;
+    return "mes" as const;
   })();
 
   // Se há data do calendário, usar essa; senão usar o período salvo

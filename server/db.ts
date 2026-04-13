@@ -196,82 +196,89 @@ export async function updateServico(id: number, data: Partial<typeof servicos.$i
 
 // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
 export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: string, dataFim?: string, profissionalId?: number | null) {
-  const db = await getDb();
-  if (!db) return [];
-  const conditions = [eq(agendamentos.empresaId, empresaId)];
-  if (dataInicio) conditions.push(sql`${agendamentos.data} >= ${dataInicio}`);
-  if (dataFim) conditions.push(sql`${agendamentos.data} <= ${dataFim}`);
-  // Filtro por profissional — busca agendamentos onde o profissional é o principal OU aparece em algum item
-  let rows;
-  const { inArray, or } = await import('drizzle-orm');
-  if (profissionalId) {
-    // Buscar IDs de agendamentos onde o profissional aparece em algum item
-    const agIdsViaItens = await db
-      .select({ agendamentoId: agendamentoItens.agendamentoId })
-      .from(agendamentoItens)
-      .where(eq(agendamentoItens.profissionalId, profissionalId));
-    const idsViaItens = agIdsViaItens.map(r => r.agendamentoId);
-    // Filtro: profissional principal OU aparece em item
-    const filtroProfissional = idsViaItens.length > 0
-      ? or(eq(agendamentos.profissionalId, profissionalId), inArray(agendamentos.id, idsViaItens))!
-      : eq(agendamentos.profissionalId, profissionalId);
-    conditions.push(filtroProfissional);
-  }
-  rows = await db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
-  if (rows.length === 0) return rows;
-
-  // Enriquecer com servicoNome e itens (múltiplos serviços)
-  const agIds = rows.map(r => r.id);
-
-  // Buscar todos os itens de uma vez (incluindo profissionalId, horaInicio e horaFim por item)
-  const itensRows = await db
-    .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, profissionalId: agendamentoItens.profissionalId, horaInicio: agendamentoItens.horaInicio, horaFim: agendamentoItens.horaFim, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
-    .from(agendamentoItens)
-    .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
-    .where(inArray(agendamentoItens.agendamentoId, agIds));
-
-  // Buscar nomes dos serviços principais (servicoId da tabela agendamentos)
-  const servicoIds = Array.from(new Set(rows.map(r => r.servicoId).filter(Boolean) as number[]));
-  const servicosMap: Record<number, string> = {};
-  if (servicoIds.length > 0) {
-    const sRows = await db.select({ id: servicos.id, nome: servicos.nome }).from(servicos).where(inArray(servicos.id, servicoIds));
-    sRows.forEach(s => { servicosMap[s.id] = s.nome; });
-  }
-
-  // Agrupar itens por agendamento
-  const itensPorAg: Record<number, typeof itensRows> = {};
-  itensRows.forEach(item => {
-    if (!itensPorAg[item.agendamentoId]) itensPorAg[item.agendamentoId] = [];
-    itensPorAg[item.agendamentoId].push(item);
-  });
-
-  // Buscar pagamentos de todos os agendamentos de uma vez
-  const pagamentosRows = await db
-    .select({ agendamentoId: agendamentoPagamentos.agendamentoId, valor: agendamentoPagamentos.valor })
-    .from(agendamentoPagamentos)
-    .where(inArray(agendamentoPagamentos.agendamentoId, agIds));
-
-  const pagamentosPorAg: Record<number, number> = {};
-  pagamentosRows.forEach(p => {
-    pagamentosPorAg[p.agendamentoId] = (pagamentosPorAg[p.agendamentoId] ?? 0) + parseFloat(String(p.valor));
-  });
-
-  return rows.map(ag => {
-    const itens = itensPorAg[ag.id] ?? [];
-    let servicoNome: string;
-    if (itens.length > 1) {
-      servicoNome = itens.map(i => i.servicoNome ?? `Serviço`).join(', ');
-    } else if (itens.length === 1) {
-      servicoNome = itens[0].servicoNome ?? servicosMap[ag.servicoId ?? 0] ?? '';
-    } else {
-      servicoNome = servicosMap[ag.servicoId ?? 0] ?? '';
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const conditions = [eq(agendamentos.empresaId, empresaId)];
+    // Usar DATE() para garantir comparacao correta com coluna DATE no TiDB/MySQL
+    if (dataInicio) conditions.push(sql`DATE(${agendamentos.data}) >= DATE(${dataInicio})`);
+    if (dataFim) conditions.push(sql`DATE(${agendamentos.data}) <= DATE(${dataFim})`);
+    // Filtro por profissional — busca agendamentos onde o profissional é o principal OU aparece em algum item
+    let rows;
+    const { inArray, or } = await import('drizzle-orm');
+    if (profissionalId) {
+      // Buscar IDs de agendamentos onde o profissional aparece em algum item
+      const agIdsViaItens = await db
+        .select({ agendamentoId: agendamentoItens.agendamentoId })
+        .from(agendamentoItens)
+        .where(eq(agendamentoItens.profissionalId, profissionalId));
+      const idsViaItens = agIdsViaItens.map(r => r.agendamentoId).filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
+      // Filtro: profissional principal OU aparece em item
+      const filtroProfissional = idsViaItens.length > 0
+        ? or(eq(agendamentos.profissionalId, profissionalId), inArray(agendamentos.id, idsViaItens))!
+        : eq(agendamentos.profissionalId, profissionalId);
+      conditions.push(filtroProfissional);
     }
-    const totalPago = pagamentosPorAg[ag.id] ?? 0;
-    const desconto = parseFloat(String((ag as any).desconto ?? 0));
-    const valorTotal = parseFloat(String(ag.valorTotal ?? 0));
-    const emAberto = Math.max(0, valorTotal - desconto - totalPago);
-    return { ...ag, servicoNome, itens, totalPago, emAberto };
-  });
+    // ORDER BY data e horaInicio para ordenar agenda por data e hora
+    rows = await db.select().from(agendamentos).where(and(...conditions)).orderBy(agendamentos.data, agendamentos.horaInicio);
+    if (rows.length === 0) return rows;
+
+    // Enriquecer com servicoNome e itens (múltiplos serviços)
+    const agIds = rows.map(r => r.id);
+
+      // Buscar todos os itens de uma vez (incluindo profissionalId, horaInicio e horaFim por item)
+      const itensRows = await db
+        .select({ agendamentoId: agendamentoItens.agendamentoId, servicoId: agendamentoItens.servicoId, profissionalId: agendamentoItens.profissionalId, horaInicio: agendamentoItens.horaInicio, horaFim: agendamentoItens.horaFim, valorUnitario: agendamentoItens.valorUnitario, servicoNome: servicos.nome })
+        .from(agendamentoItens)
+        .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+        .where(inArray(agendamentoItens.agendamentoId, agIds));
+
+      // Buscar nomes dos serviços principais (servicoId da tabela agendamentos)
+      const servicoIds = Array.from(new Set(rows.map(r => r.servicoId).filter(Boolean) as number[]));
+      const servicosMap: Record<number, string> = {};
+      if (servicoIds.length > 0) {
+        const sRows = await db.select({ id: servicos.id, nome: servicos.nome }).from(servicos).where(inArray(servicos.id, servicoIds));
+        sRows.forEach(s => { servicosMap[s.id] = s.nome; });
+      }
+
+      // Agrupar itens por agendamento
+      const itensPorAg: Record<number, typeof itensRows> = {};
+      itensRows.forEach(item => {
+        if (!itensPorAg[item.agendamentoId]) itensPorAg[item.agendamentoId] = [];
+        itensPorAg[item.agendamentoId].push(item);
+      });
+
+      // Buscar pagamentos de todos os agendamentos de uma vez
+      const pagamentosRows = await db
+        .select({ agendamentoId: agendamentoPagamentos.agendamentoId, valor: agendamentoPagamentos.valor })
+        .from(agendamentoPagamentos)
+        .where(inArray(agendamentoPagamentos.agendamentoId, agIds));
+
+      const pagamentosPorAg: Record<number, number> = {};
+      pagamentosRows.forEach(p => {
+        pagamentosPorAg[p.agendamentoId] = (pagamentosPorAg[p.agendamentoId] ?? 0) + parseFloat(String(p.valor));
+      });
+
+    return rows.map(ag => {
+      const itens = itensPorAg[ag.id] ?? [];
+      let servicoNome: string;
+      if (itens.length > 1) {
+        servicoNome = itens.map(i => i.servicoNome ?? `Serviço`).join(', ');
+      } else if (itens.length === 1) {
+        servicoNome = itens[0].servicoNome ?? servicosMap[ag.servicoId ?? 0] ?? '';
+      } else {
+        servicoNome = servicosMap[ag.servicoId ?? 0] ?? '';
+      }
+      const totalPago = pagamentosPorAg[ag.id] ?? 0;
+      const desconto = parseFloat(String((ag as any).desconto ?? 0));
+      const valorTotal = parseFloat(String(ag.valorTotal ?? 0));
+      const emAberto = Math.max(0, valorTotal - desconto - totalPago);
+      return { ...ag, servicoNome, itens, totalPago, emAberto };
+    });
+  } catch (error) {
+    console.error('[getAgendamentosByEmpresa] Erro:', error);
+    throw error;
+  }
 }
 
 export async function getAgendamentoById(id: number) {

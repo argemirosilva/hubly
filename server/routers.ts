@@ -55,7 +55,6 @@ import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { nanoid } from "nanoid";
-import { getDb } from "./db";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
 
@@ -199,6 +198,9 @@ async function resolveAdminContext(
 }
 
 import { getUsageWithAlerts } from "./db-usage-alerts";
+import { getDb } from "./db";
+import { sql } from "drizzle-orm";
+
 
 export const appRouter = router({
   system: systemRouter,
@@ -220,6 +222,59 @@ export const appRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o owner pode exportar documentacao" });
       }
       return gerarDocumentacaoObsidian();
+    }),
+  }),
+
+  admin: router({
+    fixAgendamentos: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa || empresa.ownerId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o owner pode executar esta operação" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados não disponível" });
+      
+      try {
+        // Corrigir horaInicio inválido para HH:mm (sem segundos)
+        await db.execute(sql`
+          UPDATE agendamentos 
+          SET horaInicio = '09:00'
+          WHERE horaInicio IS NULL 
+             OR horaInicio = '' 
+             OR horaInicio = 'NaN'
+             OR LENGTH(CAST(horaInicio AS CHAR)) < 5
+        `);
+        
+        // Corrigir horaFim inválido para HH:mm (sem segundos)
+        await db.execute(sql`
+          UPDATE agendamentos 
+          SET horaFim = '10:00'
+          WHERE horaFim IS NULL 
+             OR horaFim = '' 
+             OR horaFim = 'NaN'
+             OR LENGTH(CAST(horaFim AS CHAR)) < 5
+        `);
+        
+        // Remover segundos: HH:mm:ss -> HH:mm
+        await db.execute(sql`
+          UPDATE agendamentos 
+          SET horaInicio = SUBSTRING(horaInicio, 1, 5)
+          WHERE LENGTH(CAST(horaInicio AS CHAR)) >= 8 
+            AND horaInicio LIKE '%:%:%'
+        `);
+        
+        await db.execute(sql`
+          UPDATE agendamentos 
+          SET horaFim = SUBSTRING(horaFim, 1, 5)
+          WHERE LENGTH(CAST(horaFim AS CHAR)) >= 8 
+            AND horaFim LIKE '%:%:%'
+        `);
+        
+        return { success: true, message: "Agendamentos corrigidos com sucesso" };
+      } catch (error) {
+        console.error('[fixAgendamentos] Erro:', error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao corrigir agendamentos" });
+      }
     }),
   }),
 

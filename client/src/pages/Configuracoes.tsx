@@ -1,12 +1,13 @@
-import { trpc } from "@/lib/trpc";
 import { useState, useEffect, useCallback } from "react";
+import { trpc } from "@/lib/trpc";
 import JSZip from "jszip";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, AlertCircle, CheckCircle2, Loader2, Upload, Image, Bell, Download } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, Download, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+
 
 const DIAS_SEMANA = [
   { value: 0, label: "Dom" },
@@ -101,6 +102,8 @@ export default function Configuracoes() {
   
   const [exportandoObsidian, setExportandoObsidian] = useState(false);
   const exportQuery = trpc.documentacao.exportarParaObsidian.useQuery(undefined, { enabled: false });
+  
+
   
   const handleExportarObsidian = useCallback(async () => {
     setExportandoObsidian(true);
