@@ -1640,3 +1640,6 @@
 - [x] Atualizar manifest.json com novos ícones
 - [x] Atualizar index.html com referências aos novos ícones
 - [ ] Testar em Android e iOS
+
+## Bug: Sino em Push Notifications (v9.27.1)
+- [x] Remover sino/badge das push notifications (removido do Service Worker)

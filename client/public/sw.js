@@ -78,7 +78,6 @@ self.addEventListener('push', (event) => {
     title = 'Hubly',
     body = '',
     icon = '/icon-192.png',
-    badge = '/icon-192.png',
     tag = 'hubly-notification',
     sound = false,
     data = {},
@@ -88,7 +87,6 @@ self.addEventListener('push', (event) => {
   const notificationOptions = {
     body,
     icon,
-    badge,
     tag,
     renotify: true,
     requireInteraction: false,
