@@ -14,7 +14,7 @@ import {
   agendamentos, agendamentoItens,
   profissionais,
 } from "../../drizzle/schema";
-import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
+import { eq, and, sql, lte, gt, like, or, inArray } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
@@ -86,7 +86,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(pacotesModelosItens)
         .leftJoin(servicos, eq(pacotesModelosItens.servicoId, servicos.id))
-        .where(sql`${pacotesModelosItens.modeloId} IN (${ids.join(",")})`);
+        .where(inArray(pacotesModelosItens.modeloId, ids));
       return modelos.map(m => ({
         ...m,
         itens: itens.filter(i => i.modeloId === m.id),
