@@ -858,14 +858,25 @@ export const appRouter = router({
       // ── Enfileirar envio automático de confirmação via WhatsApp (fila universal) ──       // Sempre enfileira como 'pendente', independente do WhatsApp estar conectado.
         // O worker de processamento (scheduler) enviará quando a conexão estiver disponível.
         try {
-          const [cliente, profissional, servico] = await Promise.all([
+          const [cliente, profissional] = await Promise.all([
             getClienteById(rest.clienteId),
             getProfissionalById(rest.profissionalId),
-            (async () => {
-              const servicos = await getServicosByEmpresa(empresa.id);
-              return servicos.find(s => s.id === rest.servicoId);
-            })(),
           ]);
+          // Resolver nome do serviço: usar itens do agendamento (múltiplos serviços) em vez do servicoId principal
+          const itensAgendamento = await getItensByAgendamento(id);
+          let nomeServico = '';
+          if (itensAgendamento.length > 0) {
+            const todosServicos = await getServicosByEmpresa(empresa.id);
+            const nomesServicos = itensAgendamento.map(item => {
+              const s = todosServicos.find(sv => sv.id === item.servicoId);
+              return s?.nome ?? '';
+            }).filter(Boolean);
+            nomeServico = nomesServicos.join(', ');
+          } else {
+            const todosServicos = await getServicosByEmpresa(empresa.id);
+            const servico = todosServicos.find(s => s.id === rest.servicoId);
+            nomeServico = servico?.nome ?? '';
+          }
           const telefone = cliente?.whatsapp || cliente?.telefone;
           if (telefone && cliente) {
             const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
@@ -876,7 +887,7 @@ export const appRouter = router({
             const templateVars = {
               nome_cliente: cliente.nome || 'Cliente',
               primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
-              servico: servico?.nome ?? '',
+              servico: nomeServico,
               data: dataFormatada,
               hora: `${rest.horaInicio} – ${rest.horaFim}`,
               profissional: profissional?.nome ?? '',
@@ -907,7 +918,7 @@ export const appRouter = router({
               ``,
               `📅 *Data solicitada:* ${dataFormatada}`,
               `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+              nomeServico ? `✂️ *Serviço:* ${nomeServico}` : null,
               profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
               ``,
               `_${empresa.nome}_`,
@@ -921,7 +932,7 @@ export const appRouter = router({
               ``,
               `📅 *Data:* ${dataFormatada}`,
               `⏰ *Horário:* ${rest.horaInicio} – ${rest.horaFim}`,
-              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+              nomeServico ? `✂️ *Serviço:* ${nomeServico}` : null,
               profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
               `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
               valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
@@ -1066,14 +1077,24 @@ export const appRouter = router({
           try {
             const agendamento = await getAgendamentoById(id);
             if (agendamento) {
-              const [cliente, profissional, servico] = await Promise.all([
+              const [cliente, profissional] = await Promise.all([
                 getClienteById(agendamento.clienteId),
                 getProfissionalById(agendamento.profissionalId),
-                (async () => {
-                  const servicos = await getServicosByEmpresa(empresa.id);
-                  return servicos.find(s => s.id === agendamento.servicoId);
-                })(),
               ]);
+              // Resolver nome do serviço: usar itens do agendamento (múltiplos serviços)
+              const itensAg = await getItensByAgendamento(id);
+              let nomeServico2 = '';
+              if (itensAg.length > 0) {
+                const todosServicos = await getServicosByEmpresa(empresa.id);
+                nomeServico2 = itensAg.map(item => {
+                  const s = todosServicos.find(sv => sv.id === item.servicoId);
+                  return s?.nome ?? '';
+                }).filter(Boolean).join(', ');
+              } else {
+                const todosServicos = await getServicosByEmpresa(empresa.id);
+                const servico = todosServicos.find(s => s.id === agendamento.servicoId);
+                nomeServico2 = servico?.nome ?? '';
+              }
               const telefone = cliente?.whatsapp || cliente?.telefone;
               if (telefone && cliente) {
                 const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
@@ -1083,7 +1104,7 @@ export const appRouter = router({
                 const templateVars2 = {
                   nome_cliente: cliente.nome,
                   primeiro_nome: cliente.nome.split(' ')[0],
-                  servico: servico?.nome ?? '',
+                  servico: nomeServico2,
                   data: dataFormatada,
                   hora: `${agendamento.horaInicio} – ${agendamento.horaFim}`,
                   profissional: profissional?.nome ?? '',
@@ -1109,7 +1130,7 @@ export const appRouter = router({
                         ``,
                         `📅 *Data:* ${dataFormatada}`,
                         `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        nomeServico2 ? `✂️ *Serviço:* ${nomeServico2}` : null,
                         profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
                         ``,
                         `_${empresa.nome}_`,
@@ -1124,7 +1145,7 @@ export const appRouter = router({
                         ``,
                         `📅 *Data:* ${dataFormatada}`,
                         `⏰ *Horário:* ${agendamento.horaInicio} – ${agendamento.horaFim}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        nomeServico2 ? `✂️ *Serviço:* ${nomeServico2}` : null,
                         ``,
                         `Entre em contato para reagendar.`,
                         `_${empresa.nome}_`,
@@ -1139,7 +1160,7 @@ export const appRouter = router({
                         `Olá, *${cliente.nome}*! Seu atendimento foi concluído com sucesso.`,
                         ``,
                         `📅 *Data:* ${dataFormatada}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                        nomeServico2 ? `✂️ *Serviço:* ${nomeServico2}` : null,
                         profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
                         ``,
                         `Obrigada pela preferência! Esperamos você em breve. 💖`,
