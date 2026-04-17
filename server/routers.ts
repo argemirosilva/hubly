@@ -1477,24 +1477,37 @@ export const appRouter = router({
                 const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', {
                   weekday: 'long', day: '2-digit', month: 'long'
                 });
-                const linhas: (string | null)[] = [
-                  '📋 *Atualização do seu agendamento*',
-                  '',
-                  `Olá, *${cliente.nome}*! Seu agendamento foi atualizado.`,
-                  '',
-                  `📅 *Data:* ${dataFormatada}`,
-                  `⏰ *Horário:* ${agAtualizado.horaInicio.slice(0, 5)}`,
-                  servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                  profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                  '',
-                  `_${empresa.nome}_`,
-                ].filter(Boolean);
-                const mensagem = linhas.join('\n');
-
+                // Verificar se existe automação personalizada para este evento
+                const automacaoProfissional = await getAutomacaoByEvento(empresa.id, 'profissional_atribuido');
+                const templateVarsProfissional = {
+                  nome_cliente: cliente.nome,
+                  primeiro_nome: cliente.nome.split(' ')[0],
+                  servico: servico?.nome ?? '',
+                  data: dataFormatada,
+                  hora: `${String(agAtualizado.horaInicio ?? '').slice(0, 5)} – ${String(agAtualizado.horaFim ?? '').slice(0, 5)}`,
+                  profissional: profissional?.nome ?? '',
+                  empresa: empresa.nome,
+                  valor: `R$ ${parseFloat(String(agAtualizado.valorTotal ?? '0')).toFixed(2).replace('.', ',')}`,
+                };
+                const mensagem = automacaoProfissional?.corpoMensagem
+                  ? processarVariaveisTemplate(automacaoProfissional.corpoMensagem, templateVarsProfissional)
+                  : [
+                      '📋 *Atualização do seu agendamento*',
+                      '',
+                      `Olá, *${cliente.nome}*! Seu agendamento foi atualizado.`,
+                      '',
+                      `📅 *Data:* ${dataFormatada}`,
+                      `⏰ *Horário:* ${agAtualizado.horaInicio.slice(0, 5)}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                      '',
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
                 await registrarEnvioAutomacao({
                   empresaId: empresa.id,
                   agendamentoId: input.agendamentoId,
-                  automacaoNome: 'Profissional Atribuído',
+                  automacaoId: automacaoProfissional?.id,
+                  automacaoNome: automacaoProfissional?.nome ?? 'Profissional Atribuído',
                   clienteId: cliente.id,
                   clienteNome: cliente.nome,
                   telefone,

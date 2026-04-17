@@ -53,6 +53,7 @@ const TRIGGER_OPTIONS = [
   { value: "evento_agendamento_concluido", label: "Agendamento concluído", icon: CheckCircle, color: "#0ea5e9", desc: "Dispara quando o atendimento é finalizado e marcado como concluído." },
   { value: "evento_cliente_criado", label: "Novo cliente cadastrado", icon: UserPlus, color: "#10b981", desc: "Dispara quando um novo cliente é cadastrado no sistema (manual ou via portal)." },
   { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento expirado", icon: UserX, color: "#f97316", desc: "Dispara quando um pré-agendamento expira sem ser confirmado." },
+  { value: "evento_profissional_atribuido", label: "Profissional atribuído", icon: UserPlus, color: "#0ea5e9", desc: "Dispara quando um profissional é atribuído a um agendamento que estava sem profissional definido." },
   { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6", desc: "Dispara quando um pacote de serviços é renovado para o cliente." },
   { value: "evento_pacote_vencendo", label: "Pacote vencendo", icon: Package, color: "#f59e0b", desc: "Dispara automaticamente quando um pacote está a 7 dias ou menos de vencer. Ideal para convidar o cliente a renovar." },
   { value: "evento_sessoes_acabando", label: "Sessões acabando", icon: Package, color: "#ef4444", desc: "Dispara automaticamente quando restam apenas 1 ou 2 sessões no pacote do cliente." },
@@ -696,6 +697,13 @@ const TEMPLATES = [
       { id: "a1", type: "action" as NodeType, x: 300, y: 340, data: { label: "Confirmação", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu agendamento de {{servico}} em {{data}} às {{hora}} com {{profissional}} está confirmado. Até lá! " }, connections: [] },
     ],
   },
+  {
+    nome: "Profissional atribuído", descricao: "Avisa o cliente quando um profissional é definido para o agendamento", icon: UserPlus,
+    nodes: [
+      { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Profissional atribuído", tipo: "evento_profissional_atribuido" }, connections: ["a1"] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Notificar cliente", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu agendamento de {{servico}} em {{data}} às {{hora}} foi atualizado. Profissional: {{profissional}}. Qualquer dúvida, estamos à disposição! {{empresa}}" }, connections: [] },
+    ],
+  },
 ];
 
 //  Página principal
@@ -906,6 +914,7 @@ export default function Automacoes() {
           agendamento_concluido: "Concluído",
           cliente_criado: "Novo cliente",
           pre_agendamento_cancelado: "Pré-agend. expirado",
+          profissional_atribuido: "Profissional atribuído",
           pacote_renovado: "Pacote renovado",
           pacote_vencendo: "Pacote vencendo",
           sessoes_acabando: "Sessões acabando",

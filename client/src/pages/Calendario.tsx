@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -411,6 +411,7 @@ export default function Calendario() {
                         >
                           <SvcIcon className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
                           <span className="truncate font-medium">{bloco.horaInicio.slice(0, 5)} {clienteMap[bloco.clienteId]?.split(" ")[0] ?? ""}{bloco.isItemBloco ? ` · ${profNome}` : ""}</span>
+                          {bloco.profissionalId == null && <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />}
                         </div>
                       );
                     })}
