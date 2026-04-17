@@ -112,7 +112,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
   const handleProfissionalChange = (id: string) => {
     setForm(f => ({ ...f, profissionalId: id }));
-    setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
+    // Só resetar serviços se não tiver pacote vinculado
+    const temPacoteVinculado = servicosSelecionados.some(s => s.pacoteClienteItemId);
+    if (!temPacoteVinculado) {
+      setServicosSelecionados([{ servicoId: "", valorUnitario: "" }]);
+    }
   };
 
   const handleServicoChange = (index: number, servicoId: string) => {
@@ -156,8 +160,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const valorSinal = percentualReserva > 0 ? valorTotal * (percentualReserva / 100) : 0;
 
   const handleSubmit = () => {
-    if (!form.clienteId || !form.profissionalId) {
-      toast.error("Preencha cliente e profissional");
+    if (!form.clienteId) {
+      toast.error("Selecione um cliente");
       return;
     }
     const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
@@ -168,7 +172,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     const servicoPrincipal = servicosValidos[0];
     criarMutation.mutate({
       clienteId: parseInt(form.clienteId),
-      profissionalId: parseInt(form.profissionalId),
+      profissionalId: form.profissionalId ? parseInt(form.profissionalId) : (meuProfissionalId ?? 0),
       servicoId: parseInt(servicoPrincipal.servicoId),
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
@@ -225,7 +229,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
             {/* Profissional */}
             <div className="sm:col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional *</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Profissional</Label>
               {podeAgendarParaOutros ? (
                 <Select value={form.profissionalId} onValueChange={handleProfissionalChange}>
                   <SelectTrigger>
@@ -325,13 +329,15 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                     <Select
                       value={item.servicoId}
                       onValueChange={(v) => handleServicoChange(index, v)}
-                      disabled={!form.profissionalId && servicosFiltrados.length === 0}
+                      disabled={!form.profissionalId && servicosFiltrados.length === 0 && !item.pacoteClienteItemId}
                     >
                       <SelectTrigger className="h-9 w-full">
                         <SelectValue placeholder={
-                          !form.profissionalId
-                            ? "Selecione o profissional primeiro"
-                            : "Selecionar serviço"
+                          item.pacoteClienteItemId
+                            ? "Serviço do pacote"
+                            : !form.profissionalId
+                              ? "Selecione o profissional primeiro"
+                              : "Selecionar serviço"
                         } />
                       </SelectTrigger>
                       <SelectContent>

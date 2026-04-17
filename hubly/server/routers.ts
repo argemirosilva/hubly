@@ -721,7 +721,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         clienteId: z.number(),
-        profissionalId: z.number(),
+        profissionalId: z.number().optional(),
         servicoId: z.number(),
         // Lista de serviços adicionais (múltiplos serviços por agendamento)
         servicos: z.array(z.object({
@@ -744,14 +744,24 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'agendamentosCriar');
         // ── Restrição: profissional sem permissão só pode agendar para si próprio ──
+        const profissionalIdFinal = input.profissionalId ?? ctx.systemUser?.profissionalId ?? ctx.systemUser?.id;
         if (ctx.systemUser?.profissionalId) {
           const { isAdmin } = await resolveAdminContext(ctx, empresa, 'agendamentosVerTodos');
-          if (!isAdmin && input.profissionalId !== ctx.systemUser.profissionalId) {
+          if (!isAdmin && profissionalIdFinal !== ctx.systemUser.profissionalId) {
             throw new TRPCError({
               code: 'FORBIDDEN',
               message: 'Você só pode criar agendamentos para si próprio.',
             });
           }
+        }
+        if (!profissionalIdFinal) {
+          // Fallback: buscar primeiro profissional ativo da empresa
+          const profs = await getProfissionaisByEmpresa(empresa.id);
+          const primeiro = profs.find((p: any) => p.ativo);
+          if (!primeiro) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Nenhum profissional disponível. Cadastre um profissional primeiro.' });
+          (input as any).profissionalId = primeiro.id;
+        } else {
+          (input as any).profissionalId = profissionalIdFinal;
         }
         // ── Verificar limite de agendamentos do plano ──────────────────────────
         const limitError = await checkAgendamentoLimit(empresa.id);
@@ -2056,6 +2066,30 @@ export const appRouter = router({
         // Colocar de volta na fila como pendente com enviarEm = agora
         await db.update(tbl)
           .set({ status: 'pendente', enviarEm: new Date(), erroDetalhe: null })
+          .where(eq(tbl.id, input.id));
+
+        return { success: true };
+      }),
+
+    cancelarEnvio: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        const db = await import('./db').then(m => m.getDb());
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+        const { historicoEnviosAutomacao: tbl } = await import('../drizzle/schema');
+        const { eq, and } = await import('drizzle-orm');
+
+        const rows = await db.select().from(tbl)
+          .where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id), eq(tbl.status, 'pendente')))
+          .limit(1);
+        if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Envio pendente não encontrado" });
+
+        await db.update(tbl)
+          .set({ status: 'falhou', erroDetalhe: 'Cancelado manualmente pelo usuário' })
           .where(eq(tbl.id, input.id));
 
         return { success: true };

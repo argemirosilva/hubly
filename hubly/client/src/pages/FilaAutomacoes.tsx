@@ -208,6 +208,14 @@ export default function FilaAutomacoes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const cancelarMutation = trpc.automacoes.cancelarEnvio.useMutation({
+    onSuccess: () => {
+      toast.success("Envio cancelado!");
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleReenviar = async (id: number) => {
     setReenviarLoading(true);
     try {
@@ -369,7 +377,18 @@ export default function FilaAutomacoes() {
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1">
                     <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {row.status === "pendente" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); cancelarMutation.mutate({ id: row.id }); }}
+                        className="text-[10px] text-red-500 hover:text-red-700 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={cancelarMutation.isPending}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                    {row.status !== "pendente" && (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
                   </div>
                 </button>
               ))}
