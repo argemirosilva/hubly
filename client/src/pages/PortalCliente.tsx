@@ -555,12 +555,31 @@ export default function PortalCliente() {
         )}
 
         {step === "profissional" && (
-          <StepCard title="Com quem?" subtitle="Escolha o profissional que vai atendê-lo">
+          <StepCard title="Com quem?" subtitle="Escolha o profissional ou deixe o sistema escolher">
             <div className="space-y-2">
+              {/* Opção: Qualquer disponível */}
+              <button onClick={() => {
+                setProfissionalId(null);
+                setStep("servico");
+              }}
+                className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all border-2"
+                style={{
+                  borderColor: profissionalId === null ? corPrimaria : "#e2e8f0",
+                  background: profissionalId === null ? corSecundaria + "50" : "white",
+                }}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm"
+                  style={{ background: "#94a3b8" }}>
+                  <Star className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm text-slate-800">Qualquer disponível</p>
+                  <p className="text-xs text-slate-500">O sistema escolherá o profissional disponível</p>
+                </div>
+                {profissionalId === null && <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: corPrimaria }} />}
+              </button>
+
               {profissionais?.map(p => (
                 <button key={p.id} onClick={() => {
-                  // Ao trocar profissional, limpar serviços selecionados
-                  if (p.id !== profissionalId) setServicosIds([]);
                   setProfissionalId(p.id);
                   setStep("servico");
                 }}
@@ -791,11 +810,7 @@ export default function PortalCliente() {
                 <BtnPrimary
                   disabled={agendarMutation.isPending}
                   onClick={() => {
-                    const profFinalId = profissionalParaHora ?? profissionalId;
-                    if (!profFinalId) {
-                      toast.error("Nenhum profissional disponível para este horário.");
-                      return;
-                    }
+                    const profFinalId = profissionalParaHora ?? profissionalId ?? null;
                     agendarMutation.mutate({
                       empresaId,
                       servicoId: servicoId!,

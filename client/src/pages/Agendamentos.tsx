@@ -455,7 +455,7 @@ export default function Agendamentos() {
               let ultimaData = "";
               return filtrados.flatMap(ag => {
                 const servicoNome = (ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "";
-                const prof = profMap[ag.profissionalId];
+                const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
                 const st = statusStyle[ag.status] ?? statusStyle.agendado;
                 const items: React.ReactNode[] = [];
                 if (multiDia && ag.data !== ultimaData) {
@@ -512,7 +512,7 @@ export default function Agendamentos() {
                     <p className="text-sm font-semibold truncate">{clienteMap[ag.clienteId] ?? "—"}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {servicoNome || "—"}
-                      {prof && <span className="hidden sm:inline"> · {prof.nome.split(" ")[0]}</span>}
+                      <span className="hidden sm:inline"> · {prof ? prof.nome.split(" ")[0] : <span className="italic text-muted-foreground/70">Sem profissional</span>}</span>
                     </p>
                   </div>
 

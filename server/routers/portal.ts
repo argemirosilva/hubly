@@ -271,7 +271,7 @@ export const portalRouter = router({
         servicoId: z.number(),
         valorUnitario: z.string(),
       })).optional(),
-      profissionalId: z.number(),
+      profissionalId: z.number().nullable().optional(),
       data: z.string(), // YYYY-MM-DD
       horaInicio: z.string(), // HH:MM
       // Dados do cliente
@@ -331,17 +331,19 @@ export const portalRouter = router({
       const fimMin = h * 60 + m + duracaoTotal;
       const horaFim = `${String(Math.floor(fimMin / 60)).padStart(2, "0")}:${String(fimMin % 60).padStart(2, "0")}`;
 
-      // Verificar conflito de horário
-      const conflito = await db.select({ id: agendamentos.id })
-        .from(agendamentos)
-        .where(and(
-          eq(agendamentos.profissionalId, input.profissionalId),
-          sql`${agendamentos.data} = ${input.data}`,
-          sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
-          sql`${agendamentos.horaInicio} < ${horaFim}`,
-          sql`${agendamentos.horaFim} > ${input.horaInicio}`,
-        )).limit(1);
-      if (conflito.length > 0) throw new Error("Horário não disponível. Por favor, escolha outro.");
+      // Verificar conflito de horário (só verifica se profissional foi especificado)
+      if (input.profissionalId != null) {
+        const conflito = await db.select({ id: agendamentos.id })
+          .from(agendamentos)
+          .where(and(
+            eq(agendamentos.profissionalId, input.profissionalId),
+            sql`${agendamentos.data} = ${input.data}`,
+            sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+            sql`${agendamentos.horaInicio} < ${horaFim}`,
+            sql`${agendamentos.horaFim} > ${input.horaInicio}`,
+          )).limit(1);
+        if (conflito.length > 0) throw new Error("Horário não disponível. Por favor, escolha outro.");
+      }
 
       // Buscar ou criar cliente pelo telefone
       let clienteId: number;
@@ -372,7 +374,7 @@ export const portalRouter = router({
       const novoAg = await db.insert(agendamentos).values({
         empresaId: input.empresaId,
         clienteId,
-        profissionalId: input.profissionalId,
+        profissionalId: input.profissionalId ?? null,
         servicoId: input.servicoId,
         data: input.data as any,
         horaInicio: input.horaInicio,

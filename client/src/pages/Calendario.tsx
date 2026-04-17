@@ -81,7 +81,7 @@ export default function Calendario() {
     horaInicio: string;
     horaFim: string;
     status: string;
-    profissionalId: number;
+    profissionalId: number | null;
     servicoNome: string;
     isItemBloco: boolean; // true = bloco expandido de item multi-profissional
   };
@@ -102,7 +102,7 @@ export default function Calendario() {
             horaInicio: item.horaInicio!,
             horaFim: item.horaFim!,
             status: ag.status,
-            profissionalId: item.profissionalId ?? ag.profissionalId,
+            profissionalId: item.profissionalId ?? ag.profissionalId ?? null,
             servicoNome: item.servicoNome ?? (ag as any).servicoNome ?? "",
             isItemBloco: true,
           });
@@ -116,7 +116,7 @@ export default function Calendario() {
           horaInicio: ag.horaInicio,
           horaFim: ag.horaFim,
           status: ag.status,
-          profissionalId: ag.profissionalId,
+          profissionalId: ag.profissionalId ?? null,
           servicoNome: (ag as any).servicoNome ?? "",
           isItemBloco: false,
         });
@@ -382,7 +382,7 @@ export default function Calendario() {
                   {/* Mobile: bolinhas */}
                   <div className="flex flex-wrap gap-0.5 sm:hidden">
                     {ags.slice(0, 4).map(ag => {
-                      const cor = profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                      const cor = (ag.profissionalId != null ? profMap[ag.profissionalId]?.cor : undefined) ?? "oklch(50% 0.06 68)";
                       return (
                         <div key={ag.id}
                           className="w-1.5 h-1.5 rounded-full"
@@ -398,9 +398,9 @@ export default function Calendario() {
                   {/* Desktop: chips com nome */}
                   <div className="hidden sm:block space-y-0.5">
                     {ags.slice(0, 3).map((bloco, bi) => {
-                      const cor = profMap[bloco.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
+                      const cor = (bloco.profissionalId != null ? profMap[bloco.profissionalId]?.cor : undefined) ?? "oklch(50% 0.06 68)";
                       const { icon: SvcIcon } = getServiceIcon(bloco.servicoNome);
-                      const profNome = profMap[bloco.profissionalId]?.nome?.split(" ")[0] ?? "";
+                      const profNome = (bloco.profissionalId != null ? profMap[bloco.profissionalId]?.nome?.split(" ")[0] : undefined) ?? "";
                       return (
                         <div
                           key={`${bloco.id}-${bi}`}
@@ -485,8 +485,8 @@ export default function Calendario() {
               ) : (
                 <div className="ml-11 space-y-2">
                   {ags.map((bloco, bi) => {
-                    const cor = profMap[bloco.profissionalId]?.cor ?? "oklch(50% 0.06 68)";
-                    const prof = profMap[bloco.profissionalId];
+                    const cor = (bloco.profissionalId != null ? profMap[bloco.profissionalId]?.cor : undefined) ?? "oklch(50% 0.06 68)";
+                    const prof = bloco.profissionalId != null ? profMap[bloco.profissionalId] : undefined;
                     const { icon: SvcIcon } = getServiceIcon(bloco.servicoNome);
                     const cfg = statusConfig[bloco.status] ?? statusConfig.agendado;
                     return (
@@ -512,7 +512,7 @@ export default function Calendario() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{clienteMap[bloco.clienteId] ?? "Cliente"}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {bloco.servicoNome || "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}
+                            {bloco.servicoNome || "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}
                           </p>
                         </div>
                         {/* Status */}

@@ -1217,7 +1217,7 @@ export const appRouter = router({
                     // Agrupar itens por profissional
                     const itensPorProfissional = new Map<number, { valorTotal: number; nomes: string[] }>();
                     for (const item of itens) {
-                      const profId = item.profissionalId ?? agendamento.profissionalId;
+                      const profId = item.profissionalId ?? agendamento.profissionalId ?? 0;
                       const valor = parseFloat(String(item.valorUnitario ?? 0));
                       const servNome = todosServicos.find(s => s.id === item.servicoId)?.nome ?? 'Serviço';
                       if (!itensPorProfissional.has(profId)) {
@@ -1285,7 +1285,7 @@ export const appRouter = router({
             if (agendamento) {
               const [cliente, profissional, servico] = await Promise.all([
                 getClienteById(agendamento.clienteId),
-                getProfissionalById(agendamento.profissionalId),
+                agendamento.profissionalId != null ? getProfissionalById(agendamento.profissionalId) : Promise.resolve(null),
                 (async () => {
                   const servicos = await getServicosByEmpresa(empresa.id);
                   return servicos.find(s => s.id === agendamento.servicoId);

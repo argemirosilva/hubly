@@ -185,7 +185,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   id: int("id").autoincrement().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
-  profissionalId: int("profissionalId").notNull(),
+  profissionalId: int("profissionalId"),
   servicoId: int("servicoId").notNull(),
   data: dateField("data").notNull(),
   horaInicio: time("horaInicio").notNull(),

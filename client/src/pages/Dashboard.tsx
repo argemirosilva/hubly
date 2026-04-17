@@ -513,7 +513,7 @@ export default function Dashboard() {
               <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
                 {agendamentosOrdenados.map((ag) => {
                   const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
-                  const prof = profMap[ag.profissionalId];
+                  const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
                   return (
                     <div key={ag.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
                       <div className="text-center flex-shrink-0 w-10">
@@ -523,7 +523,7 @@ export default function Dashboard() {
                       <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: prof?.cor ?? "oklch(55% 0.22 264)" }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{clienteMap[ag.clienteId] ?? "Cliente"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"} · {prof?.nome?.split(" ")[0] ?? ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}</p>
                       </div>
                       <span className="badge text-[10px] flex-shrink-0" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                     </div>

@@ -1,0 +1,2 @@
+ALTER TABLE `agendamentos` MODIFY COLUMN `profissionalId` int;--> statement-breakpoint
+ALTER TABLE `historico_envios_automacao` MODIFY COLUMN `status` enum('enviado','falhou','pendente') NOT NULL DEFAULT 'enviado';
