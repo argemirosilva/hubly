@@ -189,8 +189,8 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
               {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
             </Button>
           )}
-          {/* Botão cancelar — apenas para pendentes */}
-          {row.status === "pendente" && (
+          {/* Botão cancelar — para pendentes e falhados */}
+          {(row.status === "pendente" || row.status === "falhou") && (
             <Button
               className="w-full gap-2 border-red-200 hover:bg-red-50"
               variant="outline"
@@ -295,15 +295,16 @@ export default function FilaAutomacoes() {
     }
   };
 
-  // Linhas pendentes visíveis (para selecionar todas)
-  const linhasPendentes = (data?.rows ?? []).filter(r => r.status === "pendente");
-  const todasSelecionadas = linhasPendentes.length > 0 && linhasPendentes.every(r => selectedIds.has(r.id));
+  // Linhas pendentes ou falhadas visíveis (para selecionar todas)
+  const linhasCancelaveis = (data?.rows ?? []).filter(r => r.status === "pendente" || r.status === "falhou");
+  const linhasPendentes = linhasCancelaveis; // alias para compatibilidade
+  const todasSelecionadas = linhasCancelaveis.length > 0 && linhasCancelaveis.every(r => selectedIds.has(r.id));
 
   const toggleSelecionarTodas = () => {
     if (todasSelecionadas) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(linhasPendentes.map(r => r.id)));
+      setSelectedIds(new Set(linhasCancelaveis.map(r => r.id)));
     }
   };
 
@@ -425,8 +426,8 @@ export default function FilaAutomacoes() {
             Limpar filtros
           </Button>
         )}
-        {/* Botão modo seleção — só aparece se houver pendentes */}
-        {linhasPendentes.length > 0 && (
+          {/* Botão modo seleção — aparece se houver pendentes ou falhados */}
+          {linhasCancelaveis.length > 0 && (
           <Button
             variant={modoSelecao ? "default" : "outline"}
             size="sm"
@@ -451,7 +452,7 @@ export default function FilaAutomacoes() {
             id="selecionar-todas"
           />
           <label htmlFor="selecionar-todas" className="text-sm cursor-pointer select-none">
-            {todasSelecionadas ? "Desmarcar todas" : `Selecionar todas (${linhasPendentes.length} pendentes)`}
+            {todasSelecionadas ? "Desmarcar todas" : `Selecionar todas (${linhasCancelaveis.length} itens)`}
           </label>
           {selectedIds.size > 0 && (
             <Button
@@ -497,8 +498,8 @@ export default function FilaAutomacoes() {
                     key={row.id}
                     className={`w-full flex items-start gap-3 px-4 py-3 transition-colors text-left group ${isSelected ? "bg-yellow-50" : "hover:bg-muted/40"}`}
                   >
-                    {/* Checkbox no modo seleção — apenas pendentes */}
-                    {modoSelecao && isPendente && (
+                    {/* Checkbox no modo seleção — pendentes e falhados */}
+                    {modoSelecao && (isPendente || row.status === "falhou") && (
                       <div className="mt-1 shrink-0" onClick={e => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
@@ -506,7 +507,7 @@ export default function FilaAutomacoes() {
                         />
                       </div>
                     )}
-                    {modoSelecao && !isPendente && (
+                    {modoSelecao && !isPendente && row.status !== "falhou" && (
                       <div className="mt-1 shrink-0 w-4" />
                     )}
 
@@ -514,7 +515,7 @@ export default function FilaAutomacoes() {
                     <button
                       className="flex-1 flex items-start gap-3 text-left min-w-0"
                       onClick={() => {
-                        if (modoSelecao && isPendente) {
+                        if (modoSelecao && (isPendente || row.status === "falhou")) {
                           toggleItem(row.id);
                         } else if (!modoSelecao) {
                           setSelectedRow(row as unknown as FilaRow);

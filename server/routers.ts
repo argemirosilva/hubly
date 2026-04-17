@@ -2370,7 +2370,7 @@ export const appRouter = router({
           .where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)))
           .limit(1);
         if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item não encontrado" });
-        if (rows[0].status !== 'pendente') throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios pendentes podem ser cancelados" });
+        if (rows[0].status !== 'pendente' && rows[0].status !== 'falhou') throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios pendentes ou com falha podem ser removidos" });
         // Deletar o registro do banco
         await db.delete(tbl).where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)));
         return { success: true };
@@ -2385,12 +2385,13 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
         const { historicoEnviosAutomacao: tbl } = await import('../drizzle/schema');
         const { eq, and, inArray } = await import('drizzle-orm');
-        // Deleta apenas os itens pendentes que pertencem à empresa
+        // Deleta apenas os itens pendentes ou falhados que pertencem à empresa
+        const { or } = await import('drizzle-orm');
         await db.delete(tbl)
           .where(and(
             inArray(tbl.id, input.ids),
             eq(tbl.empresaId, empresa.id),
-            eq(tbl.status, 'pendente')
+            or(eq(tbl.status, 'pendente'), eq(tbl.status, 'falhou'))
           ));
         return { success: true };
       }),
