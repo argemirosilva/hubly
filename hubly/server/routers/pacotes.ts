@@ -15,7 +15,7 @@ import {
   agendamentos, agendamentoItens,
   profissionais,
 } from "../../drizzle/schema";
-import { eq, and, sql, lte, gt, like, or } from "drizzle-orm";
+import { eq, and, sql, lte, gt, like, or, inArray } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
@@ -66,7 +66,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(pacotesModelosItens)
         .leftJoin(servicos, eq(pacotesModelosItens.servicoId, servicos.id))
-        .where(sql`${pacotesModelosItens.modeloId} IN (${ids.join(",")})`);
+        .where(inArray(pacotesModelosItens.modeloId, ids));
       return modelos.map(m => ({
         ...m,
         itens: itens.filter(i => i.modeloId === m.id),
@@ -189,7 +189,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
-        .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(",")})`);
+        .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
 
       return rows.map(r => ({
         ...r,
@@ -222,7 +222,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
-        .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(",")})`);
+        .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
 
       return rows.map(r => ({
         ...r,
@@ -266,7 +266,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
-        .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(",")})`);
+        .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
 
       // Montar resultado com sessões disponíveis
       const resultado = [];
@@ -482,7 +482,7 @@ export const pacotesRouter = router({
           quantidadeUsada: pacotesClientesItens.quantidadeUsada,
         }).from(pacotesClientesItens)
           .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
-          .where(sql`${pacotesClientesItens.pacoteClienteId} IN (${ids.join(',')})`);
+          .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
 
         const agrupado: Record<string, { total: number; usadas: number }> = {};
         itensRows.forEach(i => {
@@ -790,7 +790,7 @@ export const pacotesRouter = router({
         servicoNome: servicos.nome,
       }).from(agendamentoItens)
         .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
-        .where(sql`${agendamentoItens.pacoteClienteItemId} IN (${itemIds.join(",")})`);
+        .where(inArray(agendamentoItens.pacoteClienteItemId, itemIds));
 
       if (!agendItens.length) return [];
       const agendIds = Array.from(new Set(agendItens.map(i => i.agendamentoId)));
@@ -804,7 +804,7 @@ export const pacotesRouter = router({
         profissionalNome: profissionais.nome,
       }).from(agendamentos)
         .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
-        .where(sql`${agendamentos.id} IN (${agendIds.join(",")})`);
+        .where(inArray(agendamentos.id, agendIds));
 
       // Montar resultado
       return agendItens.map(ai => {
