@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban } from "lucide-react";
 import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "todos";
@@ -74,12 +74,14 @@ function formatDateTime(dt: string | null | undefined) {
   });
 }
 
-function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading }: {
+function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCancelar, cancelarLoading }: {
   row: FilaRow | null;
   open: boolean;
   onClose: () => void;
   onReenviar: (id: number) => void;
   reenviarLoading: boolean;
+  onCancelar: (id: number) => void;
+  cancelarLoading: boolean;
 }) {
   if (!row) return null;
 
@@ -186,6 +188,18 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading }: {
               {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
             </Button>
           )}
+          {/* Botão cancelar — apenas para pendentes */}
+          {row.status === "pendente" && (
+            <Button
+              className="w-full gap-2"
+              variant="outline"
+              onClick={() => onCancelar(row.id)}
+              disabled={cancelarLoading}
+            >
+              <Ban className="w-4 h-4 text-red-500" />
+              <span className="text-red-600">{cancelarLoading ? "Cancelando..." : "Cancelar envio"}</span>
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -200,6 +214,7 @@ export default function FilaAutomacoes() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
   const [reenviarLoading, setReenviarLoading] = useState(false);
+  const [cancelarLoading, setCancelarLoading] = useState(false);
 
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
     { status, periodo, ordenacao, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro, limit: 100 },
@@ -217,6 +232,23 @@ export default function FilaAutomacoes() {
     { periodo },
     { refetchInterval: autoRefresh ? 15000 : false }
   );
+
+  const cancelarMutation = trpc.automacoes.cancelarItem.useMutation({
+    onSuccess: () => {
+      toast.success("Envio cancelado com sucesso!");
+      setSelectedRow(null);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const handleCancelar = async (id: number) => {
+    setCancelarLoading(true);
+    try {
+      await cancelarMutation.mutateAsync({ id });
+    } finally {
+      setCancelarLoading(false);
+    }
+  };
 
   const reenviarMutation = trpc.automacoes.reenviarItem.useMutation({
     onSuccess: () => {
@@ -424,6 +456,8 @@ export default function FilaAutomacoes() {
         onClose={() => setSelectedRow(null)}
         onReenviar={handleReenviar}
         reenviarLoading={reenviarLoading}
+        onCancelar={handleCancelar}
+        cancelarLoading={cancelarLoading}
       />
     </div>
   );
