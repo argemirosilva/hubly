@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Trash2, Save, Loader2, Edit3 } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Edit3, AlertTriangle } from "lucide-react";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
 
 interface ServicoItem {
@@ -241,6 +241,17 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
 
         {/* Corpo */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1">
+
+          {/* Aviso: sem profissional atribuído */}
+          {servicosSelecionados.every(s => !s.profissionalId) && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-amber-700">Sem profissional atribuído</p>
+                <p className="text-[11px] text-amber-600 mt-0.5">Selecione um profissional em pelo menos um serviço para garantir a organização da agenda.</p>
+              </div>
+            </div>
+          )}
 
           {/* Cliente */}
           <div className="space-y-1.5">

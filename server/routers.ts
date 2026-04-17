@@ -1440,6 +1440,11 @@ export const appRouter = router({
           valorTotal: input.valorTotal,
         };
         if (input.horaFim) updates.horaFim = input.horaFim;
+        // Detectar atribuição de profissional: buscar agendamento antes de atualizar
+        const agAntes = await getAgendamentoById(input.agendamentoId);
+        const eraSemProfissional = agAntes && agAntes.profissionalId == null;
+        const novoProfissionalId = input.profissionalIdPrincipal
+          ?? input.servicos.find(s => s.profissionalId)?.profissionalId;
         if (input.profissionalIdPrincipal) updates.profissionalId = input.profissionalIdPrincipal;
         await updateAgendamento(input.agendamentoId, updates);
         // Substituir os itens
@@ -1454,6 +1459,59 @@ export const appRouter = router({
           horaFim: sanitizarHora(s.horaFim),
           valorUnitario: s.valorUnitario,
         })));
+
+        // ── Notificação WhatsApp: profissional atribuído a agendamento sem profissional ───────────────
+        if (eraSemProfissional && novoProfissionalId) {
+          try {
+            const [agAtualizado, profissional] = await Promise.all([
+              getAgendamentoById(input.agendamentoId),
+              getProfissionalById(novoProfissionalId),
+            ]);
+            if (agAtualizado) {
+              const cliente = await getClienteById(agAtualizado.clienteId);
+              const telefone = cliente?.whatsapp || cliente?.telefone;
+              if (telefone && cliente) {
+                const todosServicos = await getServicosByEmpresa(empresa.id);
+                const servico = todosServicos.find(s => s.id === agAtualizado.servicoId);
+                const [ano, mes, dia] = agAtualizado.data.split('-').map(Number);
+                const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', {
+                  weekday: 'long', day: '2-digit', month: 'long'
+                });
+                const linhas: (string | null)[] = [
+                  '📋 *Atualização do seu agendamento*',
+                  '',
+                  `Olá, *${cliente.nome}*! Seu agendamento foi atualizado.`,
+                  '',
+                  `📅 *Data:* ${dataFormatada}`,
+                  `⏰ *Horário:* ${agAtualizado.horaInicio.slice(0, 5)}`,
+                  servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                  profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                  '',
+                  `_${empresa.nome}_`,
+                ].filter(Boolean);
+                const mensagem = linhas.join('\n');
+
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  agendamentoId: input.agendamentoId,
+                  automacaoNome: 'Profissional Atribuído',
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                  servicoNome: servico?.nome ?? undefined,
+                });
+                console.log(`[Fila] Profissional atribuído enfileirado para ag. ${input.agendamentoId} (${telefone})`);
+              }
+            }
+          } catch (e) {
+            console.error('[Fila] Erro ao enfileirar notificação de profissional atribuído:', e);
+          }
+        }
+
         return { success: true };
       }),
     updateValores: protectedProcedure
