@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "todos";
@@ -191,13 +192,13 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
           {/* Botão cancelar — apenas para pendentes */}
           {row.status === "pendente" && (
             <Button
-              className="w-full gap-2"
+              className="w-full gap-2 border-red-200 hover:bg-red-50"
               variant="outline"
               onClick={() => onCancelar(row.id)}
               disabled={cancelarLoading}
             >
-              <Ban className="w-4 h-4 text-red-500" />
-              <span className="text-red-600">{cancelarLoading ? "Cancelando..." : "Cancelar envio"}</span>
+              <Trash2 className="w-4 h-4 text-red-500" />
+              <span className="text-red-600">{cancelarLoading ? "Cancelando..." : "Cancelar e remover envio"}</span>
             </Button>
           )}
         </div>
@@ -215,6 +216,11 @@ export default function FilaAutomacoes() {
   const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
   const [reenviarLoading, setReenviarLoading] = useState(false);
   const [cancelarLoading, setCancelarLoading] = useState(false);
+
+  // Seleção múltipla
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [cancelarLoteLoading, setCancelarLoteLoading] = useState(false);
 
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
     { status, periodo, ordenacao, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro, limit: 100 },
@@ -235,18 +241,39 @@ export default function FilaAutomacoes() {
 
   const cancelarMutation = trpc.automacoes.cancelarItem.useMutation({
     onSuccess: () => {
-      toast.success("Envio cancelado com sucesso!");
+      toast.success("Envio cancelado e removido!");
       setSelectedRow(null);
       refetch();
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const cancelarItensMutation = trpc.automacoes.cancelarItens.useMutation({
+    onSuccess: () => {
+      toast.success(`${selectedIds.size} envio(s) cancelado(s) e removido(s)!`);
+      setSelectedIds(new Set());
+      setModoSelecao(false);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleCancelar = async (id: number) => {
     setCancelarLoading(true);
     try {
       await cancelarMutation.mutateAsync({ id });
     } finally {
       setCancelarLoading(false);
+    }
+  };
+
+  const handleCancelarLote = async () => {
+    if (selectedIds.size === 0) return;
+    setCancelarLoteLoading(true);
+    try {
+      await cancelarItensMutation.mutateAsync({ ids: Array.from(selectedIds) });
+    } finally {
+      setCancelarLoteLoading(false);
     }
   };
 
@@ -268,6 +295,27 @@ export default function FilaAutomacoes() {
     }
   };
 
+  // Linhas pendentes visíveis (para selecionar todas)
+  const linhasPendentes = (data?.rows ?? []).filter(r => r.status === "pendente");
+  const todasSelecionadas = linhasPendentes.length > 0 && linhasPendentes.every(r => selectedIds.has(r.id));
+
+  const toggleSelecionarTodas = () => {
+    if (todasSelecionadas) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(linhasPendentes.map(r => r.id)));
+    }
+  };
+
+  const toggleItem = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const pendentes = totaisData?.pendentes ?? 0;
   const enviados = totaisData?.enviados ?? 0;
   const falhas = totaisData?.falhas ?? 0;
@@ -285,7 +333,12 @@ export default function FilaAutomacoes() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="gap-1.5 text-xs"
+          >
             <RefreshCw className="w-3.5 h-3.5" />
             Atualizar
           </Button>
@@ -372,7 +425,48 @@ export default function FilaAutomacoes() {
             Limpar filtros
           </Button>
         )}
+        {/* Botão modo seleção — só aparece se houver pendentes */}
+        {linhasPendentes.length > 0 && (
+          <Button
+            variant={modoSelecao ? "default" : "outline"}
+            size="sm"
+            className="h-8 text-xs gap-1.5 ml-auto"
+            onClick={() => {
+              setModoSelecao(!modoSelecao);
+              setSelectedIds(new Set());
+            }}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            {modoSelecao ? "Cancelar seleção" : "Selecionar para cancelar"}
+          </Button>
+        )}
       </div>
+
+      {/* Barra de ação em lote */}
+      {modoSelecao && (
+        <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+          <Checkbox
+            checked={todasSelecionadas}
+            onCheckedChange={toggleSelecionarTodas}
+            id="selecionar-todas"
+          />
+          <label htmlFor="selecionar-todas" className="text-sm cursor-pointer select-none">
+            {todasSelecionadas ? "Desmarcar todas" : `Selecionar todas (${linhasPendentes.length} pendentes)`}
+          </label>
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="ml-auto gap-1.5 text-xs"
+              onClick={handleCancelarLote}
+              disabled={cancelarLoteLoading}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {cancelarLoteLoading ? "Cancelando..." : `Cancelar ${selectedIds.size} envio(s)`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
@@ -394,57 +488,86 @@ export default function FilaAutomacoes() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {data.rows.map((row) => (
-                <button
-                  key={row.id}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left group"
-                  onClick={() => setSelectedRow(row as unknown as FilaRow)}
-                >
-                  <div className="mt-0.5 shrink-0"><CanalIcon canal={row.canal} /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium truncate">{row.clienteNome ?? "Cliente"}</span>
-                      <span className="text-xs text-muted-foreground">·</span>
-                      <span className="text-xs text-muted-foreground truncate">{row.automacaoNome ?? "Automação"}</span>
-                      {row.servicoNome && (
-                        <>
-                          <span className="text-xs text-muted-foreground">·</span>
-                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full truncate">{row.servicoNome}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {row.telefone && (
-                        <span className="text-xs text-muted-foreground">{row.telefone}</span>
-                      )}
-                      {row.enviarEm && (
-                        <>
-                          <span className="text-xs text-muted-foreground">·</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                            <CalendarClock className="w-3 h-3" />
-                            {formatDateTime(String(row.enviarEm))}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {row.mensagem && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">
-                        "{row.mensagem.slice(0, 90)}{row.mensagem.length > 90 ? "..." : ""}"
-                      </p>
+              {data.rows.map((row) => {
+                const isPendente = row.status === "pendente";
+                const isSelected = selectedIds.has(row.id);
+
+                return (
+                  <div
+                    key={row.id}
+                    className={`w-full flex items-start gap-3 px-4 py-3 transition-colors text-left group ${isSelected ? "bg-yellow-50" : "hover:bg-muted/40"}`}
+                  >
+                    {/* Checkbox no modo seleção — apenas pendentes */}
+                    {modoSelecao && isPendente && (
+                      <div className="mt-1 shrink-0" onClick={e => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleItem(row.id)}
+                        />
+                      </div>
                     )}
-                    {row.erroDetalhe && (
-                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        {row.erroDetalhe.slice(0, 60)}{row.erroDetalhe.length > 60 ? "..." : ""}
-                      </p>
+                    {modoSelecao && !isPendente && (
+                      <div className="mt-1 shrink-0 w-4" />
                     )}
+
+                    {/* Conteúdo clicável */}
+                    <button
+                      className="flex-1 flex items-start gap-3 text-left min-w-0"
+                      onClick={() => {
+                        if (modoSelecao && isPendente) {
+                          toggleItem(row.id);
+                        } else if (!modoSelecao) {
+                          setSelectedRow(row as unknown as FilaRow);
+                        }
+                      }}
+                    >
+                      <div className="mt-0.5 shrink-0"><CanalIcon canal={row.canal} /></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium truncate">{row.clienteNome ?? "Cliente"}</span>
+                          <span className="text-xs text-muted-foreground">·</span>
+                          <span className="text-xs text-muted-foreground truncate">{row.automacaoNome ?? "Automação"}</span>
+                          {row.servicoNome && (
+                            <>
+                              <span className="text-xs text-muted-foreground">·</span>
+                              <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full truncate">{row.servicoNome}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {row.telefone && (
+                            <span className="text-xs text-muted-foreground">{row.telefone}</span>
+                          )}
+                          {row.enviarEm && (
+                            <>
+                              <span className="text-xs text-muted-foreground">·</span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                <CalendarClock className="w-3 h-3" />
+                                {formatDateTime(String(row.enviarEm))}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {row.mensagem && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">
+                            "{row.mensagem.slice(0, 90)}{row.mensagem.length > 90 ? "..." : ""}"
+                          </p>
+                        )}
+                        {row.erroDetalhe && (
+                          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            {row.erroDetalhe.slice(0, 60)}{row.erroDetalhe.length > 60 ? "..." : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
+                        {!modoSelecao && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                      </div>
+                    </button>
                   </div>
-                  <div className="shrink-0 flex flex-col items-end gap-1">
-                    <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

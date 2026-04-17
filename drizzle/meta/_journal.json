@@ -316,6 +316,13 @@
       "when": 1776021056891,
       "tag": "0044_next_famine",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "5",
+      "when": 1776465661459,
+      "tag": "0045_outstanding_switch",
+      "breakpoints": true
     }
   ]
 }
