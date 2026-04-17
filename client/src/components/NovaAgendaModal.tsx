@@ -15,7 +15,7 @@ import { Plus, Trash2, Zap, Package } from "lucide-react";
 import ModalAbrirPacote from "@/components/ModalAbrirPacote";
 
 interface ServicoItem {
-  profissionalId: string;  // obrigatório: selecionado antes do serviço
+  profissionalId: string;  // opcional: pode ser deixado em branco
   servicoId: string;
   valorUnitario: string;
   pacoteClienteItemId?: number;
@@ -147,10 +147,10 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     recalcularHorarios(horaInicio, itens);
   };
 
-  // Ao trocar o profissional de um card, limpa o serviço selecionado
+  // Ao trocar o profissional de um card, mantém serviço e pacote selecionados
   const handleProfissionalItemChange = (index: number, profissionalId: string) => {
     const novaLista = servicosSelecionados.map((item, i) =>
-      i === index ? { ...item, profissionalId, servicoId: "", valorUnitario: "", pacoteClienteItemId: undefined } : item
+      i === index ? { ...item, profissionalId } : item
     );
     setServicosSelecionados(novaLista);
   };
@@ -221,20 +221,14 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       toast.error("Selecione o cliente");
       return;
     }
-    const servicosValidos = servicosSelecionados.filter(s => s.servicoId && s.profissionalId);
+    const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
     if (servicosValidos.length === 0) {
-      toast.error("Selecione pelo menos um profissional e serviço");
-      return;
-    }
-    // Verifica se todos os itens têm profissional selecionado
-    const semProfissional = servicosSelecionados.filter(s => s.servicoId && !s.profissionalId);
-    if (semProfissional.length > 0) {
-      toast.error("Selecione o profissional para todos os serviços");
+      toast.error("Selecione pelo menos um serviço");
       return;
     }
 
-    const primeiroProfissionalId = parseInt(servicosValidos[0].profissionalId);
     const servicoPrincipal = servicosValidos[0];
+    const primeiroProfissionalId = servicoPrincipal.profissionalId ? parseInt(servicoPrincipal.profissionalId) : undefined;
 
     criarMutation.mutate({
       clienteId: parseInt(form.clienteId),
@@ -242,7 +236,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       servicoId: parseInt(servicoPrincipal.servicoId),
       servicos: servicosValidos.map(s => ({
         servicoId: parseInt(s.servicoId),
-        profissionalId: parseInt(s.profissionalId),
+        profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
         horaInicio: s.horaInicio ?? undefined,
         horaFim: s.horaFim ?? undefined,
         valorUnitario: s.valorUnitario || "0",
@@ -393,14 +387,9 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                       <Select
                         value={item.servicoId || "__none__"}
                         onValueChange={(v) => handleServicoChange(index, v === "__none__" ? "" : v)}
-                        disabled={!item.profissionalId && podeAgendarParaOutros}
-                      >
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder={
-                            !item.profissionalId && podeAgendarParaOutros
-                              ? "Selecione o profissional primeiro"
-                              : "Selecionar serviço"
-                          } />
+        >
+          <SelectTrigger className="h-9 w-full">
+            <SelectValue placeholder="Selecionar serviço" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>

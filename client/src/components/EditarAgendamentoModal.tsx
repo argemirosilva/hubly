@@ -140,7 +140,7 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
 
   const handleProfissionalChange = (index: number, profissionalId: string) => {
     const novaLista = servicosSelecionados.map((item, i) =>
-      i === index ? { ...item, profissionalId, servicoId: "", valorUnitario: "" } : item
+      i === index ? { ...item, profissionalId } : item
     );
     setServicosSelecionados(novaLista);
   };
@@ -180,7 +180,7 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
   // Mutation para atualizar clienteId (via update genérico)
   const handleSalvar = async () => {
     if (!form.clienteId) { toast.error("Selecione o cliente"); return; }
-    const servicosValidos = servicosSelecionados.filter(s => s.servicoId && s.profissionalId);
+    const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
     if (servicosValidos.length === 0) { toast.error("Selecione pelo menos um serviço"); return; }
 
     try {
@@ -202,10 +202,10 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
       await updateServicosMutation.mutateAsync({
         agendamentoId,
         servicoIdPrincipal: parseInt(servicosValidos[0].servicoId),
-        profissionalIdPrincipal: parseInt(servicosValidos[0].profissionalId),
+        profissionalIdPrincipal: servicosValidos[0].profissionalId ? parseInt(servicosValidos[0].profissionalId) : undefined,
         servicos: servicosValidos.map(s => ({
           servicoId: parseInt(s.servicoId),
-          profissionalId: parseInt(s.profissionalId),
+          profissionalId: s.profissionalId ? parseInt(s.profissionalId) : undefined,
           horaInicio: s.horaInicio ?? undefined,
           horaFim: s.horaFim ?? undefined,
           valorUnitario: s.valorUnitario || "0",
@@ -324,10 +324,9 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
                   <Select
                     value={item.servicoId || "__none__"}
                     onValueChange={(v) => handleServicoChange(index, v === "__none__" ? "" : v)}
-                    disabled={!item.profissionalId}
                   >
                     <SelectTrigger className="h-9 text-sm w-full">
-                      <SelectValue placeholder={!item.profissionalId ? "Selecione o profissional" : "Serviço"} />
+                      <SelectValue placeholder="Serviço" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__" disabled>Selecionar serviço</SelectItem>

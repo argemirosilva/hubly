@@ -815,7 +815,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         clienteId: z.number(),
-        profissionalId: z.number(),
+        profissionalId: z.number().nullable().optional(),
         servicoId: z.number(),
         // Lista de serviços adicionais (múltiplos serviços por agendamento)
         servicos: z.array(z.object({
@@ -842,7 +842,7 @@ export const appRouter = router({
         // ── Restrição: profissional sem permissão só pode agendar para si próprio ──
         if (ctx.systemUser?.profissionalId) {
           const { isAdmin } = await resolveAdminContext(ctx, empresa, 'agendamentosVerTodos');
-          if (!isAdmin && input.profissionalId !== ctx.systemUser.profissionalId) {
+          if (!isAdmin && input.profissionalId != null && input.profissionalId !== ctx.systemUser.profissionalId) {
             throw new TRPCError({
               code: 'FORBIDDEN',
               message: 'Você só pode criar agendamentos para si próprio.',
@@ -951,7 +951,7 @@ export const appRouter = router({
         try {
           const [cliente, profissional, servico] = await Promise.all([
             getClienteById(rest.clienteId),
-            getProfissionalById(rest.profissionalId),
+            rest.profissionalId != null ? getProfissionalById(rest.profissionalId) : Promise.resolve(null),
             (async () => {
               const servicos = await getServicosByEmpresa(empresa.id);
               return servicos.find(s => s.id === rest.servicoId);
