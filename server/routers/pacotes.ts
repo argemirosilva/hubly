@@ -66,14 +66,20 @@ export const pacotesRouter = router({
 
   // ── Listar modelos ────────────────────────────────────────────────────────
   listarModelos: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ incluirOcultos: z.boolean().optional().default(false) }).optional())
+    .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
       const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
       await requirePermissaoPacotes(ctx, empresa, 'pacotesVer');
       const empId = empresa.id;
+      const incluirOcultos = input?.incluirOcultos ?? false;
       const modelos = await db.select().from(pacotesModelos)
-        .where(eq(pacotesModelos.empresaId, empId))
+        .where(and(
+          eq(pacotesModelos.empresaId, empId),
+          // Se não incluir ocultos, filtrar apenas ativos
+          incluirOcultos ? sql`1=1` : eq(pacotesModelos.ativo, true),
+        ))
         .orderBy(sql`${pacotesModelos.criadoEm} DESC`);
       // Buscar itens de cada modelo
       const ids = modelos.map(m => m.id);
@@ -166,8 +172,21 @@ export const pacotesRouter = router({
       return { ok: true };
     }),
 
-  // ─── PACOTES DE CLIENTES ──────────────────────────────────────────────────
+  // ── Restaurar modelo oculto ────────────────────────────────────────────────────────
+  restaurarModelo: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
+      await db.update(pacotesModelos).set({ ativo: true })
+        .where(and(eq(pacotesModelos.id, input.id), eq(pacotesModelos.empresaId, empId)));
+      return { ok: true };
+    }),
 
+  // ─── PACOTES DE CLIENTES ────────────────────────────────────────────────────────
   // ── Listar todos os pacotes (admin) ───────────────────────────────────────
   listarTodos: protectedProcedure
     .input(z.object({

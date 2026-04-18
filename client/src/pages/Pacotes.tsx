@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
-  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw, Search, X,
+  Pencil, RotateCcw, BarChart3, TrendingUp, CalendarClock, RefreshCw, Search, X, EyeOff,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -249,6 +249,19 @@ function ModalModelo({
   const [itens, setItens] = useState<ItemModelo[]>(
     modelo?.itens?.map((i: any) => ({ servicoId: i.servicoId, quantidade: i.quantidade })) ?? [{ servicoId: 0, quantidade: 1 }]
   );
+
+  // Sincronizar estado quando o modelo muda (ex: abrir edição de modelo diferente)
+  useEffect(() => {
+    setNome(modelo?.nome ?? "");
+    setDescricao(modelo?.descricao ?? "");
+    setPreco(String(modelo?.preco ?? ""));
+    setValidadeDias(String(modelo?.validadeDias ?? ""));
+    setItens(
+      modelo?.itens?.length
+        ? modelo.itens.map((i: any) => ({ servicoId: i.servicoId, quantidade: i.quantidade }))
+        : [{ servicoId: 0, quantidade: 1 }]
+    );
+  }, [modelo?.id, open]);
 
   const criarMutation = trpc.pacotes.criarModelo.useMutation({
     onSuccess: () => { utils.pacotes.listarModelos.invalidate(); toast.success("Modelo criado!"); onClose(); },
@@ -780,7 +793,11 @@ export default function Pacotes() {
     buscaTimer.current = setTimeout(() => setBuscaDebounced(v), 400);
   }
 
+  const [mostrarOcultos, setMostrarOcultos] = useState(false);
   const { data: modelos = [], isLoading: loadingModelos } = trpc.pacotes.listarModelos.useQuery();
+  const { data: modelosOcultos = [], isLoading: loadingModelosOcultos } = trpc.pacotes.listarModelos.useQuery({ incluirOcultos: true }, {
+    select: (data) => data.filter(m => !m.ativo),
+  });
   const { data: pacotesRaw = [], isLoading: loadingPacotes } = trpc.pacotes.listarTodos.useQuery({
     status: filtroStatus,
     busca: buscaDebounced || undefined,
@@ -830,7 +847,11 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
   const desativarModeloMutation = trpc.pacotes.desativarModelo.useMutation({
-    onSuccess: () => { utils.pacotes.listarModelos.invalidate(); toast.success("Modelo desativado."); },
+    onSuccess: () => { utils.pacotes.listarModelos.invalidate(); toast.success("Modelo ocultado."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const restaurarModeloMutation = trpc.pacotes.restaurarModelo.useMutation({
+    onSuccess: () => { utils.pacotes.listarModelos.invalidate(); toast.success("Modelo restaurado!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -1044,6 +1065,52 @@ export default function Pacotes() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* ── Seção de modelos ocultos ── */}
+            {modelosOcultos.length > 0 && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setMostrarOcultos(v => !v)}
+                  className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 font-medium mb-3"
+                >
+                  <EyeOff className="w-4 h-4" />
+                  {mostrarOcultos ? "Ocultar" : "Ver"} modelos ocultos ({modelosOcultos.length})
+                  {mostrarOcultos ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                {mostrarOcultos && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {modelosOcultos.map(m => (
+                      <div key={m.id} className="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-4 space-y-3 opacity-70">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-slate-600 line-through">{m.nome}</p>
+                            {m.descricao && <p className="text-xs text-slate-400 mt-0.5">{m.descricao}</p>}
+                          </div>
+                          <button
+                            onClick={() => restaurarModeloMutation.mutate({ id: m.id })}
+                            disabled={restaurarModeloMutation.isPending}
+                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 text-slate-500 transition-colors"
+                          >
+                            <RotateCcw className="w-3 h-3" /> Restaurar
+                          </button>
+                        </div>
+                        <div className="space-y-1">
+                          {m.itens.map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between text-xs">
+                              <span className="text-slate-500">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
+                              <Badge variant="secondary" className="text-xs opacity-60">{item.quantidade}x</Badge>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t border-slate-100">
+                          <span className="font-bold text-slate-400">{formatCurrency(m.preco)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
