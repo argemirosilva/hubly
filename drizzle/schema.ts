@@ -1051,3 +1051,103 @@ export type DashboardWidget = {
 
 export type DashboardConfig = typeof dashboardConfig.$inferSelect;
 export type InsertDashboardConfig = typeof dashboardConfig.$inferInsert;
+
+// ─── PLANOS DE ASSINATURA ─────────────────────────────────────────────────────
+export const planos = mysqlTable("planos", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  descricao: text("descricao"),
+  precoMensal: decimal("precoMensal", { precision: 10, scale: 2 }).notNull(),
+  precoAnual: decimal("precoAnual", { precision: 10, scale: 2 }).notNull(),
+  stripeProductId: varchar("stripeProductId", { length: 128 }),
+  stripePriceIdMensal: varchar("stripePriceIdMensal", { length: 128 }),
+  stripePriceIdAnual: varchar("stripePriceIdAnual", { length: 128 }),
+  // Qual API de WhatsApp usar para empresas neste plano (interno Orizontech)
+  apiWhatsapp: mysqlEnum("apiWhatsapp", ["baileys", "zapi"]).default("baileys").notNull(),
+  limiteUsuarios: int("limiteUsuarios").default(3).notNull(),
+  limiteAgendamentosMes: int("limiteAgendamentosMes").default(200).notNull(),
+  temIaFinanceira: boolean("temIaFinanceira").default(false).notNull(),
+  temIaClientes: boolean("temIaClientes").default(false).notNull(),
+  temPortalPublico: boolean("temPortalPublico").default(true).notNull(),
+  temAutomacoes: boolean("temAutomacoes").default(true).notNull(),
+  temPipeline: boolean("temPipeline").default(false).notNull(),
+  slaSuporteHoras: int("slaSuporteHoras").default(48).notNull(),
+  ordem: int("ordem").default(0).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  recursos: json("recursos").$type<string[]>().default([]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Plano = typeof planos.$inferSelect;
+export type InsertPlano = typeof planos.$inferInsert;
+
+// ─── ASSINATURAS DAS EMPRESAS ─────────────────────────────────────────────────
+export const assinaturas = mysqlTable("assinaturas", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  planoId: int("planoId").notNull(),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 128 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
+  status: mysqlEnum("status", ["trial", "ativa", "inadimplente", "cancelada", "suspensa"]).default("trial").notNull(),
+  ciclo: mysqlEnum("ciclo", ["mensal", "anual"]).default("mensal").notNull(),
+  trialFim: timestamp("trialFim"),
+  periodoInicio: timestamp("periodoInicio"),
+  periodoFim: timestamp("periodoFim"),
+  canceladaEm: timestamp("canceladaEm"),
+  // Configurações internas de API WhatsApp (visível apenas para Orizontech)
+  zapiInstanceId: varchar("zapiInstanceId", { length: 255 }),
+  zapiToken: varchar("zapiToken", { length: 255 }),
+  zapiAtivo: boolean("zapiAtivo").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Assinatura = typeof assinaturas.$inferSelect;
+export type InsertAssinatura = typeof assinaturas.$inferInsert;
+
+// ─── BASE DE CONHECIMENTO (para IA de suporte) ────────────────────────────────
+export const baseConhecimento = mysqlTable("base_conhecimento", {
+  id: int("id").autoincrement().primaryKey(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  conteudo: text("conteudo").notNull(),
+  categoria: varchar("categoria", { length: 100 }).default("geral"),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BaseConhecimento = typeof baseConhecimento.$inferSelect;
+export type InsertBaseConhecimento = typeof baseConhecimento.$inferInsert;
+
+// ─── CHAMADOS DE SUPORTE ──────────────────────────────────────────────────────
+export const chamados = mysqlTable("chamados", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["aberto", "em_atendimento", "aguardando_cliente", "resolvido", "fechado"]).default("aberto").notNull(),
+  prioridade: mysqlEnum("prioridade", ["baixa", "media", "alta", "critica"]).default("media").notNull(),
+  agenteId: int("agenteId"),          // profissional da Orizontech responsável
+  slaHoras: int("slaHoras").default(48).notNull(),
+  slaVencidoEm: timestamp("slaVencidoEm"),
+  primeiraRespostaEm: timestamp("primeiraRespostaEm"),
+  resolvidoEm: timestamp("resolvidoEm"),
+  fechadoEm: timestamp("fechadoEm"),
+  avaliacaoNota: int("avaliacaoNota"),       // 1-5
+  avaliacaoComentario: text("avaliacaoComentario"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Chamado = typeof chamados.$inferSelect;
+export type InsertChamado = typeof chamados.$inferInsert;
+
+// ─── MENSAGENS DE CHAMADOS ────────────────────────────────────────────────────
+export const chamadoMensagens = mysqlTable("chamado_mensagens", {
+  id: int("id").autoincrement().primaryKey(),
+  chamadoId: int("chamadoId").notNull(),
+  autorTipo: mysqlEnum("autorTipo", ["cliente", "agente", "ia"]).notNull(),
+  autorId: int("autorId"),             // userId do autor (null para IA)
+  autorNome: varchar("autorNome", { length: 255 }),
+  conteudo: text("conteudo").notNull(),
+  lido: boolean("lido").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ChamadoMensagem = typeof chamadoMensagens.$inferSelect;
+export type InsertChamadoMensagem = typeof chamadoMensagens.$inferInsert;

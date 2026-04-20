@@ -699,31 +699,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Suporte */}
         <div className="px-3 pb-2">
-          <button
-            onClick={() => {
-              const event = new CustomEvent('open-support-chat');
-              window.dispatchEvent(event);
-            }}
+          <Link
+            href="/admin/suporte"
             className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 text-left"
-            style={{ color: "oklch(58% 0.025 255)", boxShadow: "inset 3px 0 0 transparent" }}
-            onMouseEnter={e => {
+            style={{
+              color: location === "/admin/suporte" ? "oklch(88% 0.008 240)" : "oklch(58% 0.025 255)",
+              background: location === "/admin/suporte" ? "oklch(24% 0.018 255)" : "transparent",
+              boxShadow: location === "/admin/suporte" ? "inset 3px 0 0 oklch(62% 0.18 225 / 60%)" : "inset 3px 0 0 transparent",
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
               const el = e.currentTarget as HTMLElement;
               el.style.background = "oklch(24% 0.018 255)";
               el.style.color = "oklch(88% 0.008 240)";
               el.style.boxShadow = "inset 3px 0 0 oklch(62% 0.18 225 / 60%)";
               el.style.transform = "translateX(2px)";
             }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "transparent";
-              el.style.color = "oklch(58% 0.025 255)";
-              el.style.boxShadow = "inset 3px 0 0 transparent";
-              el.style.transform = "translateX(0)";
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (location !== "/admin/suporte") {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "transparent";
+                el.style.color = "oklch(58% 0.025 255)";
+                el.style.boxShadow = "inset 3px 0 0 transparent";
+                el.style.transform = "translateX(0)";
+              }
             }}
           >
             <Headphones className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
             <span className="text-sm font-medium">Suporte</span>
-          </button>
+          </Link>
         </div>
 
         {/* User */}

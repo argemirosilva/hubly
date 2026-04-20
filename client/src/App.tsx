@@ -43,6 +43,8 @@ import ComissoesPagar from "./pages/ComissoesPagar";
 import Relatorios from "./pages/Relatorios";
 import FilaAutomacoes from "./pages/FilaAutomacoes";
 import Onboarding from "./pages/Onboarding";
+import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
+import Suporte from "./pages/Suporte";
 import { SupportChat } from "./components/SupportChat";
 import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
@@ -98,6 +100,7 @@ function Router() {
       <Route path="/admin/ia-clientes">{() => <Redirect to="/admin/insights" />}</Route>
       <Route path="/admin/insights">{() => <WithAdmin><Insights /></WithAdmin>}</Route>
       <Route path="/admin/manual">{() => <WithAdmin><Manual /></WithAdmin>}</Route>
+      <Route path="/admin/suporte">{() => <WithAdmin><Suporte /></WithAdmin>}</Route>
       <Route path="/admin/pacotes">{() => <WithAdmin><Pacotes /></WithAdmin>}</Route>
       <Route path="/admin/whatsapp">{() => <WithAdmin><WhatsAppPage /></WithAdmin>}</Route>
       <Route path="/admin/planos">{() => <WithAdmin><Planos /></WithAdmin>}</Route>
@@ -110,6 +113,7 @@ function Router() {
       <Route path="/admin/automacoes/fila">{() => <WithAdmin><FilaAutomacoes /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
+      <Route path="/orizontech">{() => <PainelOrizontech />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

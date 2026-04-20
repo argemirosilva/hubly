@@ -63,6 +63,9 @@ vi.mock("./db", () => ({
   updatePermissoesByGrupo: vi.fn().mockResolvedValue(undefined),
   getDashboardMetrics: vi.fn().mockResolvedValue({ receitaMes: 0, ticketMedio: 0, totalAgendamentos: 0, totalClientes: 0, comissoesPendentes: 0 }),
   getFinanceiroDashboard: vi.fn().mockResolvedValue({ receitaMes: 0, ticketMedio: 0, comissoesPendentes: 0 }),
+  getNotificacoesByEmpresa: vi.fn().mockResolvedValue([]),
+  getPermissoesGrupoByProfissional: vi.fn().mockResolvedValue({}),
+  getMembrosGrupoByProfissional: vi.fn().mockResolvedValue([]),
 }));
 
 function createAdminCtx(): TrpcContext {

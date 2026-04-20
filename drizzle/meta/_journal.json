@@ -330,6 +330,13 @@
       "when": 1776467857759,
       "tag": "0046_clumsy_human_torch",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1776697218904,
+      "tag": "0047_wild_archangel",
+      "breakpoints": true
     }
   ]
 }

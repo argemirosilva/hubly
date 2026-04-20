@@ -55,6 +55,7 @@ const WIDGET_CATALOG: Array<{
   { id: "pipeline",       title: "Pipeline Favorita",      description: "Mini-kanban da pipeline marcada como favorita",        defaultSize: "sm" },
   { id: "plano_uso",      title: "Plano e Uso",            description: "Status do plano e barras de consumo",                  defaultSize: "sm", adminOnly: true },
   { id: "equipe",         title: "Equipe",                 description: "Profissionais ativos e agendamentos do dia",           defaultSize: "sm", requiresPermission: "profissionaisVer" },
+  { id: "pre_agendamentos", title: "Pré-agendamentos Pendentes", description: "Pré-agendamentos aguardando confirmação com link direto", defaultSize: "sm", adminOnly: true },
 ];
 
 // ─── Layouts pré-definidos ───────────────────────────────────────────────────
@@ -77,6 +78,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
       { id: "pipeline",      visible: true,  order: 6, size: "sm" },
       { id: "plano_uso",     visible: true,  order: 7, size: "sm" },
       { id: "equipe",        visible: true,  order: 8, size: "sm" },
+      { id: "pre_agendamentos", visible: true, order: 9, size: "sm" },
     ],
   },
   {
@@ -95,6 +97,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
       { id: "agenda_hoje",   visible: false, order: 6, size: "lg" },
       { id: "acoes_rapidas", visible: false, order: 7, size: "sm" },
       { id: "equipe",        visible: false, order: 8, size: "sm" },
+      { id: "pre_agendamentos", visible: false, order: 9, size: "sm" },
     ],
   },
   {
@@ -113,6 +116,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
       { id: "financeiro",    visible: false, order: 6, size: "sm" },
       { id: "score_ia",      visible: false, order: 7, size: "sm" },
       { id: "plano_uso",     visible: false, order: 8, size: "sm" },
+      { id: "pre_agendamentos", visible: true, order: 9, size: "sm" },
     ],
   },
 ];

@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
+import { getDb, getEmpresaDoContexto } from "../db";
+import { chamados, chamadoMensagens } from "../../drizzle/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 const SYSTEM_PROMPT = `Você é a assistente de suporte do Hubly, um sistema de gestão para salões de beleza, clínicas de estética e barbearias.
 
@@ -102,7 +105,7 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 - Envio manual de mensagens para clientes
 
 ### Assinatura e Planos
-- Planos disponíveis: SOLO, PLUS e PRO com recursos e limites diferentes
+- Planos disponíveis: Essencial, Profissional e Premium com recursos e limites diferentes
 - Alerta automático ao atingir 80% do limite de qualquer recurso
 - Ao atingir 100%, não é possível cadastrar novos registros daquele tipo
 - Upgrade disponível em Assinatura > Ver Planos
@@ -141,6 +144,102 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 - Use exemplos do dia a dia para facilitar o entendimento`;
 
 export const suporteRouter = router({
+  // ─── Chamados ────────────────────────────────────────────────────────────────
+  abrirChamado: protectedProcedure
+    .input(z.object({
+      titulo: z.string().min(5),
+      descricao: z.string().min(10),
+      prioridade: z.enum(["baixa", "media", "alta", "critica"]).default("media"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) throw new Error("Empresa não encontrada");
+      const slaMap: Record<string, number> = { baixa: 72, media: 48, alta: 24, critica: 4 };
+      const slaHoras = slaMap[input.prioridade] ?? 48;
+      const slaVencidoEm = new Date(Date.now() + slaHoras * 3600000);
+      const [res] = await db.insert(chamados).values({
+        empresaId: empresa.id,
+        titulo: input.titulo,
+        status: "aberto",
+        prioridade: input.prioridade,
+        slaHoras,
+        slaVencidoEm,
+      });
+      const chamadoId = (res as any).insertId as number;
+      await db.insert(chamadoMensagens).values({
+        chamadoId,
+        autorTipo: "cliente",
+        autorId: ctx.user.id,
+        autorNome: ctx.user.name,
+        conteudo: input.descricao,
+        lido: false,
+      });
+      return { chamadoId };
+    }),
+
+  listarMeusChamados: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) return [];
+      return db.select().from(chamados)
+        .where(eq(chamados.empresaId, empresa.id))
+        .orderBy(desc(chamados.createdAt));
+    }),
+
+  getChamadoMensagens: protectedProcedure
+    .input(z.object({ chamadoId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) return [];
+      const [chamado] = await db.select().from(chamados)
+        .where(and(eq(chamados.id, input.chamadoId), eq(chamados.empresaId, empresa.id)));
+      if (!chamado) throw new Error("Chamado não encontrado");
+      return db.select().from(chamadoMensagens)
+        .where(eq(chamadoMensagens.chamadoId, input.chamadoId))
+        .orderBy(chamadoMensagens.createdAt);
+    }),
+
+  responderChamadoCliente: protectedProcedure
+    .input(z.object({ chamadoId: z.number(), mensagem: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) throw new Error("Empresa não encontrada");
+      const [chamado] = await db.select().from(chamados)
+        .where(and(eq(chamados.id, input.chamadoId), eq(chamados.empresaId, empresa.id)));
+      if (!chamado) throw new Error("Chamado não encontrado");
+      await db.insert(chamadoMensagens).values({
+        chamadoId: input.chamadoId,
+        autorTipo: "cliente",
+        autorId: ctx.user.id,
+        autorNome: ctx.user.name,
+        conteudo: input.mensagem,
+        lido: false,
+      });
+      await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date() })
+        .where(eq(chamados.id, input.chamadoId));
+      return { ok: true };
+    }),
+
+  avaliarChamado: protectedProcedure
+    .input(z.object({ chamadoId: z.number(), nota: z.number().min(1).max(5), comentario: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) throw new Error("Empresa não encontrada");
+      await db.update(chamados).set({
+        avaliacaoNota: input.nota,
+        avaliacaoComentario: input.comentario ?? null,
+        status: "fechado",
+        fechadoEm: new Date(),
+      }).where(and(eq(chamados.id, input.chamadoId), eq(chamados.empresaId, empresa.id)));
+      return { ok: true };
+    }),
+
+  // ─── Chat IA ─────────────────────────────────────────────────────────────────
   chat: protectedProcedure
     .input(z.object({
       messages: z.array(z.object({

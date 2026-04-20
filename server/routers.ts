@@ -54,6 +54,7 @@ import { importacaoRouter } from "./routers/importacao";
 import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
+import { orizontechRouter } from "./routers/orizontech";
 import { nanoid } from "nanoid";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
@@ -218,6 +219,7 @@ export const appRouter = router({
   iaFinanceiro: iaFinanceiroRouter,
   iaClientes: iaClientesRouter,
   suporte: suporteRouter,
+  orizontech: orizontechRouter,
   portal: portalRouter,
   importacao: importacaoRouter,
   pacotes: pacotesRouter,

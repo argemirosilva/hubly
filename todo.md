@@ -1681,3 +1681,20 @@
 - [ ] Filtro "Sem profissional" na listagem de agendamentos
 - [ ] Template padrão de automação para evento Reserva paga
 - [ ] Atualizar manual do sistema
+
+## Melhorias — 20 Abr 2026 (tarde)
+- [ ] Card de pré-agendamentos pendentes no Dashboard com link para lista filtrada
+- [ ] Dialog de confirmação ao ocultar modelo de pacote
+
+## Sistema de Suporte (Chamados) — Apr 20 2026
+- [x] Backend: suporte.ts reescrito com procedures abrirChamado, listarMeusChamados, getChamadoMensagens, responderChamadoCliente, avaliarChamado + chat IA
+- [x] SupportChat.tsx: botão flutuante adicionado, abas Chat IA / Chamados, fluxo de abertura de chamado, lista de tickets, detalhe do chamado com thread e avaliação
+- [x] Página /admin/suporte: listagem de chamados com status/prioridade, detalhe com thread, resposta, avaliação por estrelas
+- [x] Sidebar: item Suporte agora navega para /admin/suporte (com highlight de rota ativa)
+- [x] TypeScript: zero erros após todas as alterações
+
+## Painel Orizontech — Apr 20 2026
+- [x] Backend: orizontech.ts com gestão de empresas, assinaturas, WhatsApp API, chamados, base de conhecimento
+- [x] Frontend: PainelOrizontech.tsx com tabs Empresas, Assinaturas, WhatsApp, Suporte, Base de Conhecimento
+- [x] Planos Stripe criados: Essencial (R$97/mês), Profissional (R$197/mês), Premium (R$397/mês) com anuais
+- [x] Schema: tabelas planos, chamados, chamado_mensagens, base_conhecimento; campos extras em empresas
