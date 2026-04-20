@@ -1704,3 +1704,10 @@
 - [x] Backend orizontech: procedures listarChamados, getChamado, responderChamado, atualizarStatusChamado
 - [x] Dashboard: card de pré-agendamentos pendentes com contador e link para lista filtrada
 - [x] Push notification ao responder chamado: disparar push para o cliente quando suporte responder
+
+## Integração Z-API — Apr 20 2026
+- [x] Salvar ZAPI_INSTANCE_ID e ZAPI_TOKEN como secrets
+- [x] Criar server/zapi.ts com funções de envio via Z-API REST
+- [x] Criar server/whatsapp-router.ts: plano PRO usa Z-API, Solo/Plus usa Baileys
+- [x] Substituir waManager.sendMessage em todos os pontos de envio (routers.ts + scheduler.ts)
+- [x] Testes unitários para zapi.ts e whatsapp-router.ts (7 testes passando)

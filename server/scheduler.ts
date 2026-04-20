@@ -20,6 +20,7 @@ import {
 import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
+import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
 
 // Helper: normalizar campo data (Date object ou string) para formato YYYY-MM-DD
 function getDataStr(data: unknown): string {
@@ -173,9 +174,8 @@ async function verificarPacotesVencendoGlobal() {
                 .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
                 .replace(/\{\{sessoes_total\}\}/g, String(totalSessoes))
                 .replace(/\{\{data_vencimento\}\}/g, venc.toLocaleDateString("pt-BR"));
-              const { waManager } = await import("./whatsapp");
-              if (waManager.getState().status === "connected") {
-                const ok = await waManager.sendMessage(tel, msg);
+              {
+                const ok = await routedSendMessage(empId, tel, msg);
                 await registrarEnvioAutomacao({
                   empresaId: empId, automacaoId: autoRenovacao.id, automacaoNome: autoRenovacao.nome,
                   clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
@@ -259,9 +259,8 @@ async function verificarPacotesVencendoGlobal() {
                 .replace(/\{\{pacote\}\}/g, pacoteData?.nome ?? "")
                 .replace(/\{\{sessoes_restantes\}\}/g, String(sessoesRestantes))
                 .replace(/\{\{sessoes_total\}\}/g, String(totalSessoes));
-              const { waManager } = await import("./whatsapp");
-              if (waManager.getState().status === "connected") {
-                const ok = await waManager.sendMessage(tel, msg);
+              {
+                const ok = await routedSendMessage(empId, tel, msg);
                 await registrarEnvioAutomacao({
                   empresaId: empId, automacaoId: autoSessoes.id, automacaoNome: autoSessoes.nome,
                   clienteId: pacote.clienteId, clienteNome: clienteData.nome ?? undefined,
@@ -606,7 +605,7 @@ async function enviarLembretesAgendamentos() {
           confirmacaoTexto;
       }
 
-      const enviado = await waManager.sendMessage(ag.clienteTelefone, mensagem);
+      const enviado = await routedSendMessage(ag.empresaId, ag.clienteTelefone, mensagem);
       // Registrar no histórico de envios
       await registrarEnvioAutomacao({
         empresaId: ag.empresaId,
@@ -1640,31 +1639,31 @@ export async function processarFilaPendente() {
             const mimeType = isDocument ? 'application/pdf' : 'image/jpeg';
 
             if (isImage || isDocument) {
-              enviado = await waManager.sendMediaMessage(item.telefone, item.midiaUrl, item.mensagem, mimeType);
+              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, item.mensagem, mimeType);
             } else {
               // Extensão desconhecida: tentar enviar como imagem
-              enviado = await waManager.sendMediaMessage(item.telefone, item.midiaUrl, item.mensagem);
+              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, item.mensagem);
             }
 
             if (!enviado) {
               // Mídia falhou: tentar enviar apenas texto como fallback
               console.log(`[Fila] ⚠️ Mídia falhou para ${item.clienteNome ?? item.telefone}, enviando apenas texto`);
               erroDetalhe = 'Envio de mídia falhou, enviado apenas texto';
-              enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+              enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
             }
           } catch (mediaErr) {
             // Mídia falhou com exceção: tentar enviar apenas texto como fallback
             console.warn(`[Fila] ⚠️ Erro ao enviar mídia para ${item.clienteNome ?? item.telefone}:`, mediaErr);
             erroDetalhe = `Mídia falhou (${String(mediaErr)}), enviado apenas texto`;
             try {
-              enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+              enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
             } catch {
               enviado = false;
             }
           }
         } else {
           // Sem mídia: enviar apenas texto
-          enviado = await waManager.sendMessage(item.telefone, item.mensagem);
+          enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
         }
 
         await db.update(historicoEnviosAutomacao)

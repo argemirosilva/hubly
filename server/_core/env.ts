@@ -11,6 +11,9 @@ export const ENV = {
   // Chaves Stripe LIVE - Injetadas diretamente
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "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",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "whsec_SBQMnwGkruzwOcxHV8Tern6V3kPSpdsv",
+  // Z-API — WhatsApp exclusivo para plano Pro
+  zapiInstanceId: process.env.ZAPI_INSTANCE_ID ?? "",
+  zapiToken: process.env.ZAPI_TOKEN ?? "",
   // VAPID keys para notificações push PWA
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "BL5ONrRJObnn-Mff2nK9KksbBbQReTfQRY3o08JiW9To4DD5HU8uvWf6gm_BAbHbyJOIEysVNdkK3j0YsgOvlgM",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "eGXYtexS8ZZ0fQb9v2qQNvCu1DX7HvLQIyh90uHuRv0",

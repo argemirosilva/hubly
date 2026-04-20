@@ -2561,16 +2561,14 @@ export const appRouter = router({
         if (!envio) throw new TRPCError({ code: "NOT_FOUND", message: "Envio não encontrado" });
         if (envio.status !== "falhou") throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios com falha podem ser reenviados" });
 
-        // Tentar reenviar via WhatsApp
-        const { waManager } = await import("./whatsapp");
-        const waState = waManager.getState();
-
-        if (waState.status !== "connected" || !envio.telefone || !envio.mensagem) {
-          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não conectado ou dados insuficientes para reenvio" });
+        // Tentar reenviar via WhatsApp (roteamento inteligente: Pro=Z-API, demais=Baileys)
+        if (!envio.telefone || !envio.mensagem) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Dados insuficientes para reenvio" });
         }
 
         try {
-          await waManager.sendMessage(envio.telefone, envio.mensagem);
+          const { routedSendMessage } = await import("./whatsapp-router");
+          await routedSendMessage(empresa.id, envio.telefone, envio.mensagem);
 
           // Registrar novo envio bem-sucedido
           await registrarEnvioAutomacao({
@@ -2646,16 +2644,10 @@ export const appRouter = router({
           .replace(/\{\{sessoes_total\}\}/g, String(sessoesTotal))
           .replace(/\{\{data_vencimento\}\}/g, dataVencimento);
 
-        // Verificar WhatsApp
-        const { waManager } = await import("./whatsapp");
-        const waState = waManager.getState();
-        if (waState.status !== "connected") {
-          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "WhatsApp não está conectado. Conecte primeiro em Configurações > WhatsApp." });
-        }
-
-        // Enviar
+        // Enviar via roteamento inteligente (Pro=Z-API, demais=Baileys)
         try {
-          const ok = await waManager.sendMessage(telefone, mensagem);
+          const { routedSendMessage } = await import("./whatsapp-router");
+          const ok = await routedSendMessage(empresa.id, telefone, mensagem);
           const status = ok ? "enviado" : "falhou";
 
           // Registrar no histórico
@@ -3224,15 +3216,14 @@ export const appRouter = router({
     }),
     sendTest: protectedProcedure
       .input(z.object({ telefone: z.string().min(10) }))
-      .mutation(async ({ input }) => {
-        const { waManager } = await import('./whatsapp');
-        const state = waManager.getState();
-        if (state.status !== 'connected') {
-          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'WhatsApp não está conectado' });
-        }
-        const ok = await waManager.sendMessage(
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const { routedSendMessage } = await import('./whatsapp-router');
+        const ok = await routedSendMessage(
+          empresa.id,
           input.telefone,
-          '✅ *Teste Hubly*\n\nSeu WhatsApp está conectado e funcionando corretamente!'
+          '\u2705 *Teste Hubly*\n\nSeu WhatsApp está conectado e funcionando corretamente!'
         );
         return { success: ok };
       }),
