@@ -696,15 +696,49 @@ export default function Dashboard() {
           </div>
         );
 
+      case "pre_agendamentos": {
+        if (!hasFullAccess) return null;
+        const totalPendentes = agendamentosOrdenados.filter(a => a.status === "pre_agendado").length;
+        return (
+          <div className="card-elegant p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm tracking-tight">Pré-agendamentos</h3>
+              <Link href="/admin/agendamentos?status=pre_agendado">
+                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">Ver todos <ChevronRight className="w-3 h-3" /></button>
+              </Link>
+            </div>
+            {totalPendentes === 0 ? (
+              <div className="flex flex-col items-center justify-center py-4 text-center">
+                <CheckCircle2 className="w-8 h-8 mb-2" style={{ color: "oklch(55% 0.18 155)" }} />
+                <p className="text-xs text-muted-foreground">Nenhum pré-agendamento pendente</p>
+              </div>
+            ) : (
+              <Link href="/admin/agendamentos?status=pre_agendado">
+                <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors" style={{ background: "oklch(72% 0.16 80 / 10%)" }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "oklch(72% 0.16 80 / 20%)" }}>
+                    <CalendarCheck className="w-5 h-5" style={{ color: "oklch(40% 0.14 75)" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-2xl font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{totalPendentes}</p>
+                    <p className="text-[11px] text-muted-foreground">aguardando confirmação</p>
+                  </div>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: "oklch(55% 0.20 75)" }} />
+                </div>
+              </Link>
+            )}
+          </div>
+        );
+      }
+
       default:
         return null;
     }
   };
 
-  // ─── Widgets "full" (largura total) vs "sidebar" ─────────────────────────
+  // ─── Widgets "full" (largura total) vs "sidebar" ──────────────────────────────────────────────────
   const fullWidgets = ["stats", "contas_pagar"];
   const mainWidgets = ["agenda_hoje"];
-  const sideWidgets = ["acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe"];
+  const sideWidgets = ["acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe", "pre_agendamentos"];
 
   // Mostrar onboarding apenas se a empresa nao foi configurada (nao durante carregamento)
   if (!empresaLoading && !empresa) {

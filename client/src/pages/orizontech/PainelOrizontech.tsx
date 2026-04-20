@@ -416,25 +416,29 @@ function TabEmpresas() {
 
 // ─── Tab Chamados ─────────────────────────────────────────────────────────────
 function TabChamados() {
-  const [statusFiltro, setStatusFiltro] = useState<"todos" | "aberto" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado">("todos");
+  const [statusFiltro, setStatusFiltro] = useState<"todos" | "aberto" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado">("aberto");
   const [chamadoAberto, setChamadoAberto] = useState<number | null>(null);
   const [resposta, setResposta] = useState("");
   const [novoStatus, setNovoStatus] = useState<"em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado" | "">("");
 
-  const { data: chamados, isLoading, refetch } = trpc.orizontech.listarChamados.useQuery({ status: statusFiltro });
+  const { data: chamados, isLoading, refetch } = trpc.orizontech.listarChamados.useQuery(
+    { status: statusFiltro },
+    { refetchInterval: 30000 }
+  );
   const { data: detalhe } = trpc.orizontech.getChamado.useQuery(
     { chamadoId: chamadoAberto! },
-    { enabled: !!chamadoAberto }
+    { enabled: !!chamadoAberto, refetchInterval: 15000 }
   );
   const utils = trpc.useUtils();
   const responderMut = trpc.orizontech.responderChamado.useMutation({
     onSuccess: () => {
-      toast("Resposta enviada!");
+      toast.success("Resposta enviada!");
       setResposta("");
       setNovoStatus("");
       utils.orizontech.getChamado.invalidate({ chamadoId: chamadoAberto! });
       utils.orizontech.listarChamados.invalidate();
     },
+    onError: () => toast.error("Erro ao enviar resposta"),
   });
 
   return (
@@ -462,6 +466,9 @@ function TabChamados() {
 
         <div className="flex-1 overflow-y-auto space-y-2">
           {isLoading && <div className="text-slate-500 text-sm">Carregando...</div>}
+          {!isLoading && (chamados ?? []).length > 0 && (
+            <p className="text-xs text-slate-500 px-1">{(chamados ?? []).length} chamado{(chamados ?? []).length !== 1 ? "s" : ""}</p>
+          )}
           {(chamados ?? []).map(c => (
             <button key={c.id} onClick={() => setChamadoAberto(c.id)}
               className={`w-full text-left p-3 rounded-lg border transition-colors ${
@@ -475,11 +482,16 @@ function TabChamados() {
                   {c.prioridade}
                 </span>
               </div>
-              <div className="text-xs text-slate-500">{c.empresaNome}</div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${badgeStatus(c.status ?? "")}`}>{c.status}</span>
-                <span className="text-xs text-slate-600">{c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : ""}</span>
+              <div className="text-xs text-slate-400 font-medium">{c.empresaNome}</div>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${badgeStatus(c.status ?? "")}`}>{c.status?.replace("_", " ")}</span>
+                <span className="text-xs text-slate-600 ml-auto">{c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : ""}</span>
               </div>
+              {c.prioridade === "critica" && (
+                <div className="mt-1.5 flex items-center gap-1 text-red-400 text-[10px] font-medium">
+                  <AlertCircle className="w-3 h-3" /> URGENTE
+                </div>
+              )}
             </button>
           ))}
           {!isLoading && (chamados ?? []).length === 0 && (

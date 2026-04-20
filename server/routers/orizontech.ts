@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { empresas, assinaturas, planos, chamados, chamadoMensagens, baseConhecimento } from "../../drizzle/schema";
 import { eq, asc, sql as drizzleSql } from "drizzle-orm";
+import { sendPushToEmpresa } from "../pushNotifications";
 
 // ─── Guard: apenas o owner da Orizontech pode acessar ────────────────────────
 async function assertOrizontech(userId: number) {
@@ -291,6 +292,21 @@ export const orizontechRouter = router({
         conteudo: input.conteudo,
         lido: false,
       });
+      // Disparar push notification para os usuários da empresa
+      const statusLabel: Record<string, string> = {
+        em_atendimento: "Em atendimento",
+        aguardando_cliente: "Aguardando sua resposta",
+        resolvido: "Resolvido ✅",
+        fechado: "Fechado",
+      };
+      const statusSuffix = input.novoStatus ? ` · ${statusLabel[input.novoStatus]}` : "";
+      sendPushToEmpresa(chamado.empresaId, {
+        title: `💬 Suporte: ${chamado.titulo}`,
+        body: `${ctx.user.name ?? "Suporte Hubly"}: ${input.conteudo.slice(0, 100)}${input.conteudo.length > 100 ? "..." : ""}${statusSuffix}`,
+        tag: `chamado-${input.chamadoId}`,
+        url: "/admin/suporte",
+        sound: true,
+      }).catch(err => console.error("[Push] Erro ao enviar push de chamado:", err));
       return { ok: true };
     }),
 

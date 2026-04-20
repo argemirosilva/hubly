@@ -1698,3 +1698,9 @@
 - [x] Frontend: PainelOrizontech.tsx com tabs Empresas, Assinaturas, WhatsApp, Suporte, Base de Conhecimento
 - [x] Planos Stripe criados: Essencial (R$97/mês), Profissional (R$197/mês), Premium (R$397/mês) com anuais
 - [x] Schema: tabelas planos, chamados, chamado_mensagens, base_conhecimento; campos extras em empresas
+
+## Melhorias de Suporte — Apr 20 2026 (tarde)
+- [x] Painel Orizontech: aba de Chamados com listagem, detalhe, resposta e alteração de status
+- [x] Backend orizontech: procedures listarChamados, getChamado, responderChamado, atualizarStatusChamado
+- [x] Dashboard: card de pré-agendamentos pendentes com contador e link para lista filtrada
+- [x] Push notification ao responder chamado: disparar push para o cliente quando suporte responder
