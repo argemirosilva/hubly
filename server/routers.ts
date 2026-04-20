@@ -3175,11 +3175,16 @@ export const appRouter = router({
               .where(eq(subsTable.empresaId, empresa.id))
               .limit(1);
             if (sub?.planType === 'PRO') {
-              const { zapiCheckStatus } = await import('./zapi');
+              const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
               const zapiStatus = await zapiCheckStatus();
+              let phoneNumber: string | null = null;
+              if (zapiStatus.connected) {
+                const phoneInfo = await zapiGetConnectedPhone();
+                phoneNumber = phoneInfo.phone;
+              }
               return {
                 status: zapiStatus.connected ? 'connected' : 'disconnected',
-                phoneNumber: null,
+                phoneNumber,
                 connectedAt: null,
                 qrDataUrl: null,
                 nextReconnectAt: null,
@@ -3287,7 +3292,9 @@ export const appRouter = router({
       return { ...result, isPro: true };
     }),
     /** QR Code da instância Z-API como base64 */
-    zapiGetQrCode: protectedProcedure.query(async ({ ctx }) => {
+    zapiGetQrCode: protectedProcedure
+      .input(z.object({ origin: z.string().optional() }).optional())
+      .query(async ({ ctx, input }) => {
       const { ENV } = await import('./_core/env');
       if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
@@ -3299,8 +3306,16 @@ export const appRouter = router({
         if (empresa) isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
       } catch { isPro = true; }
       if (!isPro) throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
-      const { zapiGetQrCode } = await import('./zapi');
-      return zapiGetQrCode();
+      const { zapiGetQrCode, zapiSetWebhook } = await import('./zapi');
+      const result = await zapiGetQrCode();
+      // Ao detectar que acabou de conectar, configura o webhook automaticamente
+      if (result.connected) {
+        const webhookUrl = (input?.origin ?? 'https://hubly.orizontech.com.br') + '/api/zapi/webhook';
+        zapiSetWebhook(webhookUrl).catch((err) =>
+          console.error('[Z-API] Falha ao configurar webhook automaticamente:', err)
+        );
+      }
+      return result;
     }),
     /** Reinicia a instância Z-API */
     zapiRestart: protectedProcedure.mutation(async ({ ctx }) => {

@@ -121,13 +121,11 @@ describe("Z-API — zapiCheckStatus", () => {
 describe("WhatsApp Router — routedSendMessage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("deve usar Baileys quando empresa não tem plano PRO (DB indisponível = FREE)", async () => {
-    const { waManager } = await import("./whatsapp");
+  it("deve lançar erro quando banco está indisponível (sem fallback para FREE)", async () => {
     const { routedSendMessage } = await import("./whatsapp-router");
 
-    const result = await routedSendMessage(1, "11999998888", "Teste Baileys");
-
-    expect(result).toBe(true);
-    expect(waManager.sendMessage).toHaveBeenCalledWith("11999998888", "Teste Baileys");
+    await expect(routedSendMessage(1, "11999998888", "Teste")).rejects.toThrow(
+      /Banco indisponível/
+    );
   });
 });

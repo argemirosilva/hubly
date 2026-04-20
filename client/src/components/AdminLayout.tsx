@@ -648,7 +648,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <div className="flex items-center gap-3">
                           {/* Ícone com dot pulsante para WhatsApp */}
                           {item.href === "/admin/whatsapp" ? (
-                            <div className="relative flex-shrink-0">
+                            <div
+                              className="relative flex-shrink-0"
+                              title={waConnected && waPhoneNumber ? `Conectado: ${waPhoneNumber}` : waConnected ? "Conectado" : "Desconectado"}
+                            >
                               <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                                 style={{ color: waConnected ? "oklch(62% 0.22 145)" : undefined }} />
                               <span

@@ -1723,3 +1723,18 @@
 - [ ] Endpoint POST /api/zapi/webhook para receber eventos de status da Z-API
 - [ ] Atualizar historicoEnvios ao receber evento de entrega/leitura
 - [ ] Frontend: exibir ícone de status (✓ enviado, ✓✓ entregue, ✓✓ azul lido) no histórico de envios
+
+## Melhorias Z-API — Apr 20 2026
+- [ ] Configurar webhook Z-API automaticamente ao conectar instância
+- [ ] Invalidar cache de plano no webhook Stripe após upgrade/downgrade
+- [ ] Exibir número conectado no badge ON da sidebar (tooltip com telefone Z-API)
+
+## Melhorias Z-API e Stripe (v-atual)
+- [x] zapi.ts: adicionar zapiSetWebhook (configura todos os webhooks via PUT /update-every-webhooks)
+- [x] zapi.ts: adicionar zapiGetConnectedPhone (obtém número conectado via GET /device-properties)
+- [x] routers.ts zapiGetQrCode: aceitar input { origin } e chamar zapiSetWebhook automaticamente ao detectar conexão
+- [x] routers.ts whatsapp.getStatus: chamar zapiGetConnectedPhone quando PRO+conectado e retornar phoneNumber
+- [x] AdminLayout sidebar: tooltip no ícone WhatsApp mostrando "Conectado: {telefone}" quando conectado
+- [x] stripe-webhook.ts: importar invalidatePlanCache e chamar após checkout.session.completed, customer.subscription.updated e customer.subscription.deleted
+- [x] zapi.test.ts: corrigir teste de roteamento — banco indisponível agora lança erro (sem fallback para FREE)
+- [x] 156 testes passando, TypeScript sem erros

@@ -200,6 +200,48 @@ export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }>
 }
 
 /**
+ * Configura todos os webhooks da instância Z-API para a mesma URL.
+ * Chamado automaticamente ao conectar a instância.
+ */
+export async function zapiSetWebhook(webhookUrl: string): Promise<{ ok: boolean; error?: string }> {
+  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
+
+  try {
+    const res = await fetch(instanceUrl("/update-every-webhooks"), {
+      method: "PUT",
+      headers: zapiHeaders(),
+      body: JSON.stringify({ value: webhookUrl, notifySentByMe: true }),
+    });
+    const data = (await res.json()) as Record<string, unknown>;
+    if (data?.value === true) {
+      console.log(`[Z-API] Webhook configurado para: ${webhookUrl}`);
+      return { ok: true };
+    }
+    return { ok: false, error: JSON.stringify(data) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Obtém o número de telefone conectado à instância Z-API.
+ */
+export async function zapiGetConnectedPhone(): Promise<{ phone: string | null; name: string | null }> {
+  if (!credenciaisOk()) return { phone: null, name: null };
+
+  try {
+    const res = await fetch(instanceUrl("/device-properties"), { headers: zapiHeaders() });
+    if (!res.ok) return { phone: null, name: null };
+    const data = (await res.json()) as Record<string, unknown>;
+    const phone = (data?.phone as string) ?? (data?.wid as string) ?? null;
+    const name = (data?.name as string) ?? (data?.pushName as string) ?? null;
+    return { phone, name };
+  } catch {
+    return { phone: null, name: null };
+  }
+}
+
+/**
  * Verifica se a instância Z-API está conectada.
  */
 export async function zapiCheckStatus(): Promise<{ connected: boolean; status: string }> {

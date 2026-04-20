@@ -6,6 +6,7 @@ import { getDb } from "./db";
 import { subscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
+import { invalidatePlanCache } from "./whatsapp-router";
 
 // Webhook Secret carregado exclusivamente da variável de ambiente STRIPE_WEBHOOK_SECRET
 // Configure em Settings → Payment no painel Manus
@@ -102,6 +103,8 @@ export function registerStripeWebhook(app: Express) {
                   .where(eq(subscriptions.empresaId, empresaId));
               }
 
+              // Invalida cache de plano para que o roteamento WhatsApp use o novo plano imediatamente
+              invalidatePlanCache(empresaId);
               console.log(`[Stripe Webhook] Assinatura ativada para empresa ${empresaId}: ${planType} ${billingCycle}`);
             }
             break;
@@ -142,6 +145,15 @@ export function registerStripeWebhook(app: Express) {
                 .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
             }
 
+            // Invalida cache de plano para todas as empresas com essa subscription
+            if (db2) {
+              const rows = await db2
+                .select({ empresaId: subscriptions.empresaId })
+                .from(subscriptions)
+                .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+                .limit(1);
+              if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
+            }
             console.log(`[Stripe Webhook] Assinatura atualizada: ${stripeSubscriptionId} → ${planType} ${status}`);
             break;
           }
@@ -163,6 +175,15 @@ export function registerStripeWebhook(app: Express) {
                 .where(eq(subscriptions.stripeSubscriptionId, sub.id));
             }
 
+            // Invalida cache de plano para todas as empresas com essa subscription
+            if (db3) {
+              const rows = await db3
+                .select({ empresaId: subscriptions.empresaId })
+                .from(subscriptions)
+                .where(eq(subscriptions.stripeSubscriptionId, sub.id))
+                .limit(1);
+              if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
+            }
             console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para FREE`);
             break;
           }
