@@ -12,6 +12,7 @@ import { initScheduler } from "../scheduler";
 import { registerStripeWebhook } from "../stripe-webhook";
 import { waManager } from "../whatsapp";
 import { registerConfirmacaoRoute } from "../confirmacao";
+import { registerZapiWebhook } from "../zapi-webhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -46,6 +47,8 @@ async function startServer() {
   registerSystemAuthRoutes(app);
   // Confirmação pública de agendamento via token
   registerConfirmacaoRoute(app);
+  // Webhook Z-API — status de entrega/leitura de mensagens
+  registerZapiWebhook(app);
   // tRPC API
   app.use(
     "/api/trpc",

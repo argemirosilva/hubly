@@ -337,6 +337,13 @@
       "when": 1776697218904,
       "tag": "0047_wild_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1776716117662,
+      "tag": "0048_lush_black_bird",
+      "breakpoints": true
     }
   ]
 }

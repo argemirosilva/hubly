@@ -27,9 +27,29 @@ type FilaRow = {
   tempoRestante: string | null;
   agendamentoId: number | null;
   servicoNome: string | null;
+  zapiMessageId?: string | null;
+  messageStatus?: string | null; // sent | delivered | read | failed
+  messageStatusAt?: string | null;
 };
 
-function StatusBadge({ status, tempoRestante }: { status: string; tempoRestante?: string | null }) {
+// Ícone de status de entrega Z-API (✓ enviado, ✓✓ entregue, ✓✓ azul lido)
+function MessageStatusIcon({ messageStatus }: { messageStatus?: string | null }) {
+  if (!messageStatus || messageStatus === "sent") {
+    return <span className="text-muted-foreground text-[11px]" title="Enviado">✓</span>;
+  }
+  if (messageStatus === "delivered") {
+    return <span className="text-muted-foreground text-[11px] font-semibold" title="Entregue">✓✓</span>;
+  }
+  if (messageStatus === "read") {
+    return <span className="text-blue-500 text-[11px] font-bold" title="Lido">✓✓</span>;
+  }
+  if (messageStatus === "failed") {
+    return <span className="text-red-500 text-[11px]" title="Falhou">✕</span>;
+  }
+  return null;
+}
+
+function StatusBadge({ status, tempoRestante, messageStatus, canal }: { status: string; tempoRestante?: string | null; messageStatus?: string | null; canal?: string }) {
   if (status === "pendente") {
     return (
       <div className="flex flex-col items-end gap-0.5">
@@ -45,10 +65,13 @@ function StatusBadge({ status, tempoRestante }: { status: string; tempoRestante?
   }
   if (status === "enviado") {
     return (
-      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-        <CheckCircle2 className="w-3 h-3 mr-1" />
-        Enviado
-      </Badge>
+      <div className="flex items-center gap-1">
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+          <CheckCircle2 className="w-3 h-3 mr-1" />
+          Enviado
+        </Badge>
+        {canal === "whatsapp" && <MessageStatusIcon messageStatus={messageStatus} />}
+      </div>
     );
   }
   if (status === "falhou") {
@@ -100,7 +123,7 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
           {/* Status */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Status</span>
-            <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
+            <StatusBadge status={row.status} tempoRestante={row.tempoRestante} messageStatus={row.messageStatus} canal={row.canal} />
           </div>
 
           {/* Automação */}
@@ -562,7 +585,7 @@ export default function FilaAutomacoes() {
                         )}
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">
-                        <StatusBadge status={row.status} tempoRestante={row.tempoRestante} />
+                        <StatusBadge status={row.status} tempoRestante={row.tempoRestante} messageStatus={row.messageStatus} canal={row.canal} />
                         {!modoSelecao && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
                       </div>
                     </button>

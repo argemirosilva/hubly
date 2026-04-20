@@ -1717,3 +1717,9 @@
 - [x] Frontend: página WhatsApp com QR Code inline, polling de status, botões conectar/desconectar/reiniciar
 - [x] Polling automático a cada 10s até conectar, parar ao atingir status connected
 - [x] Seção Z-API exclusiva para plano Pro, Baileys como fallback para outros planos
+
+## Webhook Z-API — Confirmação de Entrega/Leitura — Apr 20 2026
+- [ ] Schema: coluna messageStatus (sent/delivered/read/failed) na tabela historicoEnvios
+- [ ] Endpoint POST /api/zapi/webhook para receber eventos de status da Z-API
+- [ ] Atualizar historicoEnvios ao receber evento de entrega/leitura
+- [ ] Frontend: exibir ícone de status (✓ enviado, ✓✓ entregue, ✓✓ azul lido) no histórico de envios
