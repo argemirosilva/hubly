@@ -3227,6 +3227,45 @@ export const appRouter = router({
         );
         return { success: ok };
       }),
+
+    // ─── Z-API (plano Pro) ──────────────────────────────────────────────────────
+     /** Status da instância Z-API */
+    zapiGetStatus: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { connected: false, status: 'credentials_missing', isPro: false };
+      const plan = await getEmpresaPlan(empresa.id);
+      if (plan !== 'PRO') return { connected: false, status: 'not_pro', isPro: false };
+      const { zapiCheckStatus } = await import('./zapi');
+      const result = await zapiCheckStatus();
+      return { ...result, isPro: true };
+    }),
+    /** QR Code da instância Z-API como base64 */
+    zapiGetQrCode: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      const plan = await getEmpresaPlan(empresa.id);
+      if (plan !== 'PRO') throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
+      const { zapiGetQrCode } = await import('./zapi');
+      return zapiGetQrCode();
+    }),
+    /** Reinicia a instância Z-API */
+    zapiRestart: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      const plan = await getEmpresaPlan(empresa.id);
+      if (plan !== 'PRO') throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
+      const { zapiRestart } = await import('./zapi');
+      return zapiRestart();
+    }),
+    /** Desconecta a instância Z-API */
+    zapiDisconnect: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      const plan = await getEmpresaPlan(empresa.id);
+      if (plan !== 'PRO') throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
+      const { zapiDisconnect } = await import('./zapi');
+      return zapiDisconnect();
+    }),
   }),
   // ─── PLANOS E ASSINATURAS ────────────────────────────────────────────────────────────────────────────────────────────────────
   planos: router({

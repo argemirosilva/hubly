@@ -1711,3 +1711,9 @@
 - [x] Criar server/whatsapp-router.ts: plano PRO usa Z-API, Solo/Plus usa Baileys
 - [x] Substituir waManager.sendMessage em todos os pontos de envio (routers.ts + scheduler.ts)
 - [x] Testes unitários para zapi.ts e whatsapp-router.ts (7 testes passando)
+
+## Gerenciamento Z-API pela Interface — Apr 20 2026
+- [x] Backend: procedures zapiGetQrCode, zapiGetStatus, zapiRestart, zapiDisconnect no router whatsapp
+- [x] Frontend: página WhatsApp com QR Code inline, polling de status, botões conectar/desconectar/reiniciar
+- [x] Polling automático a cada 10s até conectar, parar ao atingir status connected
+- [x] Seção Z-API exclusiva para plano Pro, Baileys como fallback para outros planos

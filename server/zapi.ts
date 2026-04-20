@@ -110,6 +110,91 @@ export async function zapiSendMedia(
 }
 
 /**
+ * Obtém o QR Code da instância Z-API como imagem base64.
+ * Retorna null se já estiver conectada ou se houver erro.
+ */
+export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connected: boolean; status: string }> {
+  const instanceId = ENV.zapiInstanceId;
+  const token = ENV.zapiToken;
+
+  if (!instanceId || !token) {
+    return { qrBase64: null, connected: false, status: "credentials_missing" };
+  }
+
+  try {
+    // Primeiro verifica o status
+    const statusUrl = `${BASE_URL}/instances/${instanceId}/token/${token}/status`;
+    const statusRes = await fetch(statusUrl, { headers: { "Client-Token": token } });
+    const statusData = (await statusRes.json()) as Record<string, unknown>;
+
+    if (statusData?.connected === true) {
+      return { qrBase64: null, connected: true, status: "connected" };
+    }
+
+    // Busca QR code como imagem base64
+    const qrUrl = `${BASE_URL}/instances/${instanceId}/token/${token}/qrcode-image`;
+    const qrRes = await fetch(qrUrl, { headers: { "Client-Token": token } });
+
+    if (!qrRes.ok) {
+      return { qrBase64: null, connected: false, status: "qr_error" };
+    }
+
+    // A Z-API retorna a imagem como buffer ou base64
+    const contentType = qrRes.headers.get("content-type") ?? "";
+    if (contentType.includes("image")) {
+      const buffer = await qrRes.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString("base64");
+      const mimeType = contentType.split(";")[0].trim();
+      return { qrBase64: `data:${mimeType};base64,${base64}`, connected: false, status: "qr_ready" };
+    }
+
+    // Tenta como JSON (alguns endpoints retornam { value: "data:image/png;base64,..." })
+    const qrData = (await qrRes.json()) as Record<string, unknown>;
+    const qrBase64 = (qrData?.value as string) ?? (qrData?.qrcode as string) ?? null;
+    return { qrBase64, connected: false, status: qrBase64 ? "qr_ready" : "qr_error" };
+  } catch (err) {
+    console.error("[Z-API] Erro ao obter QR Code:", err);
+    return { qrBase64: null, connected: false, status: "error" };
+  }
+}
+
+/**
+ * Reinicia a instância Z-API (desconecta e reconecta).
+ */
+export async function zapiRestart(): Promise<{ ok: boolean; error?: string }> {
+  const instanceId = ENV.zapiInstanceId;
+  const token = ENV.zapiToken;
+
+  if (!instanceId || !token) return { ok: false, error: "Credenciais não configuradas" };
+
+  try {
+    const url = `${BASE_URL}/instances/${instanceId}/token/${token}/restart`;
+    const res = await fetch(url, { headers: { "Client-Token": token } });
+    return { ok: res.ok };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Desconecta a instância Z-API (logout do WhatsApp).
+ */
+export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }> {
+  const instanceId = ENV.zapiInstanceId;
+  const token = ENV.zapiToken;
+
+  if (!instanceId || !token) return { ok: false, error: "Credenciais não configuradas" };
+
+  try {
+    const url = `${BASE_URL}/instances/${instanceId}/token/${token}/disconnect`;
+    const res = await fetch(url, { headers: { "Client-Token": token } });
+    return { ok: res.ok };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
  * Verifica se a instância Z-API está conectada.
  * Retorna true se o status for "Connected".
  */
