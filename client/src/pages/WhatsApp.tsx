@@ -40,21 +40,29 @@ export default function WhatsAppPage() {
   const [showZapiQr, setShowZapiQr] = useState(false);
 
   // Plano da empresa — determina qual API usar (transparente ao usuário)
-  const { data: planoStatus } = trpc.planos.getStatus.useQuery();
-  const isPro = planoStatus?.plan === "PRO";
-  const planoCarregado = planoStatus !== undefined;
-
-  // ─── Z-API (plano Pro) ───────────────────────────────────────────────────────
-  const { data: zapiStatus, refetch: refetchZapi } = trpc.whatsapp.zapiGetStatus.useQuery(undefined, {
-    enabled: planoCarregado && isPro,
-    refetchInterval: planoCarregado && isPro ? pollingInterval : false,
-    refetchIntervalInBackground: false,
+  // Sempre dispara zapiGetStatus primeiro (o backend decide se é Pro ou não)
+  const { data: planoStatus } = trpc.planos.getStatus.useQuery(undefined, {
+    retry: 1,
+    retryDelay: 2000,
   });
+
+  // ─── Z-API: sempre consulta o backend (o backend decide com base no plano + credenciais) ───────────────────────────────────────────────────────────────────────────────
+  const { data: zapiStatus, refetch: refetchZapi } = trpc.whatsapp.zapiGetStatus.useQuery(undefined, {
+    refetchInterval: pollingInterval,
+    refetchIntervalInBackground: false,
+    retry: 1,
+  });
+
+  // isPro é determinado pelo backend via zapiStatus.isPro (fonte única de verdade)
+  const isPro = zapiStatus?.isPro === true;
+  // Considera carregado quando zapiStatus chegou (independente do planoStatus)
+  const planoCarregado = zapiStatus !== undefined;
 
   const { data: zapiQrData, isLoading: zapiQrLoading, refetch: refetchZapiQr } =
     trpc.whatsapp.zapiGetQrCode.useQuery(undefined, {
-      enabled: planoCarregado && isPro && showZapiQr && zapiStatus?.connected === false,
+      enabled: isPro && showZapiQr && zapiStatus?.connected === false,
       refetchInterval: isPro && showZapiQr && !zapiStatus?.connected ? 15000 : false,
+      retry: 1,
     });
 
   const zapiRestartMutation = trpc.whatsapp.zapiRestart.useMutation({
@@ -73,12 +81,13 @@ export default function WhatsAppPage() {
     onError: (e) => toast.error("Erro ao desconectar: " + e.message),
   });
 
-  // ─── Baileys (Solo / Plus) ───────────────────────────────────────────────────
+  // ─── Baileys (Solo / Plus) ───────────────────────────────────────────────────────────────────────────────
   const { data: baileysData, isLoading: baileysLoading, refetch: refetchBaileys } =
     trpc.whatsapp.getStatus.useQuery(undefined, {
       enabled: planoCarregado && !isPro,
       refetchInterval: planoCarregado && !isPro ? pollingInterval : false,
       refetchIntervalInBackground: false,
+      retry: 1,
     });
 
   const baileysStatus = (baileysData?.status ?? "disconnected") as WAStatus;
