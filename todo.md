@@ -1674,3 +1674,10 @@
 - [ ] Corrigir confirmarReserva: disparar automação de confirmação após reserva paga
 - [ ] Corrigir exibição de múltiplos serviços no log/caixa de saída
 - [ ] Garantir que filtro de serviço não bloqueie envios indevidamente
+
+## Melhorias — 20 Abr 2026
+
+- [ ] Coluna "Serviço" na tabela do histórico de envios (caixa de saída)
+- [ ] Filtro "Sem profissional" na listagem de agendamentos
+- [ ] Template padrão de automação para evento Reserva paga
+- [ ] Atualizar manual do sistema

@@ -705,6 +705,13 @@ const TEMPLATES = [
       { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Notificar cliente", tipo: "enviar_whatsapp", mensagem: "Olá {{nome_cliente}}! Seu agendamento de {{servico}} em {{data}} às {{hora}} foi atualizado. Profissional: {{profissional}}. Qualquer dúvida, estamos à disposição! {{empresa}}" }, connections: [] },
     ],
   },
+  {
+    nome: "Reserva paga", descricao: "Confirma ao cliente que a reserva foi recebida e o agendamento está garantido", icon: Check,
+    nodes: [
+      { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Reserva paga", tipo: "evento_reserva_paga" }, connections: ["a1"] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Confirmar reserva", tipo: "enviar_whatsapp", mensagem: "✅ *Reserva Confirmada!*\n\nOlá, *{{nome_cliente}}*! Sua reserva foi confirmada com sucesso.\n\n📅 *Data:* {{data}}\n⏰ *Horário:* {{hora}}\n✂️ *Serviço:* {{servico}}\n🔒 *Reserva paga:* {{valor_reserva}}\n\n_{{empresa}}_" }, connections: [] },
+    ],
+  },
 ];
 
 //  Página principal
@@ -1083,6 +1090,7 @@ export default function Automacoes() {
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Automação</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Serviço</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Canal</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mensagem</th>
@@ -1104,6 +1112,15 @@ export default function Automacoes() {
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-gray-600 text-xs">{row.automacaoNome || '—'}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {row.servicoNome ? (
+                                <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-medium" title={row.servicoNome}>
+                                  {row.servicoNome.length > 22 ? row.servicoNome.slice(0, 22) + '…' : row.servicoNome}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${

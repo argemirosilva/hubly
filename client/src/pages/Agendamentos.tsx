@@ -226,7 +226,7 @@ export default function Agendamentos() {
       const matchStatus = filtroStatus === "todos" || ag.status === filtroStatus;
       const nomeCliente = clienteMap[ag.clienteId] ?? "";
       const matchBusca = !busca || nomeCliente.toLowerCase().includes(busca.toLowerCase());
-      const matchProfissional = filtroProfissional === "todos" || ag.profissionalId === parseInt(filtroProfissional);
+      const matchProfissional = filtroProfissional === "todos" || (filtroProfissional === "sem_profissional" ? (ag.profissionalId == null) : ag.profissionalId === parseInt(filtroProfissional));
       const emAberto = (ag as any).emAberto ?? 0;
       const matchSaldo = !filtroSaldoAberto || emAberto > 0;
       return matchStatus && matchBusca && matchProfissional && matchSaldo;
@@ -359,6 +359,7 @@ export default function Agendamentos() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os profissionais</SelectItem>
+              <SelectItem value="sem_profissional">Sem profissional</SelectItem>
               {profissionais.map(p => (
                 <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>
               ))}
