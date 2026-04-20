@@ -3,9 +3,10 @@
  *
  * Documentação: https://developer.z-api.io
  *
- * As credenciais (ZAPI_INSTANCE_ID e ZAPI_TOKEN) são injetadas via ENV e
- * pertencem à conta master da Orizontech. Empresas no plano Pro usam esta
- * integração em vez do Baileys.
+ * Credenciais necessárias (injetadas via ENV):
+ *   ZAPI_INSTANCE_ID  — ID da instância
+ *   ZAPI_TOKEN        — Token da instância
+ *   ZAPI_CLIENT_TOKEN — Client-Token de segurança (em Segurança no painel Z-API)
  */
 import { ENV } from "./_core/env";
 
@@ -23,31 +24,41 @@ export interface ZapiSendResult {
 /** Normaliza telefone para o formato esperado pela Z-API (DDI + DDD + número, sem +) */
 function normalizarTelefone(telefone: string): string {
   const digits = telefone.replace(/\D/g, "");
-  // Já tem DDI 55
   if (digits.startsWith("55") && digits.length >= 12) return digits;
-  // Adiciona DDI Brasil
   return `55${digits}`;
+}
+
+/** Headers padrão com Client-Token */
+function zapiHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "Client-Token": ENV.zapiClientToken,
+  };
+}
+
+/** URL base da instância */
+function instanceUrl(path: string): string {
+  return `${BASE_URL}/instances/${ENV.zapiInstanceId}/token/${ENV.zapiToken}${path}`;
+}
+
+/** Verifica se as credenciais estão configuradas */
+function credenciaisOk(): boolean {
+  return !!(ENV.zapiInstanceId && ENV.zapiToken && ENV.zapiClientToken);
 }
 
 /** Faz uma requisição POST para a Z-API */
 async function zapiPost(endpoint: string, body: Record<string, unknown>): Promise<ZapiSendResult> {
-  const instanceId = ENV.zapiInstanceId;
-  const token = ENV.zapiToken;
-
-  if (!instanceId || !token) {
-    console.error("[Z-API] Credenciais não configuradas (ZAPI_INSTANCE_ID / ZAPI_TOKEN)");
+  if (!credenciaisOk()) {
+    console.error("[Z-API] Credenciais não configuradas (ZAPI_INSTANCE_ID / ZAPI_TOKEN / ZAPI_CLIENT_TOKEN)");
     return { ok: false, error: "Credenciais Z-API não configuradas" };
   }
 
-  const url = `${BASE_URL}/instances/${instanceId}/token/${token}${endpoint}`;
+  const url = instanceUrl(endpoint);
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Client-Token": token,
-      },
+      headers: zapiHeaders(),
       body: JSON.stringify(body),
     });
 
@@ -72,8 +83,6 @@ async function zapiPost(endpoint: string, body: Record<string, unknown>): Promis
 
 /**
  * Envia uma mensagem de texto simples via Z-API.
- * @param telefone Número do destinatário (com ou sem DDI)
- * @param mensagem Texto da mensagem (suporta *negrito*, _itálico_, ~tachado~)
  */
 export async function zapiSendText(telefone: string, mensagem: string): Promise<ZapiSendResult> {
   const phone = normalizarTelefone(telefone);
@@ -83,10 +92,6 @@ export async function zapiSendText(telefone: string, mensagem: string): Promise<
 
 /**
  * Envia uma imagem ou documento via Z-API.
- * @param telefone Número do destinatário
- * @param mediaUrl URL pública do arquivo
- * @param caption Legenda opcional
- * @param mimeType MIME type do arquivo (ex: "image/jpeg", "application/pdf")
  */
 export async function zapiSendMedia(
   telefone: string,
@@ -104,7 +109,6 @@ export async function zapiSendMedia(
   if (isPdf) {
     return zapiPost("/send-document/pdf", { phone, document: mediaUrl, fileName: caption ?? "documento.pdf" });
   }
-  // Fallback: enviar como link de texto
   const msg = caption ? `${caption}\n${mediaUrl}` : mediaUrl;
   return zapiSendText(phone, msg);
 }
@@ -114,43 +118,44 @@ export async function zapiSendMedia(
  * Retorna null se já estiver conectada ou se houver erro.
  */
 export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connected: boolean; status: string }> {
-  const instanceId = ENV.zapiInstanceId;
-  const token = ENV.zapiToken;
-
-  if (!instanceId || !token) {
+  if (!credenciaisOk()) {
     return { qrBase64: null, connected: false, status: "credentials_missing" };
   }
 
   try {
     // Primeiro verifica o status
-    const statusUrl = `${BASE_URL}/instances/${instanceId}/token/${token}/status`;
-    const statusRes = await fetch(statusUrl, { headers: { "Client-Token": token } });
+    const statusRes = await fetch(instanceUrl("/status"), { headers: zapiHeaders() });
     const statusData = (await statusRes.json()) as Record<string, unknown>;
 
     if (statusData?.connected === true) {
       return { qrBase64: null, connected: true, status: "connected" };
     }
 
-    // Busca QR code como imagem base64
-    const qrUrl = `${BASE_URL}/instances/${instanceId}/token/${token}/qrcode-image`;
-    const qrRes = await fetch(qrUrl, { headers: { "Client-Token": token } });
+    // Busca QR code — Z-API retorna JSON com { value: "data:image/png;base64,..." }
+    const qrRes = await fetch(instanceUrl("/qr-code/image"), { headers: zapiHeaders() });
 
     if (!qrRes.ok) {
+      const errBody = await qrRes.text();
+      console.error("[Z-API] Erro ao obter QR Code:", qrRes.status, errBody);
       return { qrBase64: null, connected: false, status: "qr_error" };
     }
 
-    // A Z-API retorna a imagem como buffer ou base64
     const contentType = qrRes.headers.get("content-type") ?? "";
-    if (contentType.includes("image")) {
+
+    // Se retornar imagem binária diretamente
+    if (contentType.includes("image/") && !contentType.includes("json")) {
       const buffer = await qrRes.arrayBuffer();
       const base64 = Buffer.from(buffer).toString("base64");
       const mimeType = contentType.split(";")[0].trim();
       return { qrBase64: `data:${mimeType};base64,${base64}`, connected: false, status: "qr_ready" };
     }
 
-    // Tenta como JSON (alguns endpoints retornam { value: "data:image/png;base64,..." })
+    // JSON com { value: "data:image/png;base64,..." } (formato padrão Z-API)
     const qrData = (await qrRes.json()) as Record<string, unknown>;
-    const qrBase64 = (qrData?.value as string) ?? (qrData?.qrcode as string) ?? null;
+    const qrBase64 = (qrData?.value as string) ?? (qrData?.qrcode as string) ?? (qrData?.qrCode as string) ?? null;
+    if (qrBase64) {
+      console.log("[Z-API] QR Code obtido com sucesso");
+    }
     return { qrBase64, connected: false, status: qrBase64 ? "qr_ready" : "qr_error" };
   } catch (err) {
     console.error("[Z-API] Erro ao obter QR Code:", err);
@@ -159,18 +164,18 @@ export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connec
 }
 
 /**
- * Reinicia a instância Z-API (desconecta e reconecta).
+ * Reinicia a instância Z-API.
  */
 export async function zapiRestart(): Promise<{ ok: boolean; error?: string }> {
-  const instanceId = ENV.zapiInstanceId;
-  const token = ENV.zapiToken;
-
-  if (!instanceId || !token) return { ok: false, error: "Credenciais não configuradas" };
+  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
 
   try {
-    const url = `${BASE_URL}/instances/${instanceId}/token/${token}/restart`;
-    const res = await fetch(url, { headers: { "Client-Token": token } });
-    return { ok: res.ok };
+    const res = await fetch(instanceUrl("/restart"), { headers: zapiHeaders() });
+    if (!res.ok) {
+      const body = await res.text();
+      return { ok: false, error: body };
+    }
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -180,15 +185,15 @@ export async function zapiRestart(): Promise<{ ok: boolean; error?: string }> {
  * Desconecta a instância Z-API (logout do WhatsApp).
  */
 export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }> {
-  const instanceId = ENV.zapiInstanceId;
-  const token = ENV.zapiToken;
-
-  if (!instanceId || !token) return { ok: false, error: "Credenciais não configuradas" };
+  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
 
   try {
-    const url = `${BASE_URL}/instances/${instanceId}/token/${token}/disconnect`;
-    const res = await fetch(url, { headers: { "Client-Token": token } });
-    return { ok: res.ok };
+    const res = await fetch(instanceUrl("/disconnect"), { headers: zapiHeaders() });
+    if (!res.ok) {
+      const body = await res.text();
+      return { ok: false, error: body };
+    }
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -196,24 +201,18 @@ export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }>
 
 /**
  * Verifica se a instância Z-API está conectada.
- * Retorna true se o status for "Connected".
  */
 export async function zapiCheckStatus(): Promise<{ connected: boolean; status: string }> {
-  const instanceId = ENV.zapiInstanceId;
-  const token = ENV.zapiToken;
-
-  if (!instanceId || !token) {
+  if (!credenciaisOk()) {
     return { connected: false, status: "credentials_missing" };
   }
 
   try {
-    const url = `${BASE_URL}/instances/${instanceId}/token/${token}/status`;
-    const res = await fetch(url, {
-      headers: { "Client-Token": token },
-    });
+    const res = await fetch(instanceUrl("/status"), { headers: zapiHeaders() });
     const data = (await res.json()) as Record<string, unknown>;
-    const status = (data?.connected as boolean) ? "connected" : ((data?.status as string) ?? "unknown");
-    return { connected: data?.connected === true, status };
+    const connected = data?.connected === true;
+    const status = connected ? "connected" : ((data?.status as string) ?? "disconnected");
+    return { connected, status };
   } catch (err) {
     return { connected: false, status: "error" };
   }

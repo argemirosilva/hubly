@@ -8,6 +8,7 @@ vi.mock("./_core/env", () => ({
   ENV: {
     zapiInstanceId: "TEST_INSTANCE_ID",
     zapiToken: "TEST_TOKEN",
+    zapiClientToken: "TEST_CLIENT_TOKEN",
   },
 }));
 

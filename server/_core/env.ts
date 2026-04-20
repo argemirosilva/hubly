@@ -14,6 +14,7 @@ export const ENV = {
   // Z-API — WhatsApp exclusivo para plano Pro
   zapiInstanceId: process.env.ZAPI_INSTANCE_ID ?? "",
   zapiToken: process.env.ZAPI_TOKEN ?? "",
+  zapiClientToken: process.env.ZAPI_CLIENT_TOKEN ?? "",
   // VAPID keys para notificações push PWA
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "BL5ONrRJObnn-Mff2nK9KksbBbQReTfQRY3o08JiW9To4DD5HU8uvWf6gm_BAbHbyJOIEysVNdkK3j0YsgOvlgM",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "eGXYtexS8ZZ0fQb9v2qQNvCu1DX7HvLQIyh90uHuRv0",
