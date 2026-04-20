@@ -3159,7 +3159,39 @@ export const appRouter = router({
 
   // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────────────────
   whatsapp: router({
-    getStatus: protectedProcedure.query(async () => {
+    getStatus: protectedProcedure.query(async ({ ctx }) => {
+      // Para plano PRO: consultar status via Z-API
+      try {
+        const userId = ctx.user?.id ?? ctx.systemUser?.id ?? 0;
+        const systemUserEmpresaId = ctx.systemUser?.empresaId ?? null;
+        const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
+        if (empresa?.id) {
+          const db = await getDb();
+          if (db) {
+            const { subscriptions: subsTable } = await import('../drizzle/schema');
+            const [sub] = await db
+              .select({ planType: subsTable.planType })
+              .from(subsTable)
+              .where(eq(subsTable.empresaId, empresa.id))
+              .limit(1);
+            if (sub?.planType === 'PRO') {
+              const { zapiCheckStatus } = await import('./zapi');
+              const zapiStatus = await zapiCheckStatus();
+              return {
+                status: zapiStatus.connected ? 'connected' : 'disconnected',
+                phoneNumber: null,
+                connectedAt: null,
+                qrDataUrl: null,
+                nextReconnectAt: null,
+                provider: 'zapi' as const,
+              };
+            }
+          }
+        }
+      } catch {
+        // Se banco ou Z-API falhar, cai para Baileys abaixo
+      }
+      // Solo / Plus / Free → Baileys
       const { waManager } = await import('./whatsapp');
       const state = waManager.getState();
       return {
@@ -3168,6 +3200,7 @@ export const appRouter = router({
         connectedAt: state.connectedAt,
         qrDataUrl: state.qrDataUrl,
         nextReconnectAt: state.nextReconnectAt ?? null,
+        provider: 'baileys' as const,
       };
     }),
     getConnectionLog: protectedProcedure
