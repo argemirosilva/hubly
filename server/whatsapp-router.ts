@@ -5,8 +5,9 @@
  *   - Plano PRO  → Z-API (REST, mais confiável, sem necessidade de QR)
  *   - Solo/Plus  → Baileys (WhatsApp Web via QR)
  *
- * A verificação é feita consultando a tabela `subscriptions` da empresa.
- * Se não houver assinatura ou o plano não for PRO, usa Baileys como fallback.
+ * IMPORTANTE: O plano NUNCA é alterado por falha de infraestrutura.
+ * Se o banco estiver indisponível, o envio é cancelado com erro —
+ * nunca ocorre downgrade silencioso de PRO para Baileys.
  */
 
 import { getDb } from "./db";
@@ -18,24 +19,30 @@ import { zapiSendText, zapiSendMedia } from "./zapi";
 const planCache = new Map<number, { plan: string; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+/**
+ * Retorna o plano da empresa consultando o banco.
+ * Lança erro se o banco estiver indisponível — sem fallback para FREE.
+ */
 async function getEmpresaPlan(empresaId: number): Promise<string> {
   const cached = planCache.get(empresaId);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.plan;
 
-  try {
-    const db = await getDb();
-    if (!db) return "FREE";
-    const [sub] = await db
-      .select({ planType: subscriptions.planType })
-      .from(subscriptions)
-      .where(eq(subscriptions.empresaId, empresaId))
-      .limit(1);
-    const plan = sub?.planType ?? "FREE";
-    planCache.set(empresaId, { plan, ts: Date.now() });
-    return plan;
-  } catch {
-    return "FREE";
+  const db = await getDb();
+  if (!db) {
+    throw new Error(
+      `[WA-Router] Banco indisponível para empresa ${empresaId}. Envio cancelado até o banco se recuperar.`,
+    );
   }
+
+  const [sub] = await db
+    .select({ planType: subscriptions.planType })
+    .from(subscriptions)
+    .where(eq(subscriptions.empresaId, empresaId))
+    .limit(1);
+
+  const plan = sub?.planType ?? "FREE";
+  planCache.set(empresaId, { plan, ts: Date.now() });
+  return plan;
 }
 
 /** Invalida o cache de plano para uma empresa (chamar após upgrade/downgrade) */
@@ -53,6 +60,7 @@ export function invalidatePlanCache(empresaId: number): void {
  * @param telefone   Número do destinatário
  * @param mensagem   Texto da mensagem
  * @returns true se enviado com sucesso
+ * @throws Error se o banco estiver indisponível
  */
 export async function routedSendMessage(
   empresaId: number,
@@ -65,7 +73,7 @@ export async function routedSendMessage(
     console.log(`[WA-Router] Empresa ${empresaId} (PRO) → Z-API`);
     const result = await zapiSendText(telefone, mensagem);
     if (!result.ok) {
-      console.warn(`[WA-Router] Z-API falhou para empresa ${empresaId}, sem fallback: ${result.error}`);
+      console.warn(`[WA-Router] Z-API falhou para empresa ${empresaId}: ${result.error}`);
     }
     return result.ok;
   }
@@ -82,6 +90,8 @@ export async function routedSendMessage(
 
 /**
  * Envia mídia (imagem, PDF) via WhatsApp, usando a API correta conforme o plano.
+ *
+ * @throws Error se o banco estiver indisponível
  */
 export async function routedSendMedia(
   empresaId: number,
