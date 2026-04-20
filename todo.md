@@ -1667,3 +1667,10 @@
 ## Botão Confirmar no Modal de Edição (Apr 20 2026)
 
 - [x] Botão "Confirmar" destacado no modal de edição quando status = pre_agendado
+
+## Correção de Automações — 4 Falhas (Apr 20 2026)
+
+- [ ] Corrigir anti-duplicidade: considerar evento+agendamento+cliente (não bloquear eventos diferentes)
+- [ ] Corrigir confirmarReserva: disparar automação de confirmação após reserva paga
+- [ ] Corrigir exibição de múltiplos serviços no log/caixa de saída
+- [ ] Garantir que filtro de serviço não bloqueie envios indevidamente

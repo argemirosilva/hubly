@@ -81,7 +81,11 @@ function extrairMidiaUrl(flowJson: string | null | undefined): string | null {
  * Verifica se um agendamento passa pelas condições do flowJson.
  * Retorna true se deve receber a mensagem (sem condições = envia para todos).
  */
-function verificarCondicoesFlowRouter(flowJson: string | null | undefined, servicoNome: string | null | undefined): boolean {
+function verificarCondicoesFlowRouter(
+  flowJson: string | null | undefined,
+  servicoNome: string | null | undefined,
+  todosServicos?: string[] // lista de todos os serviços do agendamento composto
+): boolean {
   if (!flowJson) return true;
   try {
     const flow = JSON.parse(flowJson);
@@ -93,10 +97,15 @@ function verificarCondicoesFlowRouter(flowJson: string | null | undefined, servi
       const valor = cond?.data?.valor;
       if (tipo === 'por_servico' && valor) {
         const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
-        const servicoAtual = (servicoNome ?? '').trim().toLowerCase();
-        if (!servicoAtual) return false;
-        const passou = servicosFiltro.some((sf: string) =>
-          servicoAtual.includes(sf) || sf.includes(servicoAtual)
+        // Para agendamentos compostos: verificar se QUALQUER serviço do agendamento bate com o filtro
+        const nomesParaVerificar = todosServicos && todosServicos.length > 0
+          ? todosServicos.map(s => s.trim().toLowerCase())
+          : [(servicoNome ?? '').trim().toLowerCase()];
+        if (nomesParaVerificar.every(n => !n)) return false;
+        const passou = nomesParaVerificar.some(nomeAtual =>
+          servicosFiltro.some((sf: string) =>
+            nomeAtual.includes(sf) || sf.includes(nomeAtual)
+          )
         );
         if (!passou) return false;
       }
@@ -949,14 +958,17 @@ export const appRouter = router({
       // ── Enfileirar envio automático de confirmação via WhatsApp (fila universal) ──       // Sempre enfileira como 'pendente', independente do WhatsApp estar conectado.
         // O worker de processamento (scheduler) enviará quando a conexão estiver disponível.
         try {
+          const todosServicosEmpresa = await getServicosByEmpresa(empresa.id);
           const [cliente, profissional, servico] = await Promise.all([
             getClienteById(rest.clienteId),
             rest.profissionalId != null ? getProfissionalById(rest.profissionalId) : Promise.resolve(null),
-            (async () => {
-              const servicos = await getServicosByEmpresa(empresa.id);
-              return servicos.find(s => s.id === rest.servicoId);
-            })(),
+            Promise.resolve(todosServicosEmpresa.find(s => s.id === rest.servicoId) ?? null),
           ]);
+          // Buscar todos os serviços do agendamento composto para filtro e log
+          const itensAgCriado = servicosInput && servicosInput.length > 0
+            ? servicosInput.map(s => todosServicosEmpresa.find(sv => sv.id === s.servicoId)?.nome).filter(Boolean) as string[]
+            : (servico?.nome ? [servico.nome] : []);
+          const servicoNomeCriado = itensAgCriado.length > 0 ? itensAgCriado.join(', ') : (servico?.nome ?? undefined);
           const telefone = cliente?.whatsapp || cliente?.telefone;
           if (telefone && cliente) {
             const dataFormatada = new Date(rest.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
@@ -1024,12 +1036,12 @@ export const appRouter = router({
             ].filter(Boolean).join('\n');
 
             // Verificar condições do flowJson (ex: filtro por serviço)
-            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome);
+            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome, itensAgCriado);
             if (!passouFiltroServico) {
-              console.log(`[Fila] Automação "${automacaoAtiva!.nome}" ignorada para ag. ${id}: serviço "${servico?.nome}" não está no filtro`);
+              console.log(`[Fila] Automação "${automacaoAtiva!.nome}" ignorada para ag. ${id}: serviços "${servicoNomeCriado}" não estão no filtro`);
             } else {
               const mensagem = automacaoAtiva?.corpoMensagem
-                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, templateVars)
+                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico })
                 : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
 
               // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
@@ -1047,7 +1059,7 @@ export const appRouter = router({
                 status: 'pendente',
                 enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
                 midiaUrl: midiaUrlCriado ?? undefined,
-                servicoNome: servico?.nome ?? undefined,
+                servicoNome: servicoNomeCriado ?? undefined, // todos os serviços concatenados
               });
               console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
             } // fim do else (passou pelo filtro de serviço)
@@ -1415,6 +1427,75 @@ export const appRouter = router({
           reservaPaga: true,
           reservaPagaEm: new Date(),
         });
+
+        // Disparar automação de confirmação de reserva paga
+        try {
+          const ag = await getAgendamentoById(input.id);
+          if (ag && ag.clienteId) {
+            const db = await (await import('./db')).getDb?.();
+            const { clientes: clientesTable } = await import('../drizzle/schema');
+            const { eq: eqDrizzle } = await import('drizzle-orm');
+            const clienteRows = db ? await db.select().from(clientesTable).where(eqDrizzle(clientesTable.id, ag.clienteId)).limit(1) : [];
+            const cliente = clienteRows[0];
+            const telefone = cliente?.telefone?.replace(/\D/g, '') ?? '';
+            if (telefone && cliente) {
+              const servico = ag.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === ag.servicoId) : null;
+              const profissional = ag.profissionalId ? await getProfissionalById(ag.profissionalId) : null;
+              const dataFormatada = new Date(ag.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+              const valorServico = parseFloat(ag.valorTotal ?? '0');
+              const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+              const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
+
+              // Verificar automação personalizada para reserva_paga
+              const automacaoReserva = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
+              const templateVarsReserva = {
+                nome_cliente: cliente.nome || 'Cliente',
+                primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
+                servico: servico?.nome ?? '',
+                data: dataFormatada,
+                hora: `${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
+                profissional: profissional?.nome ?? '',
+                empresa: empresa.nome,
+                valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
+                valor_reserva: valorReservaCalc,
+              };
+              const mensagemPadraoReserva = [
+                `✅ *Reserva Confirmada!*`,
+                ``,
+                `Olá, *${cliente.nome}*!`,
+                `Sua reserva foi confirmada com sucesso.`,
+                ``,
+                `📅 *Data:* ${dataFormatada}`,
+                `⏰ *Horário:* ${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
+                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                valorReservaCalc ? `🔒 *Reserva paga:* ${valorReservaCalc}` : null,
+                ``,
+                `_${empresa.nome}_`,
+              ].filter(Boolean).join('\n');
+              const mensagemReserva = automacaoReserva?.corpoMensagem
+                ? processarVariaveisTemplate(automacaoReserva.corpoMensagem, templateVarsReserva)
+                : mensagemPadraoReserva;
+              await registrarEnvioAutomacao({
+                empresaId: empresa.id,
+                automacaoId: automacaoReserva?.id,
+                automacaoNome: automacaoReserva?.nome ?? 'Reserva Confirmada',
+                clienteId: cliente.id,
+                clienteNome: cliente.nome,
+                agendamentoId: input.id,
+                telefone,
+                canal: 'whatsapp',
+                mensagem: mensagemReserva,
+                status: 'pendente',
+                enviarEm: new Date(),
+                servicoNome: servico?.nome ?? undefined,
+              });
+            }
+          }
+        } catch (e) {
+          console.error('[confirmarReserva] Erro ao enfileirar automação de reserva paga:', e);
+        }
+
         return { success: true };
       }),
     updateServicos: protectedProcedure
