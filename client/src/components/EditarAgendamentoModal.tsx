@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Trash2, Save, Loader2, Edit3, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Edit3, AlertTriangle, CheckCircle2 } from "lucide-react";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
 
 interface ServicoItem {
@@ -171,6 +171,21 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
   const updateMutation = trpc.agendamentos.update.useMutation({
     onError: (err: any) => toast.error(err.message),
   });
+
+  // Mutation para confirmar pré-agendamento
+  const confirmarMutation = trpc.agendamentos.update.useMutation({
+    onSuccess: () => {
+      toast.success("Agendamento confirmado com sucesso!");
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.agendamentos.list.invalidate();
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleConfirmar = async () => {
+    await confirmarMutation.mutateAsync({ id: agendamentoId, status: "confirmado" });
+  };
 
   // Mutation para atualizar serviços
   const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
@@ -422,15 +437,34 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
         </div>
 
         {/* Footer */}
-        <div className="border-t px-5 py-3.5 flex items-center justify-between gap-3 flex-shrink-0"
-          style={{ background: "oklch(97% 0.006 250)" }}>
-          <Button variant="outline" onClick={onClose} className="h-9 text-sm">
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvar} disabled={isPending} className="h-9 text-sm gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isPending ? "Salvando..." : "Salvar alterações"}
-          </Button>
+        <div className="border-t px-5 py-3.5 flex-shrink-0" style={{ background: "oklch(97% 0.006 250)" }}>
+          {/* Banner de confirmação — visível apenas para pré-agendamentos */}
+          {ag.status === "pre_agendado" && (
+            <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <p className="text-xs text-blue-700 font-medium">Pré-agendamento pendente de confirmação</p>
+              </div>
+              <Button
+                size="sm"
+                className="h-8 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                onClick={handleConfirmar}
+                disabled={confirmarMutation.isPending}
+              >
+                {confirmarMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {confirmarMutation.isPending ? "Confirmando..." : "Confirmar agendamento"}
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="outline" onClick={onClose} className="h-9 text-sm">
+              Cancelar
+            </Button>
+            <Button onClick={handleSalvar} disabled={isPending} className="h-9 text-sm gap-2">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isPending ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -1663,3 +1663,7 @@
 - [x] Deduplicação de aniversário por ano (não por dia) usando historicoEnviosAutomacao existente
 - [x] Corrigir fluxo de pré-agendamento: confirmarReserva não altera mais status para agendado
 - [x] Pré-agendamento permanece como pre_agendado até confirmação explícita
+
+## Botão Confirmar no Modal de Edição (Apr 20 2026)
+
+- [x] Botão "Confirmar" destacado no modal de edição quando status = pre_agendado
