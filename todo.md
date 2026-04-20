@@ -1656,3 +1656,10 @@
 ## Bug: Erro ao Exportar para Obsidian (v9.32.1)
 - [x] Erro React 321 ao clicar em "Exportar para Obsidian" (corrigido)
 - [x] Corrigir função de exportação (usar .query() em vez de .useQuery().refetch())
+
+## Correção de Automações — Aniversário e Pré-Agendamento (Apr 20 2026)
+
+- [x] Corrigir automação de aniversário: envio apenas dia 01 do mês, sem duplicidade, 1x por ano
+- [x] Deduplicação de aniversário por ano (não por dia) usando historicoEnviosAutomacao existente
+- [x] Corrigir fluxo de pré-agendamento: confirmarReserva não altera mais status para agendado
+- [x] Pré-agendamento permanece como pre_agendado até confirmação explícita

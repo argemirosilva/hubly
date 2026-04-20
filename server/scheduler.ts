@@ -1199,7 +1199,13 @@ async function processarAniversarioMes() {
 
   const agora = new Date();
   const mesAtual = agora.getMonth() + 1; // 1-12
-  const JANELA_MS = 15 * 60 * 1000;
+  const diaAtual = agora.getDate();
+  const anoAtual = agora.getFullYear();
+
+  // REGRA: enviar apenas no dia 01 do mês
+  if (diaAtual !== 1) {
+    return;
+  }
 
   try {
     const empresasAniversario = await getEmpresasComAutomacoes('aniversario_mes');
@@ -1214,7 +1220,7 @@ async function processarAniversarioMes() {
         const horaAlvo = parseInt(hStr, 10);
         const minAlvo = parseInt(mStr, 10);
 
-        // Verificar se estamos na janela de disparo
+        // Verificar se estamos na janela de disparo (±15 min)
         const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
         const minutosAlvo = horaAlvo * 60 + minAlvo;
         if (Math.abs(minutosAgora - minutosAlvo) > 15) continue;
@@ -1243,9 +1249,20 @@ async function processarAniversarioMes() {
           const tel = cliente.whatsapp || cliente.telefone;
           if (!tel) continue;
 
-          // Deduplicação por automacaoId + clienteId + data
-          const jaEnviou = await jaEnviouParaCliente(empresaId, automacao.id, cliente.id);
-          if (jaEnviou) continue;
+          // Deduplicação por automacaoId + clienteId + ANO ATUAL
+          // Verifica se já enviou para este cliente neste ano (não apenas hoje)
+          const inicioAno = new Date(anoAtual, 0, 1); // 1 de janeiro do ano atual
+          const jaEnviouEsteAno = await db.select({ id: historicoEnviosAutomacao.id })
+            .from(historicoEnviosAutomacao)
+            .where(and(
+              eq(historicoEnviosAutomacao.empresaId, empresaId),
+              eq(historicoEnviosAutomacao.automacaoId, automacao.id),
+              eq(historicoEnviosAutomacao.clienteId, cliente.id),
+              sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+              gte(historicoEnviosAutomacao.criadoEm, inicioAno),
+            ))
+            .limit(1);
+          if (jaEnviouEsteAno.length > 0) continue;
 
           const templateVars: Record<string, string> = {
             nome_cliente: cliente.nome || 'Cliente',

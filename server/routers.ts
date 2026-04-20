@@ -1409,8 +1409,9 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // REGRA: pagar a reserva NÃO deve alterar o status.
+        // O pré-agendamento continua como pre_agendado até confirmação explícita.
         await updateAgendamento(input.id, {
-          status: "agendado",
           reservaPaga: true,
           reservaPagaEm: new Date(),
         });
