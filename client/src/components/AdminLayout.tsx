@@ -117,6 +117,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  // Pull-to-refresh
+  const pullStartY = useRef<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -265,6 +270,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => { setSidebarOpen(false); }, [location]);
+
+  // Pull-to-refresh: escutar evento e invalidar todas as queries ativas
+  const utils = trpc.useUtils();
+  useEffect(() => {
+    const handler = () => {
+      utils.agendamentos.list.invalidate();
+      utils.agendamentos.contarPreAgendamentosPendentes.invalidate();
+      utils.agendamentos.listPreAgendamentosPendentes.invalidate();
+      utils.invalidate();
+    };
+    window.addEventListener('pull-to-refresh', handler);
+    return () => window.removeEventListener('pull-to-refresh', handler);
+  }, [utils]);
 
   if (loading) {
     return (
@@ -893,19 +911,88 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
         <main
-          className="flex-1 overflow-auto pb-20 lg:pb-0"
+          ref={mainRef}
+          className="flex-1 overflow-auto pb-20 lg:pb-0 relative"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0].clientX;
+            // Pull-to-refresh: iniciar apenas quando no topo e não está refreshing
+            const el = mainRef.current;
+            if (el && el.scrollTop === 0 && !isRefreshing) {
+              pullStartY.current = e.touches[0].clientY;
+            }
+          }}
+          onTouchMove={(e) => {
+            if (pullStartY.current === null || isRefreshing) return;
+            const el = mainRef.current;
+            if (!el || el.scrollTop > 0) {
+              pullStartY.current = null;
+              setPullDistance(0);
+              return;
+            }
+            const delta = e.touches[0].clientY - pullStartY.current;
+            if (delta > 0) {
+              // Resistência: desacelera após 60px
+              const dist = Math.min(delta * 0.5, 72);
+              setPullDistance(dist);
+            }
           }}
           onTouchEnd={(e) => {
-            if (touchStartX.current === null) return;
-            const delta = e.changedTouches[0].clientX - touchStartX.current;
-            if (touchStartX.current < 30 && delta > 60) {
-              setSidebarOpen(true);
+            // Swipe horizontal: abrir sidebar
+            if (touchStartX.current !== null) {
+              const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+              if (touchStartX.current < 30 && deltaX > 60) {
+                setSidebarOpen(true);
+              }
+              touchStartX.current = null;
             }
-            touchStartX.current = null;
+            // Pull-to-refresh: disparar se puxou o suficiente
+            if (pullStartY.current !== null) {
+              if (pullDistance >= 56 && !isRefreshing) {
+                setIsRefreshing(true);
+                setPullDistance(0);
+                pullStartY.current = null;
+                // Recarregar todas as queries ativas
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('pull-to-refresh'));
+                  setIsRefreshing(false);
+                }, 1000);
+              } else {
+                setPullDistance(0);
+                pullStartY.current = null;
+              }
+            }
           }}
         >
+          {/* Indicador de pull-to-refresh */}
+          {(pullDistance > 0 || isRefreshing) && (
+            <div
+              className="absolute top-0 left-0 right-0 flex items-center justify-center z-10 pointer-events-none lg:hidden"
+              style={{
+                height: isRefreshing ? 48 : pullDistance,
+                transition: isRefreshing ? 'none' : 'height 0.05s',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                className="flex items-center gap-2 text-xs font-medium"
+                style={{ color: 'oklch(62% 0.16 225)', opacity: isRefreshing ? 1 : Math.min(pullDistance / 56, 1) }}
+              >
+                <svg
+                  className={isRefreshing ? 'animate-spin' : ''}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    transform: isRefreshing ? undefined : `rotate(${Math.min(pullDistance / 56, 1) * 270}deg)`,
+                    transition: isRefreshing ? 'none' : 'transform 0.05s',
+                  }}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                >
+                  <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
+                </svg>
+                {isRefreshing ? 'Atualizando…' : pullDistance >= 56 ? 'Solte para atualizar' : 'Puxe para atualizar'}
+              </div>
+            </div>
+          )}
           {children}
         </main>
       </div>
@@ -924,8 +1011,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           const active = isActive(item.href, item.exact);
           // Badge de pré-agendamentos pendentes no ícone Agenda
           const showBadge = item.href === '/admin/calendario' && totalPreAgendamentosPendentes > 0;
+          const itemHref = showBadge ? '/admin/pre-agendamentos' : item.href;
           return (
-            <Link key={item.href} href={item.href} className="flex-1">
+            <Link key={item.href} href={itemHref} className="flex-1">
               <div className="flex flex-col items-center justify-center py-2.5 gap-1 cursor-pointer transition-all relative">
                 <div className="relative">
                   <Icon

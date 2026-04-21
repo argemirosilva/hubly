@@ -417,6 +417,36 @@ export const portalRouter = router({
       } catch {
         // Não bloquear o agendamento por falha no contador
       }
+      // ── Notificação push ao dono quando status = pre_agendado ───────────────
+      if (status === 'pre_agendado') {
+        ;(async () => {
+          try {
+            const { sendPushToUser } = await import('../pushNotifications');
+            const { notifyOwner } = await import('../_core/notification.js');
+            // Buscar ownerId da empresa
+            const [emp] = await db.select({ ownerId: empresas.ownerId }).from(empresas).where(eq(empresas.id, input.empresaId)).limit(1);
+            const dataFormatada = String(input.data).split('-').reverse().join('/');
+            const nomeCliente = input.clienteNome;
+            const nomeServico = servico.nome ?? 'Serviço';
+            const titulo = '📅 Novo pré-agendamento';
+            const corpo = `${nomeCliente} agendou ${nomeServico} para ${dataFormatada} às ${input.horaInicio}`;
+            if (emp?.ownerId) {
+              await sendPushToUser(emp.ownerId, {
+                title: titulo,
+                body: corpo,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: `pre-agendamento-${agendamentoId}`,
+                sound: true,
+                url: '/admin/pre-agendamentos',
+              }).catch(() => {});
+            }
+            // Notificação in-app (Manus)
+            await notifyOwner({ title: titulo, content: corpo }).catch(() => {});
+          } catch { /* silencioso — não bloquear resposta */ }
+        })();
+      }
+
       return {
         id: agendamentoId,
         status,

@@ -1825,3 +1825,9 @@
 - [x] Swipe para fechar sidebar (gesto direita → esquerda dentro da sidebar)
 - [x] Badge de pré-agendamentos pendentes no ícone Agenda da bottom nav
 - [x] Haptic feedback (navigator.vibrate) no botão + da bottom nav
+
+## Melhorias Mobile 4 (2026-04-21)
+- [x] Tela de pré-agendamentos pendentes (/admin/pre-agendamentos) com confirmar/cancelar em 1 toque
+- [x] Badge da bottom nav navega para /admin/pre-agendamentos ao clicar
+- [x] Pull-to-refresh na main do AdminLayout (mobile)
+- [x] Notificação push ao criar pré-agendamento pelo portal

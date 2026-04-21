@@ -45,6 +45,7 @@ import FilaAutomacoes from "./pages/FilaAutomacoes";
 import Onboarding from "./pages/Onboarding";
 import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
 import Suporte from "./pages/Suporte";
+import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
 import { SupportChat } from "./components/SupportChat";
 import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
@@ -111,6 +112,7 @@ function Router() {
       <Route path="/admin/comissoes-pagar">{() => <WithAdmin><ComissoesPagar /></WithAdmin>}</Route>
       <Route path="/admin/relatorios">{() => <WithAdmin><Relatorios /></WithAdmin>}</Route>
       <Route path="/admin/automacoes/fila">{() => <WithAdmin><FilaAutomacoes /></WithAdmin>}</Route>
+      <Route path="/admin/pre-agendamentos">{() => <WithAdmin><PreAgendamentosPendentes /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/orizontech">{() => <PainelOrizontech />}</Route>

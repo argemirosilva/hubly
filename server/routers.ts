@@ -1879,6 +1879,44 @@ export const appRouter = router({
 
       return { total, convertidos, cancelados, pendentes, taxaConversao };
     }),
+    // Listar pré-agendamentos pendentes com dados enriquecidos (cliente, profissional, serviço)
+    listPreAgendamentosPendentes: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      const db = await getDb();
+      if (!db) return [];
+      const { agendamentos: agTable, clientes: clTable, profissionais: profTable, servicos: svcTable } = await import('../drizzle/schema.js');
+      const hoje = new Date().toISOString().slice(0, 10);
+      const rows = await db
+        .select({
+          id: agTable.id,
+          data: agTable.data,
+          horaInicio: agTable.horaInicio,
+          horaFim: agTable.horaFim,
+          status: agTable.status,
+          valorTotal: agTable.valorTotal,
+          observacoes: agTable.observacoes,
+          clienteId: agTable.clienteId,
+          clienteNome: clTable.nome,
+          clienteTelefone: clTable.telefone,
+          profissionalId: agTable.profissionalId,
+          profissionalNome: profTable.nome,
+          servicoId: agTable.servicoId,
+          servicoNome: svcTable.nome,
+          createdAt: agTable.createdAt,
+        })
+        .from(agTable)
+        .leftJoin(clTable, eq(clTable.id, agTable.clienteId))
+        .leftJoin(profTable, eq(profTable.id, agTable.profissionalId))
+        .leftJoin(svcTable, eq(svcTable.id, agTable.servicoId))
+        .where(and(
+          eq(agTable.empresaId, empresa.id),
+          eq(agTable.status, 'pre_agendado'),
+          drizzleSql`${agTable.data} >= ${hoje}`,
+        ))
+        .orderBy(agTable.data, agTable.horaInicio);
+      return rows;
+    }),
     // Contar pré-agendamentos pendentes (status pre_agendado, data >= hoje) — badge bottom nav
     contarPreAgendamentosPendentes: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
