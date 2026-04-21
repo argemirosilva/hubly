@@ -3,7 +3,7 @@ import {
   Calendar, Users, DollarSign, Zap,
   Bell, Settings, ChevronRight,
   CheckCircle2, Lock, MessageSquare, HelpCircle, BookOpen, Search, X,
-  UserCog, Package, Star,
+  UserCog, Package, Star, Kanban,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -583,6 +583,88 @@ const SECTIONS: Section[] = [
           "Certifique-se de que a data de nascimento do cliente está cadastrada para que o gatilho funcione.",
         ],
         tip: "Combine com um cupom de desconto para aumentar o retorno dos clientes no mês do aniversário!",
+      },
+      {
+        title: "Testar uma automação antes de ativar",
+        steps: [
+          "Na lista de automações, clique no ícone de envio (seta) ao lado da automação que deseja testar.",
+          "O modal de teste abre com o número de WhatsApp da empresa já preenchido automaticamente.",
+          "Confirme ou altere o número e clique em Enviar Teste.",
+          "O botão exibe um indicador de carregamento enquanto o envio está sendo processado.",
+          "Você receberá a mensagem no WhatsApp com o prefixo [TESTE] para identificar que é um envio de teste.",
+        ],
+        tip: "Os envios de teste ficam registrados no Histórico. Use o filtro Apenas testes para visualizá-los separadamente e validar o conteúdo das mensagens.",
+        warning: "O link de confirmação enviado em testes aponta para o domínio real do Hubly. Ao clicar, você verá a página de confirmação como o cliente veria.",
+      },
+      {
+        title: "Confirmação automática por proximidade",
+        steps: [
+          "Nas automações do tipo Horas antes do agendamento, há uma seção Confirmação Automática no painel lateral do editor.",
+          "Ative o toggle Confirmar automaticamente se o cliente não responder.",
+          "Escolha o tempo: 1h, 2h, 4h, 6h, 12h ou 24h antes do agendamento.",
+          "Quando o horário configurado chegar e o cliente ainda não tiver confirmado, o sistema confirma o agendamento automaticamente.",
+          "Por padrão, essa opção vem desabilitada — você precisa ativar manualmente em cada automação.",
+        ],
+        tip: "Útil para evitar cancelamentos por falta de resposta. Configure junto com a automação de lembrete de confirmação para um fluxo completo.",
+        warning: "A confirmação automática só funciona se a automação estiver ativa. Desativar a automação também desativa a confirmação automática.",
+      },
+      {
+        title: "Histórico de envios e filtro de testes",
+        steps: [
+          "Vá em Automações e clique na aba Histórico.",
+          "Você vê todos os envios realizados: data, cliente, automação, status e tipo.",
+          "Para ver apenas os envios de teste, clique no botão Apenas testes no canto superior direito da aba.",
+          "O filtro ajuda a separar os testes reais dos envios de produção ao validar automações.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "pipeline",
+    icon: <Kanban size={20} />,
+    title: "Pipeline",
+    subtitle: "Acompanhe o progresso dos seus clientes em um quadro visual",
+    color: "oklch(45% 0.18 220)",
+    intro: "O Pipeline é um quadro Kanban que permite acompanhar a jornada dos seus clientes em colunas personalizadas. Cada empresa tem um único pipeline, que pode ser editado mas não excluído — garantindo continuidade no acompanhamento.",
+    topics: [
+      {
+        title: "O que é o Pipeline?",
+        steps: [
+          "O Pipeline é um quadro visual com colunas que representam etapas do atendimento.",
+          "Cada cartão representa um cliente ou oportunidade em andamento.",
+          "Você arrasta os cartões de uma coluna para outra conforme o cliente avança na jornada.",
+          "Cada empresa tem exatamente um pipeline — ele é criado automaticamente e não pode ser excluído.",
+        ],
+        tip: "O pipeline é ideal para acompanhar clientes em processos mais longos, como tratamentos estéticos com múltiplas sessões ou pacotes de serviços.",
+      },
+      {
+        title: "Gerenciar as colunas do pipeline",
+        steps: [
+          "Clique no ícone de configurações (engrenagem) no canto superior direito do pipeline.",
+          "Adicione novas colunas clicando em + Nova Coluna.",
+          "Dê um nome e escolha uma cor para cada coluna.",
+          "Reordene as colunas arrastando-as para a posição desejada.",
+          "Para excluir uma coluna, clique no ícone de lixeira ao lado dela — atenção: os cartões da coluna também serão removidos.",
+        ],
+        warning: "Excluir uma coluna remove todos os cartões dentro dela. Mova os cartões para outra coluna antes de excluir.",
+      },
+      {
+        title: "Criar e mover cartões",
+        steps: [
+          "Clique no botão + no topo de qualquer coluna para criar um novo cartão.",
+          "Preencha o título, vincule um cliente e adicione um lembrete se necessário.",
+          "Para mover um cartão, arraste-o para a coluna de destino.",
+          "Clique em um cartão para editar os detalhes ou alterar o status (Em andamento, Congelado, Cancelado, Concluído).",
+        ],
+        tip: "Use o campo de lembrete para definir uma data de follow-up. O sistema exibirá um alerta quando o prazo se aproximar.",
+      },
+      {
+        title: "Editar o nome do pipeline",
+        steps: [
+          "Clique no ícone de lápis ao lado do nome do pipeline no topo da página.",
+          "Digite o novo nome e confirme.",
+          "O nome é atualizado imediatamente para todos os usuários da empresa.",
+        ],
       },
     ],
   },
