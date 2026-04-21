@@ -223,6 +223,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
   const totalAgendadosHoje = agendadosHoje?.total ?? 0;
 
+  // Pré-agendamentos pendentes — badge vermelho no ícone Agenda da bottom nav
+  const { data: preAgendamentosPendentes } = trpc.agendamentos.contarPreAgendamentosPendentes.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const totalPreAgendamentosPendentes = preAgendamentosPendentes?.total ?? 0;
+
+  // Ref para swipe na sidebar (fechar)
+  const sidebarTouchStartX = useRef<number | null>(null);
+
   const getPlanColor = (plan?: string) => {
     switch (plan) {
       case "PRO": return "oklch(45% 0.15 160)";
@@ -501,6 +512,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
         style={{ background: "oklch(16% 0.018 255)", borderRight: "1px solid oklch(22% 0.015 255)" }}
+        onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (sidebarTouchStartX.current === null) return;
+          const delta = e.changedTouches[0].clientX - sidebarTouchStartX.current;
+          if (delta < -60) setSidebarOpen(false);
+          sidebarTouchStartX.current = null;
+        }}
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4"
@@ -904,6 +922,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {bottomNav.slice(0, 2).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href, item.exact);
+          // Badge de pré-agendamentos pendentes no ícone Agenda
+          const showBadge = item.href === '/admin/calendario' && totalPreAgendamentosPendentes > 0;
           return (
             <Link key={item.href} href={item.href} className="flex-1">
               <div className="flex flex-col items-center justify-center py-2.5 gap-1 cursor-pointer transition-all relative">
@@ -913,6 +933,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}
                     strokeWidth={active ? 2.5 : 1.8}
                   />
+                  {showBadge && (
+                    <span
+                      className="absolute -top-1 -right-1.5 text-white text-[8px] rounded-full min-w-[14px] h-[14px] px-0.5 flex items-center justify-center font-bold"
+                      style={{ background: "oklch(55% 0.22 25)" }}
+                    >
+                      {totalPreAgendamentosPendentes > 9 ? '9+' : totalPreAgendamentosPendentes}
+                    </span>
+                  )}
                 </div>
                 <span
                   className="text-[10px] font-medium leading-none"
@@ -931,7 +959,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Botão central destacado (+) */}
         <div className="flex-1 flex flex-col items-center pb-2.5" style={{ marginTop: "-14px" }}>
           <button
-            onClick={() => setNovaAgendaOpen(true)}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+              setNovaAgendaOpen(true);
+            }}
             className="flex items-center justify-center rounded-full shadow-lg transition-all active:scale-95"
             style={{
               width: 52,

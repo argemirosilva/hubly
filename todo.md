@@ -1820,3 +1820,8 @@
 - [x] Bottom nav: botão + central destacado para novo agendamento
 - [x] Header mobile: avatar do usuário logado ao lado das notificações
 - [x] Swipe gesture para abrir sidebar no mobile
+
+## Melhorias Mobile 3 (2026-04-21)
+- [x] Swipe para fechar sidebar (gesto direita → esquerda dentro da sidebar)
+- [x] Badge de pré-agendamentos pendentes no ícone Agenda da bottom nav
+- [x] Haptic feedback (navigator.vibrate) no botão + da bottom nav

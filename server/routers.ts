@@ -1879,7 +1879,24 @@ export const appRouter = router({
 
       return { total, convertidos, cancelados, pendentes, taxaConversao };
     }),
-
+    // Contar pré-agendamentos pendentes (status pre_agendado, data >= hoje) — badge bottom nav
+    contarPreAgendamentosPendentes: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { total: 0 };
+      const db = await getDb();
+      if (!db) return { total: 0 };
+      const { agendamentos: agTable } = await import('../drizzle/schema.js');
+      const hoje = new Date().toISOString().slice(0, 10);
+      const rows = await db
+        .select({ id: agTable.id })
+        .from(agTable)
+        .where(and(
+          eq(agTable.empresaId, empresa.id),
+          eq(agTable.status, 'pre_agendado'),
+          drizzleSql`${agTable.data} >= ${hoje}`,
+        ));
+      return { total: rows.length };
+    }),
     // Excluir agendamento completamente (cascade: itens, pagamentos, comissões, prontuários, tokens)
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
