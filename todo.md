@@ -1810,3 +1810,8 @@
 - [x] R6: Geração automática de recorrências no scheduler
 - [x] R7: Prevenir duplicatas na importação de agendamentos para contas a receber
 - [x] R8: Dashboard financeiro consolidado com fluxo de caixa
+
+## Melhorias Mobile (2026-04-21)
+- [x] Ocultar badge de plano no header mobile
+- [x] Exibir nome da empresa abaixo do logo no header mobile
+- [x] Bottom nav fixa no mobile (Dashboard, Agenda, Clientes, Financeiro)

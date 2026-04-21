@@ -100,13 +100,12 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Bottom nav: 5 atalhos mais usados no mobile
+// Bottom nav: 4 atalhos mais usados no mobile
 const bottomNav = [
-  { href: "/admin", label: "Início", icon: Home, exact: true },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/calendario", label: "Agenda", icon: Calendar },
-  { href: "/admin/agendamentos", label: "Atend.", icon: CalendarCheck },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
-  { href: "/admin/notificacoes", label: "Avisos", icon: Bell },
+  { href: "/admin/financeiro", label: "Financeiro", icon: DollarSign },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -187,6 +186,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const { data: planStatus } = trpc.planos.getStatus.useQuery(undefined, {
     enabled: isAuthenticated,
+  });
+  const { data: empresaData } = trpc.empresa.get.useQuery(undefined, {
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 5,
   });
 
   const naoLidas = (notificacoes?.filter(n => !n.lida).length ?? 0) + (notifPacotesCount?.total ?? 0);
@@ -826,27 +829,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className="p-2 rounded-xl hover:bg-muted transition-colors -ml-1">
               <Menu className="w-5 h-5 text-foreground" />
             </button>
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
-              alt="Hubly"
-              className="h-7 w-auto object-contain"
-            />
+            <div className="flex flex-col justify-center">
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+                alt="Hubly"
+                className="h-6 w-auto object-contain"
+              />
+              {empresaData?.nome && (
+                <span className="text-[10px] text-muted-foreground leading-none mt-0.5 max-w-[130px] truncate">
+                  {empresaData.nome}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            {planStatus && (
-              <Link href="/admin/assinatura">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
-                  style={{
-                    background: getPlanColor(planStatus.plan) + "12",
-                    borderColor: getPlanColor(planStatus.plan) + "30",
-                    color: getPlanColor(planStatus.plan),
-                  }}>
-                  <CreditCard className="w-3 h-3" />
-                  <span className="text-[11px] font-semibold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
-                </div>
-              </Link>
-            )}
-
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
                 <Bell className="w-5 h-5 text-foreground" />
@@ -878,7 +874,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {bottomNav.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href, item.exact);
-          const isNotif = item.href === "/admin/notificacoes";
           return (
             <Link key={item.href} href={item.href} className="flex-1">
               <div className="flex flex-col items-center justify-center py-2.5 gap-1 cursor-pointer transition-all relative">
@@ -888,12 +883,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}
                     strokeWidth={active ? 2.5 : 1.8}
                   />
-                  {isNotif && naoLidas > 0 && (
-                    <span className="absolute -top-1 -right-1.5 text-white text-[8px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold"
-                      style={{ background: "oklch(62% 0.16 225)" }}>
-                      {naoLidas > 9 ? "9+" : naoLidas}
-                    </span>
-                  )}
                 </div>
                 <span
                   className="text-[10px] font-medium leading-none"
