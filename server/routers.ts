@@ -2363,7 +2363,7 @@ export const appRouter = router({
 
     getFilaEnvios: protectedProcedure
       .input(z.object({
-        status: z.enum(["pendente", "enviado", "falhou", "todos"]).default("todos"),
+        status: z.enum(["pendente", "enviado", "falhou", "agendado", "todos"]).default("todos"),
         periodo: z.enum(["hoje", "semana", "mes", "todos"]).default("todos"),
         tipoAutomacao: z.string().optional(),
         automacaoNome: z.string().optional(),
@@ -2412,7 +2412,7 @@ export const appRouter = router({
         const agora = new Date();
         const result = rows.map(r => {
           let tempoRestante: string | null = null;
-          if (r.status === 'pendente' && r.enviarEm) {
+          if ((r.status === 'pendente' || r.status === 'agendado') && r.enviarEm) {
             const diff = r.enviarEm.getTime() - agora.getTime();
             if (diff > 0) {
               const horas = Math.floor(diff / (1000 * 60 * 60));
@@ -2454,10 +2454,10 @@ export const appRouter = router({
       }))
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (!empresa) return { pendentes: 0, enviados: 0, falhas: 0 };
+        if (!empresa) return { pendentes: 0, enviados: 0, falhas: 0, agendados: 0 };
 
         const db = await getDb();
-        if (!db) return { pendentes: 0, enviados: 0, falhas: 0 };
+        if (!db) return { pendentes: 0, enviados: 0, falhas: 0, agendados: 0 };
 
         const conditions: any[] = [eq(historicoEnviosAutomacao.empresaId, empresa.id)];
         if (input.periodo !== "todos") {
@@ -2472,6 +2472,7 @@ export const appRouter = router({
 
         const rows = await db.select({ status: historicoEnviosAutomacao.status }).from(historicoEnviosAutomacao).where(where);
         return {
+          agendados: rows.filter(r => r.status === "agendado").length,
           pendentes: rows.filter(r => r.status === "pendente").length,
           enviados: rows.filter(r => r.status === "enviado").length,
           falhas: rows.filter(r => r.status === "falhou").length,
@@ -2525,7 +2526,7 @@ export const appRouter = router({
           .where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)))
           .limit(1);
         if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item não encontrado" });
-        if (rows[0].status !== 'pendente' && rows[0].status !== 'falhou') throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios pendentes ou com falha podem ser removidos" });
+        if (rows[0].status !== 'pendente' && rows[0].status !== 'agendado' && rows[0].status !== 'falhou') throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios pendentes, agendados ou com falha podem ser removidos" });
         // Deletar o registro do banco
         await db.delete(tbl).where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)));
         return { success: true };
@@ -2546,7 +2547,7 @@ export const appRouter = router({
           .where(and(
             inArray(tbl.id, input.ids),
             eq(tbl.empresaId, empresa.id),
-            or(eq(tbl.status, 'pendente'), eq(tbl.status, 'falhou'))
+            or(eq(tbl.status, 'pendente'), eq(tbl.status, 'agendado'), eq(tbl.status, 'falhou'))
           ));
         return { success: true };
       }),

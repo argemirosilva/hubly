@@ -1581,12 +1581,15 @@ export async function processarFilaPendente() {
     const agora = new Date();
     const expiracaoLimite = new Date(agora.getTime() - 4 * 60 * 60 * 1000); // agora - 4h
 
-    // 1. Expirar itens pendentes com enviarEm + 4h < agora
+    // 1. Expirar itens pendentes/agendados com enviarEm + 4h < agora
     const expirados = await db
       .select({ id: historicoEnviosAutomacao.id })
       .from(historicoEnviosAutomacao)
       .where(and(
-        eq(historicoEnviosAutomacao.status, 'pendente'),
+        or(
+          eq(historicoEnviosAutomacao.status, 'pendente'),
+          eq(historicoEnviosAutomacao.status, 'agendado'),
+        ),
         lte(historicoEnviosAutomacao.enviarEm, expiracaoLimite),
       ));
 
@@ -1603,19 +1606,22 @@ export async function processarFilaPendente() {
     const waState = waManager.getState();
     if (waState.status !== 'connected') return;
 
-    // 3. Buscar pendentes com enviarEm <= agora
+    // 3. Buscar pendentes/agendados com enviarEm <= agora (hora chegou)
     const pendentes = await db
       .select()
       .from(historicoEnviosAutomacao)
       .where(and(
-        eq(historicoEnviosAutomacao.status, 'pendente'),
+        or(
+          eq(historicoEnviosAutomacao.status, 'pendente'),
+          eq(historicoEnviosAutomacao.status, 'agendado'),
+        ),
         lte(historicoEnviosAutomacao.enviarEm, agora),
       ))
       .limit(50); // processar até 50 por ciclo
 
     if (pendentes.length === 0) return;
 
-    console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)...`);
+    console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)/agendado(s)...`);
 
     for (const item of pendentes) {
       if (!item.telefone || !item.mensagem) {

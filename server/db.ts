@@ -1737,7 +1737,7 @@ export async function registrarEnvioAutomacao(data: {
   telefone?: string;
   canal?: "whatsapp" | "email" | "sms" | "lembrete";
   mensagem?: string;
-  status?: "enviado" | "falhou" | "pendente";
+  status?: "enviado" | "falhou" | "pendente" | "agendado";
   erroDetalhe?: string;
   enviarEm?: Date; // Data/hora programada para envio (para status pendente)
   midiaUrl?: string; // URL da mídia para envio (imagem/documento)
@@ -1747,23 +1747,34 @@ export async function registrarEnvioAutomacao(data: {
   const db = await getDb();
   if (!db) return;
 
-  // Se há automacaoId + agendamentoId, verificar se já existe registro pendente para atualizar
-  if (data.automacaoId && data.agendamentoId && data.status && data.status !== 'pendente') {
+  // Determinar status automaticamente: se enviarEm for > 60s no futuro → 'agendado'; caso contrário manter o status informado
+  const agora = Date.now();
+  const limiarFuturo = 60 * 1000; // 60 segundos
+  let statusFinal = data.status ?? "enviado";
+  if (statusFinal === 'pendente' && data.enviarEm && (data.enviarEm.getTime() - agora) > limiarFuturo) {
+    statusFinal = 'agendado';
+  }
+
+  // Se há automacaoId + agendamentoId, verificar se já existe registro pendente/agendado para atualizar
+  if (data.automacaoId && data.agendamentoId && statusFinal !== 'pendente' && statusFinal !== 'agendado') {
     const existente = await db.select({ id: historicoEnviosAutomacao.id })
       .from(historicoEnviosAutomacao)
       .where(and(
         eq(historicoEnviosAutomacao.empresaId, data.empresaId),
         eq(historicoEnviosAutomacao.automacaoId, data.automacaoId),
         eq(historicoEnviosAutomacao.agendamentoId, data.agendamentoId),
-        eq(historicoEnviosAutomacao.status, 'pendente'),
+        or(
+          eq(historicoEnviosAutomacao.status, 'pendente'),
+          eq(historicoEnviosAutomacao.status, 'agendado'),
+        ),
       ))
       .limit(1);
 
     if (existente.length > 0) {
-      // Atualizar o registro pendente existente
+      // Atualizar o registro pendente/agendado existente
       await db.update(historicoEnviosAutomacao)
         .set({
-          status: data.status,
+          status: statusFinal as any,
           mensagem: data.mensagem ?? null,
           erroDetalhe: data.erroDetalhe ?? null,
         })
@@ -1783,7 +1794,7 @@ export async function registrarEnvioAutomacao(data: {
     telefone: data.telefone ?? null,
     canal: data.canal ?? "whatsapp",
     mensagem: data.mensagem ?? null,
-    status: data.status ?? "enviado",
+    status: statusFinal as any,
     erroDetalhe: data.erroDetalhe ?? null,
     enviarEm: data.enviarEm ?? null,
     midiaUrl: data.midiaUrl ?? null,

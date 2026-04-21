@@ -344,6 +344,13 @@
       "when": 1776716117662,
       "tag": "0048_lush_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "5",
+      "when": 1776780681817,
+      "tag": "0049_graceful_paibok",
+      "breakpoints": true
     }
   ]
 }

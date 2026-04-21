@@ -1759,3 +1759,16 @@
 - [x] Auto-selecionar gpt-4o quando há imagens no conteúdo (análise de comprovante), gpt-4o-mini para texto
 - [x] Atualizar mocks nos testes para apontar para ./openai
 - [x] 156 testes passando, TypeScript sem erros
+
+## Status "Agendado" na Fila de Envios (2026-04-21)
+- [ ] Schema: verificar enum status em historicoEnvios e adicionar valor "agendado" se necessário
+- [ ] Backend: gravar status="agendado" ao inserir mensagem com dataEnvio no futuro
+- [ ] Frontend: badge "Agendado" com cor azul/roxo distinta na tela de fila de envios
+- [ ] Frontend: filtro por status incluindo "Agendado"
+
+## Status "Agendado" na Fila de Envios (2026-04-21)
+- [x] Adicionar 'agendado' ao enum de status no schema e migration SQL aplicada
+- [x] Lógica automática em registrarEnvioAutomacao: enviarEm > 60s no futuro → status 'agendado'
+- [x] Scheduler: expirar e processar também registros com status 'agendado'
+- [x] Frontend: badge azul Agendado com ícone CalendarCheck, card contador, filtro no Select e cancelamento de agendados
+- [x] Backend: getFilaEnvios e getFilaTotais suportam status 'agendado' com contador separado

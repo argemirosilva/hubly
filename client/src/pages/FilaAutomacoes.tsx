@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2 } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 
-type StatusFila = "pendente" | "enviado" | "falhou" | "todos";
+type StatusFila = "pendente" | "enviado" | "falhou" | "agendado" | "todos";
 type Periodo = "hoje" | "semana" | "mes" | "todos";
 type Ordenacao = "proximos" | "recentes";
 
@@ -50,6 +50,19 @@ function MessageStatusIcon({ messageStatus }: { messageStatus?: string | null })
 }
 
 function StatusBadge({ status, tempoRestante, messageStatus, canal }: { status: string; tempoRestante?: string | null; messageStatus?: string | null; canal?: string }) {
+  if (status === "agendado") {
+    return (
+      <div className="flex flex-col items-end gap-0.5">
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+          <CalendarCheck className="w-3 h-3 mr-1" />
+          Agendado
+        </Badge>
+        {tempoRestante && (
+          <span className="text-xs text-blue-600 font-medium">{tempoRestante}</span>
+        )}
+      </div>
+    );
+  }
   if (status === "pendente") {
     return (
       <div className="flex flex-col items-end gap-0.5">
@@ -212,8 +225,8 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
               {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
             </Button>
           )}
-          {/* Botão cancelar — para pendentes e falhados */}
-          {(row.status === "pendente" || row.status === "falhou") && (
+          {/* Botão cancelar — para pendentes, agendados e falhados */}
+          {(row.status === "pendente" || row.status === "agendado" || row.status === "falhou") && (
             <Button
               className="w-full gap-2 border-red-200 hover:bg-red-50"
               variant="outline"
@@ -318,8 +331,8 @@ export default function FilaAutomacoes() {
     }
   };
 
-  // Linhas pendentes ou falhadas visíveis (para selecionar todas)
-  const linhasCancelaveis = (data?.rows ?? []).filter(r => r.status === "pendente" || r.status === "falhou");
+  // Linhas pendentes, agendadas ou falhadas visíveis (para selecionar todas)
+  const linhasCancelaveis = (data?.rows ?? []).filter(r => r.status === "pendente" || r.status === "agendado" || r.status === "falhou");
   const linhasPendentes = linhasCancelaveis; // alias para compatibilidade
   const todasSelecionadas = linhasCancelaveis.length > 0 && linhasCancelaveis.every(r => selectedIds.has(r.id));
 
@@ -341,6 +354,7 @@ export default function FilaAutomacoes() {
   };
 
   const pendentes = totaisData?.pendentes ?? 0;
+  const agendados = totaisData?.agendados ?? 0;
   const enviados = totaisData?.enviados ?? 0;
   const falhas = totaisData?.falhas ?? 0;
 
@@ -378,7 +392,14 @@ export default function FilaAutomacoes() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
+        <button
+          onClick={() => setStatus(status === "agendado" ? "todos" : "agendado")}
+          className={`rounded-xl border p-3 text-left transition-all ${status === "agendado" ? "border-blue-400 bg-blue-50" : "bg-card hover:bg-muted/50"}`}
+        >
+          <p className="text-xs text-muted-foreground">Agendados</p>
+          <p className="text-2xl font-bold text-blue-600">{agendados}</p>
+        </button>
         <button
           onClick={() => setStatus(status === "pendente" ? "todos" : "pendente")}
           className={`rounded-xl border p-3 text-left transition-all ${status === "pendente" ? "border-yellow-400 bg-yellow-50" : "bg-card hover:bg-muted/50"}`}
@@ -408,6 +429,7 @@ export default function FilaAutomacoes() {
           <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="agendado">Agendados</SelectItem>
             <SelectItem value="pendente">Pendentes</SelectItem>
             <SelectItem value="enviado">Enviados</SelectItem>
             <SelectItem value="falhou">Falhas</SelectItem>
@@ -513,7 +535,7 @@ export default function FilaAutomacoes() {
           <CardContent className="p-0">
             <div className="divide-y">
               {data.rows.map((row) => {
-                const isPendente = row.status === "pendente";
+                const isPendente = row.status === "pendente" || row.status === "agendado";
                 const isSelected = selectedIds.has(row.id);
 
                 return (
