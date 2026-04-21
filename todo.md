@@ -1815,3 +1815,8 @@
 - [x] Ocultar badge de plano no header mobile
 - [x] Exibir nome da empresa abaixo do logo no header mobile
 - [x] Bottom nav fixa no mobile (Dashboard, Agenda, Clientes, Financeiro)
+
+## Melhorias Mobile 2 (2026-04-21)
+- [x] Bottom nav: botão + central destacado para novo agendamento
+- [x] Header mobile: avatar do usuário logado ao lado das notificações
+- [x] Swipe gesture para abrir sidebar no mobile

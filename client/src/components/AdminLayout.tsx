@@ -3,12 +3,13 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import NovaAgendaModal from "@/components/NovaAgendaModal";
 
 type NavItem = {
   href: string;
@@ -114,6 +115,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj } = usePermissoes();
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -842,9 +845,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <Link href="/admin/notificacoes">
-              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer -mr-1">
+              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
                 <Bell className="w-5 h-5 text-foreground" />
                 {naoLidas > 0 && (
                   <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
@@ -854,24 +857,99 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
               </div>
             </Link>
+            {/* Avatar do usuário logado */}
+            <Link href="/admin/perfil">
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity -mr-1"
+                style={{ background: avatarUrl ? 'transparent' : 'oklch(62% 0.16 225)' }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[11px] font-bold text-white select-none">
+                    {(user?.name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </span>
+                )}
+              </div>
+            </Link>
           </div>
         </header>
 
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
-        <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+        <main
+          className="flex-1 overflow-auto pb-20 lg:pb-0"
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const delta = e.changedTouches[0].clientX - touchStartX.current;
+            if (touchStartX.current < 30 && delta > 60) {
+              setSidebarOpen(true);
+            }
+            touchStartX.current = null;
+          }}
+        >
           {children}
         </main>
       </div>
 
       {/*  Bottom Navigation Bar (mobile only)  */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center"
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-end"
         style={{
           background: "white",
           borderTop: "1px solid oklch(90% 0.012 250)",
           paddingBottom: "env(safe-area-inset-bottom)",
           boxShadow: "0 -4px 20px oklch(0% 0 0 / 8%)"
         }}>
-        {bottomNav.map((item) => {
+        {/* 2 itens à esquerda */}
+        {bottomNav.slice(0, 2).map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href, item.exact);
+          return (
+            <Link key={item.href} href={item.href} className="flex-1">
+              <div className="flex flex-col items-center justify-center py-2.5 gap-1 cursor-pointer transition-all relative">
+                <div className="relative">
+                  <Icon
+                    className="w-5 h-5 transition-all"
+                    style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}
+                    strokeWidth={active ? 2.5 : 1.8}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-medium leading-none"
+                  style={{ color: active ? "oklch(62% 0.16 225)" : "oklch(58% 0.025 255)" }}>
+                  {item.label}
+                </span>
+                {active && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                    style={{ background: "oklch(62% 0.16 225)" }} />
+                )}
+              </div>
+            </Link>
+          );
+        })}
+
+        {/* Botão central destacado (+) */}
+        <div className="flex-1 flex flex-col items-center pb-2.5" style={{ marginTop: "-14px" }}>
+          <button
+            onClick={() => setNovaAgendaOpen(true)}
+            className="flex items-center justify-center rounded-full shadow-lg transition-all active:scale-95"
+            style={{
+              width: 52,
+              height: 52,
+              background: "oklch(62% 0.16 225)",
+              boxShadow: "0 4px 16px oklch(62% 0.16 225 / 45%)",
+            }}
+            aria-label="Novo agendamento"
+          >
+            <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
+          </button>
+          <span className="text-[10px] font-medium leading-none mt-1" style={{ color: "oklch(62% 0.16 225)" }}>
+            Agendar
+          </span>
+        </div>
+
+        {/* 2 itens à direita */}
+        {bottomNav.slice(2, 4).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href, item.exact);
           return (
@@ -898,6 +976,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           );
         })}
       </nav>
+
+      {/* Modal de novo agendamento (acionado pelo botão + da bottom nav) */}
+      <NovaAgendaModal open={novaAgendaOpen} onClose={() => setNovaAgendaOpen(false)} />
     </div>
   );
 }
