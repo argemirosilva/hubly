@@ -1831,3 +1831,15 @@
 - [x] Badge da bottom nav navega para /admin/pre-agendamentos ao clicar
 - [x] Pull-to-refresh na main do AdminLayout (mobile)
 - [x] Notificação push ao criar pré-agendamento pelo portal
+
+## Bugs Críticos de Automações (2026-04-21)
+- [x] Relatório detalhado de diagnóstico e correções propostas
+- [x] Bug 1a: horas_apos_agendamento — filtrar apenas status='concluido'
+- [x] Bug 1b: dias_depois_agendamento — filtrar apenas status='concluido'
+- [x] Bug 1c: preRegistrarEnviosPendentes — não pré-registrar feedback para agendamentos não concluídos
+- [x] Bug 2a: enviarLembretesAgendamentos — pular empresa se já tem automação dias_antes_agendamento
+- [x] Bug 2b: enviarLembretesAgendamentos — adicionar deduplicação via jaEnviouLembrete
+- [x] Bug 3a: verificarCondicoesFlow — aceitar todosServicos[] como parâmetro
+- [x] Bug 3b: scheduler — buscar itens compostos de cada agendamento para lista completa de serviços
+- [x] Bug 3c: db.ts — criar getAutomacoesByEvento que retorna todas as automações ativas
+- [x] Bug 3d: routers.ts — iterar sobre todas as automações por evento com filtro de serviço individual

@@ -14,7 +14,7 @@ import {
   getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
-  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento,
+  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento, getAutomacoesByEvento,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
@@ -1388,85 +1388,128 @@ export const appRouter = router({
                 const eventoStatus = data.status === 'confirmado' ? 'agendamento_confirmado'
                   : data.status === 'cancelado' ? 'agendamento_cancelado'
                   : 'agendamento_concluido';
-                const automacaoUsada = await getAutomacaoByEvento(empresa.id, eventoStatus);
 
-                let mensagem: string;
-                if (data.status === 'confirmado') {
-                  mensagem = automacaoUsada?.corpoMensagem
-                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
-                    : [
-                        `✅ *Agendamento Confirmado!*`,
-                        ``,
-                        `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
-                        ``,
-                        `📅 *Data:* ${dataFormatada}`,
-                        `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                        profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                        ``,
-                        `_${empresa.nome}_`,
-                      ].filter(Boolean).join('\n');
-                } else if (data.status === 'cancelado') {
-                  mensagem = automacaoUsada?.corpoMensagem
-                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
-                    : [
-                        `❌ *Agendamento Cancelado*`,
-                        ``,
-                        `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
-                        ``,
-                        `📅 *Data:* ${dataFormatada}`,
-                        `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                        ``,
-                        `Entre em contato para reagendar.`,
-                        `_${empresa.nome}_`,
-                      ].filter(Boolean).join('\n');
-                } else {
-                  // concluido
-                  mensagem = automacaoUsada?.corpoMensagem
-                    ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
-                    : [
-                        `🌟 *Atendimento Concluído!*`,
-                        ``,
-                        `Olá, *${cliente.nome}*! Seu atendimento foi concluído com sucesso.`,
-                        ``,
-                        `📅 *Data:* ${dataFormatada}`,
-                        servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                        profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                        ``,
-                        `Obrigada pela preferência! Esperamos você em breve. 💖`,
-                        `_${empresa.nome}_`,
-                      ].filter(Boolean).join('\n');
+                // Bug fix 3d: Buscar TODAS as automações ativas para este evento
+                const todasAutomacoesStatus = await getAutomacoesByEvento(empresa.id, eventoStatus);
+
+                // Buscar todos os serviços do agendamento (principal + itens compostos)
+                const { agendamentoItens: agItensTable, servicos: servicosTable } = await import('../drizzle/schema');
+                const { eq: eqDrizzle2 } = await import('drizzle-orm');
+                const dbStatus = await (await import('./db')).getDb?.();
+                const todosServicosStatus: string[] = [];
+                if (servico?.nome) todosServicosStatus.push(servico.nome);
+                if (dbStatus) {
+                  try {
+                    const itensStatus = await dbStatus
+                      .select({ servicoNome: servicosTable.nome })
+                      .from(agItensTable)
+                      .leftJoin(servicosTable, eqDrizzle2(agItensTable.servicoId, servicosTable.id))
+                      .where(eqDrizzle2(agItensTable.agendamentoId, id));
+                    for (const item of itensStatus) {
+                      if (item.servicoNome && !todosServicosStatus.includes(item.servicoNome)) {
+                        todosServicosStatus.push(item.servicoNome);
+                      }
+                    }
+                  } catch (e) { console.error('[Fila] Erro ao buscar itens compostos:', e); }
                 }
 
-                // Verificar condições do flowJson (ex: filtro por serviço)
-                if (automacaoUsada && !verificarCondicoesFlowRouter(automacaoUsada.flowJson, servico?.nome)) {
-                  console.log(`[Fila] Automação "${automacaoUsada.nome}" ignorada para ag. ${id} (status=${data.status}): serviço "${servico?.nome}" não está no filtro`);
-                } else {
-
-                // Enfileirar na fila universal (envia imediatamente quando WA conectar)
-                const nomeEvento = data.status === 'confirmado' ? 'Confirmação de Agendamento'
+                const nomeEventoLabel = data.status === 'confirmado' ? 'Confirmação de Agendamento'
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
                   : 'Atendimento Concluído';
-                const midiaUrlStatus = automacaoUsada ? extrairMidiaUrl(automacaoUsada.flowJson) : null;
-                await registrarEnvioAutomacao({
-                  empresaId: empresa.id,
-                  agendamentoId: id,
-                  automacaoId: automacaoUsada?.id,
-                  automacaoNome: automacaoUsada?.nome ?? nomeEvento,
-                  clienteId: cliente.id,
-                  clienteNome: cliente.nome,
-                  telefone,
-                  canal: 'whatsapp',
-                  mensagem,
-                  status: 'pendente',
-                  enviarEm: new Date(),
-                  midiaUrl: midiaUrlStatus ?? undefined,
-                  servicoNome: servico?.nome ?? undefined,
-                });
-                console.log(`[Fila] ${nomeEvento} enfileirado para ag. ${id} (${telefone})`);
-                try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
-                } // fim do else (passou pelo filtro de serviço)
+
+                // Se não há automações configuradas, enviar mensagem padrão
+                if (todasAutomacoesStatus.length === 0) {
+                  let mensagemPadrao: string;
+                  if (data.status === 'confirmado') {
+                    mensagemPadrao = [
+                      `✅ *Agendamento Confirmado!*`,
+                      ``,
+                      `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
+                      ``,
+                      `📅 *Data:* ${dataFormatada}`,
+                      `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                      ``,
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
+                  } else if (data.status === 'cancelado') {
+                    mensagemPadrao = [
+                      `❌ *Agendamento Cancelado*`,
+                      ``,
+                      `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
+                      ``,
+                      `📅 *Data:* ${dataFormatada}`,
+                      `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      ``,
+                      `Entre em contato para reagendar.`,
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
+                  } else {
+                    mensagemPadrao = [
+                      `🌟 *Atendimento Concluído!*`,
+                      ``,
+                      `Olá, *${cliente.nome}*! Seu atendimento foi concluído com sucesso.`,
+                      ``,
+                      `📅 *Data:* ${dataFormatada}`,
+                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
+                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
+                      ``,
+                      `Obrigada pela preferência! Esperamos você em breve. 💖`,
+                      `_${empresa.nome}_`,
+                    ].filter(Boolean).join('\n');
+                  }
+                  await registrarEnvioAutomacao({
+                    empresaId: empresa.id,
+                    agendamentoId: id,
+                    automacaoId: undefined,
+                    automacaoNome: nomeEventoLabel,
+                    clienteId: cliente.id,
+                    clienteNome: cliente.nome,
+                    telefone,
+                    canal: 'whatsapp',
+                    mensagem: mensagemPadrao,
+                    status: 'pendente',
+                    enviarEm: new Date(),
+                    servicoNome: servico?.nome ?? undefined,
+                  });
+                  console.log(`[Fila] ${nomeEventoLabel} (padrão) enfileirado para ag. ${id} (${telefone})`);
+                  try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+                } else {
+                  // Bug fix 3d: Iterar sobre TODAS as automações ativas para o evento
+                  for (const automacaoUsada of todasAutomacoesStatus) {
+                    // Verificar condições do flowJson com todos os serviços
+                    if (!verificarCondicoesFlowRouter(automacaoUsada.flowJson, servico?.nome, todosServicosStatus)) {
+                      console.log(`[Fila] Automação "${automacaoUsada.nome}" ignorada para ag. ${id} (status=${data.status}): serviços [${todosServicosStatus.join(', ')}] não estão no filtro`);
+                      continue;
+                    }
+
+                    const mensagem = automacaoUsada.corpoMensagem
+                      ? processarVariaveisTemplate(automacaoUsada.corpoMensagem, templateVars2)
+                      : null;
+                    if (!mensagem) continue; // sem corpo de mensagem configurado, pular
+
+                    const midiaUrlStatus = extrairMidiaUrl(automacaoUsada.flowJson);
+                    await registrarEnvioAutomacao({
+                      empresaId: empresa.id,
+                      agendamentoId: id,
+                      automacaoId: automacaoUsada.id,
+                      automacaoNome: automacaoUsada.nome ?? nomeEventoLabel,
+                      clienteId: cliente.id,
+                      clienteNome: cliente.nome,
+                      telefone,
+                      canal: 'whatsapp',
+                      mensagem,
+                      status: 'pendente',
+                      enviarEm: new Date(),
+                      midiaUrl: midiaUrlStatus ?? undefined,
+                      servicoNome: servico?.nome ?? undefined,
+                    });
+                    console.log(`[Fila] ${nomeEventoLabel} (automação "${automacaoUsada.nome}") enfileirado para ag. ${id} (${telefone})`);
+                    try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+                  }
+                }
               }
             }
           } catch (e) {

@@ -574,6 +574,27 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
 }
 
 /**
+ * Bug fix 3c: Busca TODAS as automações ativas de uma empresa para um evento específico.
+ * Diferente de getAutomacaoByEvento que retorna apenas a primeira.
+ */
+export async function getAutomacoesByEvento(empresaId: number, evento: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const results = await db
+    .select()
+    .from(automacoes)
+    .where(
+      and(
+        eq(automacoes.empresaId, empresaId),
+        eq(automacoes.tipoGatilho, 'evento'),
+        eq(automacoes.evento, evento),
+        eq(automacoes.ativo, true),
+      )
+    );
+  return results;
+}
+
+/**
  * Busca a primeira automação ativa de uma empresa por tipo de gatilho.
  * Usado pelo scheduler para gatilhos como 'dias_antes_agendamento'.
  * @param empresaId ID da empresa

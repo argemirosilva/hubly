@@ -18,6 +18,7 @@ import {
   automacoes,
   contasPagar,
   contasReceber,
+  agendamentoItens,
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
@@ -89,7 +90,11 @@ function formatarHora(hora: string | null | undefined): string {
 
 // Helper: verificar se um agendamento passa pelas condições do flowJson
 // Retorna true se o agendamento deve receber a mensagem (sem condições = envia para todos)
-function verificarCondicoesFlow(flowJson: string | null | undefined, servicoNome: string | null | undefined): boolean {
+function verificarCondicoesFlow(
+  flowJson: string | null | undefined,
+  servicoNome: string | null | undefined,
+  todosServicos?: string[]
+): boolean {
   if (!flowJson) return true; // sem flow = sem filtro = envia para todos
   try {
     const flow = JSON.parse(flowJson);
@@ -107,11 +112,15 @@ function verificarCondicoesFlow(flowJson: string | null | undefined, servicoNome
       if (tipo === 'por_servico' && valor) {
         // valor é uma string com nomes separados por vírgula
         const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
-        const servicoAtual = (servicoNome ?? '').trim().toLowerCase();
-        if (!servicoAtual) return false; // sem serviço no agendamento, não passa
-        // Verificar se o serviço do agendamento está na lista (comparação parcial para tolerância)
+        // Bug fix 3a: usar todos os serviços do agendamento (principal + itens compostos)
+        const listaServicos = todosServicos && todosServicos.length > 0
+          ? todosServicos.map(s => s.trim().toLowerCase()).filter(Boolean)
+          : [(servicoNome ?? '').trim().toLowerCase()].filter(Boolean);
+        if (listaServicos.length === 0) return false; // sem serviço no agendamento, não passa
+        // Verificar se ALGUM serviço do agendamento bate com ALGUM filtro
+        // Comparação exata (case-insensitive) para evitar falsos positivos
         const passou = servicosFiltro.some((sf: string) =>
-          servicoAtual.includes(sf) || sf.includes(servicoAtual)
+          listaServicos.some((sa: string) => sa === sf)
         );
         if (!passou) return false;
       }
@@ -123,7 +132,30 @@ function verificarCondicoesFlow(flowJson: string | null | undefined, servicoNome
   }
 }
 
-// ── Verificar pacotes vencendo para todas as empresas ─────────────────────────
+// Bug fix 3b: Helper para buscar todos os serviços de um agendamento (principal + itens compostos)
+async function getTodosServicosAgendamento(agendamentoId: number, servicoPrincipal: string | null): Promise<string[]> {
+  const db = await getDb();
+  const result: string[] = [];
+  if (servicoPrincipal) result.push(servicoPrincipal);
+  if (!db) return result;
+  try {
+    const itens = await db
+      .select({ servicoNome: servicos.nome })
+      .from(agendamentoItens)
+      .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+      .where(eq(agendamentoItens.agendamentoId, agendamentoId));
+    for (const item of itens) {
+      if (item.servicoNome && !result.includes(item.servicoNome)) {
+        result.push(item.servicoNome);
+      }
+    }
+  } catch (err) {
+    console.error(`[Scheduler] Erro ao buscar itens compostos do agendamento ${agendamentoId}:`, err);
+  }
+  return result;
+}
+
+// ── Verificar pacotes vencendo para todas as empresas ─────────────────────────────────────────
 async function verificarPacotesVencendoGlobal() {
   const db = await getDb();
   if (!db) return;
@@ -566,6 +598,21 @@ async function enviarLembretesAgendamentos() {
     for (const ag of agendamentosAmanha) {
       if (!ag.clienteTelefone) continue;
 
+      // Bug fix 2a: Se a empresa já tem automação dias_antes_agendamento ativa,
+      // pular o lembrete legado — a automação configurada cuida disso
+      const automacoesAtivas = await getAutomacoesAtivasByTipo(ag.empresaId, 'dias_antes_agendamento');
+      if (automacoesAtivas.length > 0) {
+        console.log(`[Scheduler] Lembrete legado: pulando agendamento ${ag.id} da empresa ${ag.empresaId} — automação dias_antes_agendamento ativa`);
+        continue;
+      }
+
+      // Bug fix 2b: Deduplicação — verificar se já enviou lembrete para este agendamento
+      const jaEnviouLembreteAg = await jaEnviouLembrete(ag.empresaId, 0, ag.id);
+      if (jaEnviouLembreteAg) {
+        console.log(`[Scheduler] Lembrete legado: pulando agendamento ${ag.id} — já enviou lembrete`);
+        continue;
+      }
+
       // Gerar token de confirmação
       const origin = process.env.VITE_FRONTEND_FORGE_API_URL
         ? (process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space')
@@ -767,9 +814,11 @@ async function processarAutomacoesAgendadas() {
         for (const ag of ags) {
           if (!ag.clienteTelefone) continue;
 
+          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
+          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
           // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
             continue;
           }
 
@@ -914,9 +963,11 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
+          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
+          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
           // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
             continue;
           }
 
@@ -1027,7 +1078,7 @@ async function processarAutomacoesAgendadas() {
             eq(agendamentos.empresaId, empresaId),
             sql`${agendamentos.data} >= ${dataMinStr}`,
             sql`${agendamentos.data} <= ${dataMaxStr}`,
-            sql`${agendamentos.status} IN ('concluido', 'confirmado', 'agendado')`,
+            sql`${agendamentos.status} = 'concluido'`,
           ));
 
         for (const ag of ags) {
@@ -1042,9 +1093,11 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
+          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
+          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
           // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
             continue;
           }
 
@@ -1152,7 +1205,7 @@ async function processarAutomacoesAgendadas() {
           .where(and(
             eq(agendamentos.empresaId, empresaId),
             sql`${agendamentos.data} = ${dataAlvoStr}`,
-            sql`${agendamentos.status} IN ('concluido', 'confirmado', 'agendado')`,
+            sql`${agendamentos.status} = 'concluido'`,
           ));
 
         for (const ag of ags) {
@@ -1168,9 +1221,11 @@ async function processarAutomacoesAgendadas() {
 
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
+          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
+          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
           // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): agendamento ${ag.id} ignorado por filtro de serviço (serviço: ${ag.servicoNome})`);
+          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
             continue;
           }
 
@@ -1547,6 +1602,14 @@ async function preRegistrarEnviosPendentes() {
       ));
 
       for (const automacao of todasAutomacoes) {
+        // Bug fix: automações de feedback (horas_apos/dias_depois) dependem de status='concluido'
+        // Como o pré-registro busca apenas agendamentos 'agendado'/'confirmado', não faz sentido
+        // pré-registrar envios de feedback — eles serão processados em tempo real pelo scheduler
+        // quando o status mudar para 'concluido'
+        if (automacao.tipoGatilho === 'horas_apos_agendamento' || automacao.tipoGatilho === 'dias_depois_agendamento') {
+          continue;
+        }
+
         for (const ag of ags) {
           if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
 
@@ -1571,20 +1634,9 @@ async function preRegistrarEnviosPendentes() {
             // Horário do agendamento é no timezone da empresa
             const tsAgendamento = localToUtc(dataStr, `${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}`, tzPre).getTime();
             enviarEm = new Date(tsAgendamento - delayMin * 60 * 1000);
-          } else if (automacao.tipoGatilho === 'horas_apos_agendamento') {
-            const delayMin = automacao.delayMinutos ?? 60;
-            const [hAg, mAg] = ag.horaInicio.split(':');
-            const tsAgendamento = localToUtc(dataStr, `${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}`, tzPre).getTime();
-            enviarEm = new Date(tsAgendamento + delayMin * 60 * 1000);
-          } else if (automacao.tipoGatilho === 'dias_depois_agendamento') {
-            const dias = automacao.diasAntesDepois ?? 1;
-            const horaDisparo = automacao.horaDisparo ?? '09:00:00';
-            const [hStr, mStr] = horaDisparo.split(':');
-            const [ano, mes, dia] = dataStr.split('-').map(Number);
-            const dPost = new Date(ano, mes - 1, dia + dias);
-            const dPostStr = `${dPost.getFullYear()}-${String(dPost.getMonth()+1).padStart(2,'0')}-${String(dPost.getDate()).padStart(2,'0')}`;
-            enviarEm = localToUtc(dPostStr, `${hStr.padStart(2,'0')}:${mStr.padStart(2,'0')}`, tzPre);
           }
+          // NOTA: horas_apos_agendamento e dias_depois_agendamento foram removidos do pré-registro
+          // pois dependem de status='concluido' (tratados pelo processamento em tempo real)
 
           if (!enviarEm) continue;
 
