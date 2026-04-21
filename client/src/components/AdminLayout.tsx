@@ -821,11 +821,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
           style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-          <button onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl hover:bg-muted transition-colors -ml-1">
-            <Menu className="w-5 h-5 text-foreground" />
-          </button>
           <div className="flex items-center gap-2">
+            <button onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-xl hover:bg-muted transition-colors -ml-1">
+              <Menu className="w-5 h-5 text-foreground" />
+            </button>
             <img
               src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
