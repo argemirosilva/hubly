@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { invokeLLM } from "../_core/llm";
+import { invokeOpenAI } from "../openai";
 import {
   getEmpresaDoUsuario, getEmpresaDoContexto,
   getAgendamentosByEmpresa,
@@ -333,7 +333,7 @@ ${contasPagarResumo.proximasAVencer.length > 0 ? `- Próximas a vencer (7 dias):
 ${contasPagarResumo.maiorDespesaMes.length > 0 ? `- Maiores despesas do mês: ${contasPagarResumo.maiorDespesaMes.map(c => `${c.descricao} (R$ ${c.valor.toFixed(2)})`).join("; ")}` : ""}`
         : "";
 
-      const resposta = await invokeLLM({
+      const resposta = await invokeOpenAI({
         messages: [
           {
             role: "system",

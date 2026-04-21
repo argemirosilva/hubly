@@ -20,7 +20,7 @@ import {
   getAgendamentoById,
   getClienteById,
 } from "../db";
-import { invokeLLM } from "../_core/llm";
+import { invokeOpenAI } from "../openai";
 
 async function getEmpresaId(userId: number, systemUserEmpresaId?: number | null) {
   const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
@@ -149,7 +149,7 @@ export const pipelineRouter = router({
       };
 
       try {
-        const resposta = await invokeLLM({
+        const resposta = await invokeOpenAI({
           messages: [
             {
               role: "system",
@@ -185,7 +185,7 @@ ${JSON.stringify(contextoAutomacoes, null, 2)}
 Crie um pipeline Kanban que represente a jornada completa do cliente nesta empresa.`,
             },
           ],
-          responseFormat: { type: "json_object" },
+          response_format: { type: "json_object" },
         });
 
         const rawContent = resposta.choices[0]?.message?.content;

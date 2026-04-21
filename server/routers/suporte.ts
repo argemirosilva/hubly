@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
-import { invokeLLM } from "../_core/llm";
+import { invokeOpenAI } from "../openai";
 import { getDb, getEmpresaDoContexto } from "../db";
 import { chamados, chamadoMensagens } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -253,7 +253,7 @@ export const suporteRouter = router({
         ? `${SYSTEM_PROMPT}\n\n## Contexto atual\nA usuária está na página: ${input.paginaAtual}`
         : SYSTEM_PROMPT;
 
-      const response = await invokeLLM({
+      const response = await invokeOpenAI({
         messages: [
           { role: "system", content: systemWithContext },
           ...input.messages,

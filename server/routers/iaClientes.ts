@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { invokeLLM } from "../_core/llm";
+import { invokeOpenAI } from "../openai";
 import {
   getEmpresaDoUsuario, getEmpresaDoContexto,
   getClientesByEmpresa,
@@ -388,7 +388,7 @@ Clientes com risco/atraso: ${clientesRisco.length > 0 ? clientesRisco.map(a => a
 Clientes inativos: ${clientesInativos.length}
 Insights recentes: ${insights.slice(0, 3).map(i => i.titulo).join("; ") || "Nenhum"}`;
 
-      const resposta = await invokeLLM({
+      const resposta = await invokeOpenAI({
         messages: [
           {
             role: "system",

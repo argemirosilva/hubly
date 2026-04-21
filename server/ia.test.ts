@@ -51,6 +51,14 @@ vi.mock("./_core/llm", () => ({
   }),
 }));
 
+vi.mock("./openai", () => ({
+  invokeOpenAI: vi.fn().mockResolvedValue({
+    choices: [{ message: { content: "Resposta de teste da IA" } }],
+  }),
+  invokeOpenAIText: vi.fn().mockResolvedValue("Resposta de teste da IA"),
+  invokeOpenAIJson: vi.fn().mockResolvedValue({}),
+}));
+
 import * as db from "./db";
 import { appRouter } from "./routers";
 

@@ -1847,8 +1847,8 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
 
-        const { invokeLLM } = await import('./_core/llm');
-        const response = await invokeLLM({
+        const { invokeOpenAI } = await import('./openai');
+        const response = await invokeOpenAI({
           messages: [
             {
               role: 'system',

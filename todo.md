@@ -1751,3 +1751,11 @@
 ## WhatsApp — Placeholder no Campo de Teste (v-atual)
 - [x] Card "Enviar mensagem de teste": placeholder dinâmico com número conectado (PRO: zapiStatus.phoneNumber, Baileys: baileysData.phoneNumber)
 - [x] CardDescription exibe "Número conectado: Nome · Número" para plano PRO
+
+## Integração OpenAI (2026-04-21)
+- [x] Adicionar OPENAI_API_KEY como secret no projeto
+- [x] Criar server/openai.ts com helper invokeOpenAI (suporte a multimodal e json_schema)
+- [x] Substituir invokeLLM por invokeOpenAI em iaClientes.ts, iaFinanceiro.ts, pipeline.ts, suporte.ts e routers.ts
+- [x] Auto-selecionar gpt-4o quando há imagens no conteúdo (análise de comprovante), gpt-4o-mini para texto
+- [x] Atualizar mocks nos testes para apontar para ./openai
+- [x] 156 testes passando, TypeScript sem erros
