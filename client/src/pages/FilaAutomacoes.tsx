@@ -119,9 +119,10 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
   reenviarLoading: boolean;
   onCancelar: (id: number) => void;
   cancelarLoading: boolean;
-  onReagendar: (id: number) => void;
+  onReagendar: (id: number, horasDelay: number) => void;
   reagendarLoading: boolean;
 }) {
+  const [delayHoras, setDelayHoras] = useState<string>("24");
   if (!row) return null;
 
   return (
@@ -227,15 +228,28 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
                 <RotateCcw className="w-4 h-4" />
                 {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
               </Button>
-              <Button
-                className="w-full gap-2"
-                variant="outline"
-                onClick={() => onReagendar(row.id)}
-                disabled={reagendarLoading || reenviarLoading}
-              >
-                <CalendarCheck className="w-4 h-4 text-blue-500" />
-                <span className="text-blue-600">{reagendarLoading ? "Reagendando..." : "Reagendar para amanhã"}</span>
-              </Button>
+              <div className="flex gap-2">
+                <Select value={delayHoras} onValueChange={setDelayHoras}>
+                  <SelectTrigger className="w-28 shrink-0 text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Em 1 hora</SelectItem>
+                    <SelectItem value="6">Em 6 horas</SelectItem>
+                    <SelectItem value="24">Em 24 horas</SelectItem>
+                    <SelectItem value="48">Em 48 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="flex-1 gap-2"
+                  variant="outline"
+                  onClick={() => onReagendar(row.id, parseInt(delayHoras))}
+                  disabled={reagendarLoading || reenviarLoading}
+                >
+                  <CalendarCheck className="w-4 h-4 text-blue-500" />
+                  <span className="text-blue-600">{reagendarLoading ? "Reagendando..." : "Reagendar"}</span>
+                </Button>
+              </div>
             </div>
           )}
           {/* Botão cancelar — para pendentes, agendados e falhados */}
@@ -355,10 +369,10 @@ export default function FilaAutomacoes() {
     onError: (e) => toast.error(e.message),
   });
 
-  const handleReagendar = async (id: number) => {
+  const handleReagendar = async (id: number, horasDelay: number) => {
     setReagendarLoading(true);
     try {
-      await reagendarMutation.mutateAsync({ id, horasDelay: 24 });
+      await reagendarMutation.mutateAsync({ id, horasDelay });
     } finally {
       setReagendarLoading(false);
     }

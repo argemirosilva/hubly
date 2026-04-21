@@ -1777,3 +1777,12 @@
 - [x] Badge de agendados do dia na sidebar (ícone Automações)
 - [x] Notificação in-app ao enviar item com status agendado com sucesso
 - [x] Opção "Reagendar para amanhã" na modal de falha
+
+## Auditoria Completa do Fluxo de Automações (2026-04-21)
+- [ ] Seletor de delay (1h/6h/24h/48h) na modal de reagendar
+- [ ] Auditar registrarEnvioAutomacao e todos os pontos de disparo
+- [ ] Auditar scheduler: processarFilaEnvios, expiração, horário permitido
+- [ ] Auditar router WhatsApp: routedSendMessage, fallback, planos
+- [ ] Auditar triggers: agendamento_criado, lembrete, confirmacao, aniversario, data_comemorativa
+- [ ] Corrigir problemas encontrados
+- [ ] Relatório completo entregue

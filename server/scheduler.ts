@@ -1257,7 +1257,7 @@ async function processarAniversarioMes() {
               eq(historicoEnviosAutomacao.empresaId, empresaId),
               eq(historicoEnviosAutomacao.automacaoId, automacao.id),
               eq(historicoEnviosAutomacao.clienteId, cliente.id),
-              sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+              sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
               gte(historicoEnviosAutomacao.criadoEm, inicioAno),
             ))
             .limit(1);
@@ -1538,7 +1538,7 @@ async function preRegistrarEnviosPendentes() {
 
           if (jaExiste.length > 0) continue;
 
-          // Registrar como pendente
+          // Registrar como agendado (enviarEm é sempre futuro aqui)
           await db.insert(historicoEnviosAutomacao).values({
             empresaId,
             automacaoId: automacao.id,
@@ -1548,12 +1548,12 @@ async function preRegistrarEnviosPendentes() {
             agendamentoId: ag.id,
             telefone: ag.clienteTelefone,
             canal: (automacao.canalEnvio ?? 'whatsapp') as any,
-             mensagem: `[Pendente] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${formatarHora(ag.horaInicio)}`,
-            status: 'pendente',
+            mensagem: `[Agendado] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${formatarHora(ag.horaInicio)}`,
+            status: 'agendado',
             enviarEm,
           }).catch(() => {}); // Ignorar erros de duplicata
 
-          console.log(`[Scheduler] Pré-registrado pendente: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
+          console.log(`[Scheduler] Pré-registrado agendado: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
         }
       }
     }
@@ -1602,9 +1602,13 @@ export async function processarFilaPendente() {
       console.log(`[Fila] ${expirados.length} item(ns) expirado(s) e marcado(s) como falhou`);
     }
 
-    // 2. Verificar se WhatsApp está conectado antes de tentar enviar
+    // 2. Verificar se há itens para processar antes de checar conexão
+    // NOTA: A verificação de conexão é feita por empresa dentro do routedSendMessage/routedSendMedia,
+    // pois empresas PRO usam Z-API (sem necessidade de Baileys conectado).
+    // Apenas pular o ciclo se Baileys estiver desconectado E não houver empresas PRO na fila.
     const waState = waManager.getState();
-    if (waState.status !== 'connected') return;
+    const baileysConectado = waState.status === 'connected';
+    // Continua mesmo com Baileys desconectado — routedSendMessage trata por empresa
 
     // 3. Buscar pendentes/agendados com enviarEm <= agora (hora chegou)
     const pendentes = await db

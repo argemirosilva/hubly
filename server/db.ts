@@ -1813,7 +1813,7 @@ export async function jaEnviouLembrete(empresaId: number, automacaoId: number, a
       eq(historicoEnviosAutomacao.empresaId, empresaId),
       eq(historicoEnviosAutomacao.automacaoId, automacaoId),
       eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
-      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
     ))
     .limit(1);
   return result.length > 0;
@@ -1831,7 +1831,7 @@ export async function jaEnviouParaCliente(empresaId: number, automacaoId: number
       eq(historicoEnviosAutomacao.empresaId, empresaId),
       eq(historicoEnviosAutomacao.automacaoId, automacaoId),
       eq(historicoEnviosAutomacao.clienteId, clienteId),
-      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente')`,
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
       gte(historicoEnviosAutomacao.criadoEm, hoje),
     ))
     .limit(1);
