@@ -1843,3 +1843,8 @@
 - [x] Bug 3b: scheduler — buscar itens compostos de cada agendamento para lista completa de serviços
 - [x] Bug 3c: db.ts — criar getAutomacoesByEvento que retorna todas as automações ativas
 - [x] Bug 3d: routers.ts — iterar sobre todas as automações por evento com filtro de serviço individual
+
+## Remoção do Lembrete Legado (2026-04-21)
+- [x] Remover função enviarLembretesAgendamentos do scheduler.ts
+- [x] Remover cron que chama enviarLembretesAgendamentos
+- [ ] Validar que todas as empresas tém automação dias_antes_agendamento
