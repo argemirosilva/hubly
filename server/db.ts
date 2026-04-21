@@ -1889,6 +1889,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   canal?: string;
   status?: string;
   desde?: Date;
+  apenasTestes?: boolean;
 }) {
   const db = await getDb();
   if (!db) return { rows: [], total: 0 };
@@ -1899,6 +1900,7 @@ export async function getHistoricoEnvios(empresaId: number, opts?: {
   if (opts?.canal) conditions.push(eq(historicoEnviosAutomacao.canal, opts.canal as any));
   if (opts?.status) conditions.push(eq(historicoEnviosAutomacao.status, opts.status as any));
   if (opts?.desde) conditions.push(gte(historicoEnviosAutomacao.criadoEm, opts.desde));
+  if (opts?.apenasTestes) conditions.push(eq(historicoEnviosAutomacao.isTeste, true));
 
   const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 

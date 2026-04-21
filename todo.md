@@ -1890,3 +1890,8 @@
 ## Ajustes na Tela de Automações (2026-04-21)
 - [x] Remover botão de segmentação (ícone grupo de pessoas) da lista de automações
 - [x] Corrigir botão de teste de automação para efetivamente disparar um envio de teste
+
+## Melhorias no Teste de Automações (2026-04-21)
+- [x] Pré-preencher telefone do usuário logado no modal de teste
+- [x] Spinner no botão de teste enquanto o envio está sendo processado
+- [x] Filtro "Apenas testes" na aba Histórico de automações

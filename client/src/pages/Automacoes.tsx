@@ -780,6 +780,7 @@ export default function Automacoes() {
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
   const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
+  const [historicoApenasTestes, setHistoricoApenasTestes] = useState(false);
   const HISTORICO_LIMIT = 20;
 
   const [jornadaPeriodo, setJornadaPeriodo] = useState<"24h" | "7d" | "30d">("7d");
@@ -808,11 +809,13 @@ export default function Automacoes() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const { data: empresaData } = trpc.empresa.get.useQuery();
   const { data: historicoData, isLoading: historicoLoading, refetch: historicoRefetch } = trpc.automacoes.getHistorico.useQuery({
     limit: HISTORICO_LIMIT,
     offset: historicoPage * HISTORICO_LIMIT,
     canal: historicoFiltroCanal || undefined,
     status: historicoFiltroStatus || undefined,
+    apenasTestes: historicoApenasTestes || undefined,
   }, { enabled: activeTab === "historico" });
 
   const [view, setView] = useState<"list" | "editor">("list");
@@ -1077,7 +1080,7 @@ export default function Automacoes() {
           {activeTab === "historico" && (
             <div>
               {/* Filtros */}
-              <div className="flex gap-2 mb-4 flex-wrap">
+              <div className="flex gap-2 mb-4 flex-wrap items-center">
                 <select
                   value={historicoFiltroCanal}
                   onChange={e => { setHistoricoFiltroCanal(e.target.value); setHistoricoPage(0); }}
@@ -1099,6 +1102,17 @@ export default function Automacoes() {
                   <option value="falhou">Falhou</option>
                   <option value="pendente">Pendente</option>
                 </select>
+                <button
+                  onClick={() => { setHistoricoApenasTestes(v => !v); setHistoricoPage(0); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    historicoApenasTestes
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  <Send size={12} />
+                  Apenas testes
+                </button>
               </div>
 
               {/* Tabela */}
@@ -1608,6 +1622,7 @@ export default function Automacoes() {
             open={testeEnvioId !== null}
             onClose={() => { setTesteEnvioId(null); setTesteTelefone(""); }}
             automacaoId={testeEnvioId}
+            telefonePadrao={empresaData?.whatsappNumero || empresaData?.telefone || ""}
           />
         )}
       </>
@@ -1830,15 +1845,22 @@ function DebugAutomacoesModal({ open, onClose, automacoes }: {
 
 // ─── Teste de Envio Modal ───────────────────────────────────────────────────
 
-function TesteEnvioModal({ open, onClose, automacaoId }: {
+function TesteEnvioModal({ open, onClose, automacaoId, telefonePadrao }: {
   open: boolean;
   onClose: () => void;
   automacaoId: number;
+  telefonePadrao?: string;
 }) {
-  const [telefone, setTelefone] = useState("");
+  const [telefone, setTelefone] = useState(telefonePadrao ?? "");
+
+  // Atualizar o telefone quando o modal abre com um novo valor padrão
+  useEffect(() => {
+    if (open) setTelefone(telefonePadrao ?? "");
+  }, [open, telefonePadrao]);
+
   const testarMutation = trpc.automacoes.testarEnvio.useMutation({
     onSuccess: () => {
-      toast.success("Teste enfileirado! Acompanhe no Debug.");
+      toast.success("Teste enfileirado! Acompanhe no Histórico.");
       onClose();
     },
     onError: (err: any) => toast.error(err.message),
@@ -1866,11 +1888,13 @@ function TesteEnvioModal({ open, onClose, automacaoId }: {
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          <Button variant="outline" size="sm" onClick={onClose} disabled={testarMutation.isPending}>Cancelar</Button>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[110px]"
             onClick={() => testarMutation.mutate({ automacaoId, telefone })}
             disabled={!telefone || testarMutation.isPending}>
-            {testarMutation.isPending ? "Enviando..." : "Enviar teste"}
+            {testarMutation.isPending ? (
+              <span className="flex items-center gap-1.5"><Loader2 size={13} className="animate-spin" />Enviando...</span>
+            ) : "Enviar teste"}
           </Button>
         </div>
       </DialogContent>

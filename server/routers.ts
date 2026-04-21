@@ -2464,6 +2464,7 @@ export const appRouter = router({
         offset: z.number().min(0).default(0),
         canal: z.string().optional(),
         status: z.string().optional(),
+        apenasTestes: z.boolean().optional(),
       }))
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -2473,6 +2474,7 @@ export const appRouter = router({
           offset: input.offset,
           canal: input.canal,
           status: input.status,
+          apenasTestes: input.apenasTestes,
         });
       }),
 
