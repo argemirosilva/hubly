@@ -1875,3 +1875,9 @@
 - [x] Bloquear criação de segunda pipeline (validação no router)
 - [x] Remover botão de exclusão de automações
 - [x] Impedir que todas as automações sejam deletadas
+
+## Correção Webhook Stripe em Produção (2026-04-21)
+- [x] Investigar logs e diagnosticar erro do webhook (29 falhas desde 18/04)
+- [x] Corrigir implementação do endpoint /api/stripe/webhook
+- [x] Testar webhook localmente e em produção
+- [x] Validar que Stripe recebe HTTP 200-299

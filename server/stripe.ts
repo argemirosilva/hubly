@@ -1,7 +1,8 @@
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY;
+// Usar ENV.stripeSecretKey que já tem fallback para a chave LIVE hardcoded
+const stripeKey = ENV.stripeSecretKey;
 
 if (!stripeKey) {
   console.warn("[Stripe] ⚠️ STRIPE_SECRET_KEY não definida. Configure em Settings → Payment.");

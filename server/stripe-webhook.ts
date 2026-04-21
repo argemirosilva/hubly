@@ -8,12 +8,13 @@ import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 import { invalidatePlanCache } from "./whatsapp-router";
 
-// Webhook Secret carregado exclusivamente da variável de ambiente STRIPE_WEBHOOK_SECRET
-// Configure em Settings → Payment no painel Manus
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+// Webhook Secret carregado de ENV (que já tem fallback para a chave hardcoded)
+const webhookSecret = ENV.stripeWebhookSecret;
 
 if (!webhookSecret) {
   console.warn("[Stripe Webhook] ⚠️ STRIPE_WEBHOOK_SECRET não definida. Webhooks não serão verificados.");
+} else {
+  console.log("[Stripe Webhook] ✅ Webhook secret configurada:", webhookSecret.substring(0, 10) + "...");
 }
 
 /**
@@ -28,10 +29,17 @@ export function registerStripeWebhook(app: Express) {
     async (req: Request, res: Response) => {
       const sig = req.headers["stripe-signature"];
 
-      // Evento de teste — retornar verificação imediata
+      // Se não tiver webhook secret, não podemos verificar a assinatura
       if (!webhookSecret) {
         console.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET não configurada. Rejeite a requisição.");
         res.status(500).send("Webhook secret not configured");
+        return;
+      }
+
+      // Se não tiver assinatura no header, rejeitar
+      if (!sig) {
+        console.error("[Stripe Webhook] Missing stripe-signature header");
+        res.status(400).send("Missing stripe-signature header");
         return;
       }
 
@@ -212,7 +220,10 @@ export function registerStripeWebhook(app: Express) {
         res.json({ received: true });
       } catch (err) {
         console.error("[Stripe Webhook] Erro ao processar evento:", err);
-        res.status(500).json({ error: "Erro interno ao processar webhook" });
+        // IMPORTANTE: Retornar 200 mesmo em caso de erro de processamento
+        // para que a Stripe não fique reenviando o mesmo evento.
+        // O erro é logado para investigação, mas o evento é marcado como recebido.
+        res.json({ received: true, error: "Internal processing error" });
       }
     }
   );

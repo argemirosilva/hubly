@@ -10,7 +10,7 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   // Chaves Stripe LIVE - Injetadas diretamente
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "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",
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "whsec_SBQMnwGkruzwOcxHV8Tern6V3kPSpdsv",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "whsec_gxGiPOgr2qbnRoU1AEpdhiAxaTRr2Bdh",
   // Z-API — WhatsApp exclusivo para plano Pro
   zapiInstanceId: process.env.ZAPI_INSTANCE_ID ?? "",
   zapiToken: process.env.ZAPI_TOKEN ?? "",
