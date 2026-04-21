@@ -1462,10 +1462,6 @@ export default function Automacoes() {
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar com cliente"
-                          onClick={() => setTesteComClienteId(a.id)}>
-                          <Users size={13} className="text-blue-500" />
-                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
                           <Edit2 size={13} />
                         </Button>
@@ -1605,6 +1601,15 @@ export default function Automacoes() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Teste de Envio Modal */}
+        {testeEnvioId !== null && (
+          <TesteEnvioModal
+            open={testeEnvioId !== null}
+            onClose={() => { setTesteEnvioId(null); setTesteTelefone(""); }}
+            automacaoId={testeEnvioId}
+          />
+        )}
       </>
     );
   }
@@ -1688,33 +1693,6 @@ export default function Automacoes() {
       />
     )}
 
-    {/* Teste de Envio Modal */}
-    {testeEnvioId !== null && (
-      <TesteEnvioModal
-        open={testeEnvioId !== null}
-        onClose={() => { setTesteEnvioId(null); setTesteTelefone(""); }}
-        automacaoId={testeEnvioId}
-      />
-    )}
-
-    {/* Teste com Cliente Modal */}
-    {testeComClienteId !== null && (
-      <TesteComClienteModal
-        open={testeComClienteId !== null}
-        onClose={() => { setTesteComClienteId(null); setTesteClienteId(null); setTesteClienteSearchTerm(""); }}
-        automacaoId={testeComClienteId}
-        clienteId={testeClienteId}
-        setClienteId={setTesteClienteId}
-        searchTerm={testeClienteSearchTerm}
-        setSearchTerm={setTesteClienteSearchTerm}
-        onSubmit={(clienteId) => {
-          if (testeComClienteId && clienteId) {
-            testeComClienteMutation.mutate({ automacaoId: testeComClienteId, clienteId });
-          }
-        }}
-        isLoading={testeComClienteMutation.isPending}
-      />
-    )}
     </>
   );
 }

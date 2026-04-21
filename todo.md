@@ -1886,3 +1886,7 @@
 - [x] Remover botão "Novo pipeline" da tela Pipeline
 - [x] Remover botão de favoritar (estrela) da pipeline
 - [x] Remover estilo de seleção (botão azul clicável) — exibir nome da pipeline como título fixo
+
+## Ajustes na Tela de Automações (2026-04-21)
+- [x] Remover botão de segmentação (ícone grupo de pessoas) da lista de automações
+- [x] Corrigir botão de teste de automação para efetivamente disparar um envio de teste
