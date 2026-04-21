@@ -3032,10 +3032,93 @@ export const appRouter = router({
           enviarEm: new Date(),
         });
 
-        return { success: true, message: "Teste enfileirado com sucesso" };
+         return { success: true, message: "Teste enfileirado com sucesso" };
+      }),
+    enviarTesteComCliente: protectedProcedure
+      .input(z.object({
+        automacaoId: z.number(),
+        clienteId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+        // Verificar permissão admin
+        await requirePermissao(ctx, empresa, 'automacoesEditar');
+
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+        // Buscar automação
+        const [automacao] = await db.select().from(automacoes)
+          .where(and(eq(automacoes.id, input.automacaoId), eq(automacoes.empresaId, empresa.id)))
+          .limit(1);
+        if (!automacao) throw new TRPCError({ code: "NOT_FOUND", message: "Automação não encontrada" });
+
+        // Buscar cliente
+        const [cliente] = await db.select().from(clientes)
+          .where(and(eq(clientes.id, input.clienteId), eq(clientes.empresaId, empresa.id)))
+          .limit(1);
+        if (!cliente) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
+
+        // Substituir variáveis com dados do cliente
+        const dadosTeste: Record<string, string> = {
+          nome_cliente: cliente.nome || "Cliente",
+          primeiro_nome: (cliente.nome || "Cliente").split(' ')[0],
+          servico: "Serviço Exemplo",
+          profissional: "Profissional Teste",
+          data: "segunda-feira, 01 de janeiro",
+          hora: "10:00 – 11:00",
+          valor: "R$ 100,00",
+          empresa: empresa.nome,
+          valor_reserva: "R$ 30,00",
+          link_confirmacao: "https://exemplo.com/confirmar/teste",
+          pacote: "Pacote Exemplo",
+          sessoes_restantes: "3",
+          sessoes_total: "10",
+          data_vencimento: "01/02/2025",
+          dias_antes: "1",
+          horas_antes: "2",
+        };
+
+        let mensagem = automacao.corpoMensagem;
+        mensagem = mensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => dadosTeste[key] ?? '');
+
+        // Buscar midiaUrl do flowJson se existir
+        let midiaUrl: string | null = null;
+        if (automacao.flowJson) {
+          try {
+            const flow = JSON.parse(automacao.flowJson);
+            if (Array.isArray(flow)) {
+              for (const node of flow) {
+                if (node?.data?.midiaUrl) {
+                  midiaUrl = node.data.midiaUrl;
+                  break;
+                }
+              }
+            } else if (flow?.midiaUrl) {
+              midiaUrl = flow.midiaUrl;
+            }
+          } catch { /* ignorar erro de parse */ }
+        }
+
+        // Enfileirar na fila com status pendente, isTeste=true
+        await registrarEnvioAutomacao({
+          empresaId: empresa.id,
+          automacaoId: automacao.id,
+          automacaoNome: `[TESTE] ${automacao.nome}`,
+          telefone: cliente.telefone || cliente.whatsapp || "",
+          clienteId: cliente.id,
+          mensagem,
+          status: 'pendente',
+          isTeste: true,
+          midiaUrl: midiaUrl ?? undefined,
+          enviarEm: new Date(),
+        });
+
+        return { success: true, message: `Teste enfileirado para ${cliente.nome}` };
       }),
   }),
-
   // ─── CORES / CONFIGURAÇÕES ────────────────────────────────────────────────
   configuracoes: router({
     getCores: protectedProcedure.query(async ({ ctx }) => {

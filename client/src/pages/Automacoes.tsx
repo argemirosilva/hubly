@@ -772,6 +772,9 @@ export default function Automacoes() {
   const [debugOpen, setDebugOpen] = useState(false);
   const [testeEnvioId, setTesteEnvioId] = useState<number | null>(null);
   const [testeTelefone, setTesteTelefone] = useState("");
+  const [testeComClienteId, setTesteComClienteId] = useState<number | null>(null);
+  const [testeClienteId, setTesteClienteId] = useState<number | null>(null);
+  const [testeClienteSearchTerm, setTesteClienteSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"automacoes" | "historico" | "jornada">("automacoes");
   const [filtroTipoGatilho, setFiltroTipoGatilho] = useState<string>("todos");
   const [historicoPage, setHistoricoPage] = useState(0);
@@ -792,6 +795,15 @@ export default function Automacoes() {
     onSuccess: () => {
       toast.success("Mensagem reenviada com sucesso!");
       jornadaRefetch();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const testeComClienteMutation = trpc.automacoes.enviarTesteComCliente.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setTesteComClienteId(null);
+      setTesteClienteId(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -1454,6 +1466,10 @@ export default function Automacoes() {
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
                         </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar com cliente"
+                          onClick={() => setTesteComClienteId(a.id)}>
+                          <Users size={13} className="text-blue-500" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
                           <Edit2 size={13} />
                         </Button>
@@ -1687,6 +1703,25 @@ export default function Automacoes() {
         automacaoId={testeEnvioId}
       />
     )}
+
+    {/* Teste com Cliente Modal */}
+    {testeComClienteId !== null && (
+      <TesteComClienteModal
+        open={testeComClienteId !== null}
+        onClose={() => { setTesteComClienteId(null); setTesteClienteId(null); setTesteClienteSearchTerm(""); }}
+        automacaoId={testeComClienteId}
+        clienteId={testeClienteId}
+        setClienteId={setTesteClienteId}
+        searchTerm={testeClienteSearchTerm}
+        setSearchTerm={setTesteClienteSearchTerm}
+        onSubmit={(clienteId) => {
+          if (testeComClienteId && clienteId) {
+            testeComClienteMutation.mutate({ automacaoId: testeComClienteId, clienteId });
+          }
+        }}
+        isLoading={testeComClienteMutation.isPending}
+      />
+    )}
     </>
   );
 }
@@ -1865,6 +1900,89 @@ function TesteEnvioModal({ open, onClose, automacaoId }: {
             onClick={() => testarMutation.mutate({ automacaoId, telefone })}
             disabled={!telefone || testarMutation.isPending}>
             {testarMutation.isPending ? "Enviando..." : "Enviar teste"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// ─── Teste com Cliente Modal ────────────────────────────────────────────────
+
+function TesteComClienteModal({ 
+  open, 
+  onClose, 
+  automacaoId,
+  clienteId,
+  setClienteId,
+  searchTerm,
+  setSearchTerm,
+  onSubmit,
+  isLoading,
+}: {
+  open: boolean;
+  onClose: () => void;
+  automacaoId: number | null;
+  clienteId: number | null;
+  setClienteId: (id: number | null) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  onSubmit: (clienteId: number) => void;
+  isLoading: boolean;
+}) {
+  const { data: clientes = [] } = trpc.clientes.list.useQuery();
+  
+  const clientesFiltrados = clientes.filter(c => 
+    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.telefone && c.telefone.includes(searchTerm))
+  ).slice(0, 10);
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Users size={15} className="text-blue-600" />
+            Testar com Cliente
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div>
+            <Label className="text-xs text-gray-500 mb-1 block">Selecione um cliente</Label>
+            <Input
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nome ou telefone..."
+              className="text-sm mb-2"
+            />
+            <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+              {clientesFiltrados.length === 0 ? (
+                <div className="p-3 text-center text-xs text-gray-400">Nenhum cliente encontrado</div>
+              ) : (
+                clientesFiltrados.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setClienteId(c.id)}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b last:border-b-0 ${
+                      clienteId === c.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">{c.nome}</div>
+                    <div className="text-gray-500">{c.telefone || c.whatsapp || 'Sem telefone'}</div>
+                  </button>
+                ))
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">Variáveis serão substituídas pelos dados do cliente.</p>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => clienteId && onSubmit(clienteId)}
+            disabled={!clienteId || isLoading}>
+            {isLoading ? "Enviando..." : "Enviar teste"}
           </Button>
         </div>
       </DialogContent>

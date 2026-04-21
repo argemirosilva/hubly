@@ -1864,3 +1864,8 @@
 ## Filtro por Tipo de Gatilho (2026-04-21)
 - [x] Adicionar estado de filtro e abas de tipo de gatilho
 - [x] Filtrar automações por tipo selecionado
+
+## Teste Rápido de Automação (2026-04-21)
+- [x] Criar procedure enviarTesteAutomacao no router
+- [x] Adicionar modal de seleção de cliente de teste
+- [x] Adicionar botão Enviar teste na lista de automações
