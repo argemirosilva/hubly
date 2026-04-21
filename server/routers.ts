@@ -422,6 +422,7 @@ export const appRouter = router({
         waMsgConfirmacao: z.string().optional(),
         waMsgCancelamento: z.string().optional(),
         waMsgLembrete: z.string().optional(),
+        timezone: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);

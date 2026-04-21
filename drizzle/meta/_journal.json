@@ -351,6 +351,13 @@
       "when": 1776780681817,
       "tag": "0049_graceful_paibok",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1776786059149,
+      "tag": "0050_glorious_snowbird",
+      "breakpoints": true
     }
   ]
 }

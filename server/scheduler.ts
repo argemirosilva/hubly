@@ -22,6 +22,54 @@ import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
 import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
 
+// ── Helpers de Timezone ──────────────────────────────────────────────────────
+// Cache de timezone por empresa (evita query repetida no mesmo ciclo)
+const _tzCache = new Map<number, { tz: string; ts: number }>();
+const TZ_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+async function getEmpresaTimezone(empresaId: number): Promise<string> {
+  const cached = _tzCache.get(empresaId);
+  if (cached && Date.now() - cached.ts < TZ_CACHE_TTL) return cached.tz;
+  const db = await getDb();
+  if (!db) return 'America/Sao_Paulo';
+  const [row] = await db.select({ timezone: empresas.timezone }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+  const tz = row?.timezone || 'America/Sao_Paulo';
+  _tzCache.set(empresaId, { tz, ts: Date.now() });
+  return tz;
+}
+
+// Retorna hora e minuto atuais no timezone da empresa
+function getHoraNoTimezone(timezone: string): { hora: number; minuto: number; dataStr: string; dia: number; mes: number; ano: number } {
+  const now = new Date();
+  // Usar Intl.DateTimeFormat para obter a hora local no timezone
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now);
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10);
+  const hora = get('hour') === 24 ? 0 : get('hour');
+  const minuto = get('minute');
+  const dia = get('day');
+  const mes = get('month');
+  const ano = get('year');
+  const dataStr = `${String(ano)}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  return { hora, minuto, dataStr, dia, mes, ano };
+}
+
+// Converte uma data+hora local da empresa para timestamp UTC
+function localToUtc(dataStr: string, horaStr: string, timezone: string): Date {
+  // Cria um Date interpretando como se fosse no timezone da empresa
+  // Usa a técnica de comparar offset via Intl
+  const naive = new Date(`${dataStr}T${horaStr}:00`);
+  const utcStr = naive.toLocaleString('en-US', { timeZone: 'UTC' });
+  const tzStr = naive.toLocaleString('en-US', { timeZone: timezone });
+  const utcDate = new Date(utcStr);
+  const tzDate = new Date(tzStr);
+  const offset = utcDate.getTime() - tzDate.getTime();
+  return new Date(naive.getTime() + offset);
+}
+
 // Helper: normalizar campo data (Date object ou string) para formato YYYY-MM-DD
 function getDataStr(data: unknown): string {
   if (data instanceof Date) {
@@ -659,6 +707,10 @@ async function processarAutomacoesAgendadas() {
     const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
 
     for (const empresaId of todasEmpresas) {
+      // Obter timezone da empresa para comparação de horaDisparo
+      const tz = await getEmpresaTimezone(empresaId);
+      const horaLocal = getHoraNoTimezone(tz);
+
       // ── Processar automações do tipo dias_antes_agendamento ──────────────────
       const automacoesAntes = await getAutomacoesAtivasByTipo(empresaId, 'dias_antes_agendamento');
 
@@ -669,15 +721,13 @@ async function processarAutomacoesAgendadas() {
         const horaAlvo = parseInt(hStr, 10);
         const minAlvo = parseInt(mStr, 10);
 
-        // Calcular a data alvo do agendamento: hoje + dias
-        const dataAlvo = new Date(agora);
-        dataAlvo.setDate(dataAlvo.getDate() + dias);
-        const dataAlvoStr = dataAlvo.toISOString().slice(0, 10);
+        // Calcular a data alvo do agendamento: hoje (no timezone da empresa) + dias
+        const dataAlvoDate = new Date(`${horaLocal.dataStr}T12:00:00`);
+        dataAlvoDate.setDate(dataAlvoDate.getDate() + dias);
+        const dataAlvoStr = `${dataAlvoDate.getFullYear()}-${String(dataAlvoDate.getMonth()+1).padStart(2,'0')}-${String(dataAlvoDate.getDate()).padStart(2,'0')}`;
 
-        // Verificar se estamos na janela de disparo (hora atual ≈ horaDisparo)
-        const horaAtual = agora.getHours();
-        const minAtual = agora.getMinutes();
-        const minutosAgora = horaAtual * 60 + minAtual;
+        // Verificar se estamos na janela de disparo (hora local da empresa ≈ horaDisparo)
+        const minutosAgora = horaLocal.hora * 60 + horaLocal.minuto;
         const minutosAlvo = horaAlvo * 60 + minAlvo;
         const dentroJanela = Math.abs(minutosAgora - minutosAlvo) <= 15;
         if (!dentroJanela) continue;
@@ -1067,14 +1117,14 @@ async function processarAutomacoesAgendadas() {
         const horaDisparo = automacao.horaDisparo ?? '09:00';
         const [hDisp, mDisp] = horaDisparo.split(':');
 
-        // Calcular a data alvo: agendamento + diasDepois dias
+        // Calcular a data alvo: agendamento + diasDepois dias (usando timezone da empresa)
         const JANELA_INICIO = agora.getTime() - JANELA_MS;
         const JANELA_FIM = agora.getTime();
 
-        // Buscar agendamentos cujo dia + diasDepois = hoje
-        const dataAlvo = new Date(agora);
-        dataAlvo.setDate(dataAlvo.getDate() - diasDepois);
-        const dataAlvoStr = dataAlvo.toISOString().slice(0, 10);
+        // Buscar agendamentos cujo dia + diasDepois = hoje (no timezone da empresa)
+        const dataAlvoDate2 = new Date(`${horaLocal.dataStr}T12:00:00`);
+        dataAlvoDate2.setDate(dataAlvoDate2.getDate() - diasDepois);
+        const dataAlvoStr = `${dataAlvoDate2.getFullYear()}-${String(dataAlvoDate2.getMonth()+1).padStart(2,'0')}-${String(dataAlvoDate2.getDate()).padStart(2,'0')}`;
 
         const ags = await db
           .select({
@@ -1106,10 +1156,12 @@ async function processarAutomacoesAgendadas() {
         for (const ag of ags) {
           if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
 
-          // Calcular o timestamp de disparo: data + diasDepois dias, na hora configurada
+          // Calcular o timestamp de disparo: data + diasDepois dias, na hora configurada (no timezone da empresa)
           const agDataStr3 = getDataStr(ag.data);
-          const dataDisparo = new Date(`${agDataStr3}T${String(hDisp).padStart(2,'0')}:${String(mDisp).padStart(2,'0')}:00`);
-          dataDisparo.setDate(dataDisparo.getDate() + diasDepois);
+          const [anoD, mesD, diaD] = agDataStr3.split('-').map(Number);
+          const dataDp = new Date(anoD, mesD - 1, diaD + diasDepois);
+          const dataDpStr = `${dataDp.getFullYear()}-${String(dataDp.getMonth()+1).padStart(2,'0')}-${String(dataDp.getDate()).padStart(2,'0')}`;
+          const dataDisparo = localToUtc(dataDpStr, `${String(hDisp).padStart(2,'0')}:${String(mDisp).padStart(2,'0')}`, tz);
           const tsDisparo = dataDisparo.getTime();
 
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
@@ -1196,21 +1248,21 @@ async function processarAniversarioMes() {
   const db = await getDb();
   if (!db) return;
 
-  const agora = new Date();
-  const mesAtual = agora.getMonth() + 1; // 1-12
-  const diaAtual = agora.getDate();
-  const anoAtual = agora.getFullYear();
-
-  // REGRA: enviar apenas no dia 01 do mês
-  if (diaAtual !== 1) {
-    return;
-  }
-
   try {
     const empresasAniversario = await getEmpresasComAutomacoes('aniversario_mes');
     if (empresasAniversario.length === 0) return;
 
     for (const empresaId of empresasAniversario) {
+      // Usar timezone da empresa para determinar data/hora local
+      const tz = await getEmpresaTimezone(empresaId);
+      const horaLocal = getHoraNoTimezone(tz);
+      const mesAtual = horaLocal.mes;
+      const diaAtual = horaLocal.dia;
+      const anoAtual = horaLocal.ano;
+
+      // REGRA: enviar apenas no dia 01 do mês (no timezone da empresa)
+      if (diaAtual !== 1) continue;
+
       const automacoesAniv = await getAutomacoesAtivasByTipo(empresaId, 'aniversario_mes');
 
       for (const automacao of automacoesAniv) {
@@ -1219,8 +1271,8 @@ async function processarAniversarioMes() {
         const horaAlvo = parseInt(hStr, 10);
         const minAlvo = parseInt(mStr, 10);
 
-        // Verificar se estamos na janela de disparo (±15 min)
-        const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+        // Verificar se estamos na janela de disparo (±15 min) no timezone da empresa
+        const minutosAgora = horaLocal.hora * 60 + horaLocal.minuto;
         const minutosAlvo = horaAlvo * 60 + minAlvo;
         if (Math.abs(minutosAgora - minutosAlvo) > 15) continue;
 
@@ -1321,15 +1373,17 @@ async function processarDataFixa() {
   const db = await getDb();
   if (!db) return;
 
-  const agora = new Date();
-  const diaAtual = agora.getDate();
-  const mesAtual = agora.getMonth() + 1; // 1-12
-
   try {
     const empresasDataFixa = await getEmpresasComAutomacoes('data_fixa');
     if (empresasDataFixa.length === 0) return;
 
     for (const empresaId of empresasDataFixa) {
+      // Usar timezone da empresa para determinar data/hora local
+      const tz = await getEmpresaTimezone(empresaId);
+      const horaLocal = getHoraNoTimezone(tz);
+      const diaAtual = horaLocal.dia;
+      const mesAtual = horaLocal.mes;
+
       const automacoesFixa = await getAutomacoesAtivasByTipo(empresaId, 'data_fixa');
 
       for (const automacao of automacoesFixa) {
@@ -1337,14 +1391,14 @@ async function processarDataFixa() {
         const mesConfig = automacao.dataFixaMes;
         const horaConfig = automacao.dataFixaHora ?? '09:00:00';
 
-        // Verificar se hoje é a data configurada
+        // Verificar se hoje (no timezone da empresa) é a data configurada
         if (diaConfig !== diaAtual || mesConfig !== mesAtual) continue;
 
-        // Verificar se estamos na janela de disparo
+        // Verificar se estamos na janela de disparo (no timezone da empresa)
         const [hStr, mStr] = horaConfig.split(':');
         const horaAlvo = parseInt(hStr, 10);
         const minAlvo = parseInt(mStr, 10);
-        const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+        const minutosAgora = horaLocal.hora * 60 + horaLocal.minuto;
         const minutosAlvo = horaAlvo * 60 + minAlvo;
         if (Math.abs(minutosAgora - minutosAlvo) > 15) continue;
 
@@ -1443,9 +1497,15 @@ async function preRegistrarEnviosPendentes() {
     if (todasEmpresas.length === 0) return;
 
     for (const empresaId of todasEmpresas) {
+      // Obter timezone da empresa para cálculos corretos
+      const tzPre = await getEmpresaTimezone(empresaId);
+      const horaLocalPre = getHoraNoTimezone(tzPre);
+
       // Buscar agendamentos dos próximos 7 dias
-      const dataInicioStr = agora.toISOString().slice(0, 10);
-      const dataFimStr = em7Dias.toISOString().slice(0, 10);
+      const dataInicioStr = horaLocalPre.dataStr;
+      const em7DiasDate = new Date(`${horaLocalPre.dataStr}T12:00:00`);
+      em7DiasDate.setDate(em7DiasDate.getDate() + 7);
+      const dataFimStr = `${em7DiasDate.getFullYear()}-${String(em7DiasDate.getMonth()+1).padStart(2,'0')}-${String(em7DiasDate.getDate()).padStart(2,'0')}`;
 
       const ags = await db
         .select({
@@ -1460,6 +1520,8 @@ async function preRegistrarEnviosPendentes() {
           profissionalNome: profissionais.nome,
           servicoNome: servicos.nome,
           empresaNome: empresas.nome,
+          empresaPortalSlug: empresas.portalSlug,
+          valorTotal: agendamentos.valorTotal,
         })
         .from(agendamentos)
         .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -1496,29 +1558,30 @@ async function preRegistrarEnviosPendentes() {
             const dias = automacao.diasAntesDepois ?? 1;
             const horaDisparo = automacao.horaDisparo ?? '09:00:00';
             const [hStr, mStr] = horaDisparo.split(':');
-            // Usar UTC para evitar problemas de timezone
+            // Converter hora local da empresa para UTC
             const [ano, mes, dia] = dataStr.split('-').map(Number);
-            const dataDisparo = new Date(Date.UTC(ano, mes - 1, dia - dias, parseInt(hStr, 10), parseInt(mStr, 10), 0));
-            enviarEm = dataDisparo;
+            const dPre = new Date(ano, mes - 1, dia - dias);
+            const dPreStr = `${dPre.getFullYear()}-${String(dPre.getMonth()+1).padStart(2,'0')}-${String(dPre.getDate()).padStart(2,'0')}`;
+            enviarEm = localToUtc(dPreStr, `${hStr.padStart(2,'0')}:${mStr.padStart(2,'0')}`, tzPre);
           } else if (automacao.tipoGatilho === 'horas_antes_agendamento') {
             const delayMin = automacao.delayMinutos ?? 60;
             const [hAg, mAg] = ag.horaInicio.split(':');
-            const [ano, mes, dia] = dataStr.split('-').map(Number);
-            const tsAgendamento = Date.UTC(ano, mes - 1, dia, parseInt(hAg, 10), parseInt(mAg, 10), 0);
+            // Horário do agendamento é no timezone da empresa
+            const tsAgendamento = localToUtc(dataStr, `${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}`, tzPre).getTime();
             enviarEm = new Date(tsAgendamento - delayMin * 60 * 1000);
           } else if (automacao.tipoGatilho === 'horas_apos_agendamento') {
             const delayMin = automacao.delayMinutos ?? 60;
             const [hAg, mAg] = ag.horaInicio.split(':');
-            const [ano, mes, dia] = dataStr.split('-').map(Number);
-            const tsAgendamento = Date.UTC(ano, mes - 1, dia, parseInt(hAg, 10), parseInt(mAg, 10), 0);
+            const tsAgendamento = localToUtc(dataStr, `${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}`, tzPre).getTime();
             enviarEm = new Date(tsAgendamento + delayMin * 60 * 1000);
           } else if (automacao.tipoGatilho === 'dias_depois_agendamento') {
             const dias = automacao.diasAntesDepois ?? 1;
             const horaDisparo = automacao.horaDisparo ?? '09:00:00';
             const [hStr, mStr] = horaDisparo.split(':');
             const [ano, mes, dia] = dataStr.split('-').map(Number);
-            const dataDisparo = new Date(Date.UTC(ano, mes - 1, dia + dias, parseInt(hStr, 10), parseInt(mStr, 10), 0));
-            enviarEm = dataDisparo;
+            const dPost = new Date(ano, mes - 1, dia + dias);
+            const dPostStr = `${dPost.getFullYear()}-${String(dPost.getMonth()+1).padStart(2,'0')}-${String(dPost.getDate()).padStart(2,'0')}`;
+            enviarEm = localToUtc(dPostStr, `${hStr.padStart(2,'0')}:${mStr.padStart(2,'0')}`, tzPre);
           }
 
           if (!enviarEm) continue;
@@ -1538,7 +1601,42 @@ async function preRegistrarEnviosPendentes() {
 
           if (jaExiste.length > 0) continue;
 
-          // Registrar como agendado (enviarEm é sempre futuro aqui)
+          // Gerar texto real da mensagem usando o template da automação
+          const _preOrigin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _preLink = ag.empresaPortalSlug ? `${_preOrigin}/agendar/${ag.empresaPortalSlug}` : `${_preOrigin}/agendar?e=${ag.empresaId}`;
+          const valorTotalPre = parseFloat(String(ag.valorTotal ?? '0'));
+          const dataFormatadaPre = ag.data
+            ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '';
+          const preTemplateVars: Record<string, string> = {
+            nome_cliente: ag.clienteNome || 'Cliente',
+            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+            servico: ag.servicoNome ?? '',
+            data: dataFormatadaPre,
+            hora: formatarHora(ag.horaInicio),
+            profissional: ag.profissionalNome ?? '',
+            empresa: ag.empresaNome ?? '',
+            valor: `R$ ${valorTotalPre.toFixed(2).replace('.', ',')}`,
+            link_agendamento: _preLink,
+          };
+          let mensagemPre: string;
+          if (automacao.corpoMensagem) {
+            mensagemPre = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => preTemplateVars[key] ?? '');
+          } else {
+            mensagemPre = `📅 *Lembrete de Agendamento*\n\nOlá, *${ag.clienteNome ?? 'cliente'}*!\n\nVocê tem um agendamento em *${ag.empresaNome ?? ''}* no dia ${dataFormatadaPre} às ${formatarHora(ag.horaInicio)}.`;
+          }
+
+          // Extrair mídia do flow se houver
+          const midiaUrlPre = (() => {
+            if (!automacao.flowJson) return undefined;
+            try {
+              const flow = JSON.parse(automacao.flowJson);
+              if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+              else if (flow?.midiaUrl) return flow.midiaUrl;
+            } catch {} return undefined;
+          })();
+
+          // Registrar como agendado com texto real da mensagem
           await db.insert(historicoEnviosAutomacao).values({
             empresaId,
             automacaoId: automacao.id,
@@ -1548,9 +1646,10 @@ async function preRegistrarEnviosPendentes() {
             agendamentoId: ag.id,
             telefone: ag.clienteTelefone,
             canal: (automacao.canalEnvio ?? 'whatsapp') as any,
-            mensagem: `[Agendado] Automação: ${automacao.nome} | Cliente: ${ag.clienteNome ?? ''} | Agendamento: ${ag.data} ${formatarHora(ag.horaInicio)}`,
+            mensagem: mensagemPre,
             status: 'agendado',
             enviarEm,
+            midiaUrl: midiaUrlPre,
           }).catch(() => {}); // Ignorar erros de duplicata
 
           console.log(`[Scheduler] Pré-registrado agendado: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
@@ -1562,9 +1661,10 @@ async function preRegistrarEnviosPendentes() {
   }
 }
 
-// ── Verificar se é hora de executar tarefa (baseado em hora local) ────────────────────
-function deveExecutarNaHora(horaAlvo: number): boolean {const agora = new Date();
-  return agora.getHours() === horaAlvo && agora.getMinutes() < 5; // janela de 5 minutos
+// ── Verificar se é hora de executar tarefa (baseado no timezone padrão) ───────────────
+function deveExecutarNaHora(horaAlvo: number): boolean {
+  const { hora, minuto } = getHoraNoTimezone('America/Sao_Paulo');
+  return hora === horaAlvo && minuto < 5; // janela de 5 minutos
 }
 
 // // ── Worker: processar fila de envios pendentes ────────────────────────────────────────────────

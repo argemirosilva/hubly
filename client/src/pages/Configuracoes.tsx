@@ -39,6 +39,7 @@ export default function Configuracoes() {
     horaFechamento: "18:00",
     diasFuncionamento: [1, 2, 3, 4, 5] as number[],
     intervaloMinutos: "30",
+    timezone: "America/Sao_Paulo",
   });
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function Configuracoes() {
         horaFechamento: (empresa as any).horaFechamento ?? "18:00",
         diasFuncionamento: (empresa as any).diasFuncionamento ?? [1, 2, 3, 4, 5],
         intervaloMinutos: String((empresa as any).intervaloMinutos ?? 30),
+        timezone: (empresa as any).timezone ?? "America/Sao_Paulo",
       });
     }
   }, [empresa]);
@@ -211,6 +213,7 @@ export default function Configuracoes() {
       horaFechamento: form.horaFechamento,
       diasFuncionamento: form.diasFuncionamento,
       intervaloMinutos: parseInt(form.intervaloMinutos) || 30,
+      timezone: form.timezone,
     });
   }
 
@@ -610,7 +613,7 @@ export default function Configuracoes() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Hora de abertura</Label>
               <Input type="time" value={form.horaAbertura} onChange={e => setForm(f => ({ ...f, horaAbertura: e.target.value }))} />
@@ -623,6 +626,41 @@ export default function Configuracoes() {
               <Label className="text-xs text-muted-foreground mb-1.5 block">Intervalo entre slots (min)</Label>
               <Input type="number" min="15" max="120" step="15" value={form.intervaloMinutos}
                 onChange={e => setForm(f => ({ ...f, intervaloMinutos: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Fuso horário</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={form.timezone}
+                onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}
+              >
+                <option value="America/Sao_Paulo">Brasília (UTC-3)</option>
+                <option value="America/Manaus">Manaus (UTC-4)</option>
+                <option value="America/Cuiaba">Cuiabá (UTC-4)</option>
+                <option value="America/Belem">Belém (UTC-3)</option>
+                <option value="America/Fortaleza">Fortaleza (UTC-3)</option>
+                <option value="America/Recife">Recife (UTC-3)</option>
+                <option value="America/Bahia">Salvador (UTC-3)</option>
+                <option value="America/Campo_Grande">Campo Grande (UTC-4)</option>
+                <option value="America/Porto_Velho">Porto Velho (UTC-4)</option>
+                <option value="America/Boa_Vista">Boa Vista (UTC-4)</option>
+                <option value="America/Rio_Branco">Rio Branco (UTC-5)</option>
+                <option value="America/Noronha">Fernando de Noronha (UTC-2)</option>
+                <option value="America/Araguaina">Araguaina (UTC-3)</option>
+                <option value="America/Maceio">Maceió (UTC-3)</option>
+                <option value="America/Santarem">Santarém (UTC-3)</option>
+                <option value="America/Buenos_Aires">Buenos Aires (UTC-3)</option>
+                <option value="America/Montevideo">Montevideo (UTC-3)</option>
+                <option value="America/Santiago">Santiago (UTC-3)</option>
+                <option value="America/Asuncion">Assunção (UTC-4)</option>
+                <option value="America/Bogota">Bogotá (UTC-5)</option>
+                <option value="America/Lima">Lima (UTC-5)</option>
+                <option value="America/New_York">New York (UTC-5)</option>
+                <option value="America/Los_Angeles">Los Angeles (UTC-8)</option>
+                <option value="Europe/Lisbon">Lisboa (UTC+0)</option>
+                <option value="Europe/London">Londres (UTC+0)</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">Usado para disparar automações no horário correto</p>
             </div>
           </div>
         </div>

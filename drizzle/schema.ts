@@ -78,6 +78,7 @@ export const empresas = mysqlTable("empresas", {
   intervaloMinutos: int("intervaloMinutos").default(30),
   ownerId: int("ownerId").notNull(),
   pipelineFavoritaId: int("pipelineFavoritaId"),
+  timezone: varchar("timezone", { length: 50 }).default("America/Sao_Paulo").notNull(),
   onboardingConcluido: boolean("onboardingConcluido").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -1786,3 +1786,10 @@
 - [ ] Auditar triggers: agendamento_criado, lembrete, confirmacao, aniversario, data_comemorativa
 - [ ] Corrigir problemas encontrados
 - [ ] Relatório completo entregue
+
+## Timezone, Índice Único e Texto Real no Pré-registro (2026-04-21)
+- [x] Adicionar campo timezone na tabela empresas (default America/Sao_Paulo)
+- [x] Adicionar índice único (empresaId, automacaoId, agendamentoId) em historicoEnviosAutomacao
+- [x] Usar timezone da empresa no scheduler para comparação de horaDisparo
+- [x] Gerar texto real da mensagem no pré-registro em vez de placeholder
+- [x] Seletor de timezone nas configurações da empresa (frontend)
