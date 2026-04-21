@@ -1869,3 +1869,9 @@
 - [x] Criar procedure enviarTesteAutomacao no router
 - [x] Adicionar modal de seleção de cliente de teste
 - [x] Adicionar botão Enviar teste na lista de automações
+
+## Restrição de 1 Pipeline por Empresa (2026-04-21)
+- [x] Remover botão "Nova automação" da UI
+- [x] Bloquear criação de segunda pipeline (validação no router)
+- [x] Remover botão de exclusão de automações
+- [x] Impedir que todas as automações sejam deletadas

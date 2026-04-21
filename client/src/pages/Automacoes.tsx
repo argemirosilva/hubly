@@ -1020,11 +1020,7 @@ export default function Automacoes() {
                   <Sparkles size={14} className="mr-1" />
                   <span className="hidden sm:inline">Templates</span>
                 </Button>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
-                  <Plus size={14} className="mr-1" />
-                  <span className="hidden sm:inline">Nova automação</span>
-                  <span className="sm:hidden">Nova</span>
-                </Button>
+
                 <Button variant="outline" size="sm" onClick={() => setDebugOpen(true)}>
                   <Activity size={14} className="mr-1" />
                   <span className="hidden sm:inline">Debug</span>
@@ -1473,10 +1469,7 @@ export default function Automacoes() {
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
                           <Edit2 size={13} />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setConfirmDeleteId(a.id)}>
-                          <Trash2 size={13} />
-                        </Button>
+
                       </div>
                     </div>
                       ))}

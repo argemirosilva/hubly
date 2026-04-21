@@ -2401,6 +2401,9 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // Validar que a empresa tem apenas 1 pipeline (máximo de automações)
+        const automacoes = await getAutomacoesByEmpresa(empresa.id);
+        if (automacoes.length > 0) throw new Error("Cada empresa pode ter apenas uma pipeline de automações. Edite as automações existentes ao invés de criar novas.");
         const id = await createAutomacao({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
