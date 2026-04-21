@@ -167,10 +167,10 @@ export default function WhatsAppPage() {
               {connected ? "Conectado" : "Desconectado"}
             </span>
           </div>
-          {connected && zapiStatus?.phoneNumber && (
+          {connected && (zapiStatus?.phoneNumber || zapiStatus?.deviceName) && (
             <CardDescription className="flex items-center gap-1.5 mt-1">
               <Smartphone className="w-3.5 h-3.5" />
-              {zapiStatus.phoneNumber}
+              {[zapiStatus?.deviceName, zapiStatus?.phoneNumber].filter(Boolean).join(" · ")}
             </CardDescription>
           )}
         </CardHeader>

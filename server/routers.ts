@@ -3272,7 +3272,7 @@ export const appRouter = router({
       const { ENV } = await import('./_core/env');
       // Se credenciais Z-API não estão configuradas no servidor, não é Pro
       if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
-        return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null };
+        return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null, deviceName: null };
       }
       // Tenta verificar plano no banco; se banco falhar, assume Pro (credenciais já estão configuradas)
       let isPro = false;
@@ -3286,15 +3286,17 @@ export const appRouter = router({
         // Banco indisponível — credenciais Z-API configuradas, assume Pro
         isPro = true;
       }
-      if (!isPro) return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null };
+      if (!isPro) return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null, deviceName: null };
       const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
       const result = await zapiCheckStatus();
       let phoneNumber: string | null = null;
+      let deviceName: string | null = null;
       if (result.connected) {
         const phoneInfo = await zapiGetConnectedPhone();
         phoneNumber = phoneInfo.phone;
+        deviceName = phoneInfo.name;
       }
-      return { ...result, isPro: true, phoneNumber };
+      return { ...result, isPro: true, phoneNumber, deviceName };
     }),
     /** QR Code da instância Z-API como base64 */
     zapiGetQrCode: protectedProcedure

@@ -199,6 +199,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
   const waConnected = waStatus?.status === "connected";
   const waPhoneNumber = waStatus?.phoneNumber ?? null;
+  const waDeviceName = (waStatus as { deviceName?: string | null } | undefined)?.deviceName ?? null;
 
   // Falhas recentes de automações — poll a cada 60s para badge no menu
   const { data: falhasAutomacoes } = trpc.automacoes.getFalhasRecentes.useQuery(undefined, {
@@ -650,7 +651,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {item.href === "/admin/whatsapp" ? (
                             <div
                               className="relative flex-shrink-0"
-                              title={waConnected && waPhoneNumber ? `Conectado: ${waPhoneNumber}` : waConnected ? "Conectado" : "Desconectado"}
+                              title={waConnected ? [waDeviceName, waPhoneNumber].filter(Boolean).join(" · ") || "Conectado" : "Desconectado"}
                             >
                               <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                                 style={{ color: waConnected ? "oklch(62% 0.22 145)" : undefined }} />

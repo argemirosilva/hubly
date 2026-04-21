@@ -1742,3 +1742,8 @@
 ## WhatsApp.tsx — Melhorias de Exibição e Webhook (v-atual)
 - [x] Passar origin ao chamar zapiGetQrCode: useState(() => window.location.origin) e input { origin: zapiOrigin }
 - [x] Exibir número conectado (zapiStatus.phoneNumber) no CardDescription da seção PRO quando conectado
+
+## WhatsApp — Nome do Dispositivo Conectado (v-atual)
+- [x] Backend zapiGetStatus: retornar deviceName (pushName) junto com phoneNumber
+- [x] Página WhatsApp PRO: CardDescription exibe "Nome · Número" quando conectado
+- [x] Sidebar AdminLayout: tooltip exibe "Nome · Número" (ou apenas o disponível)
