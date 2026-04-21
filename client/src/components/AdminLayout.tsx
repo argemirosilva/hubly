@@ -209,6 +209,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
   const totalFalhasAutomacoes = falhasAutomacoes?.total ?? 0;
 
+  // Agendados do dia — poll a cada 60s para badge azul no menu
+  const { data: agendadosHoje } = trpc.automacoes.getAgendadosHoje.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const totalAgendadosHoje = agendadosHoje?.total ?? 0;
+
   const getPlanColor = (plan?: string) => {
     switch (plan) {
       case "PRO": return "oklch(45% 0.15 160)";
@@ -684,13 +692,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             OFF
                           </span>
                         )}
+                        {/* Badge de agendados do dia */}
+                         {item.href === "/admin/automacoes" && totalAgendadosHoje > 0 && (
+                           <span className="text-[9px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold"
+                             style={{ background: "oklch(55% 0.20 240 / 15%)", color: "oklch(45% 0.20 240)" }}
+                             title={`${totalAgendadosHoje} mensagem(ns) agendada(s) para hoje`}>
+                             {totalAgendadosHoje > 9 ? "9+" : totalAgendadosHoje}
+                           </span>
+                         )}
                         {/* Badge de falhas de automações */}
-                        {item.href === "/admin/automacoes" && totalFalhasAutomacoes > 0 && (
-                          <span className="text-[9px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold"
-                            style={{ background: "oklch(55% 0.22 25 / 15%)", color: "oklch(52% 0.22 25)" }}>
-                            {totalFalhasAutomacoes > 9 ? "9+" : totalFalhasAutomacoes}
-                          </span>
-                        )}
+                         {item.href === "/admin/automacoes" && totalFalhasAutomacoes > 0 && (
+                           <span className="text-[9px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold"
+                             style={{ background: "oklch(55% 0.22 25 / 15%)", color: "oklch(52% 0.22 25)" }}>
+                             {totalFalhasAutomacoes > 9 ? "9+" : totalFalhasAutomacoes}
+                           </span>
+                         )}
                       </div>
                     </Link>
                   );

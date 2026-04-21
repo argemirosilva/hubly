@@ -1772,3 +1772,8 @@
 - [x] Scheduler: expirar e processar também registros com status 'agendado'
 - [x] Frontend: badge azul Agendado com ícone CalendarCheck, card contador, filtro no Select e cancelamento de agendados
 - [x] Backend: getFilaEnvios e getFilaTotais suportam status 'agendado' com contador separado
+
+## Melhorias Caixa de Saída (2026-04-21)
+- [x] Badge de agendados do dia na sidebar (ícone Automações)
+- [x] Notificação in-app ao enviar item com status agendado com sucesso
+- [x] Opção "Reagendar para amanhã" na modal de falha

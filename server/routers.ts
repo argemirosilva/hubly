@@ -57,7 +57,7 @@ import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
 import { nanoid } from "nanoid";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
-import { eq, and, sql as drizzleSql, desc, gte } from "drizzle-orm";
+import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray } from "drizzle-orm";
 
 /**
  * Extrai midiaUrl do flowJson de uma automação.
@@ -2485,6 +2485,47 @@ export const appRouter = router({
         if (!empresa) return { total: 0 };
         const total = await contarFalhasRecentes(empresa.id, 24);
         return { total };
+      }),
+
+    // Contar mensagens agendadas para hoje (status 'agendado' com enviarEm no dia atual)
+    getAgendadosHoje: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { total: 0 };
+        const db = await getDb();
+        if (!db) return { total: 0 };
+        const agora = new Date();
+        const inicioDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+        const fimDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1);
+        const rows = await db.select({ id: historicoEnviosAutomacao.id })
+          .from(historicoEnviosAutomacao)
+          .where(and(
+            eq(historicoEnviosAutomacao.empresaId, empresa.id),
+            eq(historicoEnviosAutomacao.status, 'agendado'),
+            gte(historicoEnviosAutomacao.enviarEm, inicioDia),
+            lt(historicoEnviosAutomacao.enviarEm, fimDia),
+          ));
+        return { total: rows.length };
+      }),
+
+    // Reagendar item com falha para amanhã no mesmo horário
+    reagendarItem: protectedProcedure
+      .input(z.object({ id: z.number(), horasDelay: z.number().min(1).max(72).default(24) }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DB indisponível' });
+        const rows = await db.select().from(historicoEnviosAutomacao)
+          .where(and(eq(historicoEnviosAutomacao.id, input.id), eq(historicoEnviosAutomacao.empresaId, empresa.id)))
+          .limit(1);
+        if (!rows[0]) throw new TRPCError({ code: 'NOT_FOUND', message: 'Item não encontrado' });
+        if (rows[0].status !== 'falhou') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Apenas itens com falha podem ser reagendados' });
+        const novoEnviarEm = new Date(Date.now() + input.horasDelay * 60 * 60 * 1000);
+        await db.update(historicoEnviosAutomacao)
+          .set({ status: 'agendado', enviarEm: novoEnviarEm, erroDetalhe: null })
+          .where(eq(historicoEnviosAutomacao.id, input.id));
+        return { success: true, enviarEm: novoEnviarEm };
       }),
 
     reenviarItem: protectedProcedure

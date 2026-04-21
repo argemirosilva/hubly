@@ -111,7 +111,7 @@ function formatDateTime(dt: string | null | undefined) {
   });
 }
 
-function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCancelar, cancelarLoading }: {
+function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCancelar, cancelarLoading, onReagendar, reagendarLoading }: {
   row: FilaRow | null;
   open: boolean;
   onClose: () => void;
@@ -119,6 +119,8 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
   reenviarLoading: boolean;
   onCancelar: (id: number) => void;
   cancelarLoading: boolean;
+  onReagendar: (id: number) => void;
+  reagendarLoading: boolean;
 }) {
   if (!row) return null;
 
@@ -213,17 +215,28 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
             </div>
           )}
 
-          {/* Botão reenviar */}
+          {/* Botões para itens com falha */}
           {row.status === "falhou" && (
-            <Button
-              className="w-full gap-2"
-              variant="outline"
-              onClick={() => onReenviar(row.id)}
-              disabled={reenviarLoading}
-            >
-              <RotateCcw className="w-4 h-4" />
-              {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => onReenviar(row.id)}
+                disabled={reenviarLoading || reagendarLoading}
+              >
+                <RotateCcw className="w-4 h-4" />
+                {reenviarLoading ? "Reenviando..." : "Reenviar agora"}
+              </Button>
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => onReagendar(row.id)}
+                disabled={reagendarLoading || reenviarLoading}
+              >
+                <CalendarCheck className="w-4 h-4 text-blue-500" />
+                <span className="text-blue-600">{reagendarLoading ? "Reagendando..." : "Reagendar para amanhã"}</span>
+              </Button>
+            </div>
           )}
           {/* Botão cancelar — para pendentes, agendados e falhados */}
           {(row.status === "pendente" || row.status === "agendado" || row.status === "falhou") && (
@@ -328,6 +341,26 @@ export default function FilaAutomacoes() {
       await reenviarMutation.mutateAsync({ id });
     } finally {
       setReenviarLoading(false);
+    }
+  };
+
+  const [reagendarLoading, setReagendarLoading] = useState(false);
+  const reagendarMutation = trpc.automacoes.reagendarItem.useMutation({
+    onSuccess: (data) => {
+      const dt = new Date(data.enviarEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      toast.success(`Reagendado para ${dt}`);
+      setSelectedRow(null);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleReagendar = async (id: number) => {
+    setReagendarLoading(true);
+    try {
+      await reagendarMutation.mutateAsync({ id, horasDelay: 24 });
+    } finally {
+      setReagendarLoading(false);
     }
   };
 
@@ -627,6 +660,8 @@ export default function FilaAutomacoes() {
         reenviarLoading={reenviarLoading}
         onCancelar={handleCancelar}
         cancelarLoading={cancelarLoading}
+        onReagendar={handleReagendar}
+        reagendarLoading={reagendarLoading}
       />
     </div>
   );

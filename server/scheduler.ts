@@ -2,7 +2,7 @@
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
  */
-import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes } from "./db";
+import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
 import {
   pacotesClientes,
@@ -1683,6 +1683,18 @@ export async function processarFilaPendente() {
           // Incrementar contador de uso
           try { await (await import('./db-plans')).incrementWhatsappCount(item.empresaId); } catch {}
           console.log(`[Fila] ✅ Enviado para ${item.clienteNome ?? item.telefone} (${item.automacaoNome ?? 'manual'})${item.midiaUrl ? ' [com mídia]' : ''}`);
+          // Notificação in-app para admins quando item AGENDADO é enviado
+          if (item.status === 'agendado') {
+            try {
+              await createNotificacao({
+                empresaId: item.empresaId,
+                tipo: 'sistema',
+                titulo: `Mensagem agendada enviada ✅`,
+                mensagem: `Automação "${item.automacaoNome ?? 'Manual'}" enviada para ${item.clienteNome ?? item.telefone}`,
+                destinatarioId: null, // visível para todos admins
+              });
+            } catch { /* não falhar o envio por causa da notificação */ }
+          }
         } else {
           console.log(`[Fila] ❌ Falhou para ${item.clienteNome ?? item.telefone}`);
         }
