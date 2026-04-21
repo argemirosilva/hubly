@@ -141,6 +141,7 @@ function ModalConta({
       recorrenciaTipo: recorrente ? (recorrenciaTipo as any) : undefined,
       observacoes: observacoes || undefined,
       fornecedor: fornecedor || undefined,
+      meioPagamentoId: (meioPagamentoId && meioPagamentoId !== "none") ? parseInt(meioPagamentoId) : undefined,
     };
 
     if (isEdicao && conta) {

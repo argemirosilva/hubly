@@ -1793,3 +1793,20 @@
 - [x] Usar timezone da empresa no scheduler para comparação de horaDisparo
 - [x] Gerar texto real da mensagem no pré-registro em vez de placeholder
 - [x] Seletor de timezone nas configurações da empresa (frontend)
+
+## Auditoria Completa do Módulo Financeiro (2026-04-21)
+- [ ] Auditar schema financeiro (tabelas, campos, enums)
+- [ ] Auditar routers financeiros (procedures, cálculos de comissão)
+- [ ] Auditar frontend financeiro (páginas, componentes, fluxos)
+- [ ] Auditar integrações (Stripe, taxas de maquininha, percentuais)
+- [ ] Relatório completo com achados, problemas e recomendações
+
+## Correções Financeiras (2026-04-21)
+- [x] R3: Corrigir fallback de percentual (usar 0 em vez de percentualDona)
+- [x] R4: Validar soma percentualComissao + percentualDona <= 100%
+- [x] R1: Corrigir taxa de maquininha no fluxo automático (consultar agendamentoPagamentos)
+- [x] R2: Conectar meios de pagamento configurados (taxasParcela) aos cálculos
+- [x] R5: Persistir meioPagamentoId em contasPagar e contasReceber (schema + frontend)
+- [x] R6: Geração automática de recorrências no scheduler
+- [x] R7: Prevenir duplicatas na importação de agendamentos para contas a receber
+- [x] R8: Dashboard financeiro consolidado com fluxo de caixa

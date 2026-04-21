@@ -170,6 +170,7 @@ function ModalConta({
       observacoes: form.observacoes || undefined,
       recorrente: form.recorrente,
       recorrenciaTipo: (form.recorrenciaTipo || undefined) as any,
+      meioPagamentoId: (meioPagamentoId && meioPagamentoId !== "none") ? parseInt(meioPagamentoId) : undefined,
     };
 
     if (editando) {

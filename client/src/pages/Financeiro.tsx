@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User, Calendar, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 
@@ -48,6 +48,15 @@ export default function Financeiro() {
   const podeMarcarPaga = pode("financeiroMarcarPago");
 
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
+  const { data: metricasPagar } = trpc.contasPagar.metricas.useQuery();
+  const { data: metricasReceber } = trpc.contasReceber.metricas.useQuery();
+
+  // Fluxo de caixa consolidado
+  const receitasMes = metricasReceber?.totalRecebidoMes ?? 0;
+  const despesasMes = metricasPagar?.totalPagoMes ?? 0;
+  const saldoMes = receitasMes - despesasMes;
+  const totalAPagar = metricasPagar?.totalPendente ?? 0;
+  const totalAReceber = metricasReceber?.totalPendente ?? 0;
   const { data: comissoes } = trpc.financeiro.comissoes.useQuery(
     dataInicio || dataFim ? { dataInicio: dataInicio || undefined, dataFim: dataFim || undefined } : undefined
   );
@@ -144,7 +153,70 @@ export default function Financeiro() {
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
 
-      {/* Cards de métricas */}
+      {/* Fluxo de Caixa Consolidado */}
+      <div className="card-elegant p-4 lg:p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Wallet className="w-4 h-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Fluxo de Caixa — Mês Atual</h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="stat-card">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
+              <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
+            </div>
+            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(receitasMes)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Recebido no mês</p>
+          </div>
+          <div className="stat-card">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
+              <ArrowDownRight className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
+            </div>
+            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(despesasMes)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Pago no mês</p>
+          </div>
+          <div className="stat-card">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: saldoMes >= 0 ? "oklch(62% 0.18 155 / 12%)" : "oklch(60% 0.22 25 / 12%)" }}>
+              <Wallet className="w-3 h-3" style={{ color: saldoMes >= 0 ? "oklch(38% 0.14 155)" : "oklch(42% 0.18 25)" }} />
+            </div>
+            <p className={`text-base font-bold tracking-tight ${saldoMes >= 0 ? "text-foreground" : "text-destructive"}`}>{formatCurrency(saldoMes)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Saldo do mês</p>
+          </div>
+          <div className="stat-card">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(72% 0.16 80 / 12%)" }}>
+              <Clock className="w-3 h-3" style={{ color: "oklch(40% 0.14 75)" }} />
+            </div>
+            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(totalAReceber)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">A receber (pendente)</p>
+          </div>
+          <div className="stat-card">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
+              <Clock className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
+            </div>
+            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(totalAPagar)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">A pagar (pendente)</p>
+          </div>
+        </div>
+        {/* Barra visual receita vs despesa */}
+        {(receitasMes + despesasMes) > 0 && (
+          <div className="mt-3">
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(88% 0.012 250)" }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.round((receitasMes / (receitasMes + despesasMes)) * 100)}%`,
+                  background: "oklch(55% 0.18 155)",
+                }}
+              />
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-[10px] text-muted-foreground">Receitas ({Math.round((receitasMes / (receitasMes + despesasMes)) * 100)}%)</span>
+              <span className="text-[10px] text-muted-foreground">Despesas ({Math.round((despesasMes / (receitasMes + despesasMes)) * 100)}%)</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Cards de comissões */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {[
           { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)" },

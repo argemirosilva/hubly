@@ -427,6 +427,13 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        // R4: Validar que percentualDona não excede 100%
+        if (input.percentualDona !== undefined) {
+          const pDona = parseFloat(input.percentualDona);
+          if (isNaN(pDona) || pDona < 0 || pDona > 100) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Percentual da dona deve estar entre 0% e 100%' });
+          }
+        }
         await updateEmpresa(empresa.id, input as any);
         return { success: true };
       }),
@@ -1228,6 +1235,46 @@ export const appRouter = router({
                   const itens = await getItensByAgendamento(id);
                   const todosServicos = await getServicosByEmpresa(empresa.id);
                   const todosProfissionais = await getProfissionaisByEmpresa(empresa.id);
+                  // ── R1+R2: Buscar pagamentos do agendamento para calcular taxa real ──
+                  const pagamentos = await getPagamentosByAgendamento(id);
+                  const meiosConfig = await getMeiosPagamentoComTaxas(empresa.id);
+
+                  // Determinar taxa de maquininha com base nos pagamentos reais
+                  const calcularTaxaPagamento = (valorBruto: number): number => {
+                    if (pagamentos.length === 0) return 0;
+                    let taxaTotal = 0;
+                    for (const pag of pagamentos) {
+                      const pagValor = parseFloat(String(pag.valor ?? 0));
+                      const meioPag = pag.meioPagamento?.toLowerCase() ?? '';
+                      // Tentar encontrar meio de pagamento configurado
+                      const meioConfig = meiosConfig.find(m =>
+                        m.nome.toLowerCase() === meioPag ||
+                        m.tipo.toLowerCase() === meioPag
+                      );
+                      if (meioConfig) {
+                        // Usar taxa por parcela se disponível
+                        const nParcelas = pag.numeroParcelas ?? 1;
+                        const taxaParcela = meioConfig.taxas?.find((t: any) => t.parcela === nParcelas);
+                        if (taxaParcela) {
+                          taxaTotal += pagValor * (parseFloat(String(taxaParcela.taxa)) / 100);
+                        } else {
+                          // Fallback: usar taxaFixa do meio
+                          taxaTotal += pagValor * (parseFloat(String(meioConfig.taxaFixa)) / 100);
+                        }
+                      } else if (meioPag.includes('cartao') || meioPag.includes('credito') || meioPag.includes('debito')) {
+                        // Fallback: usar taxa global da empresa para cartões
+                        taxaTotal += pagValor * (parseFloat(String(empresa.taxaMaquininha ?? 0)) / 100);
+                      }
+                      // Dinheiro e PIX: taxa = 0
+                    }
+                    // Proporcionalizar a taxa ao valor bruto do profissional
+                    const totalPagamentos = pagamentos.reduce((s, p) => s + parseFloat(String(p.valor ?? 0)), 0);
+                    if (totalPagamentos <= 0) return 0;
+                    return taxaTotal * (valorBruto / totalPagamentos);
+                  };
+
+                  const percentualDona = parseFloat(String(empresa.percentualDona ?? 0));
+
                   if (itens.length > 0) {
                     // Agrupar itens por profissional
                     const itensPorProfissional = new Map<number, { valorTotal: number; nomes: string[] }>();
@@ -1245,41 +1292,51 @@ export const appRouter = router({
                     // Criar comissão para cada profissional
                     for (const [profId, { valorTotal }] of itensPorProfissional) {
                       const prof = todosProfissionais.find(p => p.id === profId);
-                      const percentual = parseFloat(String(prof?.percentualComissao ?? empresa.percentualDona ?? 0));
-                      const valorLiquido = valorTotal;
+                      // R3: fallback = 0, não percentualDona
+                      const percentual = parseFloat(String(prof?.percentualComissao ?? 0));
+                      const taxaMaquininha = calcularTaxaPagamento(valorTotal);
+                      const valorLiquido = valorTotal - taxaMaquininha;
                       const valorComissao = valorLiquido * (percentual / 100);
-                      const receitaDona = valorLiquido * (parseFloat(String(empresa.percentualDona ?? 0)) / 100);
+                      const receitaDona = valorLiquido * (percentualDona / 100);
+                      // Determinar tipoPagamento predominante
+                      const tipoPag = pagamentos.length > 0 ? (pagamentos[0].meioPagamento ?? 'outro') : 'outro';
                       await createComissao({
                         empresaId: empresa.id,
                         profissionalId: profId,
                         agendamentoId: id,
                         valorServico: valorTotal.toFixed(2),
                         percentualComissao: percentual.toFixed(2),
-                        taxaMaquininha: '0.00',
+                        tipoPagamento: tipoPag,
+                        taxaMaquininha: taxaMaquininha.toFixed(2),
                         custoReposicao: '0.00',
                         valorLiquido: valorLiquido.toFixed(2),
                         valorComissao: valorComissao.toFixed(2),
                         receitaDona: receitaDona.toFixed(2),
                       } as any);
-                      console.log(`[Comissao] Criada para prof ${profId}: R$ ${valorComissao.toFixed(2)} (${percentual}% de R$ ${valorTotal.toFixed(2)})`);
+                      console.log(`[Comissao] Criada para prof ${profId}: R$ ${valorComissao.toFixed(2)} (${percentual}% de R$ ${valorLiquido.toFixed(2)} líquido, taxa maq: R$ ${taxaMaquininha.toFixed(2)})`);
                     }
                   } else {
                     // Sem itens: usar profissional principal e serviço principal
                     const prof = todosProfissionais.find(p => p.id === agendamento.profissionalId);
+                    // R3: fallback = 0, não percentualDona
                     const percentual = parseFloat(String(prof?.percentualComissao ?? 0));
                     if (percentual > 0) {
                       const valorServico = parseFloat(String(agendamento.valorTotal ?? 0));
-                      const valorComissao = valorServico * (percentual / 100);
-                      const receitaDona = valorServico * (parseFloat(String(empresa.percentualDona ?? 0)) / 100);
+                      const taxaMaquininha = calcularTaxaPagamento(valorServico);
+                      const valorLiquido = valorServico - taxaMaquininha;
+                      const valorComissao = valorLiquido * (percentual / 100);
+                      const receitaDona = valorLiquido * (percentualDona / 100);
+                      const tipoPag = pagamentos.length > 0 ? (pagamentos[0].meioPagamento ?? 'outro') : 'outro';
                       await createComissao({
                         empresaId: empresa.id,
                         profissionalId: agendamento.profissionalId,
                         agendamentoId: id,
                         valorServico: valorServico.toFixed(2),
                         percentualComissao: percentual.toFixed(2),
-                        taxaMaquininha: '0.00',
+                        tipoPagamento: tipoPag,
+                        taxaMaquininha: taxaMaquininha.toFixed(2),
                         custoReposicao: '0.00',
-                        valorLiquido: valorServico.toFixed(2),
+                        valorLiquido: valorLiquido.toFixed(2),
                         valorComissao: valorComissao.toFixed(2),
                         receitaDona: receitaDona.toFixed(2),
                       } as any);
@@ -4022,6 +4079,7 @@ export const appRouter = router({
         recorrente: z.boolean().optional(),
         recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional(),
         fornecedor: z.string().optional(),
+        meioPagamentoId: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -4047,6 +4105,7 @@ export const appRouter = router({
         recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional().nullable(),
         observacoes: z.string().optional().nullable(),
         fornecedor: z.string().optional().nullable(),
+        meioPagamentoId: z.number().optional().nullable(),
       }))
       .mutation(async ({ input }) => {
         const { id, valor, ...rest } = input;
@@ -4103,6 +4162,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
         recorrente: z.boolean().default(false),
         recorrenciaTipo: z.enum(["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]).optional(),
+        meioPagamentoId: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -4118,6 +4178,7 @@ export const appRouter = router({
           clienteId: input.clienteId,
           profissionalId: input.profissionalId,
           tipoPagamento: input.tipoPagamento,
+          meioPagamentoId: input.meioPagamentoId,
           observacoes: input.observacoes,
           recorrente: input.recorrente,
           recorrenciaTipo: input.recorrenciaTipo,
@@ -4136,6 +4197,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
         clienteId: z.number().optional(),
         profissionalId: z.number().optional(),
+        meioPagamentoId: z.number().optional().nullable(),
       }))
       .mutation(async ({ input }) => {
         const { id, valor, ...rest } = input;

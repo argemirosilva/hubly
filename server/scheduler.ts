@@ -16,6 +16,8 @@ import {
   servicos,
   historicoEnviosAutomacao,
   automacoes,
+  contasPagar,
+  contasReceber,
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
@@ -1948,7 +1950,111 @@ async function cancelarPreAgendamentosExpirados() {
   }
 }
 
-// ── Inicializar agendamento ────────────────────────────────────────────────
+// ── R6: Geração automática de recorrências ──────────────────────────────────────────────────────────
+async function processarRecorrencias() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    const hoje = new Date().toISOString().split('T')[0];
+
+    // Mapeamento de recorrência para dias
+    const recorrenciaDias: Record<string, number> = {
+      semanal: 7, quinzenal: 14, mensal: 30, bimestral: 60,
+      trimestral: 90, semestral: 180, anual: 365,
+    };
+
+    const addDays = (dateStr: string, days: number): string => {
+      const d = new Date(dateStr + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().split('T')[0];
+    };
+
+    // ── Contas a Pagar recorrentes pagas/vencidas sem próxima parcela ──
+    const contasPagarRecorrentes = await db.select().from(contasPagar)
+      .where(and(
+        eq(contasPagar.recorrente, true),
+        or(eq(contasPagar.status, 'pago'), eq(contasPagar.status, 'vencido')),
+      ));
+
+    for (const conta of contasPagarRecorrentes) {
+      if (!conta.recorrenciaTipo) continue;
+      const dias = recorrenciaDias[conta.recorrenciaTipo] ?? 30;
+      const proximaData = addDays(conta.dataVencimento, dias);
+
+      // Verificar se já existe próxima parcela com mesma descrição e data
+      const jaExiste = await db.select({ id: contasPagar.id }).from(contasPagar)
+        .where(and(
+          eq(contasPagar.empresaId, conta.empresaId),
+          eq(contasPagar.descricao, conta.descricao),
+          eq(contasPagar.dataVencimento, proximaData),
+        ))
+        .limit(1);
+
+      if (jaExiste.length === 0) {
+        await db.insert(contasPagar).values({
+          empresaId: conta.empresaId,
+          descricao: conta.descricao,
+          valor: conta.valor,
+          dataVencimento: proximaData,
+          categoriaId: conta.categoriaId,
+          status: 'pendente',
+          recorrente: true,
+          recorrenciaTipo: conta.recorrenciaTipo,
+          observacoes: conta.observacoes,
+          fornecedor: conta.fornecedor,
+          meioPagamentoId: conta.meioPagamentoId,
+        });
+        console.log(`[Recorrencia] Conta a pagar gerada: ${conta.descricao} venc. ${proximaData}`);
+      }
+    }
+
+    // ── Contas a Receber recorrentes recebidas/vencidas sem próxima parcela ──
+    const contasReceberRecorrentes = await db.select().from(contasReceber)
+      .where(and(
+        eq(contasReceber.recorrente, true),
+        or(eq(contasReceber.status, 'recebido'), eq(contasReceber.status, 'vencido')),
+      ));
+
+    for (const conta of contasReceberRecorrentes) {
+      if (!conta.recorrenciaTipo) continue;
+      const dias = recorrenciaDias[conta.recorrenciaTipo] ?? 30;
+      const proximaData = addDays(conta.dataVencimento, dias);
+
+      const jaExiste = await db.select({ id: contasReceber.id }).from(contasReceber)
+        .where(and(
+          eq(contasReceber.empresaId, conta.empresaId),
+          eq(contasReceber.descricao, conta.descricao),
+          eq(contasReceber.dataVencimento, proximaData),
+        ))
+        .limit(1);
+
+      if (jaExiste.length === 0) {
+        await db.insert(contasReceber).values({
+          empresaId: conta.empresaId,
+          descricao: conta.descricao,
+          valor: conta.valor,
+          dataVencimento: proximaData,
+          status: 'pendente',
+          origem: conta.origem,
+          clienteId: conta.clienteId,
+          profissionalId: conta.profissionalId,
+          tipoPagamento: conta.tipoPagamento,
+          meioPagamentoId: conta.meioPagamentoId,
+          observacoes: conta.observacoes,
+          recorrente: true,
+          recorrenciaTipo: conta.recorrenciaTipo,
+        });
+        console.log(`[Recorrencia] Conta a receber gerada: ${conta.descricao} venc. ${proximaData}`);
+      }
+    }
+
+    console.log(`[Recorrencia] Processamento concluído`);
+  } catch (err) {
+    console.error('[Recorrencia] Erro:', err);
+  }
+}
+
+// ── Inicializar agendamento ────────────────────────────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
   setTimeout(() => {
@@ -2042,4 +2148,13 @@ export function initScheduler() {
   console.log("[Scheduler] Worker de fila universal inicializado (a cada 1min + ao reconectar WhatsApp).");
   console.log("[Scheduler] Limpeza de notificações antigas inicializada (diariamente às 3h).");
   console.log("[Scheduler] Notificações de agendamentos próximos inicializadas (a cada 5min).");
+
+  // R6: Processar recorrências de contas a pagar/receber — 1x por dia às 6h
+  setTimeout(() => {
+    processarRecorrencias();
+    setInterval(() => {
+      if (deveExecutarNaHora(6)) processarRecorrencias();
+    }, 60 * 60 * 1000); // verifica a cada 1h
+  }, 150_000); // aguarda 2.5min para o DB estar pronto
+  console.log("[Scheduler] Geração automática de recorrências inicializada (diário às 6h).");
 }
