@@ -826,8 +826,17 @@ export default function Automacoes() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [addNodeMenu, setAddNodeMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [mobileNodeSheet, setMobileNodeSheet] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null;
+  const mobileSheetNode = nodes.find(n => n.id === mobileNodeSheet) ?? null;
 
   const openEditor = (flow?: Partial<FlowAutomacao> & { id?: number; flowJson?: string; confirmacaoAutoAtivo?: boolean; confirmacaoAutoHorasAntes?: number }) => {
     setCurrentFlow({ nome: flow?.nome || "Nova Automação", descricao: flow?.descricao, ativo: flow?.ativo ?? true, nodes: [], confirmacaoAutoAtivo: flow?.confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: flow?.confirmacaoAutoHorasAntes ?? 2 });
@@ -1634,6 +1643,198 @@ export default function Automacoes() {
   }
 
   //  EDITOR
+  // ── MOBILE EDITOR ──────────────────────────────────────────────────────────
+  if (isMobile) {
+    const NODE_LABELS: Record<NodeType, { label: string; color: string; bg: string; icon: any }> = {
+      trigger: { label: "Gatilho", color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200", icon: Zap },
+      condition: { label: "Condição", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: Filter },
+      action: { label: "Ação", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: MessageSquare },
+      delay: { label: "Aguardar", color: "text-sky-700", bg: "bg-sky-50 border-sky-200", icon: Clock },
+      end: { label: "Fim", color: "text-gray-600", bg: "bg-gray-50 border-gray-200", icon: Check },
+    };
+    const ADD_NODE_TYPES: { type: NodeType; label: string; icon: any; color: string }[] = [
+      { type: "trigger", label: "Gatilho", icon: Zap, color: "text-indigo-600" },
+      { type: "condition", label: "Condição", icon: Filter, color: "text-amber-600" },
+      { type: "action", label: "Ação", icon: MessageSquare, color: "text-emerald-600" },
+      { type: "delay", label: "Aguardar", icon: Clock, color: "text-sky-600" },
+      { type: "end", label: "Fim do fluxo", icon: Check, color: "text-gray-600" },
+    ];
+    return (
+      <>
+        <div className="flex flex-col bg-gray-50" style={{ minHeight: "calc(100vh - 64px)" }}>
+          {/* Mobile Toolbar */}
+          <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-2">
+              <button className="flex items-center gap-1 text-sm text-gray-500 shrink-0" onClick={() => setView("list")}>
+                <ChevronLeft size={16} />Voltar
+              </button>
+              <Input
+                value={currentFlow.nome}
+                onChange={e => setCurrentFlow(p => ({ ...p, nome: e.target.value }))}
+                className="h-8 text-sm font-semibold border-gray-200 focus-visible:ring-indigo-400 flex-1 min-w-0"
+              />
+              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 h-8 px-3" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+                {createMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between px-3 pb-2">
+              <div className="flex items-center gap-2">
+                <Switch checked={currentFlow.ativo} onCheckedChange={v => setCurrentFlow(p => ({ ...p, ativo: v }))} />
+                <span className="text-xs text-gray-500">{currentFlow.ativo ? "Ativa" : "Pausada"}</span>
+              </div>
+              <div className="relative">
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setAddNodeMenu(p => !p)}>
+                  <Plus size={12} className="mr-1" />Adicionar nó
+                </Button>
+                {addNodeMenu && (
+                  <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-40 py-1">
+                    {ADD_NODE_TYPES.map(item => (
+                      <button key={item.type} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                        onClick={() => { addNode(item.type); setAddNodeMenu(false); }}>
+                        <item.icon size={13} className={item.color} />{item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Node List */}
+          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+            {nodes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Zap size={32} className="text-gray-200 mb-3" />
+                <p className="text-sm text-gray-500 font-medium">Nenhum nó adicionado</p>
+                <p className="text-xs text-gray-400 mt-1">Toque em "Adicionar nó" para começar</p>
+              </div>
+            ) : (
+              nodes.map((node, idx) => {
+                const meta = NODE_LABELS[node.type];
+                const Icon = meta.icon;
+                const label = node.data.label || (node.type === "trigger" ? TRIGGER_OPTIONS.find(t => t.value === node.data.tipo)?.label : node.type === "action" ? ACTION_OPTIONS.find(a => a.value === node.data.tipo)?.label : null) || meta.label;
+                return (
+                  <div key={node.id}>
+                    {idx > 0 && (
+                      <div className="flex justify-center my-1">
+                        <ArrowRight size={14} className="text-gray-300 rotate-90" />
+                      </div>
+                    )}
+                    <button
+                      className={`w-full flex items-center gap-3 p-3.5 rounded-xl border ${meta.bg} text-left transition-all active:scale-[0.98]`}
+                      onClick={() => setMobileNodeSheet(node.id)}
+                    >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white border ${meta.bg.split(" ")[1]}`}>
+                        <Icon size={16} className={meta.color} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold uppercase tracking-wide ${meta.color}`}>{meta.label}</p>
+                        <p className="text-sm text-gray-800 font-medium truncate mt-0.5">{label}</p>
+                        {node.type === "action" && node.data.mensagem && (
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{node.data.mensagem.substring(0, 60)}{node.data.mensagem.length > 60 ? "..." : ""}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <ChevronRight size={14} className="text-gray-400" />
+                      </div>
+                    </button>
+                  </div>
+                );
+              })
+            )}
+
+            {/* Confirmação Automática (horas_antes) */}
+            {(() => {
+              const triggerNode = nodes.find(n => n.type === "trigger");
+              if (triggerNode?.data?.tipo !== "horas_antes_agendamento") return null;
+              return (
+                <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Confirmação automática</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Confirma o agendamento automaticamente se o cliente não respondeu.</p>
+                    </div>
+                    <Switch
+                      checked={currentFlow.confirmacaoAutoAtivo ?? false}
+                      onCheckedChange={v => setCurrentFlow(p => ({ ...p, confirmacaoAutoAtivo: v }))}
+                    />
+                  </div>
+                  {currentFlow.confirmacaoAutoAtivo && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-600">Confirmar quando faltar</Label>
+                      <Select
+                        value={String(currentFlow.confirmacaoAutoHorasAntes ?? 2)}
+                        onValueChange={v => setCurrentFlow(p => ({ ...p, confirmacaoAutoHorasAntes: Number(v) }))}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1,2,3,4,6,12,24].map(h => <SelectItem key={h} value={String(h)}>{h} hora{h > 1 ? "s" : ""} antes</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Remover nó */}
+            {nodes.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs text-gray-400 text-center mb-2">Toque em um nó para editar • Deslize para remover</p>
+                <div className="space-y-1">
+                  {nodes.map(node => {
+                    const meta = NODE_LABELS[node.type];
+                    return (
+                      <button key={node.id} className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-gray-100 text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                        onClick={() => setNodes(prev => prev.filter(n => n.id !== node.id))}>
+                        <span className="flex items-center gap-2"><Trash2 size={12} />{node.data.label || meta.label}</span>
+                        <span className="text-xs text-gray-300">remover</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Sheet para configurar nó */}
+        <Dialog open={mobileNodeSheet !== null} onOpenChange={v => !v && setMobileNodeSheet(null)}>
+          <DialogContent className="p-0 gap-0 max-w-full w-full sm:max-w-lg rounded-t-2xl rounded-b-none fixed bottom-0 top-auto translate-y-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom max-h-[90vh] flex flex-col">
+            {mobileSheetNode && (
+              <NodeConfigPanel
+                node={mobileSheetNode}
+                onUpdate={(id, data) => {
+                  setNodes(prev => prev.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
+                }}
+                onClose={() => setMobileNodeSheet(null)}
+                onSaveFlow={(updatedNodeData) => {
+                  if (updatedNodeData) {
+                    setNodes(prev => prev.map(n => n.id === updatedNodeData.id ? { ...n, data: { ...n.data, ...updatedNodeData.data } } : n));
+                  }
+                  setMobileNodeSheet(null);
+                  toast.success("Nó atualizado!");
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Debug Modal */}
+        {debugOpen && (
+          <DebugAutomacoesModal
+            open={debugOpen}
+            onClose={() => setDebugOpen(false)}
+            automacoes={automacoesSalvas as any[]}
+          />
+        )}
+      </>
+    );
+  }
+  // ── END MOBILE EDITOR ───────────────────────────────────────────────────────
+
   return (
     <>
     <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>

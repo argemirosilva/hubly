@@ -1911,3 +1911,8 @@
 - [x] Backend: job periódico que confirma agendamentos automaticamente quando faltam X horas
 - [x] Backend: notificação in-app ao admin/profissional quando cliente confirma pelo link
 - [x] UI: painel de configuração de confirmação automática no editor de automações (tipo horas_antes_agendamento)
+
+## Redesenho Mobile do Editor de Automações (2026-04-21)
+- [x] Substituir canvas visual por interface em lista de nós no mobile
+- [x] Configuração de nós via bottom sheet ao tocar no card
+- [x] Painel de configuração de nó em bottom sheet no mobile
