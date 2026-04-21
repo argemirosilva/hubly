@@ -397,7 +397,14 @@ export default function WhatsAppPage() {
               <Send className="w-4 h-4" />
               Enviar mensagem de teste
             </CardTitle>
-            <CardDescription>Verifique se o envio está funcionando corretamente.</CardDescription>
+            <CardDescription>
+              Verifique se o envio está funcionando corretamente.
+              {isPro && zapiStatus?.phoneNumber && (
+                <span className="block mt-0.5 text-xs text-muted-foreground/70">
+                  Número conectado: <strong>{[zapiStatus.deviceName, zapiStatus.phoneNumber].filter(Boolean).join(" · ")}</strong>
+                </span>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
@@ -405,7 +412,7 @@ export default function WhatsAppPage() {
                 <Label htmlFor="testPhone" className="sr-only">Número de telefone</Label>
                 <Input
                   id="testPhone"
-                  placeholder="55 11 99999-9999"
+                  placeholder={isPro && zapiStatus?.phoneNumber ? zapiStatus.phoneNumber : baileysData?.phoneNumber ?? "55 11 99999-9999"}
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
                 />

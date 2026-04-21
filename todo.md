@@ -1747,3 +1747,7 @@
 - [x] Backend zapiGetStatus: retornar deviceName (pushName) junto com phoneNumber
 - [x] Página WhatsApp PRO: CardDescription exibe "Nome · Número" quando conectado
 - [x] Sidebar AdminLayout: tooltip exibe "Nome · Número" (ou apenas o disponível)
+
+## WhatsApp — Placeholder no Campo de Teste (v-atual)
+- [x] Card "Enviar mensagem de teste": placeholder dinâmico com número conectado (PRO: zapiStatus.phoneNumber, Baileys: baileysData.phoneNumber)
+- [x] CardDescription exibe "Número conectado: Nome · Número" para plano PRO
