@@ -1899,3 +1899,9 @@
 ## Correção do Link de Confirmação nos Testes (2026-04-21)
 - [x] Investigar como o link de confirmação é gerado nas variáveis de teste
 - [x] Corrigir para usar o domínio correto hubly.orizontech.com.br
+
+## Expiração do Link de Confirmação (2026-04-21)
+- [x] Verificar estrutura atual dos tokens de confirmação no schema e backend
+- [x] Adicionar campo expiresAt (48h) na geração do token
+- [x] Validar expiração e uso único no procedure verificarToken
+- [x] Atualizar página de confirmação do cliente com mensagem de link expirado/já utilizado

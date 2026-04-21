@@ -4565,17 +4565,37 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return { status: 'erro' as const };
-        const { tokensConfirmacao: tbl } = await import('../drizzle/schema');
-        const { isNull, gt: drizzleGt } = await import('drizzle-orm');
+        const { tokensConfirmacao: tbl, agendamentos: agTbl, empresas: empTbl } = await import('../drizzle/schema');
         const agora = new Date();
         const [tokenRow] = await db.select()
           .from(tbl)
-          .where(and(eq(tbl.token, input.token)))
+          .where(eq(tbl.token, input.token))
           .limit(1);
         if (!tokenRow) return { status: 'invalido' as const };
-        if (tokenRow.usadoEm) return { status: 'ja_confirmado' as const, usadoEm: tokenRow.usadoEm };
-        if (tokenRow.expiresAt < agora) return { status: 'expirado' as const };
-        return { status: 'pendente' as const };
+
+        // Buscar dados do agendamento e empresa para enriquecer a resposta
+        const [agendamento] = await db.select({
+          data: agTbl.data,
+          horaInicio: agTbl.horaInicio,
+          horaFim: agTbl.horaFim,
+        }).from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+
+        const [empresa] = await db.select({
+          nome: empTbl.nome,
+          whatsappNumero: empTbl.whatsappNumero,
+          telefone: empTbl.telefone,
+        }).from(empTbl).where(eq(empTbl.id, tokenRow.empresaId)).limit(1);
+
+        const dadosExtras = {
+          empresaNome: empresa?.nome ?? null,
+          empresaContato: empresa?.whatsappNumero ?? empresa?.telefone ?? null,
+          agendamentoData: agendamento?.data ?? null,
+          agendamentoHora: agendamento?.horaInicio ? String(agendamento.horaInicio).slice(0, 5) : null,
+        };
+
+        if (tokenRow.usadoEm) return { status: 'ja_confirmado' as const, usadoEm: tokenRow.usadoEm, ...dadosExtras };
+        if (tokenRow.expiresAt < agora) return { status: 'expirado' as const, expiresAt: tokenRow.expiresAt, ...dadosExtras };
+        return { status: 'pendente' as const, ...dadosExtras };
       }),
   }),
 
