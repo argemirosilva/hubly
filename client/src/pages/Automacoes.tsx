@@ -773,6 +773,7 @@ export default function Automacoes() {
   const [testeEnvioId, setTesteEnvioId] = useState<number | null>(null);
   const [testeTelefone, setTesteTelefone] = useState("");
   const [activeTab, setActiveTab] = useState<"automacoes" | "historico" | "jornada">("automacoes");
+  const [filtroTipoGatilho, setFiltroTipoGatilho] = useState<string>("todos");
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
   const [historicoFiltroStatus, setHistoricoFiltroStatus] = useState("");
@@ -910,6 +911,27 @@ export default function Automacoes() {
       }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
     }
   };
+
+  const getTipoGatilhoLabel = (tipo: string) => {
+    const labels: Record<string, string> = {
+      evento: "Eventos",
+      dias_antes_agendamento: "Dias antes",
+      horas_antes_agendamento: "Horas antes",
+      horas_apos_agendamento: "Horas depois",
+      dias_depois_agendamento: "Dias depois",
+      data_fixa: "Data fixa",
+      aniversario_mes: "Aniversário",
+      manual: "Manual",
+    };
+    return labels[tipo] ?? tipo;
+  };
+
+  const automacoesFiltradas = (automacoesSalvas as any[]).filter(a => {
+    if (filtroTipoGatilho === "todos") return true;
+    return a.tipoGatilho === filtroTipoGatilho;
+  });
+
+  const tiposGatilhoUnicos = Array.from(new Set((automacoesSalvas as any[]).map(a => a.tipoGatilho)));
 
   const getTriggerLabel = (a: any) => {
     switch (a.tipoGatilho) {
@@ -1361,8 +1383,42 @@ export default function Automacoes() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {(automacoesSalvas as any[]).map(a => (
+                <>
+                  <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button
+                      onClick={() => setFiltroTipoGatilho("todos")}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                        filtroTipoGatilho === "todos"
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Todos ({automacoesSalvas.length})
+                    </button>
+                    {tiposGatilhoUnicos.map(tipo => {
+                      const count = (automacoesSalvas as any[]).filter(a => a.tipoGatilho === tipo).length;
+                      return (
+                        <button
+                          key={tipo}
+                          onClick={() => setFiltroTipoGatilho(tipo)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                            filtroTipoGatilho === tipo
+                              ? "bg-indigo-600 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {getTipoGatilhoLabel(tipo)} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {automacoesFiltradas.length === 0 ? (
+                    <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-gray-500 font-medium">Nenhuma automação neste tipo</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(automacoesFiltradas as any[]).map(a => (
                     <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
                         <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
@@ -1407,8 +1463,10 @@ export default function Automacoes() {
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

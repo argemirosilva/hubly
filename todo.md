@@ -1860,3 +1860,7 @@
 ## Preview de Mensagem na Lista de Automações (2026-04-21)
 - [x] Função para extrair preview (primeiras 80 caracteres) da mensagem
 - [x] Exibir preview abaixo do gatilho na lista de automações
+
+## Filtro por Tipo de Gatilho (2026-04-21)
+- [x] Adicionar estado de filtro e abas de tipo de gatilho
+- [x] Filtrar automações por tipo selecionado
