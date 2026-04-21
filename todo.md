@@ -1738,3 +1738,7 @@
 - [x] stripe-webhook.ts: importar invalidatePlanCache e chamar após checkout.session.completed, customer.subscription.updated e customer.subscription.deleted
 - [x] zapi.test.ts: corrigir teste de roteamento — banco indisponível agora lança erro (sem fallback para FREE)
 - [x] 156 testes passando, TypeScript sem erros
+
+## WhatsApp.tsx — Melhorias de Exibição e Webhook (v-atual)
+- [x] Passar origin ao chamar zapiGetQrCode: useState(() => window.location.origin) e input { origin: zapiOrigin }
+- [x] Exibir número conectado (zapiStatus.phoneNumber) no CardDescription da seção PRO quando conectado

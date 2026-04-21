@@ -58,8 +58,10 @@ export default function WhatsAppPage() {
   // Considera carregado quando zapiStatus chegou (independente do planoStatus)
   const planoCarregado = zapiStatus !== undefined;
 
+  const [zapiOrigin] = useState(() => window.location.origin);
+
   const { data: zapiQrData, isLoading: zapiQrLoading, refetch: refetchZapiQr } =
-    trpc.whatsapp.zapiGetQrCode.useQuery(undefined, {
+    trpc.whatsapp.zapiGetQrCode.useQuery({ origin: zapiOrigin }, {
       enabled: isPro && showZapiQr && zapiStatus?.connected === false,
       refetchInterval: isPro && showZapiQr && !zapiStatus?.connected ? 15000 : false,
       retry: 1,
@@ -165,6 +167,12 @@ export default function WhatsAppPage() {
               {connected ? "Conectado" : "Desconectado"}
             </span>
           </div>
+          {connected && zapiStatus?.phoneNumber && (
+            <CardDescription className="flex items-center gap-1.5 mt-1">
+              <Smartphone className="w-3.5 h-3.5" />
+              {zapiStatus.phoneNumber}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {connected ? (
