@@ -1905,3 +1905,9 @@
 - [x] Adicionar campo expiresAt (48h) na geração do token
 - [x] Validar expiração e uso único no procedure verificarToken
 - [x] Atualizar página de confirmação do cliente com mensagem de link expirado/já utilizado
+
+## Confirmação Automática Configurável e Notificação ao Admin (2026-04-21)
+- [x] Adicionar campos confirmacaoAutoAtivo e confirmacaoAutoHorasAntes na tabela automações (schema + migração)
+- [x] Backend: job periódico que confirma agendamentos automaticamente quando faltam X horas
+- [x] Backend: notificação in-app ao admin/profissional quando cliente confirma pelo link
+- [x] UI: painel de configuração de confirmação automática no editor de automações (tipo horas_antes_agendamento)

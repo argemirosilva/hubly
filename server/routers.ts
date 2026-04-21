@@ -2425,6 +2425,8 @@ export const appRouter = router({
         dataFixaHora: z.string().nullable().optional(),
         tituloMensagem: z.string().nullable().optional(),
         canalEnvio: z.enum(["whatsapp", "email", "sms"]).optional(),
+        confirmacaoAutoAtivo: z.boolean().optional(),
+        confirmacaoAutoHorasAntes: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

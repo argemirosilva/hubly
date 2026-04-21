@@ -41,6 +41,8 @@ interface FlowAutomacao {
   descricao?: string;
   ativo: boolean;
   nodes: FlowNode[];
+  confirmacaoAutoAtivo?: boolean;
+  confirmacaoAutoHorasAntes?: number;
 }
 
 //  Opções
@@ -827,8 +829,8 @@ export default function Automacoes() {
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null;
 
-  const openEditor = (flow?: Partial<FlowAutomacao> & { id?: number; flowJson?: string }) => {
-    setCurrentFlow({ nome: flow?.nome || "Nova Automação", descricao: flow?.descricao, ativo: flow?.ativo ?? true, nodes: [] });
+  const openEditor = (flow?: Partial<FlowAutomacao> & { id?: number; flowJson?: string; confirmacaoAutoAtivo?: boolean; confirmacaoAutoHorasAntes?: number }) => {
+    setCurrentFlow({ nome: flow?.nome || "Nova Automação", descricao: flow?.descricao, ativo: flow?.ativo ?? true, nodes: [], confirmacaoAutoAtivo: flow?.confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: flow?.confirmacaoAutoHorasAntes ?? 2 });
     // Tentar restaurar nós do flowJson salvo
     if (flow?.flowJson) {
       try {
@@ -895,6 +897,8 @@ export default function Automacoes() {
         dataFixaHora: triggerNode.data.hora,
         canalEnvio: actionNode?.data.tipo === "enviar_email" ? "email" : "whatsapp",
         tituloMensagem: actionNode?.data.titulo,
+        confirmacaoAutoAtivo: currentFlow.confirmacaoAutoAtivo,
+        confirmacaoAutoHorasAntes: currentFlow.confirmacaoAutoHorasAntes,
       }, { onSuccess: () => {
         toast.success("Automação salva!");
         if (!updatedNodeData) setView("list");
@@ -1476,7 +1480,7 @@ export default function Automacoes() {
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [] })}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2 })}>
                           <Edit2 size={13} />
                         </Button>
 
@@ -1691,11 +1695,66 @@ export default function Automacoes() {
               />
             </div>
           ) : nodes.length > 0 ? (
-            <div className="w-56 border-l border-gray-100 bg-gray-50 flex flex-col items-center justify-center text-center p-6 flex-shrink-0">
-              <Settings size={26} className="text-gray-300 mb-2" />
-              <p className="text-sm text-gray-500 font-medium">Selecione um nó</p>
-              <p className="text-xs text-gray-400 mt-1">Clique em qualquer nó para configurar</p>
-            </div>
+            (() => {
+              const triggerNode = nodes.find(n => n.type === "trigger");
+              const isHorasAntes = triggerNode?.data?.tipo === "horas_antes_agendamento";
+              if (isHorasAntes) {
+                return (
+                  <div className="w-72 border-l border-gray-200 bg-white overflow-y-auto flex flex-col flex-shrink-0">
+                    <div className="p-4 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Settings size={14} className="text-indigo-500" />
+                        <span className="text-sm font-semibold text-gray-800">Configurações Avançadas</span>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">Confirmação automática</p>
+                            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Confirma o agendamento automaticamente se o cliente não respondeu ao link de confirmação.</p>
+                          </div>
+                          <Switch
+                            checked={currentFlow.confirmacaoAutoAtivo ?? false}
+                            onCheckedChange={v => setCurrentFlow(p => ({ ...p, confirmacaoAutoAtivo: v }))}
+                          />
+                        </div>
+                        {currentFlow.confirmacaoAutoAtivo && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-600">Confirmar quando faltar</Label>
+                            <Select
+                              value={String(currentFlow.confirmacaoAutoHorasAntes ?? 2)}
+                              onValueChange={v => setCurrentFlow(p => ({ ...p, confirmacaoAutoHorasAntes: Number(v) }))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 hora antes</SelectItem>
+                                <SelectItem value="2">2 horas antes</SelectItem>
+                                <SelectItem value="3">3 horas antes</SelectItem>
+                                <SelectItem value="4">4 horas antes</SelectItem>
+                                <SelectItem value="6">6 horas antes</SelectItem>
+                                <SelectItem value="12">12 horas antes</SelectItem>
+                                <SelectItem value="24">24 horas antes</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-indigo-600 mt-1">⚠️ Desabilitado por padrão. Ative apenas se quiser confirmar sem resposta do cliente.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="w-56 border-l border-gray-100 bg-gray-50 flex flex-col items-center justify-center text-center p-6 flex-shrink-0">
+                  <Settings size={26} className="text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-500 font-medium">Selecione um nó</p>
+                  <p className="text-xs text-gray-400 mt-1">Clique em qualquer nó para configurar</p>
+                </div>
+              );
+            })()
           ) : null}
         </div>
     </div>

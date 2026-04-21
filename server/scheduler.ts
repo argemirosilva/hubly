@@ -1926,6 +1926,100 @@ async function processarRecorrencias() {
   }
 }
 
+// ── Confirmação automática por proximidade ──────────────────────────────────────────────────────────
+async function processarConfirmacaoAutomatica() {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const agora = new Date();
+
+    // Buscar todas as automações ativas do tipo horas_antes_agendamento com confirmação auto ativa
+    const automacoesComConfirmacao = await db
+      .select({
+        id: automacoes.id,
+        empresaId: automacoes.empresaId,
+        nome: automacoes.nome,
+        delayMinutos: automacoes.delayMinutos,
+        confirmacaoAutoHorasAntes: automacoes.confirmacaoAutoHorasAntes,
+      })
+      .from(automacoes)
+      .where(and(
+        eq(automacoes.tipoGatilho, 'horas_antes_agendamento'),
+        eq(automacoes.ativo, true),
+        eq(automacoes.confirmacaoAutoAtivo, true),
+      ));
+
+    if (automacoesComConfirmacao.length === 0) return;
+
+    for (const automacao of automacoesComConfirmacao) {
+      const horasAntes = automacao.confirmacaoAutoHorasAntes ?? 2;
+      const msAntes = horasAntes * 60 * 60 * 1000;
+
+      // Janela: agendamentos que começam entre agora e agora+horasAntes
+      const dataMin = agora;
+      const dataMax = new Date(agora.getTime() + msAntes);
+      const dataMinStr = dataMin.toISOString().slice(0, 10);
+      const dataMaxStr = dataMax.toISOString().slice(0, 10);
+
+      // Buscar agendamentos agendados (não confirmados) nessa janela
+      const ags = await db
+        .select({
+          id: agendamentos.id,
+          empresaId: agendamentos.empresaId,
+          data: agendamentos.data,
+          horaInicio: agendamentos.horaInicio,
+          status: agendamentos.status,
+          clienteNome: clientes.nome,
+          profissionalNome: profissionais.nome,
+        })
+        .from(agendamentos)
+        .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+        .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+        .where(and(
+          eq(agendamentos.empresaId, automacao.empresaId),
+          eq(agendamentos.status, 'agendado'), // apenas não confirmados
+          sql`${agendamentos.data} >= ${dataMinStr}`,
+          sql`${agendamentos.data} <= ${dataMaxStr}`,
+        ));
+
+      for (const ag of ags) {
+        if (!ag.data || !ag.horaInicio) continue;
+
+        // Calcular timestamp exato do agendamento
+        const agDataStr = getDataStr(ag.data);
+        const [hAg, mAg] = String(ag.horaInicio).split(':');
+        const tsAgendamento = new Date(`${agDataStr}T${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}:00`).getTime();
+
+        // Verificar se o agendamento está dentro da janela de confirmação
+        const msAteAgendamento = tsAgendamento - agora.getTime();
+        if (msAteAgendamento < 0 || msAteAgendamento > msAntes) continue;
+
+        // Confirmar automaticamente
+        await db.update(agendamentos)
+          .set({ status: 'confirmado', confirmadoEm: agora })
+          .where(and(
+            eq(agendamentos.id, ag.id),
+            eq(agendamentos.status, 'agendado'), // double-check para evitar race condition
+          ));
+
+        // Registrar notificação interna
+        await createNotificacao({
+          empresaId: automacao.empresaId,
+          titulo: '\u2705 Confirmação automática',
+          mensagem: `Agendamento de ${ag.clienteNome ?? 'cliente'} em ${getDataStr(ag.data)} às ${formatarHora(ag.horaInicio)} foi confirmado automaticamente (faltavam ${horasAntes}h).`,
+          tipo: 'sistema',
+          lida: false,
+        }).catch(() => {});
+
+        console.log(`[ConfirmacaoAuto] Agendamento ${ag.id} de ${ag.clienteNome} confirmado automaticamente (${horasAntes}h antes) — empresa ${automacao.empresaId}`);
+      }
+    }
+  } catch (err) {
+    console.error('[ConfirmacaoAuto] Erro:', err);
+  }
+}
+
 // ── Inicializar agendamento ────────────────────────────────────────────────────────────────────────
 export function initScheduler() {
   // Executar imediatamente ao iniciar (após 30s para o DB estar pronto)
@@ -1985,6 +2079,14 @@ export function initScheduler() {
     }, 30 * 60 * 1000); // a cada 30 minutos
   }, 45_000); // aguarda 45s para o DB estar pronto
 
+  // NOVO: Confirmação automática por proximidade — roda a cada 15 minutos
+  setTimeout(() => {
+    processarConfirmacaoAutomatica();
+    setInterval(() => {
+      processarConfirmacaoAutomatica();
+    }, 15 * 60 * 1000);
+  }, 75_000); // aguarda 75s para o DB estar pronto
+
   // NOVO: Ao reconectar WhatsApp, processar fila imediatamente
   waManager.on('connected', () => {
     console.log('[Fila] WhatsApp reconectado — processando fila pendente imediatamente...');
@@ -2025,4 +2127,5 @@ export function initScheduler() {
     }, 60 * 60 * 1000); // verifica a cada 1h
   }, 150_000); // aguarda 2.5min para o DB estar pronto
   console.log("[Scheduler] Geração automática de recorrências inicializada (diário às 6h).");
+  console.log("[Scheduler] Confirmação automática por proximidade inicializada (a cada 15min).");
 }

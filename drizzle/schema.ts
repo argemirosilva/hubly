@@ -351,6 +351,9 @@ export const automacoes = mysqlTable("automacoes", {
   ativo: boolean("ativo").default(true),
   isTemplate: boolean("isTemplate").default(false),
   flowJson: text("flowJson"),
+  // Confirmação automática: confirmar agendamento automaticamente se cliente não respondeu
+  confirmacaoAutoAtivo: boolean("confirmacaoAutoAtivo").default(false),
+  confirmacaoAutoHorasAntes: int("confirmacaoAutoHorasAntes").default(2),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
