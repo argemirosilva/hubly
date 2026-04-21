@@ -1895,3 +1895,7 @@
 - [x] Pré-preencher telefone do usuário logado no modal de teste
 - [x] Spinner no botão de teste enquanto o envio está sendo processado
 - [x] Filtro "Apenas testes" na aba Histórico de automações
+
+## Correção do Link de Confirmação nos Testes (2026-04-21)
+- [x] Investigar como o link de confirmação é gerado nas variáveis de teste
+- [x] Corrigir para usar o domínio correto hubly.orizontech.com.br
