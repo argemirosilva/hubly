@@ -1848,3 +1848,11 @@
 - [x] Remover função enviarLembretesAgendamentos do scheduler.ts
 - [x] Remover cron que chama enviarLembretesAgendamentos
 - [ ] Validar que todas as empresas tém automação dias_antes_agendamento
+
+## Templates de Automação Default (2026-04-21)
+- [x] Adicionar campo isTemplate na tabela automacoes + migração
+- [x] Criar server/automation-templates.ts com 8 templates default
+- [x] Provisionar automações default ao criar empresa (apenas novas empresas)
+- [x] Marcar isTemplate=false ao editar automação manualmente
+- [x] Badge "Padrão" na UI para automações de template
+- [x] Gerar pipeline automaticamente ao provisionar automações default

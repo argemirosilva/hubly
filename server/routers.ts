@@ -14,7 +14,7 @@ import {
   getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
-  getAutomacoesByEmpresa, createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento, getAutomacoesByEvento,
+  createAutomacao, updateAutomacao, deleteAutomacao, getAutomacaoByEvento, getAutomacoesByEvento, getAutomacoesByEmpresa,
   getProntuariosByCliente, createProntuario,
   getCoresStatus, upsertCoresStatus,
   getDashboardMetrics,
@@ -39,6 +39,7 @@ import {
   getDashboardConfig, saveDashboardConfig,
   deleteAgendamentoCompleto,
 } from "./db";
+import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
 import { checkAndNotifyUsageLimits } from "./usage-alerts";
@@ -373,7 +374,14 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const existing = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
         if (existing) throw new Error("Empresa já cadastrada");
-        await createEmpresa({ ...input, ownerId: ctx.user.id });
+        const result = await createEmpresa({ ...input, ownerId: ctx.user.id });
+        // Provisionar automações default + pipeline para nova empresa
+        const novaEmpresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (novaEmpresa) {
+          provisionarAutomacoesDefault(novaEmpresa.id).catch(err =>
+            console.error("[Templates] Erro ao provisionar:", err)
+          );
+        }
         return { success: true };
       }),
     checkSlugDisponivel: protectedProcedure
@@ -2419,7 +2427,8 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
-        await updateAutomacao(id, data);
+        // Quando o usuário edita manualmente, o template deixa de ser usado
+        await updateAutomacao(id, { ...data, isTemplate: false });
         return { success: true };
       }),
     delete: protectedProcedure

@@ -1373,6 +1373,11 @@ export default function Automacoes() {
                           <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
                             {a.ativo ? "Ativa" : "Pausada"}
                           </Badge>
+                          {a.isTemplate && (
+                            <Badge className="text-[10px] px-1.5 py-0 flex-shrink-0 bg-blue-50 text-blue-600 border-blue-200">
+                              Padrão
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className="text-xs text-gray-500 flex items-center gap-1 truncate"><Zap size={9} />{getTriggerLabel(a)}</span>
