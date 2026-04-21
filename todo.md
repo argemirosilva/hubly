@@ -1881,3 +1881,8 @@
 - [x] Corrigir implementação do endpoint /api/stripe/webhook
 - [x] Testar webhook localmente e em produção
 - [x] Validar que Stripe recebe HTTP 200-299
+
+## Simplificação da Tela Pipeline (2026-04-21)
+- [x] Remover botão "Novo pipeline" da tela Pipeline
+- [x] Remover botão de favoritar (estrela) da pipeline
+- [x] Remover estilo de seleção (botão azul clicável) — exibir nome da pipeline como título fixo

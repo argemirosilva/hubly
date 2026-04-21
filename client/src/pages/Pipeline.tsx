@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 import {
   Plus, MoreHorizontal, Pencil, Trash2, GripVertical,
-  User, Calendar, DollarSign, Loader2, KanbanSquare, X,
-  Star, CalendarDays, UserCircle
+  User, Calendar, DollarSign, Loader2, KanbanSquare,
+  CalendarDays, UserCircle
 } from "lucide-react";
 
 type StatusCartao = "em_andamento" | "congelado" | "cancelado" | "concluido";
@@ -66,7 +66,7 @@ export default function Pipeline() {
     }
   }, [pipelines]);
   const [modalNovoPipeline, setModalNovoPipeline] = useState(false);
-  const [nomePipeline, setNomePipeline] = useState("");
+  const [nomePipeline, setNomePipeline] = useState(""); // mantido para compatibilidade futura
   const [modalNovaColuna, setModalNovaColuna] = useState(false);
   const [nomeColuna, setNomeColuna] = useState("");
   const [corColuna, setCorColuna] = useState("#6366f1");
@@ -178,33 +178,10 @@ export default function Pipeline() {
           <KanbanSquare className="w-5 h-5 text-primary" />
           <h1 className="text-lg font-semibold">Pipeline</h1>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Tabs de pipelines */}
-          {pipelines.map((p) => (
-            <div key={p.id} className="flex items-center gap-0.5">
-              <button
-                onClick={() => setPipelineAtivo(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${(pipelineAtivoData?.id === p.id) ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80 text-muted-foreground"}`}
-              >
-                {p.nome}
-              </button>
-              <button
-                title={pipelineFavoritaId === p.id ? "Remover do dashboard" : "Fixar no dashboard"}
-                onClick={() => handleToggleFavorita(p.id)}
-                className={`p-1 rounded transition-colors ${
-                  pipelineFavoritaId === p.id
-                    ? "text-yellow-500 hover:text-yellow-600"
-                    : "text-muted-foreground/30 hover:text-yellow-400"
-                }`}
-              >
-                <Star className={`w-3.5 h-3.5 ${pipelineFavoritaId === p.id ? "fill-yellow-500" : ""}`} />
-              </button>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => setModalNovoPipeline(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Novo pipeline
-          </Button>
-        </div>
+        {/* Nome da pipeline ativa como título fixo */}
+        {pipelineAtivoData && (
+          <span className="text-sm text-muted-foreground">{pipelineAtivoData.nome}</span>
+        )}
       </div>
 
       {/* Board */}
@@ -212,12 +189,9 @@ export default function Pipeline() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
           <KanbanSquare className="w-12 h-12 text-muted-foreground/30" />
           <div>
-            <p className="font-medium text-muted-foreground">Nenhum pipeline criado</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">Crie um pipeline para organizar seus negócios em colunas</p>
+            <p className="font-medium text-muted-foreground">Pipeline sendo configurado</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">Seu pipeline será criado automaticamente. Aguarde um momento.</p>
           </div>
-          <Button onClick={() => setModalNovoPipeline(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Criar primeiro pipeline
-          </Button>
         </div>
       ) : (
         <div className="flex-1 overflow-x-auto">
@@ -364,19 +338,7 @@ export default function Pipeline() {
         </div>
       )}
 
-      {/* Ações do pipeline ativo */}
-      {pipelineAtivoData && (
-        <div className="p-3 border-t flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => { if (confirm(`Excluir pipeline "${pipelineAtivoData.nome}" e todos os dados?`)) excluirPipeline.mutate({ id: pipelineAtivoData.id }); }}
-          >
-            <Trash2 className="w-4 h-4 mr-1" /> Excluir pipeline
-          </Button>
-        </div>
-      )}
+
 
       {/* Modal: Novo Pipeline */}
       <Dialog open={modalNovoPipeline} onOpenChange={setModalNovoPipeline}>
