@@ -1386,6 +1386,11 @@ export default function Automacoes() {
                             <MessageSquare size={9} />{a.canalEnvio === "whatsapp" ? "WhatsApp" : a.canalEnvio === "email" ? "E-mail" : "SMS"}
                           </span>
                         </div>
+                        {a.corpoMensagem && (
+                          <p className="text-xs text-gray-600 mt-1.5 line-clamp-2 leading-relaxed">
+                            {previewMensagem(a.corpoMensagem).substring(0, 100)}{previewMensagem(a.corpoMensagem).length > 100 ? "..." : ""}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo }, { onSuccess: () => gerarPipelineAutomatico() })} />

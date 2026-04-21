@@ -1856,3 +1856,7 @@
 - [x] Marcar isTemplate=false ao editar automação manualmente
 - [x] Badge "Padrão" na UI para automações de template
 - [x] Gerar pipeline automaticamente ao provisionar automações default
+
+## Preview de Mensagem na Lista de Automações (2026-04-21)
+- [x] Função para extrair preview (primeiras 80 caracteres) da mensagem
+- [x] Exibir preview abaixo do gatilho na lista de automações
