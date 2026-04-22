@@ -131,18 +131,40 @@ const MESES_ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out"
 function getNodeIncompleto(node: FlowNode): string[] {
   const campos: string[] = [];
   if (node.type === "trigger") {
-    if (!node.data.tipo) campos.push("Tipo de gatilho");
-    if (node.data.tipo === "data_fixa" && !node.data.dataFixa) campos.push("Data fixa");
-    if (node.data.tipo === "horas_antes_agendamento" && !node.data.horas) campos.push("Horas antes");
-    if (node.data.tipo === "horas_depois_agendamento" && !node.data.horas) campos.push("Horas depois");
-    if (node.data.tipo === "dias_antes_agendamento" && !node.data.dias) campos.push("Dias antes");
-    if (node.data.tipo === "dias_depois_agendamento" && !node.data.dias) campos.push("Dias depois");
+    // Tipo é sempre obrigatório
+    if (!node.data.tipo) { campos.push("Tipo de gatilho"); return campos; }
+    // Campos adicionais dependem do tipo selecionado
+    if (node.data.tipo === "data_fixa") {
+      if (!node.data.dia) campos.push("Dia");
+      if (!node.data.mes) campos.push("Mês");
+    } else if (node.data.tipo === "horas_antes_agendamento") {
+      if (!node.data.horas && node.data.horas !== 0) campos.push("Horas antes");
+    } else if (node.data.tipo === "horas_apos_agendamento") {
+      if (!node.data.horas && node.data.horas !== 0) campos.push("Horas após");
+    } else if (node.data.tipo === "dias_antes_agendamento") {
+      if (!node.data.dias && node.data.dias !== 0) campos.push("Dias antes");
+    } else if (node.data.tipo === "dias_depois_agendamento") {
+      if (!node.data.dias && node.data.dias !== 0) campos.push("Dias depois");
+    }
+    // Tipos de evento puro e aniversário não precisam de campos adicionais:
+    // evento_agendamento_criado, evento_agendamento_confirmado, evento_agendamento_cancelado,
+    // evento_pre_agendamento, evento_sessoes_acabando, aniversario_mes, etc.
   } else if (node.type === "action") {
-    if (!node.data.mensagem || node.data.mensagem.trim() === "") campos.push("Mensagem");
+    // Tipo de ação é obrigatório
+    if (!node.data.tipo) { campos.push("Tipo de ação"); return campos; }
+    // Mensagem só é obrigatória para ações que enviam mensagem
+    if ((node.data.tipo === "enviar_whatsapp" || node.data.tipo === "enviar_email") &&
+        (!node.data.mensagem || node.data.mensagem.trim() === "")) {
+      campos.push("Mensagem");
+    }
   } else if (node.type === "condition") {
-    if (!node.data.campo) campos.push("Campo de condição");
+    // Tipo de filtro é obrigatório (campo "tipo", não "campo")
+    if (!node.data.tipo) campos.push("Tipo de filtro");
+    // Valor é obrigatório para filtros que precisam de valor
+    else if (!node.data.valor || node.data.valor.trim() === "") campos.push("Valor do filtro");
   } else if (node.type === "delay") {
-    if (!node.data.quantidade) campos.push("Quantidade de tempo");
+    // quantidade tem default 1, só valida se for explicitamente 0 ou negativo
+    if (node.data.quantidade !== undefined && Number(node.data.quantidade) <= 0) campos.push("Quantidade de tempo");
   }
   return campos;
 }
