@@ -1955,3 +1955,6 @@
 - [x] Botão "Limpar enviados" aparece apenas quando há registros com status=enviado
 - [x] Modal mostra filtros atuais (período, automação) antes de confirmar
 - [x] Ação é irreversível (aviso no modal)
+
+## Remoção do Botão Flutuante de Suporte (2026-04-22)
+- [x] Remover botão flutuante de suporte (MessageCircle) da interface
