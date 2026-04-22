@@ -619,6 +619,7 @@ async function processarAutomacoesAgendadas() {
             empresaPortalSlug: empresas.portalSlug,
             waMsgLembrete: empresas.waMsgLembrete,
             reservaPercentual: empresas.reservaPercentual,
+            observacoes: agendamentos.observacoes,
           })
           .from(agendamentos)
           .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -678,6 +679,7 @@ async function processarAutomacoesAgendadas() {
             valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
             link_confirmacao: linkConfirmacao,
             link_agendamento: _linkAgDiasAntes,
+            observacoes: ag.observacoes ?? '',
             dias_antes: String(dias),
           };
 
@@ -743,6 +745,7 @@ async function processarAutomacoesAgendadas() {
             empresaNome: empresas.nome,
             empresaPortalSlug: empresas.portalSlug,
             reservaPercentual: empresas.reservaPercentual,
+            observacoes: agendamentos.observacoes,
           })
           .from(agendamentos)
           .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -797,6 +800,7 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgHorasAntes,
+            observacoes: ag.observacoes ?? '',
             horas_antes: String(Math.round(delayMin / 60)),
           };
 
@@ -863,6 +867,7 @@ async function processarAutomacoesAgendadas() {
             empresaNome: empresas.nome,
             empresaPortalSlug: empresas.portalSlug,
             reservaPercentual: empresas.reservaPercentual,
+            observacoes: agendamentos.observacoes,
           })
           .from(agendamentos)
           .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -917,6 +922,7 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgHorasApos,
+            observacoes: ag.observacoes ?? '',
             horas_apos: String(Math.round(delayMin / 60)),
           };
 
@@ -983,6 +989,7 @@ async function processarAutomacoesAgendadas() {
             servicoNome: servicos.nome,
             empresaNome: empresas.nome,
             empresaPortalSlug: empresas.portalSlug,
+            observacoes: agendamentos.observacoes,
           })
           .from(agendamentos)
           .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -1036,6 +1043,7 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgDiasDepois,
+            observacoes: ag.observacoes ?? '',
             dias_depois: String(diasDepois),
           };
 
@@ -1346,6 +1354,7 @@ async function preRegistrarEnviosPendentes() {
           empresaNome: empresas.nome,
           empresaPortalSlug: empresas.portalSlug,
           valorTotal: agendamentos.valorTotal,
+          observacoes: agendamentos.observacoes,
         })
         .from(agendamentos)
         .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
@@ -1439,6 +1448,7 @@ async function preRegistrarEnviosPendentes() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotalPre.toFixed(2).replace('.', ',')}`,
             link_agendamento: _preLink,
+            observacoes: ag.observacoes ?? '',
           };
           if (!automacao.corpoMensagem) continue;
           const mensagemPre = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => preTemplateVars[key] ?? '');

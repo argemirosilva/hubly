@@ -134,6 +134,7 @@ function processarVariaveisTemplate(template: string, vars: {
   valor_reserva?: string;
   link_confirmacao?: string;
   link_agendamento?: string;
+  observacoes?: string;
 }): string {
   return template
     .replace(/\{\{nome_cliente\}\}/g, vars.nome_cliente ?? '')
@@ -146,7 +147,8 @@ function processarVariaveisTemplate(template: string, vars: {
     .replace(/\{\{valor\}\}/g, vars.valor ?? '')
     .replace(/\{\{valor_reserva\}\}/g, vars.valor_reserva ?? '')
     .replace(/\{\{link_confirmacao\}\}/g, vars.link_confirmacao ?? '')
-    .replace(/\{\{link_agendamento\}\}/g, vars.link_agendamento ?? '');
+    .replace(/\{\{link_agendamento\}\}/g, vars.link_agendamento ?? '')
+    .replace(/\{\{observacoes\}\}/g, vars.observacoes ?? '');
 }
 
 /**
@@ -1007,6 +1009,7 @@ export const appRouter = router({
               valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
               valor_reserva: valorReservaCalc,
               link_agendamento: _linkAgendamento,
+              observacoes: rest.observacoes ?? '',
             };
             // ── Lógica de prioridade de automação por status inicial ────────────────
             let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
@@ -1360,6 +1363,7 @@ export const appRouter = router({
                   valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
                   valor_reserva: valorReservaCalc2,
                   link_agendamento: _linkAgendamento2,
+                  observacoes: agendamento.observacoes ?? '',
                 };
 
                 // Determinar evento e mensagem padrão por status
