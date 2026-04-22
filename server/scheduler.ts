@@ -681,23 +681,8 @@ async function processarAutomacoesAgendadas() {
             dias_antes: String(dias),
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            const confirmacaoTexto = linkConfirmacao ? `\n\n✅ *Confirme seu agendamento:*\n${linkConfirmacao}` : '';
-            mensagem =
-              `🔔 *Lembrete de Agendamento*\n\n` +
-              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
-              `Você tem um agendamento em ${dias} dia${dias !== 1 ? 's' : ''}:\n\n` +
-              `📋 *Detalhes:*\n` +
-              `• Serviço: ${ag.servicoNome ?? ''}\n` +
-              `• Profissional: ${ag.profissionalNome ?? ''}\n` +
-              `• Data: ${dataFormatada}\n` +
-              `• Horário: ${horaFormatada}\n` +
-              `\n📍 *${ag.empresaNome ?? ''}*` +
-              confirmacaoTexto;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           const midiaUrlDiasAntes = (() => {
@@ -815,18 +800,8 @@ async function processarAutomacoesAgendadas() {
             horas_antes: String(Math.round(delayMin / 60)),
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            mensagem =
-              `⏰ *Lembrete de agendamento!*\n\n` +
-              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
-              `Você tem um agendamento em *${Math.round(delayMin / 60)}h*:\n` +
-              `📌 *${ag.servicoNome ?? ''}* com *${ag.profissionalNome ?? ''}*\n` +
-              `📅 *${dataFormatada}* às *${formatarHora(ag.horaInicio)}*\n\n` +
-              `Nos vemos em breve! 😊`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           const midiaUrlHorasAntes = (() => {
@@ -945,16 +920,8 @@ async function processarAutomacoesAgendadas() {
             horas_apos: String(Math.round(delayMin / 60)),
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            mensagem =
-              `⭐ *Obrigado pela visita!*\n\n` +
-              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
-              `Esperamos que tenha gostado do atendimento em *${ag.empresaNome ?? ''}*.\n\n` +
-              `Até a próxima! 😊`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           const midiaUrlHorasApos = (() => {
@@ -1072,16 +1039,8 @@ async function processarAutomacoesAgendadas() {
             dias_depois: String(diasDepois),
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            mensagem =
-              `⭐ *Como foi sua experiência?*\n\n` +
-              `Olá, *${ag.clienteNome ?? 'cliente'}*!\n\n` +
-              `Faz ${diasDepois} dia(s) desde seu atendimento em *${ag.empresaNome ?? ''}*.\n\n` +
-              `Esperamos que tenha gostado! Adoraríamos receber seu feedback. 😊`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
@@ -1199,16 +1158,8 @@ async function processarAniversarioMes() {
             link_agendamento: _linkAgAniv,
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            mensagem =
-              `🎂 *Feliz Aniversário!*\n\n` +
-              `Olá, *${cliente.nome ?? 'cliente'}*!\n\n` +
-              `A equipe de *${empresaData?.nome ?? ''}* deseja um feliz aniversário! 🎉\n\n` +
-              `Esperamos você em breve! 💖`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           const midiaUrl = (() => {
             if (!automacao.flowJson) return undefined;
@@ -1312,12 +1263,8 @@ async function processarDataFixa() {
             link_agendamento: _linkAgCamp,
           };
 
-          let mensagem: string;
-          if (automacao.corpoMensagem) {
-            mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
-          } else {
-            mensagem = `Olá, *${cliente.nome ?? 'cliente'}*! Mensagem de *${empresaData?.nome ?? ''}*.`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
           const midiaUrl = (() => {
             if (!automacao.flowJson) return undefined;
@@ -1493,12 +1440,8 @@ async function preRegistrarEnviosPendentes() {
             valor: `R$ ${valorTotalPre.toFixed(2).replace('.', ',')}`,
             link_agendamento: _preLink,
           };
-          let mensagemPre: string;
-          if (automacao.corpoMensagem) {
-            mensagemPre = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => preTemplateVars[key] ?? '');
-          } else {
-            mensagemPre = `📅 *Lembrete de Agendamento*\n\nOlá, *${ag.clienteNome ?? 'cliente'}*!\n\nVocê tem um agendamento em *${ag.empresaNome ?? ''}* no dia ${dataFormatadaPre} às ${formatarHora(ag.horaInicio)}.`;
-          }
+          if (!automacao.corpoMensagem) continue;
+          const mensagemPre = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => preTemplateVars[key] ?? '');
 
           // Extrair mídia do flow se houver
           const midiaUrlPre = (() => {
@@ -1777,7 +1720,8 @@ async function cancelarPreAgendamentosExpirados() {
                   data: agCompleto.data ?? '',
                   hora: formatarHora(agCompleto.horaInicio),
                 };
-                let mensagem = automacao.corpoMensagem ?? '';
+                if (!automacao.corpoMensagem) continue;
+                let mensagem = automacao.corpoMensagem;
                 for (const [k, v] of Object.entries(templateVars)) {
                   mensagem = mensagem.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
                 }

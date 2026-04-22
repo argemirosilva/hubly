@@ -1022,48 +1022,18 @@ export const appRouter = router({
               automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
             }
 
-            // Mensagem padrão de fallback varia por status
-            const mensagemPadraoPreAgendado = [
-              `⏳ *Pré-agendamento Recebido!*`,
-              ``,
-              `Olá, *${cliente.nome}*!`,
-              `Recebemos seu pedido de agendamento. Em breve confirmaremos sua disponibilidade.`,
-              ``,
-              `📅 *Data solicitada:* ${dataFormatada}`,
-              `⏰ *Horário:* ${String(rest.horaInicio ?? '').slice(0, 5)} – ${String(rest.horaFim ?? '').slice(0, 5)}`,
-              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-              profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-              ``,
-              `_${empresa.nome}_`,
-            ].filter(Boolean).join('\n');
-
-            const mensagemPadraoCriado = [
-              `✅ *Agendamento Confirmado!*`,
-              ``,
-              `Olá, *${cliente.nome}*!`,
-              `Seu agendamento foi confirmado com sucesso.`,
-              ``,
-              `📅 *Data:* ${dataFormatada}`,
-              `⏰ *Horário:* ${String(rest.horaInicio ?? '').slice(0, 5)} – ${String(rest.horaFim ?? '').slice(0, 5)}`,
-              servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-              profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-              `💰 *Valor:* R$ ${valorServico.toFixed(2).replace('.', ',')}`,
-              valorReservaCalc ? `🔒 *Reserva:* ${valorReservaCalc}` : null,
-              ``,
-              `_${empresa.nome}_`,
-            ].filter(Boolean).join('\n');
-
             // Verificar condições do flowJson (ex: filtro por serviço)
             const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome, itensAgCriado);
-            if (!passouFiltroServico) {
-              console.log(`[Fila] Automação "${automacaoAtiva!.nome}" ignorada para ag. ${id}: serviços "${servicoNomeCriado}" não estão no filtro`);
+            if (!automacaoAtiva || !automacaoAtiva.corpoMensagem) {
+              // Sem automação configurada ou sem mensagem: não enviar nada
+              console.log(`[Fila] Nenhuma automação ativa para ag. ${id} (${statusOriginal}) — envio ignorado`);
+            } else if (!passouFiltroServico) {
+              console.log(`[Fila] Automação "${automacaoAtiva.nome}" ignorada para ag. ${id}: serviços "${servicoNomeCriado}" não estão no filtro`);
             } else {
-              const mensagem = automacaoAtiva?.corpoMensagem
-                ? processarVariaveisTemplate(automacaoAtiva.corpoMensagem, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico })
-                : (statusOriginal === 'pre_agendado' ? mensagemPadraoPreAgendado : mensagemPadraoCriado);
+              const mensagem = processarVariaveisTemplate(automacaoAtiva.corpoMensagem, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico });
 
               // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
-              const midiaUrlCriado = automacaoAtiva ? extrairMidiaUrl(automacaoAtiva.flowJson) : null;
+              const midiaUrlCriado = extrairMidiaUrl(automacaoAtiva.flowJson);
               await registrarEnvioAutomacao({
                 empresaId: empresa.id,
                 automacaoId: automacaoAtiva?.id,
@@ -1425,65 +1395,9 @@ export const appRouter = router({
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
                   : 'Atendimento Concluído';
 
-                // Se não há automações configuradas, enviar mensagem padrão
+                // Se não há automações configuradas, não enviar nada
                 if (todasAutomacoesStatus.length === 0) {
-                  let mensagemPadrao: string;
-                  if (data.status === 'confirmado') {
-                    mensagemPadrao = [
-                      `✅ *Agendamento Confirmado!*`,
-                      ``,
-                      `Olá, *${cliente.nome}*! Seu agendamento foi confirmado.`,
-                      ``,
-                      `📅 *Data:* ${dataFormatada}`,
-                      `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                      ``,
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
-                  } else if (data.status === 'cancelado') {
-                    mensagemPadrao = [
-                      `❌ *Agendamento Cancelado*`,
-                      ``,
-                      `Olá, *${cliente.nome}*. Infelizmente seu agendamento foi cancelado.`,
-                      ``,
-                      `📅 *Data:* ${dataFormatada}`,
-                      `⏰ *Horário:* ${String(agendamento.horaInicio ?? '').slice(0, 5)} – ${String(agendamento.horaFim ?? '').slice(0, 5)}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      ``,
-                      `Entre em contato para reagendar.`,
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
-                  } else {
-                    mensagemPadrao = [
-                      `🌟 *Atendimento Concluído!*`,
-                      ``,
-                      `Olá, *${cliente.nome}*! Seu atendimento foi concluído com sucesso.`,
-                      ``,
-                      `📅 *Data:* ${dataFormatada}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                      ``,
-                      `Obrigada pela preferência! Esperamos você em breve. 💖`,
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
-                  }
-                  await registrarEnvioAutomacao({
-                    empresaId: empresa.id,
-                    agendamentoId: id,
-                    automacaoId: undefined,
-                    automacaoNome: nomeEventoLabel,
-                    clienteId: cliente.id,
-                    clienteNome: cliente.nome,
-                    telefone,
-                    canal: 'whatsapp',
-                    mensagem: mensagemPadrao,
-                    status: 'pendente',
-                    enviarEm: new Date(),
-                    servicoNome: servico?.nome ?? undefined,
-                  });
-                  console.log(`[Fila] ${nomeEventoLabel} (padrão) enfileirado para ag. ${id} (${telefone})`);
-                  try { await (await import('./db-plans')).incrementWhatsappCount(empresa.id); } catch {}
+                  console.log(`[Fila] Nenhuma automação ativa para ${nomeEventoLabel} (ag. ${id}) — envio ignorado`);
                 } else {
                   // Bug fix 3d: Iterar sobre TODAS as automações ativas para o evento
                   for (const automacaoUsada of todasAutomacoesStatus) {

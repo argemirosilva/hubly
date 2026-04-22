@@ -1932,3 +1932,16 @@
 ## Correção do Fluxo de Reserva Recebida (2026-04-22)
 - [x] Corrigir atualização de status do pré-agendamento para "agendado" ao confirmar reserva
 - [x] Corrigir abatimento do valor da reserva do saldo devedor do agendamento
+
+## Remoção de Mensagens Hardcoded (2026-04-22)
+- [x] Remover fallback hardcoded de dias_antes_agendamento no scheduler.ts
+- [x] Remover fallback hardcoded de horas_antes_agendamento no scheduler.ts
+- [x] Remover fallback hardcoded de horas_apos_agendamento no scheduler.ts
+- [x] Remover fallback hardcoded de dias_depois_agendamento no scheduler.ts
+- [x] Remover fallback hardcoded de aniversario no scheduler.ts
+- [x] Remover fallback hardcoded de horario_fixo/data_fixa no scheduler.ts
+- [x] Remover fallback hardcoded de pre_agendamento_cancelado no scheduler.ts
+- [x] Remover fallback hardcoded de preRegistrarEnviosPendentes no scheduler.ts
+- [x] Remover mensagens padrão hardcoded na criação de agendamento (routers.ts)
+- [x] Remover bloco de mensagens padrão hardcoded para confirmado/cancelado/concluido (routers.ts)
+- [x] Regra: se não há automação configurada ou corpoMensagem vazio → não enviar nada (continue/ignorar)
