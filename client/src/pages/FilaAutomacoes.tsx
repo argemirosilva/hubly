@@ -284,6 +284,8 @@ export default function FilaAutomacoes() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [modoSelecao, setModoSelecao] = useState(false);
   const [cancelarLoteLoading, setCancelarLoteLoading] = useState(false);
+  const [limparEnviadosOpen, setLimparEnviadosOpen] = useState(false);
+  const [limparEnviadosLoading, setLimparEnviadosLoading] = useState(false);
 
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
     { status, periodo, ordenacao, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro, limit: 100 },
@@ -321,6 +323,15 @@ export default function FilaAutomacoes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const limparEnviadosMutation = trpc.automacoes.limparEnviados.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.deletedCount} envio(s) removido(s) com sucesso!`);
+      setLimparEnviadosOpen(false);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleCancelar = async (id: number) => {
     setCancelarLoading(true);
     try {
@@ -337,6 +348,15 @@ export default function FilaAutomacoes() {
       await cancelarItensMutation.mutateAsync({ ids: Array.from(selectedIds) });
     } finally {
       setCancelarLoteLoading(false);
+    }
+  };
+
+  const handleLimparEnviados = async () => {
+    setLimparEnviadosLoading(true);
+    try {
+      await limparEnviadosMutation.mutateAsync({ periodo, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro });
+    } finally {
+      setLimparEnviadosLoading(false);
     }
   };
 
@@ -518,6 +538,18 @@ export default function FilaAutomacoes() {
             Limpar filtros
           </Button>
         )}
+        {/* Botão para limpar enviados */}
+        {enviados > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => setLimparEnviadosOpen(true)}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Limpar enviados
+          </Button>
+        )}
           {/* Botão modo seleção — aparece se houver pendentes ou falhados */}
           {linhasCancelaveis.length > 0 && (
           <Button
@@ -560,6 +592,51 @@ export default function FilaAutomacoes() {
           )}
         </div>
       )}
+
+      {/* Modal de confirmação para limpar enviados */}
+      <Dialog open={limparEnviadosOpen} onOpenChange={setLimparEnviadosOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Limpar enviados
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">
+                Você está prestes a remover todos os registros de mensagens <strong>enviadas</strong> com os filtros atuais:
+              </p>
+              <ul className="text-xs text-red-600 mt-2 space-y-1 ml-4 list-disc">
+                <li>Período: <strong>{periodo === "hoje" ? "Hoje" : periodo === "semana" ? "Esta semana" : periodo === "mes" ? "Este mês" : "Todos"}</strong></li>
+                {automacaoFiltro !== "__todos__" && <li>Automação: <strong>{automacaoFiltro}</strong></li>}
+              </ul>
+              <p className="text-xs text-red-600 mt-2">
+                Esta ação <strong>não pode ser desfeita</strong>.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setLimparEnviadosOpen(false)}
+                disabled={limparEnviadosLoading}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleLimparEnviados}
+                disabled={limparEnviadosLoading}
+                className="flex-1 gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                {limparEnviadosLoading ? "Limpando..." : "Confirmar limpeza"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>

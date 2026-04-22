@@ -2696,6 +2696,49 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Limpar enviados com filtro (status=enviado, período, automação)
+    limparEnviados: protectedProcedure
+      .input(z.object({
+        periodo: z.enum(["hoje", "semana", "mes", "todos"]).default("todos"),
+        automacaoNome: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        const db = await import('./db').then(m => m.getDb());
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+        const { historicoEnviosAutomacao: tbl } = await import('../drizzle/schema');
+        const { eq, and, gte } = await import('drizzle-orm');
+
+        const conditions: any[] = [
+          eq(tbl.empresaId, empresa.id),
+          eq(tbl.status, 'enviado'),
+        ];
+
+        // Filtro por período
+        if (input.periodo !== "todos") {
+          const agora = new Date();
+          let desde: Date;
+          if (input.periodo === "hoje") desde = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+          else if (input.periodo === "semana") desde = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          else desde = new Date(agora.getFullYear(), agora.getMonth(), 1);
+          conditions.push(gte(tbl.criadoEm, desde));
+        }
+
+        // Filtro por automação específica
+        if (input.automacaoNome && input.automacaoNome !== "__todos__") {
+          conditions.push(eq(tbl.automacaoNome, input.automacaoNome));
+        }
+
+        const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+        // Contar quantos registros serao deletados antes de deletar
+        const rowsToDelete = await db.select({ id: tbl.id }).from(tbl).where(where);
+        const deletedCount = rowsToDelete.length;
+        // Deletar os registros
+        await db.delete(tbl).where(where);
+        return { success: true, deletedCount };
+      }),
+
     reenviarMensagem: protectedProcedure
       .input(z.object({ envioId: z.number() }))
       .mutation(async ({ ctx, input }) => {

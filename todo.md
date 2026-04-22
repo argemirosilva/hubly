@@ -1945,3 +1945,13 @@
 - [x] Remover mensagens padrão hardcoded na criação de agendamento (routers.ts)
 - [x] Remover bloco de mensagens padrão hardcoded para confirmado/cancelado/concluido (routers.ts)
 - [x] Regra: se não há automação configurada ou corpoMensagem vazio → não enviar nada (continue/ignorar)
+
+## Sidebar Branca e Limpeza de Enviados (2026-04-22)
+- [x] Mudar sidebar de cor escura para branca no AdminLayout.tsx
+- [x] Atualizar cores dos itens de menu para tema claro (texto cinza, hover cinza claro, active azul)
+- [x] Atualizar cores dos badges (notificações, WhatsApp, automações) para tema claro
+- [x] Adicionar mutation limparEnviados no backend (routers.ts) com filtro por período e automação
+- [x] Adicionar UI de limpeza de enviados com filtro e modal de confirmação no FilaAutomacoes.tsx
+- [x] Botão "Limpar enviados" aparece apenas quando há registros com status=enviado
+- [x] Modal mostra filtros atuais (período, automação) antes de confirmar
+- [x] Ação é irreversível (aviso no modal)
