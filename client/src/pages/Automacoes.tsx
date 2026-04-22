@@ -190,6 +190,45 @@ function getNodeIncompleto(node: FlowNode): string[] {
   return campos;
 }
 
+/** Gera um resumo legível do filtro de condição para exibir no canvas */
+function getConditionPreview(data: Record<string, any>): string | null {
+  const tipo = data.tipo;
+  if (!tipo) return null;
+  if (tipo === "por_servico") {
+    const servicos: string[] = Array.isArray(data.servicos) && data.servicos.length > 0
+      ? data.servicos
+      : (data.valor ? data.valor.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+    if (servicos.length === 0) return null;
+    return servicos.length <= 2 ? servicos.join(", ") : `${servicos.slice(0, 2).join(", ")} +${servicos.length - 2}`;
+  }
+  if (tipo === "por_profissional") {
+    const profs: string[] = Array.isArray(data.profissionais) && data.profissionais.length > 0
+      ? data.profissionais
+      : (data.valor ? data.valor.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+    if (profs.length === 0) return null;
+    return profs.length <= 2 ? profs.join(", ") : `${profs.slice(0, 2).join(", ")} +${profs.length - 2}`;
+  }
+  if (tipo === "por_categoria") {
+    return data.valor ? `Categoria: ${data.valor}` : null;
+  }
+  if (tipo === "por_tag") {
+    return data.valor ? `Tag: ${data.valor}` : null;
+  }
+  if (tipo === "por_tipo_cliente") {
+    const labels: Record<string, string> = { novo: "Clientes novos", recorrente: "Clientes recorrentes", inativo: "Clientes inativos", aniversariante: "Aniversariantes" };
+    return data.valor ? (labels[data.valor] ?? data.valor) : null;
+  }
+  if (tipo === "por_valor") {
+    const min = data.valorMin !== undefined && data.valorMin !== "" ? `R$ ${data.valorMin}` : null;
+    const max = data.valorMax !== undefined && data.valorMax !== "" ? `R$ ${data.valorMax}` : null;
+    if (min && max) return `${min} – ${max}`;
+    if (min) return `≥ ${min}`;
+    if (max) return `≤ ${max}`;
+    return null;
+  }
+  return null;
+}
+
 //  NodeCard
 
 function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connecting }: {
@@ -256,6 +295,16 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
         <p className="text-sm font-semibold text-gray-800 truncate">{title}</p>
         {node.data.mensagem && <p className="text-xs text-gray-500 mt-1 line-clamp-2 italic">"{node.data.mensagem}"</p>}
         {node.data.quantidade && <p className="text-xs text-gray-500 mt-1">⏱ {node.data.quantidade} {node.data.unidade || "horas"}</p>}
+        {node.type === "condition" && (() => {
+          const preview = getConditionPreview(node.data);
+          const opt = CONDITION_OPTIONS.find(c => c.value === node.data.tipo);
+          return preview ? (
+            <div className="flex items-center gap-1 mt-1.5">
+              {opt && <opt.icon size={10} style={{ color: opt.color }} />}
+              <p className="text-[11px] text-gray-500 truncate">{preview}</p>
+            </div>
+          ) : null;
+        })()}
       </div>
       {node.type !== "end" && !connecting && (
         <div className="px-3 pb-2 flex justify-center">
@@ -390,6 +439,24 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
     set("valor", novo.join(", "));
   };
 
+  // Filtro de categoria para a lista de serviços
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("__todos__");
+  const servicosFiltrados = filtroCategoria === "__todos__"
+    ? servicosData
+    : servicosData.filter((s: any) => s.categoria === filtroCategoria);
+
+  // Helpers para multi-select de profissionais
+  const profissionaisSelecionados: string[] = data.profissionais
+    ? (Array.isArray(data.profissionais) ? data.profissionais : data.profissionais.split(",").map((s: string) => s.trim()).filter(Boolean))
+    : (data.valor && data.tipo === "por_profissional" ? data.valor.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+
+  const toggleProfissional = (nome: string) => {
+    const atual = profissionaisSelecionados;
+    const novo = atual.includes(nome) ? atual.filter(s => s !== nome) : [...atual, nome];
+    set("profissionais", novo);
+    set("valor", novo.join(", "));
+  };
+
   return (
     <>
       {/* Tipo de filtro */}
@@ -411,48 +478,103 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
 
       {/* Por serviço — multi-select com serviços reais */}
       {data.tipo === "por_servico" && (
-        <div>
-          <Label className="text-xs text-gray-500 mb-1.5 block">Serviços incluídos</Label>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-gray-500 block">Serviços incluídos</Label>
+
+          {/* Filtro por categoria/tipo de profissional */}
+          {categorias.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFiltroCategoria("__todos__")}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                  filtroCategoria === "__todos__"
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                }`}
+              >
+                Todos
+              </button>
+              {categorias.map((cat: string) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFiltroCategoria(cat)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                    filtroCategoria === cat
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
           {servicosData.length === 0 ? (
             <p className="text-xs text-gray-400 italic">Nenhum serviço cadastrado.</p>
+          ) : servicosFiltrados.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Nenhum serviço nesta categoria.</p>
           ) : (
-            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded-lg p-2 bg-gray-50">
-              {servicosData.map((s: any) => (
-                <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-1 py-0.5 transition-colors">
+            <div className="border border-gray-200 rounded-lg max-h-52 overflow-y-auto divide-y divide-gray-100">
+              {servicosFiltrados.map((s: any) => (
+                <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-indigo-50 transition-colors">
                   <input
                     type="checkbox"
                     checked={servicosSelecionados.includes(s.nome)}
                     onChange={() => toggleServico(s.nome)}
-                    className="accent-indigo-600 w-3.5 h-3.5"
+                    className="accent-indigo-600 w-4 h-4 shrink-0"
                   />
-                  <span className="text-xs text-gray-700">{s.nome}</span>
-                  {s.categoria && <span className="text-[10px] text-gray-400 ml-auto">{s.categoria}</span>}
+                  <span className="text-sm text-gray-800 flex-1">{s.nome}</span>
+                  {s.categoria && (
+                    <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                      {s.categoria}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
           )}
+
           {servicosSelecionados.length > 0 && (
-            <p className="text-[10px] text-indigo-600 mt-1">{servicosSelecionados.length} serviço(s) selecionado(s)</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-indigo-600 font-medium">{servicosSelecionados.length} serviço(s) selecionado(s)</p>
+              <button
+                type="button"
+                onClick={() => { set("servicos", []); set("valor", ""); }}
+                className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Limpar seleção
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* Por profissional — select com profissionais reais */}
+      {/* Por profissional — multi-select com profissionais reais */}
       {data.tipo === "por_profissional" && (
         <div>
-          <Label className="text-xs text-gray-500 mb-1 block">Profissional</Label>
+          <Label className="text-xs text-gray-500 mb-1.5 block">Profissionais incluídos</Label>
           {profissionaisData.length === 0 ? (
             <p className="text-xs text-gray-400 italic">Nenhum profissional cadastrado.</p>
           ) : (
-            <Select value={data.valor || ""} onValueChange={v => set("valor", v)}>
-              <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione o profissional..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__todos__">Todos os profissionais</SelectItem>
-                {profissionaisData.map((p: any) => (
-                  <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-100">
+              {profissionaisData.map((p: any) => (
+                <label key={p.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={profissionaisSelecionados.includes(p.nome)}
+                    onChange={() => toggleProfissional(p.nome)}
+                    className="accent-indigo-600 w-3.5 h-3.5"
+                  />
+                  <span className="text-xs text-gray-700">{p.nome}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {profissionaisSelecionados.length > 0 && (
+            <p className="text-[10px] text-indigo-600 mt-1">{profissionaisSelecionados.length} profissional(is) selecionado(s)</p>
           )}
         </div>
       )}

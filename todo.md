@@ -2025,3 +2025,8 @@
 - [x] Adicionar filtro "por valor do agendamento" com faixa mínimo/máximo
 - [x] Substituir campo genérico "Valor" por campos específicos por tipo de filtro
 - [x] Multi-select de serviços para filtro "por serviço" (em vez de texto livre)
+
+## Melhorias Condição Automações v2 (2026-04-22)
+- [ ] Backend: motor de execução interpreta por_categoria, por_valor, por_tipo_cliente
+- [ ] Frontend: multi-select de profissionais no filtro "por profissional"
+- [ ] Frontend: pré-visualização do filtro configurado no card do nó de condição no canvas

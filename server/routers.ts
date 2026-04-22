@@ -86,7 +86,16 @@ function extrairMidiaUrl(flowJson: string | null | undefined): string | null {
 function verificarCondicoesFlowRouter(
   flowJson: string | null | undefined,
   servicoNome: string | null | undefined,
-  todosServicos?: string[] // lista de todos os serviços do agendamento composto
+  todosServicos?: string[], // lista de todos os serviços do agendamento composto
+  extras?: {
+    profissionalNome?: string | null;       // nome do profissional do agendamento
+    categoriaServico?: string | null;       // categoria do serviço principal
+    todasCategorias?: string[];             // categorias de todos os serviços compostos
+    valorAgendamento?: number | null;       // valor total do agendamento
+    clienteTags?: string[];                 // tags do cliente
+    totalAgendamentosCliente?: number;      // total histórico de agendamentos do cliente
+    ultimoAgendamentoData?: Date | null;    // data do último agendamento (para inativo)
+  }
 ): boolean {
   if (!flowJson) return true;
   try {
@@ -97,9 +106,14 @@ function verificarCondicoesFlowRouter(
     for (const cond of condicoes) {
       const tipo = cond?.data?.tipo;
       const valor = cond?.data?.valor;
-      if (tipo === 'por_servico' && valor) {
-        const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
-        // Para agendamentos compostos: verificar se QUALQUER serviço do agendamento bate com o filtro
+
+      if (tipo === 'por_servico') {
+        // Suporta campo "servicos" (array novo) ou "valor" (string legado)
+        const servicosArray: string[] = Array.isArray(cond?.data?.servicos) && cond.data.servicos.length > 0
+          ? cond.data.servicos
+          : (valor ? String(valor).split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+        if (servicosArray.length === 0) continue; // sem filtro = passa todos
+        const servicosFiltro = servicosArray.map((s: string) => s.trim().toLowerCase());
         const nomesParaVerificar = todosServicos && todosServicos.length > 0
           ? todosServicos.map(s => s.trim().toLowerCase())
           : [(servicoNome ?? '').trim().toLowerCase()];
@@ -110,6 +124,43 @@ function verificarCondicoesFlowRouter(
           )
         );
         if (!passou) return false;
+
+      } else if (tipo === 'por_profissional' && valor && valor !== '__todos__') {
+        const profNome = (extras?.profissionalNome ?? '').trim().toLowerCase();
+        const filtroProf = String(valor).trim().toLowerCase();
+        if (!profNome || !profNome.includes(filtroProf) && !filtroProf.includes(profNome)) return false;
+
+      } else if (tipo === 'por_categoria' && valor) {
+        const categoriaFiltro = String(valor).trim().toLowerCase();
+        const categoriasAg = extras?.todasCategorias && extras.todasCategorias.length > 0
+          ? extras.todasCategorias.map(c => c.trim().toLowerCase())
+          : [(extras?.categoriaServico ?? '').trim().toLowerCase()];
+        if (!categoriasAg.some(c => c === categoriaFiltro)) return false;
+
+      } else if (tipo === 'por_valor') {
+        const valorAg = extras?.valorAgendamento ?? null;
+        if (valorAg !== null) {
+          const min = cond?.data?.valorMin !== undefined && cond.data.valorMin !== '' ? parseFloat(String(cond.data.valorMin)) : null;
+          const max = cond?.data?.valorMax !== undefined && cond.data.valorMax !== '' ? parseFloat(String(cond.data.valorMax)) : null;
+          if (min !== null && valorAg < min) return false;
+          if (max !== null && valorAg > max) return false;
+        }
+
+      } else if (tipo === 'por_tag' && valor) {
+        const tagFiltro = String(valor).trim().toLowerCase();
+        const tagsCliente = (extras?.clienteTags ?? []).map(t => t.trim().toLowerCase());
+        if (!tagsCliente.some(t => t.includes(tagFiltro) || tagFiltro.includes(t))) return false;
+
+      } else if (tipo === 'por_tipo_cliente' && valor) {
+        const total = extras?.totalAgendamentosCliente ?? 0;
+        const ultimoAg = extras?.ultimoAgendamentoData;
+        const diasSemAgendar = ultimoAg
+          ? Math.floor((Date.now() - ultimoAg.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        if (valor === 'novo' && total !== 1) return false;
+        if (valor === 'recorrente' && total < 2) return false;
+        if (valor === 'inativo' && (diasSemAgendar === null || diasSemAgendar < 60)) return false;
+        // 'aniversariante' é tratado pelo gatilho aniversario_mes, não pela condição
       }
     }
     return true;
@@ -1025,13 +1076,26 @@ export const appRouter = router({
               automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
             }
 
-            // Verificar condições do flowJson (ex: filtro por serviço)
-            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome, itensAgCriado);
+            // Montar extras para filtros avançados de condição
+            const todasCategoriasAg = servicosInput && servicosInput.length > 0
+              ? servicosInput.map(s => todosServicosEmpresa.find(sv => sv.id === s.servicoId)?.categoria).filter(Boolean) as string[]
+              : (servico?.categoria ? [servico.categoria] : []);
+            const extrasCondicao = {
+              profissionalNome: profissional?.nome ?? null,
+              categoriaServico: servico?.categoria ?? null,
+              todasCategorias: todasCategoriasAg,
+              valorAgendamento: parseFloat(rest.valorTotal ?? '0'),
+              clienteTags: Array.isArray(cliente.tags) ? cliente.tags as string[] : [],
+              totalAgendamentosCliente: (cliente as any).agendamentosCount ?? 0,
+              ultimoAgendamentoData: null as Date | null, // criando agora, sem histórico prévio relevante
+            };
+            // Verificar condições do flowJson (filtros por serviço, profissional, categoria, valor, tag, tipo de cliente)
+            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome, itensAgCriado, extrasCondicao);
             if (!automacaoAtiva || !automacaoAtiva.corpoMensagem) {
               // Sem automação configurada ou sem mensagem: não enviar nada
               console.log(`[Fila] Nenhuma automação ativa para ag. ${id} (${statusOriginal}) — envio ignorado`);
             } else if (!passouFiltroServico) {
-              console.log(`[Fila] Automação "${automacaoAtiva.nome}" ignorada para ag. ${id}: serviços "${servicoNomeCriado}" não estão no filtro`);
+              console.log(`[Fila] Automação "${automacaoAtiva.nome}" ignorada para ag. ${id}: filtro de condição não passou`);
             } else {
               const mensagem = processarVariaveisTemplate(automacaoAtiva.corpoMensagem, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico });
 
@@ -1399,15 +1463,40 @@ export const appRouter = router({
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
                   : 'Atendimento Concluído';
 
+                // Montar extras para filtros avançados de condição (ponto 2: mudança de status)
+                const todasCategoriasStatus: string[] = [];
+                if (dbStatus) {
+                  try {
+                    const itensCateg = await dbStatus
+                      .select({ categoria: servicosTable.categoria })
+                      .from(agItensTable)
+                      .leftJoin(servicosTable, eqDrizzle2(agItensTable.servicoId, servicosTable.id))
+                      .where(eqDrizzle2(agItensTable.agendamentoId, id));
+                    for (const ic of itensCateg) {
+                      if (ic.categoria && !todasCategoriasStatus.includes(ic.categoria)) todasCategoriasStatus.push(ic.categoria);
+                    }
+                  } catch { /* ignorar */ }
+                }
+                if (servico?.categoria && !todasCategoriasStatus.includes(servico.categoria)) todasCategoriasStatus.unshift(servico.categoria);
+                const extrasCondicao2 = {
+                  profissionalNome: profissional?.nome ?? null,
+                  categoriaServico: servico?.categoria ?? null,
+                  todasCategorias: todasCategoriasStatus,
+                  valorAgendamento: parseFloat(String(agendamento.valorTotal ?? '0')),
+                  clienteTags: Array.isArray(cliente.tags) ? cliente.tags as string[] : [],
+                  totalAgendamentosCliente: (cliente as any).agendamentosCount ?? 0,
+                  ultimoAgendamentoData: null as Date | null,
+                };
+
                 // Se não há automações configuradas, não enviar nada
                 if (todasAutomacoesStatus.length === 0) {
                   console.log(`[Fila] Nenhuma automação ativa para ${nomeEventoLabel} (ag. ${id}) — envio ignorado`);
                 } else {
                   // Bug fix 3d: Iterar sobre TODAS as automações ativas para o evento
                   for (const automacaoUsada of todasAutomacoesStatus) {
-                    // Verificar condições do flowJson com todos os serviços
-                    if (!verificarCondicoesFlowRouter(automacaoUsada.flowJson, servico?.nome, todosServicosStatus)) {
-                      console.log(`[Fila] Automação "${automacaoUsada.nome}" ignorada para ag. ${id} (status=${data.status}): serviços [${todosServicosStatus.join(', ')}] não estão no filtro`);
+                    // Verificar condições do flowJson com todos os serviços e extras
+                    if (!verificarCondicoesFlowRouter(automacaoUsada.flowJson, servico?.nome, todosServicosStatus, extrasCondicao2)) {
+                      console.log(`[Fila] Automação "${automacaoUsada.nome}" ignorada para ag. ${id} (status=${data.status}): filtro de condição não passou`);
                       continue;
                     }
 
