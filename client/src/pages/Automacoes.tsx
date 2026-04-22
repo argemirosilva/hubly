@@ -126,6 +126,27 @@ const VARIAVEIS = VARIAVEIS_GRUPOS.flatMap(g => g.vars);
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MESES_ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
+//  Validação de nós
+
+function getNodeIncompleto(node: FlowNode): string[] {
+  const campos: string[] = [];
+  if (node.type === "trigger") {
+    if (!node.data.tipo) campos.push("Tipo de gatilho");
+    if (node.data.tipo === "data_fixa" && !node.data.dataFixa) campos.push("Data fixa");
+    if (node.data.tipo === "horas_antes_agendamento" && !node.data.horas) campos.push("Horas antes");
+    if (node.data.tipo === "horas_depois_agendamento" && !node.data.horas) campos.push("Horas depois");
+    if (node.data.tipo === "dias_antes_agendamento" && !node.data.dias) campos.push("Dias antes");
+    if (node.data.tipo === "dias_depois_agendamento" && !node.data.dias) campos.push("Dias depois");
+  } else if (node.type === "action") {
+    if (!node.data.mensagem || node.data.mensagem.trim() === "") campos.push("Mensagem");
+  } else if (node.type === "condition") {
+    if (!node.data.campo) campos.push("Campo de condição");
+  } else if (node.type === "delay") {
+    if (!node.data.quantidade) campos.push("Quantidade de tempo");
+  }
+  return campos;
+}
+
 //  NodeCard
 
 function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connecting }: {
@@ -144,14 +165,16 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
   };
   const s = styles[node.type];
   const title = node.data.label || node.data.tipo || "Configurar...";
+  const camposIncompletos = getNodeIncompleto(node);
+  const incompleto = camposIncompletos.length > 0;
 
   return (
     <div
-      className={`rounded-xl border-2 shadow-sm ${s.bg} ${s.border} transition-all ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${connecting && connecting !== node.id ? "ring-2 ring-emerald-400 ring-offset-1 cursor-crosshair" : ""}`}
+      className={`rounded-xl border-2 shadow-sm ${s.bg} ${incompleto ? "border-amber-400" : s.border} transition-all ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${connecting && connecting !== node.id ? "ring-2 ring-emerald-400 ring-offset-1 cursor-crosshair" : ""}`}
       style={{ width: 220 }}
       onClick={() => onSelect(node.id)}
     >
-      <div className={`flex items-center gap-2 px-3 py-2 border-b ${s.border}`}>
+      <div className={`flex items-center gap-2 px-3 py-2 border-b ${incompleto ? "border-amber-400" : s.border}`}>
         <div className={`w-6 h-6 rounded-md ${s.iconBg} flex items-center justify-center`}>{s.icon}</div>
         <span className={`text-xs font-bold uppercase tracking-wider ${s.labelColor}`}>{s.label}</span>
         <div className="ml-auto flex items-center gap-1">
@@ -160,6 +183,23 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
               onClick={e => { e.stopPropagation(); onConnect(node.id); }}>
               <Plus size={10} />
             </button>
+          )}
+          {incompleto && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 border border-amber-300 cursor-default">
+                    <AlertTriangle size={10} className="text-amber-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[200px] text-xs">
+                  <p className="font-semibold mb-1">Campos obrigatórios:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {camposIncompletos.map(c => <li key={c}>{c}</li>)}
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           {node.type !== "end" && (
             <button className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-red-300"
@@ -2133,9 +2173,37 @@ export default function Automacoes() {
               <Switch checked={currentFlow.ativo} onCheckedChange={v => setCurrentFlow(p => ({ ...p, ativo: v }))} />
               <span className="text-xs text-gray-500">{currentFlow.ativo ? "Ativa" : "Pausada"}</span>
             </div>
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
-              <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+            {(() => {
+              const nodesIncompletos = nodes.filter(n => n.type !== "end" && getNodeIncompleto(n).length > 0);
+              return nodesIncompletos.length > 0 ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+                          <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
+                        </Button>
+                        <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold">
+                          {nodesIncompletos.length}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                      <p className="font-semibold mb-1">{nodesIncompletos.length} nó{nodesIncompletos.length > 1 ? "ós" : ""} com campos incompletos</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {nodesIncompletos.map(n => (
+                          <li key={n.id}>{n.type === "trigger" ? "Gatilho" : n.type === "action" ? "Ação" : n.type === "condition" ? "Condição" : "Aguardar"}: {getNodeIncompleto(n).join(", ")}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+                  <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              );
+            })()}
           </div>
         </div>
 

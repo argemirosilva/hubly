@@ -2005,3 +2005,10 @@
 ## Validação: Automação sem Gatilho (2026-04-22)
 - [ ] Bloquear salvamento de automação sem nó de gatilho configurado (frontend)
 - [ ] Validação no backend para rejeitar automação sem tipoGatilho
+
+## Validação Visual dos Nós de Automação
+- [x] Definir regras de validação por tipo de nó (trigger, action, condition, wait)
+- [x] Exibir ícone de alerta (AlertTriangle) nos nós com campos obrigatórios incompletos
+- [x] Exibir tooltip explicando quais campos estão faltando
+- [x] Destacar borda do nó incompleto com cor de aviso
+- [x] Badge de contagem de nós incompletos no botão Salvar da toolbar
