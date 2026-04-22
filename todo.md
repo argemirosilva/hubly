@@ -1976,3 +1976,10 @@
 - [x] Implementar lógica de detecção de duplicidade no backend (mesmos campos-chave)
 - [x] Retornar aviso com nome da automação duplicada ao salvar
 - [x] Adicionar modal de aviso no frontend informando a automação conflitante
+
+## Unificação Debug + Histórico de Envios (2026-04-22)
+- [x] Adicionar detalhe de erro expansível no Histórico de Envios
+- [x] Adicionar conteúdo da mensagem ao expandir item no Histórico
+- [x] Adicionar toggle "Ao vivo" no Histórico (refetch a cada 5s)
+- [x] Remover botão Debug do header de Automações
+- [x] Remover componente DebugAutomacoesModal
