@@ -1051,6 +1051,11 @@ export default function Automacoes() {
                     <span className="sm:hidden">Pipeline IA</span>
                   </Button>
                 )}
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
+                  <Plus size={14} className="mr-1" />
+                  <span className="hidden sm:inline">Nova Automação</span>
+                  <span className="sm:hidden">Nova</span>
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
                   <Sparkles size={14} className="mr-1" />
                   <span className="hidden sm:inline">Templates</span>
