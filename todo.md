@@ -2017,3 +2017,11 @@
 - [x] Bloquear ativação (toggle) de automação com nós incompletos no editor
 - [x] Indicador de incompleto na lista de automações (ícone de alerta ao lado do nome)
 - [x] Bloquear toggle na lista quando automação tem nós incompletos
+
+## Melhoria Condição nas Automações (2026-04-22)
+- [x] Adicionar filtro "por profissional" com select dos profissionais da equipe
+- [x] Adicionar filtro "por categoria de serviço" com select das categorias
+- [x] Adicionar filtro "por tag/tipo de cliente" (novo, recorrente, inativo, aniversariante)
+- [x] Adicionar filtro "por valor do agendamento" com faixa mínimo/máximo
+- [x] Substituir campo genérico "Valor" por campos específicos por tipo de filtro
+- [x] Multi-select de serviços para filtro "por serviço" (em vez de texto livre)

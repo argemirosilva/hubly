@@ -10,7 +10,7 @@ import {
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
-  Package, MousePointerClick, Info, AlertTriangle,
+  Package, MousePointerClick, Info, AlertTriangle, Layers, DollarSign, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +82,9 @@ const CONDITION_OPTIONS = [
   { value: "por_profissional", label: "Filtrar por profissional", icon: Users, color: "#6366f1" },
   { value: "por_tag", label: "Filtrar por tag", icon: Tag, color: "#8b5cf6" },
   { value: "por_servico", label: "Filtrar por serviço", icon: Sparkles, color: "#ec4899" },
+  { value: "por_categoria", label: "Filtrar por categoria", icon: Layers, color: "#0ea5e9" },
+  { value: "por_valor", label: "Filtrar por valor do agendamento", icon: DollarSign, color: "#10b981" },
+  { value: "por_tipo_cliente", label: "Filtrar por tipo de cliente", icon: Star, color: "#f59e0b" },
 ];
 
 const VARIAVEIS_GRUPOS = [
@@ -158,10 +161,28 @@ function getNodeIncompleto(node: FlowNode): string[] {
       campos.push("Mensagem");
     }
   } else if (node.type === "condition") {
-    // Tipo de filtro é obrigatório (campo "tipo", não "campo")
-    if (!node.data.tipo) campos.push("Tipo de filtro");
-    // Valor é obrigatório para filtros que precisam de valor
-    else if (!node.data.valor || node.data.valor.trim() === "") campos.push("Valor do filtro");
+    // Tipo de filtro é obrigatório
+    if (!node.data.tipo) { campos.push("Tipo de filtro"); return campos; }
+    // Validação específica por tipo
+    if (node.data.tipo === "por_servico") {
+      // Aceita tanto campo "servicos" (array) quanto "valor" (string legado)
+      const temServicos = (Array.isArray(node.data.servicos) && node.data.servicos.length > 0) ||
+        (node.data.valor && node.data.valor.trim() !== "");
+      if (!temServicos) campos.push("Serviços");
+    } else if (node.data.tipo === "por_profissional") {
+      if (!node.data.valor || node.data.valor.trim() === "") campos.push("Profissional");
+    } else if (node.data.tipo === "por_categoria") {
+      if (!node.data.valor || node.data.valor.trim() === "") campos.push("Categoria");
+    } else if (node.data.tipo === "por_tipo_cliente") {
+      if (!node.data.valor || node.data.valor.trim() === "") campos.push("Tipo de cliente");
+    } else if (node.data.tipo === "por_tag") {
+      if (!node.data.valor || node.data.valor.trim() === "") campos.push("Tag");
+    } else if (node.data.tipo === "por_valor") {
+      // Faixa de valor: pelo menos um dos limites deve estar preenchido
+      const temMin = node.data.valorMin !== undefined && node.data.valorMin !== "";
+      const temMax = node.data.valorMax !== undefined && node.data.valorMax !== "";
+      if (!temMin && !temMax) campos.push("Faixa de valor");
+    }
   } else if (node.type === "delay") {
     // quantidade tem default 1, só valida se for explicitamente 0 ou negativo
     if (node.data.quantidade !== undefined && Number(node.data.quantidade) <= 0) campos.push("Quantidade de tempo");
@@ -344,6 +365,191 @@ function PreviewMensagemModal({ open, onClose, mensagem, midiaUrl }: {
   );
 }
 
+//  Campos específicos do nó de condição
+
+function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: string, v: any) => void }) {
+  const { data: servicosData = [] } = trpc.servicos.list.useQuery();
+  const { data: profissionaisData = [] } = trpc.profissionais.listParaAgendamento.useQuery();
+
+  // Extrair categorias únicas dos serviços
+  const categorias = Array.from(new Set(
+    servicosData
+      .map((s: any) => s.categoria)
+      .filter(Boolean)
+  )).sort() as string[];
+
+  // Helpers para multi-select de serviços
+  const servicosSelecionados: string[] = data.servicos
+    ? (Array.isArray(data.servicos) ? data.servicos : data.servicos.split(",").map((s: string) => s.trim()).filter(Boolean))
+    : (data.valor ? data.valor.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+
+  const toggleServico = (nome: string) => {
+    const atual = servicosSelecionados;
+    const novo = atual.includes(nome) ? atual.filter(s => s !== nome) : [...atual, nome];
+    set("servicos", novo);
+    set("valor", novo.join(", "));
+  };
+
+  return (
+    <>
+      {/* Tipo de filtro */}
+      <div>
+        <Label className="text-xs text-gray-500 mb-1 block">Tipo de filtro</Label>
+        <Select value={data.tipo || ""} onValueChange={v => set("tipo", v)}>
+          <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <SelectContent>
+            {CONDITION_OPTIONS.map(c => (
+              <SelectItem key={c.value} value={c.value}>
+                <div className="flex items-center gap-2"><c.icon size={13} style={{ color: c.color }} />{c.label}</div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Campos específicos por tipo */}
+
+      {/* Por serviço — multi-select com serviços reais */}
+      {data.tipo === "por_servico" && (
+        <div>
+          <Label className="text-xs text-gray-500 mb-1.5 block">Serviços incluídos</Label>
+          {servicosData.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Nenhum serviço cadastrado.</p>
+          ) : (
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded-lg p-2 bg-gray-50">
+              {servicosData.map((s: any) => (
+                <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-1 py-0.5 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={servicosSelecionados.includes(s.nome)}
+                    onChange={() => toggleServico(s.nome)}
+                    className="accent-indigo-600 w-3.5 h-3.5"
+                  />
+                  <span className="text-xs text-gray-700">{s.nome}</span>
+                  {s.categoria && <span className="text-[10px] text-gray-400 ml-auto">{s.categoria}</span>}
+                </label>
+              ))}
+            </div>
+          )}
+          {servicosSelecionados.length > 0 && (
+            <p className="text-[10px] text-indigo-600 mt-1">{servicosSelecionados.length} serviço(s) selecionado(s)</p>
+          )}
+        </div>
+      )}
+
+      {/* Por profissional — select com profissionais reais */}
+      {data.tipo === "por_profissional" && (
+        <div>
+          <Label className="text-xs text-gray-500 mb-1 block">Profissional</Label>
+          {profissionaisData.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Nenhum profissional cadastrado.</p>
+          ) : (
+            <Select value={data.valor || ""} onValueChange={v => set("valor", v)}>
+              <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione o profissional..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos__">Todos os profissionais</SelectItem>
+                {profissionaisData.map((p: any) => (
+                  <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
+      {/* Por categoria — select com categorias dos serviços */}
+      {data.tipo === "por_categoria" && (
+        <div>
+          <Label className="text-xs text-gray-500 mb-1 block">Categoria</Label>
+          {categorias.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Nenhuma categoria encontrada nos serviços.</p>
+          ) : (
+            <Select value={data.valor || ""} onValueChange={v => set("valor", v)}>
+              <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione a categoria..." /></SelectTrigger>
+              <SelectContent>
+                {categorias.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
+      {/* Por valor — faixa de valor mínimo/máximo */}
+      {data.tipo === "por_valor" && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs text-gray-500 mb-1 block">Valor mínimo (R$)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={data.valorMin ?? ""}
+                onChange={e => { set("valorMin", e.target.value); set("valor", `${e.target.value}-${data.valorMax ?? ""}`); }}
+                placeholder="0,00"
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 mb-1 block">Valor máximo (R$)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={data.valorMax ?? ""}
+                onChange={e => { set("valorMax", e.target.value); set("valor", `${data.valorMin ?? ""}-${e.target.value}`); }}
+                placeholder="Ex: 500,00"
+                className="text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400">Deixe vazio para sem limite. Ex: de R$100 a R$300.</p>
+        </div>
+      )}
+
+      {/* Por tipo de cliente */}
+      {data.tipo === "por_tipo_cliente" && (
+        <div>
+          <Label className="text-xs text-gray-500 mb-1 block">Tipo de cliente</Label>
+          <Select value={data.valor || ""} onValueChange={v => set("valor", v)}>
+            <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="novo">
+                <div className="flex items-center gap-2"><UserPlus size={13} className="text-emerald-500" />Novo cliente (1º agendamento)</div>
+              </SelectItem>
+              <SelectItem value="recorrente">
+                <div className="flex items-center gap-2"><RefreshCw size={13} className="text-blue-500" />Cliente recorrente (2+ agendamentos)</div>
+              </SelectItem>
+              <SelectItem value="inativo">
+                <div className="flex items-center gap-2"><UserX size={13} className="text-red-400" />Cliente inativo (sem agendamento há 60+ dias)</div>
+              </SelectItem>
+              <SelectItem value="aniversariante">
+                <div className="flex items-center gap-2"><Gift size={13} className="text-pink-500" />Aniversariante do mês</div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Por tag — input de texto livre */}
+      {data.tipo === "por_tag" && (
+        <div>
+          <Label className="text-xs text-gray-500 mb-1 block">Tag</Label>
+          <Input
+            value={data.valor || ""}
+            onChange={e => set("valor", e.target.value)}
+            placeholder="Ex: VIP, Pacote, Fidelidade..."
+            className="text-sm"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">Filtra clientes que possuem essa tag no cadastro.</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 //  Painel de configuração
 
 function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
@@ -483,22 +689,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
 
         {/* CONDITION */}
         {node.type === "condition" && (
-          <>
-            <div>
-              <Label className="text-xs text-gray-500 mb-1 block">Tipo de filtro</Label>
-              <Select value={data.tipo || ""} onValueChange={v => set("tipo", v)}>
-                <SelectTrigger className="text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {CONDITION_OPTIONS.map(c => (
-                    <SelectItem key={c.value} value={c.value}>
-                      <div className="flex items-center gap-2"><c.icon size={13} style={{ color: c.color }} />{c.label}</div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label className="text-xs text-gray-500 mb-1 block">Valor</Label><Input value={data.valor || ""} onChange={e => set("valor", e.target.value)} placeholder="Ex: nome do profissional" className="text-sm" /></div>
-          </>
+          <ConditionFields data={data} set={set} />
         )}
 
         {/* ACTION */}
