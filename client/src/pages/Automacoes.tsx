@@ -84,26 +84,43 @@ const CONDITION_OPTIONS = [
   { value: "por_servico", label: "Filtrar por serviço", icon: Sparkles, color: "#ec4899" },
 ];
 
-const VARIAVEIS = [
-  { var: "{{nome_cliente}}", label: "nome cliente", desc: "Nome completo da cliente", exemplo: "Ex: Ana Silva" },
-  { var: "{{primeiro_nome}}", label: "primeiro nome", desc: "Primeiro nome da cliente (somente o primeiro)", exemplo: "Ex: Ana" },
-  { var: "{{servico}}", label: "serviço", desc: "Nome do serviço agendado", exemplo: "Ex: Escova progressiva" },
-  { var: "{{profissional}}", label: "profissional", desc: "Nome da profissional que irá realizar o serviço", exemplo: "Ex: Maria" },
-  { var: "{{data}}", label: "data", desc: "Data do agendamento por extenso", exemplo: "Ex: segunda-feira, 07 de abril" },
-  { var: "{{hora}}", label: "hora", desc: "Horário de início e fim do agendamento", exemplo: "Ex: 14:00 – 15:30" },
-  { var: "{{valor}}", label: "valor", desc: "Valor total do serviço", exemplo: "Ex: R$ 150,00" },
-  { var: "{{empresa}}", label: "empresa", desc: "Nome do seu salão/empresa", exemplo: "Ex: Studio Beléza" },
-  { var: "{{link_confirmacao}}", label: "link confirmação", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
-  { var: "{{link_agendamento}}", label: "link agendamento", desc: "Link do portal público de agendamento da sua empresa. Ideal para campanhas de reativação e convites.", exemplo: "Ex: https://agendei.../agendar/meu-salao" },
-  { var: "{{valor_reserva}}", label: "valor reserva", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
-  { var: "{{nome_pacote}}", label: "nome pacote", desc: "Nome do pacote renovado (disponível no evento Pacote renovado)", exemplo: "Ex: Pacote Progressiva 5x" },
-  { var: "{{data_vencimento}}", label: "data vencimento", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
-  { var: "{{valor_pago}}", label: "valor pago", desc: "Valor total pago na renovação do pacote", exemplo: "Ex: R$ 350,00" },
-  { var: "{{parcelas}}", label: "parcelas", desc: "Forma de pagamento parcelada ou valor único do pacote", exemplo: "Ex: 3x de R$ 116,67" },
-  { var: "{{pacote}}", label: "pacote", desc: "Nome do pacote do cliente (para gatilhos de pacote)", exemplo: "Ex: Pacote Manicure 8x" },
-  { var: "{{sessoes_restantes}}", label: "sessões restantes", desc: "Quantidade de sessões ainda disponíveis no pacote", exemplo: "Ex: 2" },
-  { var: "{{sessoes_total}}", label: "sessões total", desc: "Quantidade total de sessões do pacote", exemplo: "Ex: 8" },
+const VARIAVEIS_GRUPOS = [
+  {
+    grupo: "Agendamento",
+    vars: [
+      { var: "{{data}}", label: "data", desc: "Data do agendamento por extenso", exemplo: "Ex: segunda-feira, 07 de abril" },
+      { var: "{{hora}}", label: "hora", desc: "Horário de início e fim do agendamento", exemplo: "Ex: 14:00 – 15:30" },
+      { var: "{{servico}}", label: "serviço", desc: "Nome do serviço agendado", exemplo: "Ex: Escova progressiva" },
+      { var: "{{profissional}}", label: "profissional", desc: "Nome da profissional que irá realizar o serviço", exemplo: "Ex: Maria" },
+      { var: "{{valor}}", label: "valor", desc: "Valor total do serviço", exemplo: "Ex: R$ 150,00" },
+      { var: "{{valor_reserva}}", label: "valor reserva", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
+      { var: "{{link_confirmacao}}", label: "link confirmação", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
+      { var: "{{link_agendamento}}", label: "link agendamento", desc: "Link do portal público de agendamento da sua empresa. Ideal para campanhas de reativação e convites.", exemplo: "Ex: https://agendei.../agendar/meu-salao" },
+    ],
+  },
+  {
+    grupo: "Cliente",
+    vars: [
+      { var: "{{nome_cliente}}", label: "nome cliente", desc: "Nome completo da cliente", exemplo: "Ex: Ana Silva" },
+      { var: "{{primeiro_nome}}", label: "primeiro nome", desc: "Primeiro nome da cliente (somente o primeiro)", exemplo: "Ex: Ana" },
+      { var: "{{empresa}}", label: "empresa", desc: "Nome do seu salão/empresa", exemplo: "Ex: Studio Beléza" },
+    ],
+  },
+  {
+    grupo: "Pacote",
+    vars: [
+      { var: "{{pacote}}", label: "pacote", desc: "Nome do pacote do cliente (para gatilhos de pacote)", exemplo: "Ex: Pacote Manicure 8x" },
+      { var: "{{nome_pacote}}", label: "nome pacote", desc: "Nome do pacote renovado (disponível no evento Pacote renovado)", exemplo: "Ex: Pacote Progressiva 5x" },
+      { var: "{{sessoes_restantes}}", label: "sessões restantes", desc: "Quantidade de sessões ainda disponíveis no pacote", exemplo: "Ex: 2" },
+      { var: "{{sessoes_total}}", label: "sessões total", desc: "Quantidade total de sessões do pacote", exemplo: "Ex: 8" },
+      { var: "{{data_vencimento}}", label: "data vencimento", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
+      { var: "{{valor_pago}}", label: "valor pago", desc: "Valor total pago na renovação do pacote", exemplo: "Ex: R$ 350,00" },
+      { var: "{{parcelas}}", label: "parcelas", desc: "Forma de pagamento parcelada ou valor único do pacote", exemplo: "Ex: 3x de R$ 116,67" },
+    ],
+  },
 ];
+// Lista plana para compatibilidade com outros usos
+const VARIAVEIS = VARIAVEIS_GRUPOS.flatMap(g => g.vars);
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MESES_ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -459,20 +476,27 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                   />
                   <p className="text-xs text-gray-400 mt-1.5 mb-1">Inserir variável:</p>
                   <TooltipProvider delayDuration={200}>
-                    <div className="flex flex-wrap gap-1">
-                      {VARIAVEIS.map(v => (
-                        <Tooltip key={v.var}>
-                          <TooltipTrigger asChild>
-                            <button onClick={() => insertVar(v.var)}
-                              className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 font-medium transition-colors">
-                              {v.label}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[220px] text-left">
-                            <p className="font-medium text-xs mb-0.5">{v.desc}</p>
-                            <p className="text-xs text-muted-foreground">{v.exemplo}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                    <div className="flex flex-col gap-2">
+                      {VARIAVEIS_GRUPOS.map(grupo => (
+                        <div key={grupo.grupo}>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{grupo.grupo}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {grupo.vars.map(v => (
+                              <Tooltip key={v.var}>
+                                <TooltipTrigger asChild>
+                                  <button onClick={() => insertVar(v.var)}
+                                    className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 font-medium transition-colors">
+                                    {v.label}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[220px] text-left">
+                                  <p className="font-medium text-xs mb-0.5">{v.desc}</p>
+                                  <p className="text-xs text-muted-foreground">{v.exemplo}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </TooltipProvider>
