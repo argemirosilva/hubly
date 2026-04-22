@@ -10,7 +10,7 @@ import {
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
-  Package, MousePointerClick, Info,
+  Package, MousePointerClick, Info, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -778,9 +778,18 @@ export default function Automacoes() {
   };
 
   const { data: automacoesSalvas = [], isLoading } = trpc.automacoes.list.useQuery();
+  const [duplicataInfo, setDuplicataInfo] = useState<{ mensagem: string; onConfirm: () => void } | null>(null);
+
   const createMutation = trpc.automacoes.create.useMutation({
     onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      // Detectar erro de duplicidade e mostrar modal de aviso
+      if (e.message?.includes("Já existe uma automação com o mesmo")) {
+        setDuplicataInfo({ mensagem: e.message, onConfirm: () => {} });
+      } else {
+        toast.error(e.message);
+      }
+    },
   });
   const updateMutation = trpc.automacoes.update.useMutation({
     onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); },
@@ -1544,6 +1553,22 @@ export default function Automacoes() {
                 disabled={deleteMutation.isPending}>
                 {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Aviso de Automação Duplicada */}
+        <Dialog open={duplicataInfo !== null} onOpenChange={open => !open && setDuplicataInfo(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle size={17} /> Automação duplicada
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600 mt-1">{duplicataInfo?.mensagem}</p>
+            <p className="text-xs text-gray-400 mt-2">Edite a automação existente para alterar o comportamento, ou escolha um gatilho, canal ou timing diferente para criar uma nova.</p>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => setDuplicataInfo(null)}>Entendi</Button>
             </div>
           </DialogContent>
         </Dialog>

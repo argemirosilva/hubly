@@ -2332,9 +2332,34 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-        // Validar que a empresa tem apenas 1 pipeline (máximo de automações)
+
+        // Verificar duplicidade: mesmos tipoGatilho + evento + canal + timing
         const automacoes = await getAutomacoesByEmpresa(empresa.id);
-        if (automacoes.length > 0) throw new Error("Cada empresa pode ter apenas uma pipeline de automações. Edite as automações existentes ao invés de criar novas.");
+        const duplicada = automacoes.find((a) => {
+          if (a.tipoGatilho !== input.tipoGatilho) return false;
+          if (a.canalEnvio !== input.canalEnvio) return false;
+          // Para gatilhos de evento, comparar o evento
+          if (input.tipoGatilho === "evento" && a.evento !== input.evento) return false;
+          // Para gatilhos temporais, comparar o timing
+          if (input.tipoGatilho === "dias_antes_agendamento" || input.tipoGatilho === "dias_depois_agendamento") {
+            if (a.diasAntesDepois !== input.diasAntesDepois) return false;
+            if (a.horaDisparo !== (input.horaDisparo ?? null)) return false;
+          }
+          if (input.tipoGatilho === "horas_antes_agendamento" || input.tipoGatilho === "horas_apos_agendamento") {
+            if (a.delayMinutos !== input.delayMinutos) return false;
+          }
+          if (input.tipoGatilho === "data_fixa") {
+            if (a.dataFixaDia !== input.dataFixaDia) return false;
+            if (a.dataFixaMes !== input.dataFixaMes) return false;
+            if (a.dataFixaHora !== (input.dataFixaHora ?? null)) return false;
+          }
+          return true;
+        });
+
+        if (duplicada) {
+          throw new Error(`Já existe uma automação com o mesmo gatilho e canal: "${duplicada.nome}". Edite a automação existente ou escolha configurações diferentes.`);
+        }
+
         const id = await createAutomacao({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),

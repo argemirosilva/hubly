@@ -1971,3 +1971,8 @@
 - [x] Adicionar procedure restaurarPipelineSnapshot no backend
 - [x] Implementar UI de preview no modal (mostrar colunas antes de confirmar)
 - [x] Implementar UI de histórico/restauração de pipeline
+
+## Verificação de Duplicidade ao Salvar Automação (2026-04-22)
+- [x] Implementar lógica de detecção de duplicidade no backend (mesmos campos-chave)
+- [x] Retornar aviso com nome da automação duplicada ao salvar
+- [x] Adicionar modal de aviso no frontend informando a automação conflitante
