@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import VariableEditor, { type VariableEditorRef } from "@/components/VariableEditor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -274,6 +275,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
   const [data, setData] = useState({ ...node.data });
   const [uploadingMidia, setUploadingMidia] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const varEditorRef = useRef<VariableEditorRef>(null);
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
   const save = () => {
     onUpdate(node.id, data);
@@ -284,7 +286,13 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
       toast.success("Nó atualizado!");
     }
   };
-  const insertVar = (v: string) => set("mensagem", (data.mensagem || "") + v);
+  const insertVar = (v: string) => {
+    if (varEditorRef.current) {
+      varEditorRef.current.insertVariable(v);
+    } else {
+      set("mensagem", (data.mensagem || "") + v);
+    }
+  };
   const utils = trpc.useUtils();
   const uploadMidiaMutation = trpc.automacoes.uploadMidia.useMutation({
     onSuccess: (res) => {
@@ -441,9 +449,14 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                       </button>
                     </div>
                   </div>
-                  <Textarea value={data.mensagem || ""} onChange={e => set("mensagem", e.target.value)}
+                  <VariableEditor
+                    ref={varEditorRef}
+                    value={data.mensagem || ""}
+                    onChange={v => set("mensagem", v)}
                     placeholder="Olá {{nome_cliente}}, seu agendamento de {{servico}} está confirmado para {{data}} às {{hora}}."
-                    className="text-sm min-h-[90px] resize-none" />
+                    className="text-sm"
+                    minHeight="90px"
+                  />
                   <p className="text-xs text-gray-400 mt-1.5 mb-1">Inserir variável:</p>
                   <TooltipProvider delayDuration={200}>
                     <div className="flex flex-wrap gap-1">

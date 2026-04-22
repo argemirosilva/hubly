@@ -1991,3 +1991,8 @@
 ## Bug: Variáveis de Template nas Automações (2026-04-22)
 - [x] Auditar todos os templates de automação no banco buscando variáveis mal formatadas
 - [x] Corrigir automação "Agendado amanhã" (ID 30001): {[data}} → {{data}}
+
+## Editor de Variáveis como Chips Visuais (2026-04-22)
+- [x] Criar componente VariableEditor com chips não editáveis para variáveis {{variavel}}
+- [x] Integrar no editor de mensagem das automações
+- [x] Garantir que o valor salvo no banco continue sendo texto com {{variavel}}
