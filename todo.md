@@ -1928,3 +1928,7 @@
 - [ ] Testes da fila: falha no envio, retentativa, expiração de 4h
 - [ ] Testes da fila: prioridade de pre_agendado vs agendado_criado
 - [ ] Testes de substituição de variáveis dinâmicas na mensagem
+
+## Correção do Fluxo de Reserva Recebida (2026-04-22)
+- [x] Corrigir atualização de status do pré-agendamento para "agendado" ao confirmar reserva
+- [x] Corrigir abatimento do valor da reserva do saldo devedor do agendamento

@@ -1532,12 +1532,29 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-        // REGRA: pagar a reserva NÃO deve alterar o status.
-        // O pré-agendamento continua como pre_agendado até confirmação explícita.
+        // REGRA: ao confirmar a reserva, o pré-agendamento passa para "agendado"
+        // e o valor da reserva é registrado como pagamento parcial.
+        const agParaConfirmar = await getAgendamentoById(input.id);
+        const novoStatus = agParaConfirmar?.status === 'pre_agendado' ? 'agendado' : undefined;
         await updateAgendamento(input.id, {
           reservaPaga: true,
           reservaPagaEm: new Date(),
+          ...(novoStatus ? { status: novoStatus } : {}),
         });
+
+        // Registrar o valor da reserva como pagamento parcial do agendamento
+        if (agParaConfirmar?.valorReserva && parseFloat(agParaConfirmar.valorReserva) > 0) {
+          try {
+            const { addPagamentoAgendamento } = await import('./db');
+            await addPagamentoAgendamento({
+              agendamentoId: input.id,
+              valor: agParaConfirmar.valorReserva,
+              observacao: 'Reserva recebida',
+            });
+          } catch (e) {
+            console.error('[confirmarReserva] Erro ao registrar pagamento da reserva:', e);
+          }
+        }
 
         // Disparar automação de confirmação de reserva paga
         try {
