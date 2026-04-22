@@ -2012,3 +2012,8 @@
 - [x] Exibir tooltip explicando quais campos estão faltando
 - [x] Destacar borda do nó incompleto com cor de aviso
 - [x] Badge de contagem de nós incompletos no botão Salvar da toolbar
+
+## Melhorias Automações (2026-04-22)
+- [x] Bloquear ativação (toggle) de automação com nós incompletos no editor
+- [x] Indicador de incompleto na lista de automações (ícone de alerta ao lado do nome)
+- [x] Bloquear toggle na lista quando automação tem nós incompletos

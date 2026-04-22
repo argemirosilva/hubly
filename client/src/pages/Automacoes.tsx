@@ -1602,14 +1602,37 @@ export default function Automacoes() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {(automacoesFiltradas as any[]).map(a => (
-                    <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors">
+                      {(automacoesFiltradas as any[]).map(a => {
+                        const nodesLista: FlowNode[] = (() => { try { return a.flowJson ? JSON.parse(a.flowJson) : []; } catch { return []; } })();
+                        const incompletosLista = nodesLista.filter((n: FlowNode) => n.type !== "end" && getNodeIncompleto(n).length > 0);
+                        const temIncompletoLista = incompletosLista.length > 0;
+                        return (
+                    <div key={a.id} className={`bg-white rounded-xl border shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${temIncompletoLista ? "border-amber-200" : "border-gray-100"}`}>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
                         <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-gray-900 text-sm truncate">{a.nome}</p>
+                          {temIncompletoLista && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 border border-amber-300 cursor-default flex-shrink-0">
+                                    <AlertTriangle size={9} className="text-amber-600" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[200px] text-xs">
+                                  <p className="font-semibold mb-1">{incompletosLista.length} nó{incompletosLista.length > 1 ? "ós" : ""} incompleto{incompletosLista.length > 1 ? "s" : ""}</p>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {incompletosLista.map((n: FlowNode) => (
+                                      <li key={n.id}>{n.type === "trigger" ? "Gatilho" : n.type === "action" ? "Ação" : n.type === "condition" ? "Condição" : "Aguardar"}: {getNodeIncompleto(n).join(", ")}</li>
+                                    ))}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
                             {a.ativo ? "Ativa" : "Pausada"}
                           </Badge>
@@ -1633,7 +1656,22 @@ export default function Automacoes() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo }, { onSuccess: () => gerarPipelineAutomatico() })} />
+                        {temIncompletoLista ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div onClick={() => toast.warning("Configure os campos obrigatórios antes de ativar")}>
+                                  <Switch checked={false} disabled className="opacity-50" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs max-w-[180px]">
+                                Preencha todos os campos obrigatórios para ativar esta automação
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo }, { onSuccess: () => gerarPipelineAutomatico() })} />
+                        )}
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
@@ -1644,7 +1682,8 @@ export default function Automacoes() {
 
                       </div>
                     </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
@@ -2169,10 +2208,35 @@ export default function Automacoes() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <Switch checked={currentFlow.ativo} onCheckedChange={v => setCurrentFlow(p => ({ ...p, ativo: v }))} />
-              <span className="text-xs text-gray-500">{currentFlow.ativo ? "Ativa" : "Pausada"}</span>
-            </div>
+            {(() => {
+              const nodesIncompletosToggle = nodes.filter(n => n.type !== "end" && getNodeIncompleto(n).length > 0);
+              const temIncompleto = nodesIncompletosToggle.length > 0;
+              return (
+                <div className="flex items-center gap-1.5">
+                  {temIncompleto ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1.5 cursor-not-allowed" onClick={() => toast.warning("Configure todos os campos obrigatórios antes de ativar a automação")}>
+                            <Switch checked={currentFlow.ativo} disabled className="opacity-50" />
+                            <span className="text-xs text-gray-400">Pausada</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                          <p className="font-semibold mb-1">Não é possível ativar</p>
+                          <p>Preencha todos os campos obrigatórios dos nós antes de ativar esta automação.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <>
+                      <Switch checked={currentFlow.ativo} onCheckedChange={v => setCurrentFlow(p => ({ ...p, ativo: v }))} />
+                      <span className="text-xs text-gray-500">{currentFlow.ativo ? "Ativa" : "Pausada"}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
             {(() => {
               const nodesIncompletos = nodes.filter(n => n.type !== "end" && getNodeIncompleto(n).length > 0);
               return nodesIncompletos.length > 0 ? (
