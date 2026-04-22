@@ -2001,3 +2001,7 @@
 - [x] Corrigir invalidação de cache após dar baixa no valor da reserva (await Promise.all)
 - [x] Corrigir invalidação de cache após mudança de status (updateMutation)
 - [x] UI atualiza imediatamente sem precisar de F5
+
+## Validação: Automação sem Gatilho (2026-04-22)
+- [ ] Bloquear salvamento de automação sem nó de gatilho configurado (frontend)
+- [ ] Validação no backend para rejeitar automação sem tipoGatilho

@@ -294,6 +294,11 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
   const [uploadingMidia, setUploadingMidia] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const varEditorRef = useRef<VariableEditorRef>(null);
+  // Sincronizar dados com o estado do canvas em tempo real (sem precisar clicar "Salvar configuração")
+  useEffect(() => {
+    onUpdate(node.id, data);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
   const set = (key: string, val: any) => setData(p => ({ ...p, [key]: val }));
   const save = () => {
     onUpdate(node.id, data);
@@ -939,8 +944,9 @@ export default function Automacoes() {
       ? nodes.map(n => n.id === updatedNodeData.id ? { ...n, data: { ...n.data, ...updatedNodeData.data } } : n)
       : nodes;
     const triggerNode = nodesParaSalvar.find(n => n.type === "trigger");
-    if (!triggerNode) { toast.error("Adicione um nó de gatilho"); return; }
-    const tipo = triggerNode.data.tipo || "evento";
+    if (!triggerNode) { toast.error("Adicione um nó de gatilho antes de salvar"); return; }
+    if (!triggerNode.data.tipo) { toast.error("Configure o tipo do gatilho antes de salvar"); return; }
+    const tipo = triggerNode.data.tipo;
     const tipoGatilho: any = tipo.startsWith("manual_") ? "manual"
       : tipo.startsWith("evento_") ? "evento"
       : tipo === "aniversario_mes" ? "aniversario_mes"
@@ -2065,6 +2071,7 @@ export default function Automacoes() {
           <DialogContent className="p-0 gap-0 max-w-full w-full sm:max-w-lg rounded-t-2xl rounded-b-none fixed bottom-0 top-auto translate-y-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom max-h-[90vh] flex flex-col">
             {mobileSheetNode && (
               <NodeConfigPanel
+                key={mobileSheetNode.id}
                 node={mobileSheetNode}
                 onUpdate={(id, data) => {
                   setNodes(prev => prev.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
@@ -2140,6 +2147,7 @@ export default function Automacoes() {
           {selectedNode ? (
             <div className="w-72 border-l border-gray-200 bg-white overflow-hidden flex flex-col flex-shrink-0">
               <NodeConfigPanel
+                key={selectedNode.id}
                 node={selectedNode}
                 onUpdate={(id, data) => setNodes(prev => prev.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n))}
                 onClose={() => setSelectedNodeId(null)}
