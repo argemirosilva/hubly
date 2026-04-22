@@ -1958,3 +1958,8 @@
 
 ## Remoção do Botão Flutuante de Suporte (2026-04-22)
 - [x] Remover botão flutuante de suporte (MessageCircle) da interface
+
+## Modal de Confirmação ao Gerar Pipeline com IA (2026-04-22)
+- [x] Adicionar aviso de confirmação ao modal de "Gerar pipeline com IA"
+- [x] Aviso informa que a pipeline atual será atualizada se existir
+- [x] Nota esclarecida sobre criação vs atualização de pipeline

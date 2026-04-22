@@ -1536,6 +1536,9 @@ export default function Automacoes() {
 
             {!pipelineGerado ? (
               <div className="space-y-4 mt-1">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  <strong>⚠️ Atenção:</strong> Se você já possui um pipeline, ele será <strong>atualizado</strong> com os dados atuais das suas automações.
+                </div>
                 <p className="text-sm text-gray-600">
                   A IA vai analisar todas as suas <strong>automações ativas</strong>, identificar a jornada do cliente e criar automaticamente um <strong>Pipeline Kanban</strong> com:
                 </p>
@@ -1545,7 +1548,7 @@ export default function Automacoes() {
                   <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cores e nomes gerados de acordo com o seu negócio</li>
                 </ul>
                 <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-xs text-purple-700">
-                  <strong>Nota:</strong> Um novo pipeline será criado na tela de Pipeline. Você poderá editá-lo livremente após a geração.
+                  <strong>Nota:</strong> Se não existir um pipeline anterior, um novo será criado. Você poderá editá-lo livremente após a geração.
                 </div>
                 <div className="flex gap-2 justify-end pt-1">
                   <Button variant="outline" size="sm" onClick={() => setShowGerarPipelineModal(false)} disabled={gerarPipelineMutation.isPending}>
