@@ -1996,3 +1996,8 @@
 - [x] Criar componente VariableEditor com chips não editáveis para variáveis {{variavel}}
 - [x] Integrar no editor de mensagem das automações
 - [x] Garantir que o valor salvo no banco continue sendo texto com {{variavel}}
+
+## Bug: Atualização Imediata Após Baixa de Reserva (2026-04-22)
+- [x] Corrigir invalidação de cache após dar baixa no valor da reserva (await Promise.all)
+- [x] Corrigir invalidação de cache após mudança de status (updateMutation)
+- [x] UI atualiza imediatamente sem precisar de F5

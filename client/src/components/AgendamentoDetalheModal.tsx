@@ -197,19 +197,26 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   });
 
   const updateMutation = trpc.agendamentos.update.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Status atualizado!");
-      utils.agendamentos.list.invalidate();
-      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      await Promise.all([
+        utils.agendamentos.getById.invalidate({ id: agendamentoId }),
+        utils.agendamentos.getPagamentos.invalidate({ agendamentoId }),
+        utils.agendamentos.list.invalidate(),
+      ]);
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
   const confirmarReservaMutation = trpc.agendamentos.confirmarReserva.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("✅ Reserva confirmada! Agendamento atualizado para Agendado.");
-      utils.agendamentos.list.invalidate();
-      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      await Promise.all([
+        utils.agendamentos.getById.invalidate({ id: agendamentoId }),
+        utils.agendamentos.getPagamentos.invalidate({ agendamentoId }),
+        utils.agendamentos.list.invalidate(),
+        utils.financeiro.comissoes.invalidate(),
+      ]);
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
