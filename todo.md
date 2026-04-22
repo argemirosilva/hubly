@@ -1983,3 +1983,11 @@
 - [x] Adicionar toggle "Ao vivo" no Histórico (refetch a cada 5s)
 - [x] Remover botão Debug do header de Automações
 - [x] Remover componente DebugAutomacoesModal
+
+## Bug: Filtro de Serviço nas Automações de Feedback (2026-04-22)
+- [ ] Investigar onde o filtro servicoId/servicoNome não está sendo aplicado no scheduler
+- [ ] Corrigir a lógica para disparar apenas a automação cujo serviço corresponde ao agendamento
+
+## Bug: Variáveis de Template nas Automações (2026-04-22)
+- [x] Auditar todos os templates de automação no banco buscando variáveis mal formatadas
+- [x] Corrigir automação "Agendado amanhã" (ID 30001): {[data}} → {{data}}
