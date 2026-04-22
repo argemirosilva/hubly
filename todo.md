@@ -1963,3 +1963,11 @@
 - [x] Adicionar aviso de confirmação ao modal de "Gerar pipeline com IA"
 - [x] Aviso informa que a pipeline atual será atualizada se existir
 - [x] Nota esclarecida sobre criação vs atualização de pipeline
+
+## Preview e Restauração de Pipeline (2026-04-22)
+- [x] Adicionar procedure previewPipelinePorIA no backend (retorna colunas/cartões sem salvar)
+- [x] Adicionar tabela pipelineSnapshots no banco para salvar versões anteriores
+- [x] Salvar snapshot após cada geração de pipeline
+- [x] Adicionar procedure restaurarPipelineSnapshot no backend
+- [x] Implementar UI de preview no modal (mostrar colunas antes de confirmar)
+- [x] Implementar UI de histórico/restauração de pipeline

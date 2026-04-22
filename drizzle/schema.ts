@@ -610,6 +610,19 @@ export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
 export type PipelineCartao = typeof pipelineCartoes.$inferSelect;
 export type InsertPipelineCartao = typeof pipelineCartoes.$inferInsert;
 
+// ─── PIPELINE SNAPSHOTS (histórico de versões geradas por IA) ─────────────────
+export const pipelineSnapshots = mysqlTable("pipeline_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  pipelineId: int("pipelineId").notNull(),
+  nomePipeline: varchar("nomePipeline", { length: 120 }).notNull(),
+  // JSON serializado com a estrutura completa: { colunas: [...], cartoes: [...] }
+  snapshot: longtext("snapshot").notNull(),
+  geradoEm: timestamp("geradoEm").defaultNow().notNull(),
+});
+export type PipelineSnapshot = typeof pipelineSnapshots.$inferSelect;
+export type InsertPipelineSnapshot = typeof pipelineSnapshots.$inferInsert;
+
 // ─── IA FINANCEIRA — SCORE DE SAÚDE ──────────────────────────────────────────
 export const scoreFinanceiro = mysqlTable("score_financeiro", {
   id: int("id").autoincrement().primaryKey(),

@@ -305,6 +305,40 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
         cartoesGerados++;
       }
 
+      // 9. Salvar snapshot para permitir restauração futura
+      try {
+        const snapshotData = {
+          colunas: estruturaIA.colunas,
+          cartoes: Array.from(ultimaEtapaPorCliente).map(([, cliente]) => {
+            const mapeado = estruturaIA.mapeamento?.find((m) => m.automacaoId === cliente.automacaoId);
+            const nomeColuna = mapeado?.coluna ?? estruturaIA.colunas[0]?.nome;
+            const colunaIndex = estruturaIA.colunas.findIndex((c) => c.nome === nomeColuna);
+            const dataFormatada = cliente.criadoEm.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+            return {
+              titulo: cliente.clienteNome,
+              descricao: `Última interação: ${cliente.automacaoNome ?? "Automação"} em ${dataFormatada}`,
+              colunaIndex: colunaIndex >= 0 ? colunaIndex : 0,
+              clienteId: cliente.clienteId,
+              clienteNome: cliente.clienteNome,
+              status: "em_andamento",
+              ordem: 0,
+            };
+          }),
+        };
+        const db = await import("../db").then((m) => m.getDb());
+        if (db) {
+          const { pipelineSnapshots } = await import("../../drizzle/schema");
+          await db.insert(pipelineSnapshots).values({
+            empresaId,
+            pipelineId,
+            nomePipeline: estruturaIA.nomePipeline,
+            snapshot: JSON.stringify(snapshotData),
+          });
+        }
+      } catch (snapErr) {
+        console.warn("[Pipeline IA] Falha ao salvar snapshot (não crítico):", snapErr);
+      }
+
       return {
         success: true,
         pipelineId,
@@ -471,5 +505,197 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
       if (!empresa) throw new Error("Empresa não encontrada");
       await updateCartao(input.cartaoId, { agendamentoId: input.agendamentoId ?? undefined });
       return { success: true };
+    }),
+
+  // ── Preview do Pipeline por IA (sem salvar) ──────────────────────────────────
+  previewPipelinePorIA: protectedProcedure.mutation(async ({ ctx }) => {
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+    if (!empresa) throw new Error("Empresa não encontrada");
+    const empresaId = empresa.id;
+
+    const todasAutomacoes = await getAutomacoesByEmpresa(empresaId);
+    const automacoesAtivas = todasAutomacoes.filter((a) => a.ativo);
+    if (automacoesAtivas.length === 0) {
+      throw new Error("Nenhuma automação ativa encontrada. Crie e ative automações antes de gerar um pipeline.");
+    }
+
+    const contextoAutomacoes = automacoesAtivas.map((a) => ({
+      id: a.id,
+      nome: a.nome,
+      gatilho: descreverGatilho(a),
+      canal: a.canalEnvio,
+      mensagem: a.corpoMensagem?.substring(0, 120) + (a.corpoMensagem?.length > 120 ? "..." : ""),
+    }));
+
+    let estruturaIA: {
+      nomePipeline: string;
+      descricao: string;
+      colunas: Array<{ nome: string; cor: string; descricao: string }>;
+      mapeamento: Array<{ automacaoId: number; coluna: string }>;
+    };
+
+    try {
+      const resposta = await invokeOpenAI({
+        messages: [
+          {
+            role: "system",
+            content: `Você é um especialista em CRM e jornada do cliente para pequenos negócios de serviços (salões, clínicas, barbearias).
+Analise as automações fornecidas e crie um Pipeline Kanban que represente visualmente a jornada do cliente.
+
+Retorne APENAS um JSON válido com esta estrutura exata:
+{
+  "nomePipeline": "Nome descritivo do pipeline (ex: Jornada de Atendimento)",
+  "descricao": "Breve descrição do que este pipeline representa",
+  "colunas": [
+    { "nome": "Nome da coluna", "cor": "#hexadecimal", "descricao": "O que esta etapa representa" }
+  ],
+  "mapeamento": [
+    { "automacaoId": 123, "coluna": "Nome exato da coluna correspondente" }
+  ]
+}
+
+Regras:
+- As colunas devem estar em ordem cronológica da jornada do cliente
+- Cada automação deve ser mapeada para a coluna mais adequada
+- Use cores distintas e profissionais para cada coluna
+- O nome do pipeline deve ser específico para o negócio
+- Máximo de 6 colunas para manter o visual limpo
+- Inclua sempre uma coluna final de "Concluído" ou similar`,
+          },
+          {
+            role: "user",
+            content: `Empresa: ${empresa.nome}\nAutomações ativas (${automacoesAtivas.length}):\n${JSON.stringify(contextoAutomacoes, null, 2)}\n\nCrie um pipeline Kanban que represente a jornada completa do cliente nesta empresa.`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      });
+      const rawContent = resposta.choices[0]?.message?.content;
+      const conteudo = typeof rawContent === "string" ? rawContent : "{}";
+      estruturaIA = JSON.parse(conteudo);
+      if (!estruturaIA.nomePipeline || !Array.isArray(estruturaIA.colunas) || estruturaIA.colunas.length === 0) {
+        throw new Error("Resposta da IA inválida");
+      }
+    } catch (e) {
+      console.warn("[Pipeline Preview IA] Fallback:", e);
+      estruturaIA = {
+        nomePipeline: `Jornada de Atendimento — ${empresa.nome}`,
+        descricao: "Pipeline gerado automaticamente com base nas automações ativas",
+        colunas: [
+          { nome: "Agendado", cor: "#6366f1", descricao: "Clientes com agendamento criado" },
+          { nome: "Lembrete Enviado", cor: "#f59e0b", descricao: "Lembrete enviado antes do atendimento" },
+          { nome: "Confirmado", cor: "#10b981", descricao: "Agendamento confirmado pelo cliente" },
+          { nome: "Cancelado", cor: "#ef4444", descricao: "Agendamento cancelado" },
+          { nome: "Concluído", cor: "#8b5cf6", descricao: "Atendimento realizado com sucesso" },
+        ],
+        mapeamento: [],
+      };
+    }
+
+    // Estimar número de cartões (sem criar no banco)
+    const { rows: historico } = await getHistoricoEnvios(empresaId, { limit: 200 });
+    const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const clientesUnicos = new Set(
+      historico
+        .filter((h) => h.clienteId && new Date(h.criadoEm) >= trintaDiasAtras)
+        .map((h) => h.clienteId)
+    ).size;
+
+    return {
+      nomePipeline: estruturaIA.nomePipeline,
+      descricao: estruturaIA.descricao,
+      colunas: estruturaIA.colunas,
+      estimativaCartoes: clientesUnicos,
+    };
+  }),
+
+  // ── Listar Snapshots (histórico de pipelines gerados) ──────────────────────
+  listarSnapshots: protectedProcedure.query(async ({ ctx }) => {
+    const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+    if (!empresa) throw new Error("Empresa não encontrada");
+    const db = await import("../db").then((m) => m.getDb());
+    if (!db) throw new Error("DB indisponível");
+    const { pipelineSnapshots } = await import("../../drizzle/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    const snapshots = await db
+      .select()
+      .from(pipelineSnapshots)
+      .where(eq(pipelineSnapshots.empresaId, empresa.id))
+      .orderBy(desc(pipelineSnapshots.geradoEm))
+      .limit(10);
+    return snapshots.map((s) => ({
+      id: s.id,
+      pipelineId: s.pipelineId,
+      nomePipeline: s.nomePipeline,
+      geradoEm: s.geradoEm,
+      // Parsear apenas as colunas do snapshot para exibir no preview
+      colunas: (() => {
+        try {
+          const parsed = JSON.parse(s.snapshot);
+          return (parsed.colunas ?? []) as Array<{ nome: string; cor: string }>;
+        } catch { return []; }
+      })(),
+    }));
+  }),
+
+  // ── Restaurar Snapshot ──────────────────────────────────────────────────
+  restaurarSnapshot: protectedProcedure
+    .input(z.object({ snapshotId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const db = await import("../db").then((m) => m.getDb());
+      if (!db) throw new Error("DB indisponível");
+      const { pipelineSnapshots } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+
+      // Buscar o snapshot
+      const [snap] = await db.select().from(pipelineSnapshots).where(eq(pipelineSnapshots.id, input.snapshotId));
+      if (!snap || snap.empresaId !== empresa.id) throw new Error("Snapshot não encontrado");
+
+      const data = JSON.parse(snap.snapshot) as {
+        colunas: Array<{ nome: string; cor: string; descricao?: string }>;
+        cartoes: Array<{ titulo: string; descricao?: string; colunaIndex: number; clienteId?: number; clienteNome?: string; status: string; ordem: number }>;
+      };
+
+      // Deletar o pipeline atual e recriar do snapshot
+      await deletePipeline(snap.pipelineId);
+
+      const novoPipeline = await createPipeline({
+        empresaId: empresa.id,
+        nome: snap.nomePipeline,
+        ordem: 0,
+      });
+      const pipelineId = novoPipeline.id;
+
+      const colunasMap: number[] = [];
+      for (let i = 0; i < data.colunas.length; i++) {
+        const col = data.colunas[i];
+        const novaColuna = await createColuna({
+          pipelineId,
+          empresaId: empresa.id,
+          nome: col.nome,
+          cor: col.cor ?? "#6366f1",
+          ordem: i,
+        });
+        colunasMap.push(novaColuna.id);
+      }
+
+      for (const cartao of data.cartoes) {
+        const colunaId = colunasMap[cartao.colunaIndex];
+        if (!colunaId) continue;
+        await createCartao({
+          pipelineId,
+          colunaId,
+          empresaId: empresa.id,
+          titulo: cartao.titulo,
+          descricao: cartao.descricao,
+          clienteId: cartao.clienteId,
+          clienteNome: cartao.clienteNome,
+          status: (cartao.status as "em_andamento" | "congelado" | "cancelado" | "concluido") ?? "em_andamento",
+          ordem: cartao.ordem,
+        });
+      }
+
+      return { success: true, pipelineId, nomePipeline: snap.nomePipeline };
     }),
 });

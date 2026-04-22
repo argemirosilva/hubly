@@ -724,6 +724,25 @@ export default function Automacoes() {
   const [, setLocation] = useLocation();
   const [showGerarPipelineModal, setShowGerarPipelineModal] = useState(false);
   const [pipelineGerado, setPipelineGerado] = useState<{ pipelineId: number; nomePipeline: string; totalColunas: number; totalCartoes: number } | null>(null);
+  const [pipelinePreview, setPipelinePreview] = useState<{ nomePipeline: string; descricao: string; colunas: Array<{ nome: string; cor: string; descricao: string }>; estimativaCartoes: number } | null>(null);
+  const [showSnapshotsModal, setShowSnapshotsModal] = useState(false);
+  const [snapshotParaRestaurar, setSnapshotParaRestaurar] = useState<number | null>(null);
+
+  const previewPipelineMutation = trpc.pipeline.previewPipelinePorIA.useMutation({
+    onSuccess: (data) => setPipelinePreview(data),
+    onError: (e: any) => toast.error(e.message ?? "Erro ao gerar preview"),
+  });
+  const snapshotsQuery = trpc.pipeline.listarSnapshots.useQuery(undefined, { enabled: showSnapshotsModal });
+  const restaurarSnapshotMutation = trpc.pipeline.restaurarSnapshot.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Pipeline "${data.nomePipeline}" restaurado com sucesso!`);
+      utils.pipeline.listar.invalidate();
+      setShowSnapshotsModal(false);
+      setSnapshotParaRestaurar(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao restaurar pipeline"),
+  });
+
   const gerarPipelineMutation = trpc.pipeline.gerarPipelinePorIA.useMutation({
     onSuccess: (data) => {
       setPipelineGerado(data);
@@ -1525,8 +1544,8 @@ export default function Automacoes() {
         </Dialog>
 
         {/* Modal: Gerar Pipeline com IA */}
-        <Dialog open={showGerarPipelineModal} onOpenChange={(open) => { if (!gerarPipelineMutation.isPending) { setShowGerarPipelineModal(open); if (!open) setPipelineGerado(null); } }}>
-          <DialogContent className="max-w-md">
+        <Dialog open={showGerarPipelineModal} onOpenChange={(open) => { if (!gerarPipelineMutation.isPending && !previewPipelineMutation.isPending) { setShowGerarPipelineModal(open); if (!open) { setPipelineGerado(null); setPipelinePreview(null); } } }}>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-purple-700">
                 <GitBranch size={18} className="text-purple-600" />
@@ -1536,37 +1555,89 @@ export default function Automacoes() {
 
             {!pipelineGerado ? (
               <div className="space-y-4 mt-1">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-                  <strong>⚠️ Atenção:</strong> Se você já possui um pipeline, ele será <strong>atualizado</strong> com os dados atuais das suas automações.
-                </div>
-                <p className="text-sm text-gray-600">
-                  A IA vai analisar todas as suas <strong>automações ativas</strong>, identificar a jornada do cliente e criar automaticamente um <strong>Pipeline Kanban</strong> com:
-                </p>
-                <ul className="text-sm text-gray-600 space-y-1.5 pl-1">
-                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Colunas representando cada etapa da jornada</li>
-                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cartões com clientes reais dos últimos 30 dias</li>
-                  <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cores e nomes gerados de acordo com o seu negócio</li>
-                </ul>
-                <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-xs text-purple-700">
-                  <strong>Nota:</strong> Se não existir um pipeline anterior, um novo será criado. Você poderá editá-lo livremente após a geração.
-                </div>
-                <div className="flex gap-2 justify-end pt-1">
-                  <Button variant="outline" size="sm" onClick={() => setShowGerarPipelineModal(false)} disabled={gerarPipelineMutation.isPending}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => gerarPipelineMutation.mutate()}
-                    disabled={gerarPipelineMutation.isPending}
-                  >
-                    {gerarPipelineMutation.isPending ? (
-                      <><Loader2 size={14} className="mr-1.5 animate-spin" />Gerando com IA...</>
-                    ) : (
-                      <><GitBranch size={14} className="mr-1.5" />Gerar Pipeline</>  
+                {/* Etapa 1: Descrição (sem preview ainda) */}
+                {!pipelinePreview && (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                      <strong>⚠️ Atenção:</strong> Se você já possui um pipeline, ele será <strong>atualizado</strong> com os dados atuais das suas automações.
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      A IA vai analisar todas as suas <strong>automações ativas</strong>, identificar a jornada do cliente e criar automaticamente um <strong>Pipeline Kanban</strong> com:
+                    </p>
+                    <ul className="text-sm text-gray-600 space-y-1.5 pl-1">
+                      <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Colunas representando cada etapa da jornada</li>
+                      <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cartões com clientes reais dos últimos 30 dias</li>
+                      <li className="flex items-start gap-2"><Check size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />Cores e nomes gerados de acordo com o seu negócio</li>
+                    </ul>
+                    <div className="flex gap-2 justify-between pt-1">
+                      <Button variant="ghost" size="sm" className="text-gray-500 text-xs" onClick={() => setShowSnapshotsModal(true)}>
+                        <RefreshCw size={13} className="mr-1" />Restaurar versão anterior
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setShowGerarPipelineModal(false)} disabled={previewPipelineMutation.isPending}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={() => previewPipelineMutation.mutate()}
+                          disabled={previewPipelineMutation.isPending}
+                        >
+                          {previewPipelineMutation.isPending ? (
+                            <><Loader2 size={14} className="mr-1.5 animate-spin" />Analisando com IA...</>
+                          ) : (
+                            <><Eye size={14} className="mr-1.5" />Ver Preview</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Etapa 2: Preview das colunas */}
+                {pipelinePreview && (
+                  <>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <p className="font-semibold text-purple-800 text-sm">{pipelinePreview.nomePipeline}</p>
+                      <p className="text-xs text-purple-600 mt-0.5">{pipelinePreview.descricao}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 mb-2">Colunas que serão criadas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {pipelinePreview.colunas.map((col, i) => (
+                          <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: col.cor }}>
+                            <span>{col.nome}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {pipelinePreview.estimativaCartoes > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                        <strong>{pipelinePreview.estimativaCartoes}</strong> clientes dos últimos 30 dias serão adicionados como cartões.
+                      </div>
                     )}
-                  </Button>
-                </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                      <strong>⚠️ Confirmação:</strong> Ao confirmar, o pipeline atual será atualizado com esta estrutura. Esta ação não pode ser desfeita (exceto via restauração de versão anterior).
+                    </div>
+                    <div className="flex gap-2 justify-end pt-1">
+                      <Button variant="outline" size="sm" onClick={() => setPipelinePreview(null)} disabled={gerarPipelineMutation.isPending}>
+                        Voltar
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => gerarPipelineMutation.mutate()}
+                        disabled={gerarPipelineMutation.isPending}
+                      >
+                        {gerarPipelineMutation.isPending ? (
+                          <><Loader2 size={14} className="mr-1.5 animate-spin" />Gerando com IA...</>
+                        ) : (
+                          <><GitBranch size={14} className="mr-1.5" />Confirmar e Gerar</>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-4 mt-1">
@@ -1607,6 +1678,92 @@ export default function Automacoes() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Restaurar Versão Anterior do Pipeline */}
+        <Dialog open={showSnapshotsModal} onOpenChange={(open) => { if (!restaurarSnapshotMutation.isPending) { setShowSnapshotsModal(open); if (!open) setSnapshotParaRestaurar(null); } }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-gray-800">
+                <RefreshCw size={18} className="text-purple-600" />
+                Restaurar Versão Anterior do Pipeline
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-1">
+              {snapshotsQuery.isLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-purple-500" />
+                  <span className="ml-2 text-sm text-gray-500">Carregando histórico...</span>
+                </div>
+              )}
+              {!snapshotsQuery.isLoading && (!snapshotsQuery.data || snapshotsQuery.data.length === 0) && (
+                <div className="text-center py-8 text-gray-400">
+                  <RefreshCw size={32} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Nenhuma versão anterior encontrada.</p>
+                  <p className="text-xs mt-1">As versões são salvas automaticamente após cada geração por IA.</p>
+                </div>
+              )}
+              {snapshotsQuery.data && snapshotsQuery.data.length > 0 && (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {snapshotsQuery.data.map((snap) => (
+                    <div
+                      key={snap.id}
+                      className={`border rounded-xl p-3 cursor-pointer transition-all ${
+                        snapshotParaRestaurar === snap.id
+                          ? "border-purple-400 bg-purple-50"
+                          : "border-gray-200 hover:border-purple-200 hover:bg-gray-50"
+                      }`}
+                      onClick={() => setSnapshotParaRestaurar(snap.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900 truncate">{snap.nomePipeline}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(snap.geradoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        {snapshotParaRestaurar === snap.id && (
+                          <Check size={16} className="text-purple-600 flex-shrink-0 mt-0.5" />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {snap.colunas.slice(0, 5).map((col, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded-full text-xs text-white font-medium" style={{ backgroundColor: col.cor }}>
+                            {col.nome}
+                          </span>
+                        ))}
+                        {snap.colunas.length > 5 && (
+                          <span className="px-2 py-0.5 rounded-full text-xs text-gray-500 bg-gray-100">+{snap.colunas.length - 5}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {snapshotParaRestaurar && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                  <strong>⚠️ Atenção:</strong> O pipeline atual será substituído pela versão selecionada. Esta ação não pode ser desfeita.
+                </div>
+              )}
+              <div className="flex gap-2 justify-end pt-1">
+                <Button variant="outline" size="sm" onClick={() => setShowSnapshotsModal(false)} disabled={restaurarSnapshotMutation.isPending}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => snapshotParaRestaurar && restaurarSnapshotMutation.mutate({ snapshotId: snapshotParaRestaurar })}
+                  disabled={!snapshotParaRestaurar || restaurarSnapshotMutation.isPending}
+                >
+                  {restaurarSnapshotMutation.isPending ? (
+                    <><Loader2 size={14} className="mr-1.5 animate-spin" />Restaurando...</>
+                  ) : (
+                    <><RefreshCw size={14} className="mr-1.5" />Restaurar Versão</>
+                  )}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
