@@ -1916,3 +1916,15 @@
 - [x] Substituir canvas visual por interface em lista de nós no mobile
 - [x] Configuração de nós via bottom sheet ao tocar no card
 - [x] Painel de configuração de nó em bottom sheet no mobile
+
+## Testes da Fila de Envios e Gatilhos de Automação (2026-04-22)
+- [ ] Testes unitários: gatilho evento_agendamento_criado
+- [ ] Testes unitários: gatilho evento_agendamento_confirmado
+- [ ] Testes unitários: gatilho evento_agendamento_cancelado
+- [ ] Testes unitários: gatilho horas_antes_agendamento
+- [ ] Testes unitários: gatilho aniversario_cliente
+- [ ] Testes unitários: gatilho data_fixa
+- [ ] Testes da fila: enfileirar envio, processar, marcar como enviado
+- [ ] Testes da fila: falha no envio, retentativa, expiração de 4h
+- [ ] Testes da fila: prioridade de pre_agendado vs agendado_criado
+- [ ] Testes de substituição de variáveis dinâmicas na mensagem
