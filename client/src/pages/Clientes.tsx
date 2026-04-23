@@ -365,7 +365,7 @@ export default function Clientes() {
           <ClienteForm form={form} onChange={setForm} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalCriar(false)}>Cancelar</Button>
-            <Button onClick={() => criarMutation.mutate(form as any)} disabled={!form.nome || criarMutation.isPending}>
+            <Button onClick={() => criarMutation.mutate({ ...form, dataNascimento: form.dataNascimento || undefined } as any)} disabled={!form.nome || criarMutation.isPending}>
               {criarMutation.isPending ? "Salvando..." : "Cadastrar"}
             </Button>
           </DialogFooter>
@@ -387,7 +387,7 @@ export default function Clientes() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(null)}>Cancelar</Button>
             <Button
-              onClick={() => modalEditar && editarMutation.mutate({ id: modalEditar.id, ...modalEditar.form } as any)}
+              onClick={() => modalEditar && editarMutation.mutate({ id: modalEditar.id, ...modalEditar.form, dataNascimento: modalEditar.form.dataNascimento || undefined } as any)}
               disabled={!modalEditar?.form.nome || editarMutation.isPending}
             >
               {editarMutation.isPending ? "Salvando..." : "Salvar alterações"}
@@ -447,7 +447,7 @@ function ClienteForm({ form, onChange }: { form: FormCliente; onChange: (f: Form
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Data de nascimento</Label>
-        <Input type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)} />
+        <Input type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)} placeholder="DD/MM/AAAA" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Endereço</Label>
