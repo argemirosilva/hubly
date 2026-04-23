@@ -2030,3 +2030,7 @@
 - [ ] Backend: motor de execução interpreta por_categoria, por_valor, por_tipo_cliente
 - [ ] Frontend: multi-select de profissionais no filtro "por profissional"
 - [ ] Frontend: pré-visualização do filtro configurado no card do nó de condição no canvas
+
+## Persistência de Posições dos Nós no Canvas (2026-04-22)
+- [x] Salvar posição (x, y) de cada nó no flowJson ao arrastar (auto-save após drag)
+- [x] Restaurar posições ao abrir uma automação existente (já funcionava via flowJson)

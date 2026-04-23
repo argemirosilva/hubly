@@ -2485,6 +2485,15 @@ export const appRouter = router({
         await updateAutomacao(id, { ...data, isTemplate: false });
         return { success: true };
       }),
+    savePositions: protectedProcedure
+      .input(z.object({ id: z.number(), flowJson: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        // Auto-save leve: persiste apenas as posições dos nós sem validar duplicidade
+        await updateAutomacao(input.id, { flowJson: input.flowJson });
+        return { success: true };
+      }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {

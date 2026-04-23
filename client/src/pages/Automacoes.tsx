@@ -961,11 +961,12 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
 
 //  Canvas
 
-function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect }: {
+function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
   nodes: FlowNode[];
   onNodesChange: (nodes: FlowNode[]) => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onDragEnd?: (nodes: FlowNode[]) => void;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ id: string; ox: number; oy: number } | null>(null);
@@ -988,7 +989,13 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect }: {
     onNodesChange(nodes.map(n => n.id === dragging.id ? { ...n, x, y } : n));
   }, [dragging, nodes, onNodesChange]);
 
-  const handleMouseUp = useCallback(() => setDragging(null), []);
+  const handleMouseUp = useCallback(() => {
+    if (dragging) {
+      // Notifica o pai com os nós atualizados para auto-save de posições
+      onDragEnd?.(nodes);
+    }
+    setDragging(null);
+  }, [dragging, nodes, onDragEnd]);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -1216,6 +1223,7 @@ export default function Automacoes() {
     onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => toast.error(e.message),
   });
+  const savePositionsMutation = trpc.automacoes.savePositions.useMutation();
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [testeEnvioId, setTesteEnvioId] = useState<number | null>(null);
   const [testeTelefone, setTesteTelefone] = useState("");
@@ -1269,6 +1277,13 @@ export default function Automacoes() {
 
   const [view, setView] = useState<"list" | "editor">("list");
   const [currentFlow, setCurrentFlow] = useState<FlowAutomacao>({ nome: "Nova Automação", ativo: true, nodes: [] });
+
+  // Auto-save de posições após arrastar um nó (somente para automações já salvas)
+  const handleDragEnd = useCallback((updatedNodes: FlowNode[]) => {
+    if (currentFlow.id) {
+      savePositionsMutation.mutate({ id: currentFlow.id, flowJson: JSON.stringify(updatedNodes) });
+    }
+  }, [currentFlow.id, savePositionsMutation]);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -2609,7 +2624,7 @@ export default function Automacoes() {
         {/* Canvas + Painel */}
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 overflow-hidden">
-            <FlowCanvas nodes={nodes} onNodesChange={setNodes} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
+            <FlowCanvas nodes={nodes} onNodesChange={setNodes} selectedId={selectedNodeId} onSelect={setSelectedNodeId} onDragEnd={handleDragEnd} />
           </div>
           {selectedNode ? (
             <div className="w-72 border-l border-gray-200 bg-white overflow-hidden flex flex-col flex-shrink-0">
