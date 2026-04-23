@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet } from "lucide-react";
 import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
 import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: meiosPagamento } = trpc.meiosPagamento.list.useQuery();
+  const { data: saldoCreditoData } = trpc.creditos.getSaldo.useQuery(
+    { clienteId: ag?.clienteId ?? 0 },
+    { enabled: !!ag?.clienteId }
+  );
+  const saldoCredito = saldoCreditoData?.saldo ?? 0;
 
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
@@ -131,8 +136,42 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const registrarCreditoMutation = trpc.creditos.registrar.useMutation({
+    onSuccess: (data) => {
+      utils.creditos.getSaldo.invalidate({ clienteId: ag?.clienteId ?? 0 });
+      utils.creditos.getHistorico.invalidate({ clienteId: ag?.clienteId ?? 0 });
+      toast.success(`✅ Crédito de R$${data.novoSaldo.toFixed(2)} registrado para a cliente!`);
+    },
+  });
+
+  const usarCreditoMutation = trpc.creditos.usar.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Crédito aplicado! Saldo restante: R$${data.novoSaldo.toFixed(2)}`);
+      utils.agendamentos.getPagamentos.invalidate({ agendamentoId });
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.creditos.getSaldo.invalidate({ clienteId: ag?.clienteId ?? 0 });
+      utils.creditos.getHistorico.invalidate({ clienteId: ag?.clienteId ?? 0 });
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const addPagamentoMutation = trpc.agendamentos.addPagamento.useMutation({
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
+      // Detectar pagamento a maior após registrar
+      const totalItens = parseFloat(String(ag?.valorTotal ?? 0));
+      const desconto = parseFloat(String((ag as any)?.desconto ?? 0));
+      const totalJaPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+      const novoPag = parseFloat(vars.valor);
+      const totalComNovo = totalJaPago + novoPag;
+      const excedente = totalComNovo - (totalItens - desconto);
+      if (excedente > 0.01 && ag?.clienteId) {
+        registrarCreditoMutation.mutate({
+          clienteId: ag.clienteId,
+          valor: Math.round(excedente * 100) / 100,
+          origem: `Pagamento a maior no agendamento #${agendamentoId}`,
+          agendamentoId,
+        });
+      }
       toast.success("Pagamento registrado!");
       utils.agendamentos.getPagamentos.invalidate({ agendamentoId });
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
@@ -679,6 +718,36 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   )}
 
                   {/* Formulário adicionar pagamento */}
+                  {/* Badge de crédito disponível */}
+                  {saldoCredito > 0 && (
+                    <div className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: "oklch(62% 0.18 155 / 8%)", border: "1px solid oklch(62% 0.18 155 / 25%)" }}>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-3.5 h-3.5" style={{ color: "oklch(35% 0.14 155)" }} />
+                        <span className="text-xs font-medium" style={{ color: "oklch(35% 0.14 155)" }}>
+                          Crédito disponível: {fmt(saldoCredito)}
+                        </span>
+                      </div>
+                      {emAberto > 0 && (
+                        <button
+                          onClick={() => {
+                            const valorUsar = Math.min(saldoCredito, emAberto);
+                            usarCreditoMutation.mutate({
+                              clienteId: ag.clienteId!,
+                              valor: valorUsar,
+                              agendamentoId,
+                              origem: `Crédito usado no agendamento #${agendamentoId}`,
+                            });
+                          }}
+                          disabled={usarCreditoMutation.isPending}
+                          className="text-[11px] font-semibold px-2 py-1 rounded-md transition-all disabled:opacity-50"
+                          style={{ background: "oklch(62% 0.18 155 / 15%)", color: "oklch(28% 0.14 155)", border: "1px solid oklch(62% 0.18 155 / 35%)" }}
+                        >
+                          {usarCreditoMutation.isPending ? "Aplicando..." : "Usar crédito"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {showAddPagamento ? (
                     <div className="space-y-2 p-3 rounded-lg" style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
                       <div className="space-y-2">

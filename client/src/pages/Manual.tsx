@@ -303,6 +303,21 @@ const SECTIONS: Section[] = [
         ],
         tip: "A análise é gerada automaticamente. Muito útil para saber em quem focar nas ações de fidelização.",
       },
+      {
+        title: "Sistema de Crédito do Cliente",
+        steps: [
+          "O crédito é gerado automaticamente quando uma cliente paga mais do que o valor total do agendamento.",
+          "Por exemplo: o serviço custa R$80 e a cliente paga R$100 — os R$20 a mais ficam registrados como crédito.",
+          "O crédito fica vinculado ao perfil da cliente e pode ser usado em qualquer agendamento futuro.",
+          "Ao abrir um agendamento com saldo em aberto, se a cliente tiver crédito disponível, um aviso verde aparece na seção de Pagamento.",
+          "Clique em Usar crédito para aplicar automaticamente o saldo disponível como pagamento do agendamento.",
+          "Para ver o saldo e o histórico completo de movimentações, abra o perfil da cliente e clique na aba Créditos.",
+          "Se quiser devolver o valor em dinheiro, clique em Devolver em dinheiro na aba Créditos e informe o valor.",
+          "Toda movimentação (crédito gerado, uso em agendamento, devolução) fica registrada no histórico com data e descrição.",
+        ],
+        tip: "O saldo de crédito também aparece como um KPI no perfil da cliente, ao lado do total gasto e número de atendimentos.",
+        warning: "A devolução em dinheiro é apenas um registro no sistema. O pagamento físico ao cliente deve ser feito manualmente por você.",
+      },
     ],
   },
   {

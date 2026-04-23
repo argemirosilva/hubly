@@ -1,5 +1,17 @@
 # Agendei - Sistema de Gestão para Salão de Beleza
 
+## Sistema de Crédito do Cliente
+- [x] Schema: tabela creditos_cliente (id, empresaId, clienteId, valor, tipo, origem, agendamentoId, createdAt)
+- [x] Migration aplicada no banco de dados
+- [x] Backend: getSaldoCreditoCliente, registrarCreditoCliente, getHistoricoCreditoCliente no db.ts
+- [x] Router creditos: getSaldo, registrar, usar, devolver, getHistorico
+- [x] AgendamentoDetalheModal: detecção automática de pagamento a maior
+- [x] AgendamentoDetalheModal: badge verde de crédito disponível com botão "Usar crédito"
+- [x] ClienteDetalhe: KPI de crédito (4º card)
+- [x] ClienteDetalhe: aba Créditos com histórico de movimentações
+- [x] ClienteDetalhe: botão "Devolver em dinheiro" com modal de confirmação
+- [x] Manual: tópico "Sistema de Crédito do Cliente" na seção Clientes
+
 ## Banco de Dados / Schema
 - [x] Schema: empresas, profissionais, permissões
 - [x] Schema: clientes, agendamentos, pré-agendamentos
@@ -2081,3 +2093,19 @@
 - [x] Corrigir início/fim do período da assinatura em branco (dados do Stripe LIVE)
 - [x] Adicionar manual completo no topo da página de Suporte
 - [x] Data de nascimento opcional no cadastro de novo cliente
+
+## Sistema de Crédito do Cliente
+- [ ] Tabela creditosCliente no banco (clienteId, empresaId, valor, origem, agendamentoId, criadoEm)
+- [ ] Migration SQL para criar a tabela
+- [ ] Procedure getSaldoCredito: retornar saldo disponível do cliente
+- [ ] Procedure registrarCredito: criar entrada de crédito
+- [ ] Procedure usarCredito: abater crédito em agendamento
+- [ ] Procedure devolverCredito: marcar devolução em dinheiro
+- [ ] Procedure getHistoricoCredito: listar movimentações do cliente
+- [ ] Detectar pagamento a maior no modal de pagamento e registrar crédito automaticamente
+- [ ] Aviso no modal quando pagamento a maior for detectado
+- [ ] Badge de crédito disponível no modal de pagamento de agendamento
+- [ ] Botão "Usar crédito" no modal de pagamento
+- [ ] Saldo e histórico de crédito na ficha do cliente
+- [ ] Botão "Devolver crédito" na ficha do cliente
+- [ ] Documentar no manual

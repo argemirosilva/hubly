@@ -38,6 +38,9 @@ import {
   getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento,
   getDashboardConfig, saveDashboardConfig,
   deleteAgendamentoCompleto,
+  getSaldoCreditoCliente,
+  registrarCreditoCliente,
+  getHistoricoCreditoCliente,
 } from "./db";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
@@ -5042,6 +5045,103 @@ export const appRouter = router({
         await requirePermissao(ctx, empresa, 'configuracoesEditar');
         await deleteMeioPagamento(input.id);
         return { success: true };
+      }),
+  }),
+
+  creditos: router({
+    /** Retorna o saldo de crédito disponível de um cliente */
+    getSaldo: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const saldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { saldo };
+      }),
+
+    /** Registra um crédito manualmente (ex: pagamento a maior) */
+    registrar: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        valor: z.number().positive(),
+        origem: z.string().optional(),
+        agendamentoId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await registrarCreditoCliente({
+          clienteId: input.clienteId,
+          empresaId: empresa.id,
+          valor: input.valor,
+          tipo: 'credito',
+          origem: input.origem ?? 'Registro manual',
+          agendamentoId: input.agendamentoId,
+        });
+        const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { success: true, novoSaldo };
+      }),
+
+    /** Usa crédito do cliente para abater em um agendamento */
+    usar: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        valor: z.number().positive(),
+        agendamentoId: z.number().optional(),
+        origem: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const saldoAtual = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        if (saldoAtual < input.valor) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Saldo insuficiente. Disponível: R$${saldoAtual.toFixed(2)}` });
+        }
+        await registrarCreditoCliente({
+          clienteId: input.clienteId,
+          empresaId: empresa.id,
+          valor: -input.valor,
+          tipo: 'uso',
+          origem: input.origem ?? 'Uso em agendamento',
+          agendamentoId: input.agendamentoId,
+        });
+        const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { success: true, novoSaldo };
+      }),
+
+    /** Registra devolução de crédito em dinheiro */
+    devolver: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        valor: z.number().positive(),
+        origem: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const saldoAtual = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        if (saldoAtual < input.valor) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Saldo insuficiente. Disponível: R$${saldoAtual.toFixed(2)}` });
+        }
+        await registrarCreditoCliente({
+          clienteId: input.clienteId,
+          empresaId: empresa.id,
+          valor: -input.valor,
+          tipo: 'devolucao',
+          origem: input.origem ?? 'Devolução em dinheiro',
+        });
+        const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { success: true, novoSaldo };
+      }),
+
+    /** Retorna o histórico de movimentações de crédito do cliente */
+    getHistorico: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const historico = await getHistoricoCreditoCliente(input.clienteId, empresa.id);
+        return historico;
       }),
   }),
 });

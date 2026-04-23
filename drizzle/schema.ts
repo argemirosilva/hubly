@@ -1174,3 +1174,17 @@ export const chamadoMensagens = mysqlTable("chamado_mensagens", {
 });
 export type ChamadoMensagem = typeof chamadoMensagens.$inferSelect;
 export type InsertChamadoMensagem = typeof chamadoMensagens.$inferInsert;
+
+// ─── CRÉDITOS DO CLIENTE ──────────────────────────────────────────────────────
+export const creditosCliente = mysqlTable("creditos_cliente", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(), // positivo = crédito gerado, negativo = crédito usado/devolvido
+  tipo: mysqlEnum("tipo", ["credito", "uso", "devolucao"]).notNull(),
+  origem: varchar("origem", { length: 500 }),                     // descrição da origem (ex: "Pagamento a maior — Agendamento #123")
+  agendamentoId: int("agendamentoId"),                            // referência opcional ao agendamento
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type CreditoCliente = typeof creditosCliente.$inferSelect;
+export type InsertCreditoCliente = typeof creditosCliente.$inferInsert;

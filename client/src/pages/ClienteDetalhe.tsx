@@ -19,7 +19,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
   Pencil, Save, X, Trash2, MapPin, CreditCard, History, RefreshCw, ChevronDown, ChevronUp,
-  TrendingUp, TrendingDown, Activity, Star, Ban,
+  TrendingUp, TrendingDown, Activity, Star, Ban, Wallet, ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -50,6 +50,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const [form, setForm] = useState<Record<string, string>>({});
   const [confirmarExcluir, setConfirmarExcluir] = useState(false);
   const [pacoteHistoricoId, setPacoteHistoricoId] = useState<number | null>(null);
+  const [devolverCreditoModal, setDevolverCreditoModal] = useState(false);
+  const [devolverValor, setDevolverValor] = useState("");
   const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
@@ -97,6 +99,28 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   );
 
   const utils = trpc.useUtils();
+
+  // Queries de crédito
+  const { data: saldoCreditoData } = trpc.creditos.getSaldo.useQuery(
+    { clienteId: id },
+    { enabled: !!id }
+  );
+  const saldoCredito = saldoCreditoData?.saldo ?? 0;
+  const { data: historicoCreditoData = [] } = trpc.creditos.getHistorico.useQuery(
+    { clienteId: id },
+    { enabled: !!id }
+  );
+
+  const devolverCreditoMutation = trpc.creditos.devolver.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Devolução registrada! Saldo restante: R$${data.novoSaldo.toFixed(2)}`);
+      utils.creditos.getSaldo.invalidate({ clienteId: id });
+      utils.creditos.getHistorico.invalidate({ clienteId: id });
+      setDevolverCreditoModal(false);
+      setDevolverValor("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   // Histórico de sessões do pacote selecionado
   const { data: historicoSessoes = [], isLoading: loadingHistorico } = trpc.pacotes.historicoSessoes.useQuery(
@@ -353,11 +377,12 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           {/* ── Stats e abas ── */}
           <div className="lg:col-span-2 space-y-4">
             {/* KPIs */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "Total gasto", value: formatCurrency(c.totalGasto), icon: DollarSign, color: "text-emerald-600" },
                 { label: "Atendimentos", value: c.totalAtendimentos ?? 0, icon: Scissors, color: "text-blue-600" },
                 { label: "Saldo sessões", value: c.saldoSessoes ?? 0, icon: Calendar, color: "text-purple-600" },
+                { label: "Crédito", value: formatCurrency(saldoCredito), icon: Wallet, color: saldoCredito > 0 ? "text-green-600" : "text-muted-foreground" },
               ].map(stat => {
                 const Icon = stat.icon;
                 return (
@@ -409,7 +434,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               </Card>
             )}
 
-            {/* Abas: Histórico + Pacotes */}
+            {/* Abas: Histórico + Pacotes + Créditos */}
             <Tabs defaultValue="historico">
               <TabsList className="mb-3">
                 <TabsTrigger value="historico" className="gap-1.5 text-xs">
@@ -420,6 +445,14 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                   {pacotesAtivos.length > 0 && (
                     <Badge variant="secondary" className="ml-1 text-xs h-4 px-1.5">
                       {pacotesAtivos.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="creditos" className="gap-1.5 text-xs">
+                  <Wallet className="w-3.5 h-3.5" /> Créditos
+                  {saldoCredito > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs h-4 px-1.5 bg-green-100 text-green-700">
+                      {formatCurrency(saldoCredito)}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -675,10 +708,123 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                   </div>
                 )}
               </TabsContent>
+
+              {/* ── Créditos ── */}
+              <TabsContent value="creditos">
+                <Card className="border-border shadow-none">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold">Crédito do Cliente</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${saldoCredito > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          Saldo: {formatCurrency(saldoCredito)}
+                        </span>
+                        {saldoCredito > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+                            onClick={() => setDevolverCreditoModal(true)}
+                          >
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                            Devolver em dinheiro
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {historicoCreditoData.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <Wallet className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">Nenhuma movimentação de crédito</p>
+                        <p className="text-xs text-muted-foreground mt-1">O crédito é gerado automaticamente quando a cliente paga a mais</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {historicoCreditoData.map((mov: any) => (
+                          <div key={mov.id} className="flex items-center justify-between px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                mov.tipo === 'credito' ? 'bg-green-100' : 'bg-amber-100'
+                              }`}>
+                                {mov.tipo === 'credito'
+                                  ? <ArrowDownLeft className="w-3.5 h-3.5 text-green-600" />
+                                  : <ArrowUpRight className="w-3.5 h-3.5 text-amber-600" />
+                                }
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {mov.tipo === 'credito' ? 'Crédito' : mov.tipo === 'uso' ? 'Uso em agendamento' : 'Devolução'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {mov.origem && <span>{mov.origem} · </span>}
+                                  {mov.createdAt ? new Date(mov.createdAt).toLocaleDateString('pt-BR') : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`text-sm font-bold ${
+                              Number(mov.valor) >= 0 ? 'text-green-600' : 'text-amber-600'
+                            }`}>
+                              {Number(mov.valor) >= 0 ? '+' : ''}{formatCurrency(Number(mov.valor))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
       </div>
+
+      {/* ── Modal de devolução de crédito ── */}
+      <Dialog open={devolverCreditoModal} onOpenChange={setDevolverCreditoModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4 text-amber-600" />
+              Devolver Crédito em Dinheiro
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Saldo disponível: <strong className="text-green-600">{formatCurrency(saldoCredito)}</strong>
+            </p>
+            <div className="space-y-1.5">
+              <Label>Valor a devolver (R$)</Label>
+              <Input
+                type="number"
+                min="0.01"
+                max={saldoCredito}
+                step="0.01"
+                placeholder={`Máx: ${saldoCredito.toFixed(2)}`}
+                value={devolverValor}
+                onChange={e => setDevolverValor(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDevolverCreditoModal(false)}>Cancelar</Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              disabled={!devolverValor || Number(devolverValor) <= 0 || devolverCreditoMutation.isPending}
+              onClick={() => {
+                devolverCreditoMutation.mutate({
+                  clienteId: id,
+                  valor: Number(devolverValor),
+                  origem: `Devolução em dinheiro para ${c.nome}`,
+                });
+              }}
+            >
+              {devolverCreditoMutation.isPending ? "Registrando..." : "Confirmar devolução"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Modal de renovação de pacote ── */}
       <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>

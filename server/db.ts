@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte, sql, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
+import { creditosCliente } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -2155,4 +2156,46 @@ export async function deleteAgendamentoCompleto(agendamentoId: number): Promise<
   await db.delete(tokensConfirmacao).where(eq(tokensConfirmacao.agendamentoId, agendamentoId));
   // 7. Remover o agendamento em si
   await db.delete(agendamentos).where(eq(agendamentos.id, agendamentoId));
+}
+
+// ─── CRÉDITOS DO CLIENTE ──────────────────────────────────────────────────────
+export async function getSaldoCreditoCliente(clienteId: number, empresaId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .select({ valor: creditosCliente.valor })
+    .from(creditosCliente)
+    .where(and(eq(creditosCliente.clienteId, clienteId), eq(creditosCliente.empresaId, empresaId)));
+  const saldo = rows.reduce((acc, r) => acc + Number(r.valor), 0);
+  return Math.max(0, Math.round(saldo * 100) / 100);
+}
+
+export async function registrarCreditoCliente(data: {
+  clienteId: number;
+  empresaId: number;
+  valor: number;
+  tipo: 'credito' | 'uso' | 'devolucao';
+  origem?: string;
+  agendamentoId?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.insert(creditosCliente).values({
+    clienteId: data.clienteId,
+    empresaId: data.empresaId,
+    valor: String(data.valor),
+    tipo: data.tipo,
+    origem: data.origem,
+    agendamentoId: data.agendamentoId,
+  });
+}
+
+export async function getHistoricoCreditoCliente(clienteId: number, empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(creditosCliente)
+    .where(and(eq(creditosCliente.clienteId, clienteId), eq(creditosCliente.empresaId, empresaId)))
+    .orderBy(desc(creditosCliente.createdAt));
 }
