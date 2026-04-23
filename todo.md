@@ -2049,3 +2049,7 @@
 - [x] Pinch-to-zoom no mobile
 - [x] Auto-fit: ao abrir automação, centralizar e ajustar zoom para todos os nós ficarem visíveis
 - [x] Botões de zoom (+/-/reset) na toolbar do canvas
+
+## Melhorias UX Automações (2026-04-23)
+- [x] Header do editor de automação fixo no topo (sticky) ao fazer scroll no canvas
+- [x] Caixa de Saída: cancelar apenas itens não enviados; limpar apenas itens enviados

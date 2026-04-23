@@ -2794,7 +2794,7 @@ export default function Automacoes() {
     <>
     <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
         {/* Toolbar */}
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-10 flex-shrink-0">
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-30 flex-shrink-0 sticky top-0">
           <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setView("list")}>
             <ChevronRight size={14} className="rotate-180" />Automações
           </button>

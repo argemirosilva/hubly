@@ -2866,6 +2866,24 @@ export const appRouter = router({
         return { success: true, deletedCount };
       }),
 
+    limparItem: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        const db = await import('./db').then(m => m.getDb());
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+        const { historicoEnviosAutomacao: tbl } = await import('../drizzle/schema');
+        const { eq, and } = await import('drizzle-orm');
+        const rows = await db.select().from(tbl)
+          .where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)))
+          .limit(1);
+        if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item não encontrado" });
+        if (rows[0].status !== 'enviado') throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios já enviados podem ser limpos" });
+        await db.delete(tbl).where(and(eq(tbl.id, input.id), eq(tbl.empresaId, empresa.id)));
+        return { success: true };
+      }),
+
     reenviarMensagem: protectedProcedure
       .input(z.object({ envioId: z.number() }))
       .mutation(async ({ ctx, input }) => {

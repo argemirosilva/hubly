@@ -111,7 +111,7 @@ function formatDateTime(dt: string | null | undefined) {
   });
 }
 
-function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCancelar, cancelarLoading, onReagendar, reagendarLoading }: {
+function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCancelar, cancelarLoading, onLimpar, limparLoading, onReagendar, reagendarLoading }: {
   row: FilaRow | null;
   open: boolean;
   onClose: () => void;
@@ -119,6 +119,8 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
   reenviarLoading: boolean;
   onCancelar: (id: number) => void;
   cancelarLoading: boolean;
+  onLimpar: (id: number) => void;
+  limparLoading: boolean;
   onReagendar: (id: number, horasDelay: number) => void;
   reagendarLoading: boolean;
 }) {
@@ -252,7 +254,7 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
               </div>
             </div>
           )}
-          {/* Botão cancelar — para pendentes, agendados e falhados */}
+          {/* Botão cancelar — apenas para pendentes, agendados e falhados */}
           {(row.status === "pendente" || row.status === "agendado" || row.status === "falhou") && (
             <Button
               className="w-full gap-2 border-red-200 hover:bg-red-50"
@@ -262,6 +264,18 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
             >
               <Trash2 className="w-4 h-4 text-red-500" />
               <span className="text-red-600">{cancelarLoading ? "Cancelando..." : "Cancelar e remover envio"}</span>
+            </Button>
+          )}
+          {/* Botão limpar — apenas para enviados */}
+          {row.status === "enviado" && (
+            <Button
+              className="w-full gap-2 border-gray-200 hover:bg-gray-50"
+              variant="outline"
+              onClick={() => onLimpar(row.id)}
+              disabled={limparLoading}
+            >
+              <Trash2 className="w-4 h-4 text-gray-400" />
+              <span className="text-gray-600">{limparLoading ? "Limpando..." : "Limpar registro"}</span>
             </Button>
           )}
         </div>
@@ -279,6 +293,7 @@ export default function FilaAutomacoes() {
   const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
   const [reenviarLoading, setReenviarLoading] = useState(false);
   const [cancelarLoading, setCancelarLoading] = useState(false);
+  const [limparLoading, setLimparLoading] = useState(false);
 
   // Seleção múltipla
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -303,6 +318,15 @@ export default function FilaAutomacoes() {
     { periodo },
     { refetchInterval: autoRefresh ? 15000 : false }
   );
+
+  const limparItemMutation = trpc.automacoes.limparItem.useMutation({
+    onSuccess: () => {
+      toast.success("Registro limpo com sucesso!");
+      setSelectedRow(null);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const cancelarMutation = trpc.automacoes.cancelarItem.useMutation({
     onSuccess: () => {
@@ -338,6 +362,15 @@ export default function FilaAutomacoes() {
       await cancelarMutation.mutateAsync({ id });
     } finally {
       setCancelarLoading(false);
+    }
+  };
+
+  const handleLimparItem = async (id: number) => {
+    setLimparLoading(true);
+    try {
+      await limparItemMutation.mutateAsync({ id });
+    } finally {
+      setLimparLoading(false);
     }
   };
 
@@ -751,6 +784,8 @@ export default function FilaAutomacoes() {
         reenviarLoading={reenviarLoading}
         onCancelar={handleCancelar}
         cancelarLoading={cancelarLoading}
+        onLimpar={handleLimparItem}
+        limparLoading={limparLoading}
         onReagendar={handleReagendar}
         reagendarLoading={reagendarLoading}
       />
