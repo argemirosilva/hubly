@@ -2109,3 +2109,9 @@
 - [ ] Saldo e histórico de crédito na ficha do cliente
 - [ ] Botão "Devolver crédito" na ficha do cliente
 - [ ] Documentar no manual
+
+## Badge de Crédito na Listagem e Relatório Financeiro
+- [x] Backend: procedure listSaldosCredito (retorna saldo por clienteId para a empresa)
+- [x] Backend: procedure getResumoCreditos (total em aberto, total devolvido, nº clientes com crédito)
+- [x] Clientes.tsx: badge discreto de crédito ao lado do nome do cliente
+- [x] Financeiro: seção "Créditos em Aberto" com total passivo e lista por cliente com nome

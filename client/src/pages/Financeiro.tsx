@@ -50,6 +50,13 @@ export default function Financeiro() {
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
   const { data: metricasPagar } = trpc.contasPagar.metricas.useQuery();
   const { data: metricasReceber } = trpc.contasReceber.metricas.useQuery();
+  const { data: resumoCreditos } = trpc.creditos.getResumo.useQuery();
+  const { data: clientesLista } = trpc.clientes.list.useQuery();
+  const clienteNomeMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    clientesLista?.forEach(c => { m[c.id] = c.nome; });
+    return m;
+  }, [clientesLista]);
 
   // Fluxo de caixa consolidado
   const receitasMes = metricasReceber?.totalRecebidoMes ?? 0;
@@ -279,6 +286,63 @@ export default function Financeiro() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Créditos em Aberto */}
+      {resumoCreditos && resumoCreditos.clientesComCredito > 0 && (
+        <div className="card-elegant overflow-hidden">
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4" style={{ color: "oklch(38% 0.14 155)" }} />
+                <h3 className="font-semibold text-sm tracking-tight">Créditos em Aberto (Passivo)</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">{resumoCreditos.clientesComCredito} cliente{resumoCreditos.clientesComCredito !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+              <div className="stat-card" style={{ background: "oklch(62% 0.18 155 / 6%)", border: "1px solid oklch(62% 0.18 155 / 20%)" }}>
+                <p className="text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.14 155)" }}>
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(resumoCreditos.totalEmAberto)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total em aberto</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-base font-bold tracking-tight text-foreground">
+                  {resumoCreditos.clientesComCredito}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Clientes com crédito</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-base font-bold tracking-tight text-foreground">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(resumoCreditos.totalDevolvido)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total já devolvido</p>
+              </div>
+            </div>
+          </div>
+          {/* Lista dos clientes com maior crédito */}
+          <div className="divide-y divide-border">
+            {resumoCreditos.detalhes.slice(0, 8).map((d: { clienteId: number; saldo: number }) => (
+              <div key={d.clienteId} className="flex items-center justify-between px-5 py-2.5 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white"
+                    style={{ background: "oklch(55% 0.22 264)" }}>
+                    C
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{clienteNomeMap[d.clienteId] ?? `Cliente #${d.clienteId}`}</span>
+                </div>
+                <span className="text-xs font-bold" style={{ color: "oklch(35% 0.14 155)" }}>
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(d.saldo)}
+                </span>
+              </div>
+            ))}
+            {resumoCreditos.detalhes.length > 8 && (
+              <div className="px-5 py-2.5 text-center">
+                <span className="text-xs text-muted-foreground">+{resumoCreditos.detalhes.length - 8} outros clientes com crédito</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

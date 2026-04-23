@@ -41,6 +41,8 @@ import {
   getSaldoCreditoCliente,
   registrarCreditoCliente,
   getHistoricoCreditoCliente,
+  listSaldosCreditoPorEmpresa,
+  getResumoCreditosEmpresa,
 } from "./db";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
@@ -5142,6 +5144,22 @@ export const appRouter = router({
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
         const historico = await getHistoricoCreditoCliente(input.clienteId, empresa.id);
         return historico;
+      }),
+
+    /** Retorna mapa clienteId → saldo para toda a empresa (para badge na listagem) */
+    listSaldos: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        return listSaldosCreditoPorEmpresa(empresa.id);
+      }),
+
+    /** Retorna resumo de créditos em aberto da empresa para o módulo financeiro */
+    getResumo: protectedProcedure
+      .query(async ({ ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        return getResumoCreditosEmpresa(empresa.id);
       }),
   }),
 });

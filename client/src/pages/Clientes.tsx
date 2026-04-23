@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus, Search, Users, Phone, Calendar, Pencil, Trash2, RotateCcw,
-  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX,
+  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -60,6 +60,7 @@ export default function Clientes() {
   // Queries
   const { data: clientesAtivos } = trpc.clientes.list.useQuery();
   const { data: todosClientes } = trpc.clientes.listAll.useQuery();
+  const { data: saldosCredito } = trpc.creditos.listSaldos.useQuery();
 
   const clientes = useMemo(() => {
     const lista = mostrarInativos ? (todosClientes ?? []) : (clientesAtivos ?? []);
@@ -308,6 +309,14 @@ export default function Clientes() {
                       )}
                     </div>
                   </Link>
+
+                  {/* Badge de crédito */}
+                  {saldosCredito && (saldosCredito[c.id] ?? 0) > 0 && (
+                    <div className="flex-shrink-0 hidden sm:flex items-center gap-1 bg-green-50 border border-green-200 rounded-full px-2 py-0.5" title={`Crédito disponível: ${formatCurrency(saldosCredito[c.id])}`}>
+                      <Wallet className="w-3 h-3 text-green-600" />
+                      <span className="text-xs font-semibold text-green-700">{formatCurrency(saldosCredito[c.id])}</span>
+                    </div>
+                  )}
 
                   {/* Financeiro */}
                   <div className="text-right flex-shrink-0 hidden sm:block">

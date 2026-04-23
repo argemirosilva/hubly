@@ -2199,3 +2199,50 @@ export async function getHistoricoCreditoCliente(clienteId: number, empresaId: n
     .where(and(eq(creditosCliente.clienteId, clienteId), eq(creditosCliente.empresaId, empresaId)))
     .orderBy(desc(creditosCliente.createdAt));
 }
+
+/** Retorna saldo de crédito agrupado por clienteId para uma empresa */
+export async function listSaldosCreditoPorEmpresa(empresaId: number): Promise<Record<number, number>> {
+  const db = await getDb();
+  if (!db) return {};
+  const rows = await db
+    .select({ clienteId: creditosCliente.clienteId, valor: creditosCliente.valor })
+    .from(creditosCliente)
+    .where(eq(creditosCliente.empresaId, empresaId));
+  const map: Record<number, number> = {};
+  for (const r of rows) {
+    map[r.clienteId] = (map[r.clienteId] ?? 0) + Number(r.valor);
+  }
+  // Zerar negativos e arredondar
+  for (const k of Object.keys(map)) {
+    map[Number(k)] = Math.max(0, Math.round(map[Number(k)] * 100) / 100);
+  }
+  return map;
+}
+
+/** Retorna resumo de créditos em aberto para a empresa */
+export async function getResumoCreditosEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return { totalEmAberto: 0, totalDevolvido: 0, clientesComCredito: 0, detalhes: [] };
+  const rows = await db
+    .select({ clienteId: creditosCliente.clienteId, valor: creditosCliente.valor, tipo: creditosCliente.tipo })
+    .from(creditosCliente)
+    .where(eq(creditosCliente.empresaId, empresaId));
+  // Calcular saldo por cliente
+  const saldos: Record<number, number> = {};
+  let totalDevolvido = 0;
+  for (const r of rows) {
+    saldos[r.clienteId] = (saldos[r.clienteId] ?? 0) + Number(r.valor);
+    if (r.tipo === 'devolucao') totalDevolvido += Math.abs(Number(r.valor));
+  }
+  const detalhes = Object.entries(saldos)
+    .map(([clienteId, saldo]) => ({ clienteId: Number(clienteId), saldo: Math.max(0, Math.round(saldo * 100) / 100) }))
+    .filter(d => d.saldo > 0)
+    .sort((a, b) => b.saldo - a.saldo);
+  const totalEmAberto = detalhes.reduce((acc, d) => acc + d.saldo, 0);
+  return {
+    totalEmAberto: Math.round(totalEmAberto * 100) / 100,
+    totalDevolvido: Math.round(totalDevolvido * 100) / 100,
+    clientesComCredito: detalhes.length,
+    detalhes,
+  };
+}
