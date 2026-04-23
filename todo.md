@@ -2055,3 +2055,10 @@
 - [x] Caixa de Saída: cancelar apenas itens não enviados; limpar apenas itens enviados
 - [x] Campo de busca por nome na lista de serviços dentro do filtro de condição
 - [x] Campo de busca por nome do cliente na Caixa de Saída
+
+## Jornada ao Vivo nas Automações (2026-04-23)
+- [x] Procedure tRPC getJornadaAoVivo: buscar clientes da fila de uma automação agrupados por status
+- [x] Aba "Jornada ao Vivo" no editor de automações com cards de clientes por status
+- [x] Grupos: Aguardando, Em andamento, Enviado, Falhou
+- [x] Cards com nome, telefone, serviço e tempo restante
+- [x] Atualização automática a cada 15 segundos

@@ -2884,6 +2884,97 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Jornada ao Vivo: clientes agrupados por status dentro de uma automação
+    getJornadaAoVivo: protectedProcedure
+      .input(z.object({ automacaoId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { grupos: [], automacaoNome: null };
+        const db = await getDb();
+        if (!db) return { grupos: [], automacaoNome: null };
+
+        // Buscar nome da automação
+        const autoRows = await db.select({ nome: automacoes.nome })
+          .from(automacoes)
+          .where(and(eq(automacoes.id, input.automacaoId), eq(automacoes.empresaId, empresa.id)))
+          .limit(1);
+        const automacaoNome = autoRows[0]?.nome ?? null;
+
+        // Buscar todos os envios desta automação (últimos 90 dias)
+        const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        const rows = await db.select()
+          .from(historicoEnviosAutomacao)
+          .where(and(
+            eq(historicoEnviosAutomacao.empresaId, empresa.id),
+            eq(historicoEnviosAutomacao.automacaoId, input.automacaoId),
+            gte(historicoEnviosAutomacao.criadoEm, desde),
+          ))
+          .orderBy(desc(historicoEnviosAutomacao.criadoEm))
+          .limit(500);
+
+        const agora = new Date();
+
+        // Agrupar por status
+        const grupos: Record<string, typeof rows> = {
+          agendado: [],
+          pendente: [],
+          enviado: [],
+          falhou: [],
+        };
+
+        for (const r of rows) {
+          const g = grupos[r.status];
+          if (g) g.push(r);
+        }
+
+        const statusConfig = [
+          { key: 'agendado', label: 'Aguardando', cor: 'blue' },
+          { key: 'pendente', label: 'Em andamento', cor: 'yellow' },
+          { key: 'enviado', label: 'Enviado', cor: 'green' },
+          { key: 'falhou', label: 'Falhou', cor: 'red' },
+        ];
+
+        const resultado = statusConfig.map(({ key, label, cor }) => {
+          const itens = grupos[key] ?? [];
+          return {
+            status: key,
+            label,
+            cor,
+            total: itens.length,
+            itens: itens.slice(0, 50).map(r => {
+              let tempoRestante: string | null = null;
+              if ((r.status === 'pendente' || r.status === 'agendado') && r.enviarEm) {
+                const diff = r.enviarEm.getTime() - agora.getTime();
+                if (diff > 0) {
+                  const horas = Math.floor(diff / (1000 * 60 * 60));
+                  const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                  if (horas > 0) tempoRestante = `Envia em ${horas}h ${minutos}min`;
+                  else tempoRestante = `Envia em ${minutos}min`;
+                } else {
+                  tempoRestante = 'Processando...';
+                }
+              }
+              return {
+                id: r.id,
+                clienteNome: r.clienteNome,
+                telefone: r.telefone,
+                canal: r.canal,
+                mensagem: r.mensagem,
+                status: r.status,
+                erroDetalhe: r.erroDetalhe,
+                enviarEm: r.enviarEm,
+                criadoEm: r.criadoEm,
+                servicoNome: r.servicoNome,
+                messageStatus: r.messageStatus,
+                tempoRestante,
+              };
+            }),
+          };
+        });
+
+        return { grupos: resultado, automacaoNome };
+      }),
+
     reenviarMensagem: protectedProcedure
       .input(z.object({ envioId: z.number() }))
       .mutation(async ({ ctx, input }) => {
