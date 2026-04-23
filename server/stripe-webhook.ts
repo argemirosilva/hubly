@@ -80,9 +80,23 @@ export function registerStripeWebhook(app: Express) {
             const stripeCustomerId = session.customer as string | null;
             const stripeSubscriptionId = session.subscription as string | null;
 
-            if (empresaId && stripeSubscriptionId) {
+            // Fallback: se stripeSubscriptionId vier nulo na sessão, buscar assinatura ativa do customer
+            let resolvedSubscriptionId = stripeSubscriptionId;
+            if (!resolvedSubscriptionId && stripeCustomerId) {
+              try {
+                const activeSubs = await stripe.subscriptions.list({ customer: stripeCustomerId, status: 'active', limit: 1 });
+                if (activeSubs.data.length > 0) {
+                  resolvedSubscriptionId = activeSubs.data[0].id;
+                  console.log(`[Stripe Webhook] Fallback: subscription encontrada via customer: ${resolvedSubscriptionId}`);
+                }
+              } catch (e) {
+                console.error('[Stripe Webhook] Erro ao buscar subscription do customer:', e);
+              }
+            }
+
+            if (empresaId && resolvedSubscriptionId) {
               // Buscar detalhes da assinatura para obter o plano
-              const subRaw = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+              const subRaw = await stripe.subscriptions.retrieve(resolvedSubscriptionId);
               const sub = subRaw as unknown as {
                 current_period_end: number;
                 items: { data: Array<{ price: { id: string; recurring?: { interval: string } } }> };
@@ -103,7 +117,7 @@ export function registerStripeWebhook(app: Express) {
                     billingCycle,
                     status: "active",
                     stripeCustomerId,
-                    stripeSubscriptionId,
+                    stripeSubscriptionId: resolvedSubscriptionId,
                     currentPeriodEnd: periodEnd,
                     trialEnd: null,
                     updatedAt: new Date(),

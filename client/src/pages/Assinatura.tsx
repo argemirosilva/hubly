@@ -359,7 +359,7 @@ export default function Assinatura() {
           )}
 
           {/* ── Detalhes da assinatura ── */}
-          {subDetails && (
+          {subDetails && subDetails.stripeSubId && (
             <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100">
                 <h2 className="font-semibold text-slate-800">Detalhes da assinatura</h2>
