@@ -98,6 +98,7 @@ export function registerStripeWebhook(app: Express) {
               // Buscar detalhes da assinatura para obter o plano
               const subRaw = await stripe.subscriptions.retrieve(resolvedSubscriptionId);
               const sub = subRaw as unknown as {
+                current_period_start: number;
                 current_period_end: number;
                 items: { data: Array<{ price: { id: string; recurring?: { interval: string } } }> };
               };
@@ -106,6 +107,7 @@ export function registerStripeWebhook(app: Express) {
               const billingCycle = sub.items.data[0]?.price?.recurring?.interval === "year"
                 ? "annual"
                 : "monthly";
+              const periodStart = new Date(sub.current_period_start * 1000);
               const periodEnd = new Date(sub.current_period_end * 1000);
 
               const db1 = await getDb();
@@ -118,6 +120,7 @@ export function registerStripeWebhook(app: Express) {
                     status: "active",
                     stripeCustomerId,
                     stripeSubscriptionId: resolvedSubscriptionId,
+                    currentPeriodStart: periodStart,
                     currentPeriodEnd: periodEnd,
                     trialEnd: null,
                     updatedAt: new Date(),
@@ -136,6 +139,7 @@ export function registerStripeWebhook(app: Express) {
             const sub = event.data.object as unknown as {
               id: string;
               status: string;
+              current_period_start: number;
               current_period_end: number;
               items: { data: Array<{ price: { id: string; recurring?: { interval: string } } }> };
               metadata?: { empresaId?: string };
@@ -147,7 +151,8 @@ export function registerStripeWebhook(app: Express) {
             const billingCycle = sub.items.data[0]?.price?.recurring?.interval === "year"
               ? "annual"
               : "monthly";
-            const periodEnd = new Date(sub.current_period_end * 1000);
+            const periodStart2 = new Date(sub.current_period_start * 1000);
+            const periodEnd2 = new Date(sub.current_period_end * 1000);
             const status = sub.status === "active" ? "active"
               : sub.status === "past_due" ? "past_due"
               : sub.status === "canceled" ? "canceled"
@@ -161,7 +166,8 @@ export function registerStripeWebhook(app: Express) {
                   planType,
                   billingCycle,
                   status,
-                  currentPeriodEnd: periodEnd,
+                  currentPeriodStart: periodStart2,
+                  currentPeriodEnd: periodEnd2,
                   updatedAt: new Date(),
                 })
                 .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
@@ -207,6 +213,33 @@ export function registerStripeWebhook(app: Express) {
               if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
             }
             console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para FREE`);
+            break;
+          }
+
+          case "invoice.paid": {
+            // Renovação automática: atualizar período no banco
+            const invoice = event.data.object as unknown as {
+              subscription?: string;
+              lines?: { data: Array<{ period?: { start: number; end: number } }> };
+            };
+            if (invoice.subscription) {
+              const line = invoice.lines?.data?.[0];
+              if (line?.period?.start && line?.period?.end) {
+                const db5 = await getDb();
+                if (db5) {
+                  await db5
+                    .update(subscriptions)
+                    .set({
+                      currentPeriodStart: new Date(line.period.start * 1000),
+                      currentPeriodEnd: new Date(line.period.end * 1000),
+                      status: "active",
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(subscriptions.stripeSubscriptionId, invoice.subscription));
+                  console.log(`[Stripe Webhook] Renovação registrada para assinatura: ${invoice.subscription}`);
+                }
+              }
+            }
             break;
           }
 

@@ -4285,7 +4285,23 @@ export const appRouter = router({
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[Stripe] Erro ao buscar assinatura ${subscription.stripeSubscriptionId}: ${msg}`);
-        return null;
+        // Fallback: usar dados salvos no banco quando o Stripe não está acessível
+        console.log(`[Stripe] Usando fallback do banco para empresa ${empresa.id}`);
+        let metodoPagamento = null;
+        if (subscription.stripeCustomerId) {
+          try { metodoPagamento = await getMetodoPagamentoDoCustomer(subscription.stripeCustomerId); } catch {}
+        }
+        return {
+          stripeSubId: subscription.stripeSubscriptionId,
+          status: subscription.status,
+          proximaCobranca: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null,
+          inicioPerioodo: subscription.currentPeriodStart ? new Date(subscription.currentPeriodStart) : null,
+          cancelarAoFinal: subscription.cancelAtPeriodEnd ?? false,
+          cancelarEm: null,
+          metodoPagamento,
+          valorMensal: null,
+          intervalo: subscription.billingCycle === "annual" ? "year" : "month",
+        };
       }
     }),
   }),
