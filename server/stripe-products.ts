@@ -3,10 +3,10 @@
  * Preços em centavos (BRL).
  *
  * IMPORTANTE: Os Price IDs abaixo são do ambiente LIVE (produção).
- * O servidor usa a chave sk_live_... hardcoded em stripe.ts.
+ * Configure STRIPE_SECRET_KEY em Settings → Payment com a chave sk_live_...
  * Os IDs do ambiente TEST (sk_test_...) são diferentes e não funcionam em produção.
  *
- * Atualizado em 2026-04-04 — Price IDs do ambiente LIVE confirmados.
+ * Atualizado em 2026-04-23 — Price IDs do ambiente LIVE confirmados.
  */
 export interface PlanoStripe {
   nome: string;
@@ -27,18 +27,21 @@ export const PLANOS_STRIPE: Record<string, PlanoStripe> = {
     descricao: "Para profissionais autônomos — 1 profissional, agendamentos ilimitados",
     mensal: { priceId: "price_1THsO8LUFOvpH4vDPedJXKt4", valorCentavos: 4900 },
     anual:  { priceId: "price_1THsOELUFOvpH4vDrZQ2cdqQ", valorCentavos: 49000 },
+    // Nota: valorCentavos é referência interna. Preço real: R$49/mês ou R$490/ano (R$40,83/mês)
   },
   PLUS: {
     nome: "Hubly Plus",
     descricao: "Para equipes pequenas — até 5 profissionais, agendamentos ilimitados",
     mensal: { priceId: "price_1THsObLUFOvpH4vDkzHLfhbx", valorCentavos: 14900 },
     anual:  { priceId: "price_1THsOcLUFOvpH4vDh7jqFqbH", valorCentavos: 149000 },
+    // Nota: valorCentavos é referência interna. Preço real: R$149/mês ou R$1490/ano (R$124,17/mês)
   },
   PRO: {
     nome: "Hubly Pro",
     descricao: "Para salões e clínicas — até 20 profissionais, IA + relatórios avançados",
     mensal: { priceId: "price_1THsOqLUFOvpH4vDP6JGnszg", valorCentavos: 29900 },
     anual:  { priceId: "price_1THsOrLUFOvpH4vDvKI97lcp", valorCentavos: 299000 },
+    // Nota: valorCentavos é referência interna. Preço real: R$299/mês ou R$2990/ano (R$249,17/mês)
   },
 };
 
