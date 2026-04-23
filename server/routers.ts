@@ -4269,11 +4269,16 @@ export const appRouter = router({
           expMes: pm.card?.exp_month ?? null,
           expAno: pm.card?.exp_year ?? null,
         } : await getMetodoPagamentoDoCustomer(subAny.customer);
+        // Usar dados do banco como fallback quando o Stripe não retorna os períodos
+        const inicioFromStripe = subAny.current_period_start ? new Date(subAny.current_period_start * 1000) : null;
+        const fimFromStripe = subAny.current_period_end ? new Date(subAny.current_period_end * 1000) : null;
+        const inicioFinal = inicioFromStripe ?? (subscription.currentPeriodStart ? new Date(subscription.currentPeriodStart) : null);
+        const fimFinal = fimFromStripe ?? (subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null);
         return {
           stripeSubId: subAny.id,
           status: subAny.status,
-          proximaCobranca: new Date(subAny.current_period_end * 1000),
-          inicioPerioodo: new Date(subAny.current_period_start * 1000),
+          proximaCobranca: fimFinal,
+          inicioPerioodo: inicioFinal,
           cancelarAoFinal: subAny.cancel_at_period_end,
           cancelarEm: subAny.cancel_at ? new Date(subAny.cancel_at * 1000) : null,
           metodoPagamento,
