@@ -4241,6 +4241,7 @@ export const appRouter = router({
       }
 
       try {
+        console.log(`[Stripe] Buscando assinatura: ${subscription.stripeSubscriptionId}`);
         const sub = await stripeClient.subscriptions.retrieve(
           subscription.stripeSubscriptionId,
           { expand: ["default_payment_method"] }
@@ -4281,7 +4282,9 @@ export const appRouter = router({
             : null,
           intervalo: subAny.items.data[0]?.price?.recurring?.interval ?? null,
         };
-      } catch {
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[Stripe] Erro ao buscar assinatura ${subscription.stripeSubscriptionId}: ${msg}`);
         return null;
       }
     }),

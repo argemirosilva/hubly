@@ -2078,3 +2078,5 @@
 - [x] Reativação: cancelado → agendado + lançamento financeiro
 - [x] Registro de observação interna com data/hora e nome do usuário
 - [x] Documentação no manual
+- [x] Corrigir início/fim do período da assinatura em branco (dados do Stripe LIVE)
+- [x] Adicionar manual completo no topo da página de Suporte

@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import {
   TicketPlus, ChevronLeft, Bot, User, Loader2, Star,
   Clock, CheckCircle2, AlertCircle, XCircle, MessageSquare,
+  BookOpen, ChevronRight, Search, ExternalLink,
+  Calendar, Users, DollarSign, Zap, Bell, Settings, UserCog, Package, Kanban,
 } from "lucide-react";
+import { Link } from "wouter";
 
 const STATUS_LABELS: Record<string, string> = {
   aberto: "Aberto",
@@ -137,6 +140,68 @@ export default function Suporte() {
           </Button>
         )}
       </div>
+
+      {/* ── MANUAL COMPLETO (topo da lista) ── */}
+      {view === "lista" && (
+        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+          {/* Cabeçalho do manual */}
+          <div
+            className="px-5 py-4 flex items-center justify-between"
+            style={{ background: "oklch(45% 0.18 264)", color: "white" }}
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen size={20} />
+              <div>
+                <p className="font-semibold text-sm">Manual do Sistema Hubly</p>
+                <p className="text-xs opacity-80">Consulte antes de abrir um chamado — a maioria das dúvidas já está respondida aqui</p>
+              </div>
+            </div>
+            <Link href="/admin/manual">
+              <button
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium"
+                style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
+              >
+                Abrir manual completo <ExternalLink size={12} />
+              </button>
+            </Link>
+          </div>
+          {/* Grid de seções */}
+          <div className="p-4" style={{ background: "var(--card)" }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                { href: "/admin/manual", icon: <Calendar size={15} />, label: "Agendamentos", color: "oklch(50% 0.18 264)" },
+                { href: "/admin/manual", icon: <Users size={15} />, label: "Clientes", color: "oklch(50% 0.18 200)" },
+                { href: "/admin/manual", icon: <DollarSign size={15} />, label: "Financeiro", color: "oklch(50% 0.18 155)" },
+                { href: "/admin/manual", icon: <Zap size={15} />, label: "Automações", color: "oklch(50% 0.18 300)" },
+                { href: "/admin/manual", icon: <UserCog size={15} />, label: "Equipe e Permissões", color: "oklch(50% 0.18 30)" },
+                { href: "/admin/manual", icon: <Package size={15} />, label: "Pacotes", color: "oklch(50% 0.18 60)" },
+                { href: "/admin/manual", icon: <Bell size={15} />, label: "Notificações", color: "oklch(50% 0.18 340)" },
+                { href: "/admin/manual", icon: <Kanban size={15} />, label: "Pipeline", color: "oklch(50% 0.18 220)" },
+                { href: "/admin/manual", icon: <Settings size={15} />, label: "Configurações", color: "oklch(50% 0.12 255)" },
+              ].map((item) => (
+                <Link key={item.label} href={item.href}>
+                  <button
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left hover:bg-accent/50 transition-colors"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <span
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: item.color + "18", color: item.color }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{item.label}</span>
+                    <ChevronRight size={12} className="ml-auto text-muted-foreground" />
+                  </button>
+                </Link>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Não encontrou o que procura? Abra um chamado abaixo e nossa equipe responde em breve.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── LISTA ── */}
       {view === "lista" && (
