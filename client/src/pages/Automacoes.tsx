@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Zap, Calendar, Clock, Gift, MessageSquare, Bell, Mail,
   Plus, Trash2, Play, Pause, Settings, ChevronRight,
-  ArrowRight, X, Save, Sparkles, Filter,
+  ArrowRight, X, Save, Sparkles, Filter, Search,
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
@@ -451,9 +451,10 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
 
   // Filtro de categoria para a lista de serviços
   const [filtroCategoria, setFiltroCategoria] = useState<string>("__todos__");
-  const servicosFiltrados = filtroCategoria === "__todos__"
-    ? servicosData
-    : servicosData.filter((s: any) => s.categoria === filtroCategoria);
+  const [buscaServico, setBuscaServico] = useState<string>("");
+  const servicosFiltrados = servicosData
+    .filter((s: any) => filtroCategoria === "__todos__" || s.categoria === filtroCategoria)
+    .filter((s: any) => !buscaServico.trim() || s.nome.toLowerCase().includes(buscaServico.toLowerCase()));
 
   // Helpers para multi-select de profissionais
   const profissionaisSelecionados: string[] = data.profissionais
@@ -491,12 +492,33 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-gray-500 block">Serviços incluídos</Label>
 
+          {/* Campo de busca por nome */}
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar serviço..."
+              value={buscaServico}
+              onChange={e => setBuscaServico(e.target.value)}
+              className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white placeholder-gray-400"
+            />
+            {buscaServico && (
+              <button
+                type="button"
+                onClick={() => setBuscaServico("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           {/* Filtro por categoria/tipo de profissional */}
           {categorias.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setFiltroCategoria("__todos__")}
+                onClick={() => { setFiltroCategoria("__todos__"); setBuscaServico(""); }}
                 className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                   filtroCategoria === "__todos__"
                     ? "bg-indigo-600 text-white border-indigo-600"
@@ -509,7 +531,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setFiltroCategoria(cat)}
+                  onClick={() => { setFiltroCategoria(cat); setBuscaServico(""); }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                     filtroCategoria === cat
                       ? "bg-indigo-600 text-white border-indigo-600"
@@ -525,7 +547,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
           {servicosData.length === 0 ? (
             <p className="text-xs text-gray-400 italic">Nenhum serviço cadastrado.</p>
           ) : servicosFiltrados.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">Nenhum serviço nesta categoria.</p>
+            <p className="text-xs text-gray-400 italic">{buscaServico ? `Nenhum serviço encontrado para "${buscaServico}".` : "Nenhum serviço nesta categoria."}</p>
           ) : (
             <div className="border border-gray-200 rounded-lg max-h-52 overflow-y-auto divide-y divide-gray-100">
               {servicosFiltrados.map((s: any) => (
