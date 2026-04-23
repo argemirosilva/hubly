@@ -2062,3 +2062,4 @@
 - [x] Grupos: Aguardando, Em andamento, Enviado, Falhou
 - [x] Cards com nome, telefone, serviço e tempo restante
 - [x] Atualização automática a cada 15 segundos
+- [x] Jornada ao Vivo mobile: abas deslizáveis por status em vez de colunas
