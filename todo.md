@@ -2042,3 +2042,10 @@
 - [x] Remover conexão via botão X no meio da aresta
 - [x] Highlight do nó alvo ao passar por cima durante o drag
 - [x] Posicionamento inteligente de novos nós (abaixo do último)
+
+## Zoom/Pan no Canvas das Automações (2026-04-23)
+- [x] Scroll com roda do mouse para zoom in/out no canvas
+- [x] Pan: arrastar o fundo do canvas para navegar
+- [x] Pinch-to-zoom no mobile
+- [x] Auto-fit: ao abrir automação, centralizar e ajustar zoom para todos os nós ficarem visíveis
+- [x] Botões de zoom (+/-/reset) na toolbar do canvas

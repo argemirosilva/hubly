@@ -978,48 +978,143 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
   onSelect: (id: string | null) => void;
   onDragEnd?: (nodes: FlowNode[]) => void;
 }) {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 40, y: 40 });
   const [dragging, setDragging] = useState<{ id: string; ox: number; oy: number } | null>(null);
-  // Estado do drag-to-connect: {sourceId, cursorX, cursorY (relativo ao canvas)}
+  const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const [connectDrag, setConnectDrag] = useState<{ sourceId: string; x: number; y: number } | null>(null);
   const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
+  const lastPinchDist = useRef<number | null>(null);
+  const lastPinchZoom = useRef<number>(1);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const panRef = useRef(pan);
+  panRef.current = pan;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
-  // ── Drag de nó ──────────────────────────────────────────────────────────────
+  const NODE_W = 220;
+  const NODE_H = 110;
+  const MIN_ZOOM = 0.2;
+  const MAX_ZOOM = 2;
+  const PADDING = 60;
+
+  // ── Auto-fit ──────────────────────────────────────────────────────────────────
+  const fitView = useCallback(() => {
+    if (!containerRef.current || nodesRef.current.length === 0) return;
+    const cw = containerRef.current.clientWidth;
+    const ch = containerRef.current.clientHeight;
+    const ns = nodesRef.current;
+    const minX = Math.min(...ns.map(n => n.x));
+    const minY = Math.min(...ns.map(n => n.y));
+    const maxX = Math.max(...ns.map(n => n.x + NODE_W));
+    const maxY = Math.max(...ns.map(n => n.y + NODE_H));
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    const scaleX = (cw - PADDING * 2) / Math.max(contentW, 1);
+    const scaleY = (ch - PADDING * 2) / Math.max(contentH, 1);
+    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY), MIN_ZOOM), MAX_ZOOM);
+    const newPanX = (cw - contentW * newZoom) / 2 - minX * newZoom;
+    const newPanY = (ch - contentH * newZoom) / 2 - minY * newZoom;
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  }, []);
+
+  const prevNodeCount = useRef(-1);
+  useEffect(() => {
+    if (nodes.length > 0 && prevNodeCount.current !== nodes.length) {
+      const t = setTimeout(fitView, 100);
+      prevNodeCount.current = nodes.length;
+      return () => clearTimeout(t);
+    }
+  }, [nodes.length, fitView]);
+
+  // ── Zoom com roda do mouse ────────────────────────────────────────────────────
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    if (!containerRef.current) return;
+    const r = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - r.left;
+    const mouseY = e.clientY - r.top;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom(prev => {
+      const next = Math.min(Math.max(prev * delta, MIN_ZOOM), MAX_ZOOM);
+      const ratio = next / prev;
+      setPan(p => ({
+        x: mouseX - (mouseX - p.x) * ratio,
+        y: mouseY - (mouseY - p.y) * ratio,
+      }));
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
+  // ── Pan com arrastar fundo ────────────────────────────────────────────────────
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && (e.target as HTMLElement) === containerRef.current)) {
+      e.preventDefault();
+      setPanning({ startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y });
+    }
+  };
+
+  // ── Drag de nó ────────────────────────────────────────────────────────────────
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if ((e.target as HTMLElement).closest("button,select,input,textarea,[data-port]")) return;
-    const node = nodes.find(n => n.id === id);
+    const node = nodesRef.current.find(n => n.id === id);
     if (!node) return;
-    setDragging({ id, ox: e.clientX - node.x, oy: e.clientY - node.y });
+    if (!containerRef.current) return;
+    const r = containerRef.current.getBoundingClientRect();
+    const cx = (e.clientX - r.left - panRef.current.x) / zoomRef.current;
+    const cy = (e.clientY - r.top - panRef.current.y) / zoomRef.current;
+    setDragging({ id, ox: cx - node.x, oy: cy - node.y });
     onSelect(id);
     e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (canvasRef.current) {
-      const r = canvasRef.current.getBoundingClientRect();
-      if (dragging) {
-        const x = Math.max(0, e.clientX - r.left - dragging.ox);
-        const y = Math.max(0, e.clientY - r.top - dragging.oy);
-        onNodesChange(nodes.map(n => n.id === dragging.id ? { ...n, x, y } : n));
-      }
-      if (connectDrag) {
-        setConnectDrag(prev => prev ? { ...prev, x: e.clientX - r.left, y: e.clientY - r.top } : null);
-      }
+    if (panning) {
+      setPan({
+        x: panning.panX + (e.clientX - panning.startX),
+        y: panning.panY + (e.clientY - panning.startY),
+      });
     }
-  }, [dragging, connectDrag, nodes, onNodesChange]);
-
-  const handleMouseUp = useCallback((e: MouseEvent) => {
     if (dragging) {
-      onDragEnd?.(nodes);
+      if (!containerRef.current) return;
+      const r = containerRef.current.getBoundingClientRect();
+      const cx = (e.clientX - r.left - panRef.current.x) / zoomRef.current;
+      const cy = (e.clientY - r.top - panRef.current.y) / zoomRef.current;
+      const x = Math.max(0, cx - dragging.ox);
+      const y = Math.max(0, cy - dragging.oy);
+      onNodesChange(nodesRef.current.map(n => n.id === dragging.id ? { ...n, x, y } : n));
+    }
+    if (connectDrag) {
+      if (!containerRef.current) return;
+      const r = containerRef.current.getBoundingClientRect();
+      const cx = (e.clientX - r.left - panRef.current.x) / zoomRef.current;
+      const cy = (e.clientY - r.top - panRef.current.y) / zoomRef.current;
+      setConnectDrag(prev => prev ? { ...prev, x: cx, y: cy } : null);
+    }
+  }, [panning, dragging, connectDrag, onNodesChange]);
+
+  const handleMouseUp = useCallback(() => {
+    if (panning) setPanning(null);
+    if (dragging) {
+      onDragEnd?.(nodesRef.current);
       setDragging(null);
     }
     if (connectDrag) {
-      // Verificar se soltou em cima de um nó alvo
       if (hoverTargetId && hoverTargetId !== connectDrag.sourceId) {
-        // Impedir conexão duplicada ou ciclo direto
-        const sourceNode = nodes.find(n => n.id === connectDrag.sourceId);
+        const sourceNode = nodesRef.current.find(n => n.id === connectDrag.sourceId);
         if (sourceNode && !sourceNode.connections.includes(hoverTargetId)) {
-          onNodesChange(nodes.map(n =>
+          onNodesChange(nodesRef.current.map(n =>
             n.id === connectDrag.sourceId
               ? { ...n, connections: [...n.connections, hoverTargetId] }
               : n
@@ -1030,48 +1125,85 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
       setConnectDrag(null);
       setHoverTargetId(null);
     }
-  }, [dragging, connectDrag, hoverTargetId, nodes, onNodesChange, onDragEnd]);
+  }, [panning, dragging, connectDrag, hoverTargetId, onNodesChange, onDragEnd]);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-    return () => { window.removeEventListener("mousemove", handleMouseMove); window.removeEventListener("mouseup", handleMouseUp); };
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
   }, [handleMouseMove, handleMouseUp]);
 
-  // ── Porta de saída (source port) ────────────────────────────────────────────
+  // ── Pinch-to-zoom (touch) ─────────────────────────────────────────────────────
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.sqrt(dx * dx + dy * dy);
+      lastPinchZoom.current = zoomRef.current;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2 && lastPinchDist.current !== null) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const ratio = dist / lastPinchDist.current;
+      const newZoom = Math.min(Math.max(lastPinchZoom.current * ratio, MIN_ZOOM), MAX_ZOOM);
+      setZoom(newZoom);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => { lastPinchDist.current = null; }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("touchstart", handleTouchStart, { passive: false });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
+  // ── Porta de saída (source port) ──────────────────────────────────────────────
   const handlePortMouseDown = (e: React.MouseEvent, sourceId: string) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!canvasRef.current) return;
-    const r = canvasRef.current.getBoundingClientRect();
-    setConnectDrag({ sourceId, x: e.clientX - r.left, y: e.clientY - r.top });
+    if (!containerRef.current) return;
+    const r = containerRef.current.getBoundingClientRect();
+    const cx = (e.clientX - r.left - panRef.current.x) / zoomRef.current;
+    const cy = (e.clientY - r.top - panRef.current.y) / zoomRef.current;
+    setConnectDrag({ sourceId, x: cx, y: cy });
   };
 
-  // ── Deletar nó ──────────────────────────────────────────────────────────────
+  // ── Deletar nó ────────────────────────────────────────────────────────────────
   const handleDelete = (id: string) => {
     onNodesChange(nodes.filter(n => n.id !== id).map(n => ({ ...n, connections: n.connections.filter(c => c !== id) })));
     if (selectedId === id) onSelect(null);
   };
 
-  // ── Deletar aresta ──────────────────────────────────────────────────────────
+  // ── Deletar aresta ────────────────────────────────────────────────────────────
   const handleDeleteEdge = (sourceId: string, targetId: string) => {
     onNodesChange(nodes.map(n =>
       n.id === sourceId ? { ...n, connections: n.connections.filter(c => c !== targetId) } : n
     ));
   };
 
-  // ── Renderizar arestas ──────────────────────────────────────────────────────
-  const NODE_W = 220;
-  const NODE_H = 110; // altura aproximada do card
-
+  // ── Renderizar arestas ────────────────────────────────────────────────────────
   const renderConnections = () => nodes.flatMap(node =>
     node.connections.map(tid => {
       const t = nodes.find(n => n.id === tid);
       if (!t) return null;
-      // Porta de saída: centro-base do nó fonte
       const x1 = node.x + NODE_W / 2;
       const y1 = node.y + NODE_H;
-      // Porta de entrada: centro-topo do nó destino
       const x2 = t.x + NODE_W / 2;
       const y2 = t.y;
       const cy1 = y1 + Math.abs(y2 - y1) * 0.5;
@@ -1081,19 +1213,12 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
       const pathId = `edge-${node.id}-${tid}`;
       return (
         <g key={pathId}>
-          {/* Sombra da aresta para melhor visibilidade */}
           <path d={`M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`}
             stroke="white" strokeWidth="4" fill="none" opacity="0.6" />
-          {/* Aresta principal */}
           <path d={`M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`}
             stroke="#6366f1" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" />
-          {/* Ponto de entrada */}
           <circle cx={x2} cy={y2} r="5" fill="white" stroke="#6366f1" strokeWidth="2" />
-          {/* Botão de deletar aresta (aparece no meio da curva) */}
-          <g
-            style={{ cursor: "pointer" }}
-            onClick={() => handleDeleteEdge(node.id, tid)}
-          >
+          <g style={{ cursor: "pointer" }} onClick={() => handleDeleteEdge(node.id, tid)}>
             <circle cx={midX} cy={midY} r="9" fill="white" stroke="#e5e7eb" strokeWidth="1.5" opacity="0.9" />
             <line x1={midX - 4} y1={midY - 4} x2={midX + 4} y2={midY + 4} stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
             <line x1={midX + 4} y1={midY - 4} x2={midX - 4} y2={midY + 4} stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
@@ -1103,7 +1228,7 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
     })
   );
 
-  // ── Linha de preview durante drag-to-connect ─────────────────────────────────
+  // ── Linha de preview durante drag-to-connect ──────────────────────────────────
   const renderConnectPreview = () => {
     if (!connectDrag) return null;
     const src = nodes.find(n => n.id === connectDrag.sourceId);
@@ -1123,59 +1248,102 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
     );
   };
 
+  const cursor = connectDrag ? "crosshair" : panning ? "grabbing" : dragging ? "grabbing" : "default";
+  const dotSize = Math.max(0.5, zoom);
+  const gridSize = 24 * zoom;
+  const bgOffsetX = pan.x % gridSize;
+  const bgOffsetY = pan.y % gridSize;
+
   return (
     <div
-      ref={canvasRef}
-      className="relative w-full h-full overflow-auto"
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden select-none"
       style={{
-        minHeight: 580, minWidth: 800,
-        backgroundImage: "radial-gradient(circle, #c7d2fe 1px, transparent 1px)",
-        backgroundSize: "24px 24px",
+        minHeight: 580,
         backgroundColor: "#f8faff",
-        cursor: connectDrag ? "crosshair" : "default",
+        backgroundImage: `radial-gradient(circle, #c7d2fe ${dotSize}px, transparent ${dotSize}px)`,
+        backgroundSize: `${gridSize}px ${gridSize}px`,
+        backgroundPosition: `${bgOffsetX}px ${bgOffsetY}px`,
+        cursor,
       }}
-      onClick={e => { if (e.target === canvasRef.current) onSelect(null); }}
+      onMouseDown={handleCanvasMouseDown}
+      onClick={e => { if ((e.target as HTMLElement) === containerRef.current) onSelect(null); }}
     >
-      <svg className="absolute inset-0" style={{ width: "100%", height: "100%", overflow: "visible", pointerEvents: connectDrag ? "none" : "auto" }}>
-        <defs>
-          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#6366f1" />
-          </marker>
-        </defs>
-        {renderConnections()}
-        {renderConnectPreview()}
-      </svg>
+      {/* Conteúdo transformado (zoom + pan) */}
+      <div
+        style={{
+          position: "absolute", top: 0, left: 0,
+          transformOrigin: "0 0",
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          width: 4000, height: 4000,
+        }}
+      >
+        <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible", pointerEvents: connectDrag ? "none" : "auto" }}>
+          <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#6366f1" />
+            </marker>
+          </defs>
+          {renderConnections()}
+          {renderConnectPreview()}
+        </svg>
 
-      {nodes.map(node => (
-        <div
-          key={node.id}
-          onMouseDown={e => handleMouseDown(e, node.id)}
-          onMouseEnter={() => connectDrag && setHoverTargetId(node.id)}
-          onMouseLeave={() => connectDrag && setHoverTargetId(null)}
-          style={{
-            position: "absolute", left: node.x, top: node.y,
-            cursor: dragging?.id === node.id ? "grabbing" : "grab",
-          }}
-        >
-          <FlowNodeCard
-            node={node}
-            selected={selectedId === node.id}
-            onSelect={onSelect}
-            onDelete={handleDelete}
-            onPortMouseDown={handlePortMouseDown}
-            isConnectTarget={!!connectDrag && connectDrag.sourceId !== node.id}
-            isHoverTarget={hoverTargetId === node.id}
-          />
-        </div>
-      ))}
+        {nodes.map(node => (
+          <div
+            key={node.id}
+            onMouseDown={e => handleMouseDown(e, node.id)}
+            onMouseEnter={() => connectDrag && setHoverTargetId(node.id)}
+            onMouseLeave={() => connectDrag && setHoverTargetId(null)}
+            style={{
+              position: "absolute", left: node.x, top: node.y,
+              cursor: dragging?.id === node.id ? "grabbing" : "grab",
+            }}
+          >
+            <FlowNodeCard
+              node={node}
+              selected={selectedId === node.id}
+              onSelect={onSelect}
+              onDelete={handleDelete}
+              onPortMouseDown={handlePortMouseDown}
+              isConnectTarget={!!connectDrag && connectDrag.sourceId !== node.id}
+              isHoverTarget={hoverTargetId === node.id}
+            />
+          </div>
+        ))}
 
-      {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
-          <Sparkles size={40} className="mb-3 opacity-20" />
-          <p className="text-sm font-medium">Canvas vazio</p>
-          <p className="text-xs mt-1 opacity-70">Adicione um nó de gatilho para começar</p>
-        </div>
-      )}
+        {nodes.length === 0 && (
+          <div style={{ position: "absolute", top: 200, left: "50%", transform: "translateX(-50%)" }}
+            className="flex flex-col items-center text-gray-400 pointer-events-none">
+            <Sparkles size={40} className="mb-3 opacity-20" />
+            <p className="text-sm font-medium">Canvas vazio</p>
+            <p className="text-xs mt-1 opacity-70">Adicione um nó de gatilho para começar</p>
+          </div>
+        )}
+      </div>
+
+      {/* Controles de zoom */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
+        <button
+          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 text-lg font-bold leading-none"
+          onClick={() => setZoom(z => Math.min(z * 1.2, MAX_ZOOM))}
+          title="Zoom in"
+        >+</button>
+        <button
+          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 text-xs"
+          onClick={fitView}
+          title="Ajustar tela (centralizar todos os nós)"
+        >⊡</button>
+        <button
+          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 text-lg font-bold leading-none"
+          onClick={() => setZoom(z => Math.max(z * 0.8, MIN_ZOOM))}
+          title="Zoom out"
+        >−</button>
+      </div>
+
+      {/* Indicador de zoom */}
+      <div className="absolute bottom-4 left-4 z-10 bg-white/80 border border-gray-200 rounded-md px-2 py-1 text-xs text-gray-500 font-mono pointer-events-none">
+        {Math.round(zoom * 100)}%
+      </div>
     </div>
   );
 }
