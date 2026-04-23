@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "agendado" | "todos";
@@ -289,6 +289,7 @@ export default function FilaAutomacoes() {
   const [periodo, setPeriodo] = useState<Periodo>("semana");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recentes");
   const [automacaoFiltro, setAutomacaoFiltro] = useState<string>("__todos__");
+  const [buscaCliente, setBuscaCliente] = useState<string>("");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedRow, setSelectedRow] = useState<FilaRow | null>(null);
   const [reenviarLoading, setReenviarLoading] = useState(false);
@@ -431,8 +432,13 @@ export default function FilaAutomacoes() {
     }
   };
 
+  // Filtro local por nome do cliente
+  const rowsFiltradas = (data?.rows ?? []).filter(r =>
+    !buscaCliente.trim() || (r.clienteNome ?? "").toLowerCase().includes(buscaCliente.toLowerCase())
+  );
+
   // Linhas pendentes, agendadas ou falhadas visíveis (para selecionar todas)
-  const linhasCancelaveis = (data?.rows ?? []).filter(r => r.status === "pendente" || r.status === "agendado" || r.status === "falhou");
+  const linhasCancelaveis = rowsFiltradas.filter(r => r.status === "pendente" || r.status === "agendado" || r.status === "falhou");
   const linhasPendentes = linhasCancelaveis; // alias para compatibilidade
   const todasSelecionadas = linhasCancelaveis.length > 0 && linhasCancelaveis.every(r => selectedIds.has(r.id));
 
@@ -523,6 +529,27 @@ export default function FilaAutomacoes() {
         </button>
       </div>
 
+      {/* Campo de busca por nome do cliente */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Buscar por nome do cliente..."
+          value={buscaCliente}
+          onChange={e => setBuscaCliente(e.target.value)}
+          className="w-full pl-9 pr-9 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring bg-background placeholder-muted-foreground"
+        />
+        {buscaCliente && (
+          <button
+            type="button"
+            onClick={() => setBuscaCliente("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2 items-center">
         <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
         <Select value={status} onValueChange={v => setStatus(v as StatusFila)}>
@@ -566,8 +593,8 @@ export default function FilaAutomacoes() {
             </SelectContent>
           </Select>
         )}
-        {(status !== "todos" || automacaoFiltro !== "__todos__") && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setStatus("todos"); setAutomacaoFiltro("__todos__"); }}>
+        {(status !== "todos" || automacaoFiltro !== "__todos__" || buscaCliente) && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setStatus("todos"); setAutomacaoFiltro("__todos__"); setBuscaCliente(""); }}>
             Limpar filtros
           </Button>
         )}
@@ -673,7 +700,7 @@ export default function FilaAutomacoes() {
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
-      ) : !data || data.rows.length === 0 ? (
+      ) : !data || data.rows.length === 0 || (buscaCliente && rowsFiltradas.length === 0 && data.rows.length === 0) ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Send className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
@@ -681,17 +708,25 @@ export default function FilaAutomacoes() {
             <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros ou aguarde novos envios</p>
           </CardContent>
         </Card>
+      ) : rowsFiltradas.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Search className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+            <p className="text-muted-foreground font-medium">Nenhum cliente encontrado</p>
+            <p className="text-sm text-muted-foreground mt-1">Nenhum envio corresponde a &ldquo;{buscaCliente}&rdquo;</p>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {data.total} envio{data.total !== 1 ? "s" : ""} encontrado{data.total !== 1 ? "s" : ""}
+              {buscaCliente ? `${rowsFiltradas.length} de ${data!.total}` : data!.total} envio{(buscaCliente ? rowsFiltradas.length : data!.total) !== 1 ? "s" : ""} encontrado{(buscaCliente ? rowsFiltradas.length : data!.total) !== 1 ? "s" : ""}
               {autoRefresh && <span className="ml-2 text-xs text-green-600">• Atualização automática ativa</span>}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {data.rows.map((row) => {
+              {rowsFiltradas.map((row) => {
                 const isPendente = row.status === "pendente" || row.status === "agendado";
                 const isSelected = selectedIds.has(row.id);
 

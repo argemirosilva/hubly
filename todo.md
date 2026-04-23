@@ -2054,3 +2054,4 @@
 - [x] Header do editor de automação fixo no topo (sticky) ao fazer scroll no canvas
 - [x] Caixa de Saída: cancelar apenas itens não enviados; limpar apenas itens enviados
 - [x] Campo de busca por nome na lista de serviços dentro do filtro de condição
+- [x] Campo de busca por nome do cliente na Caixa de Saída
