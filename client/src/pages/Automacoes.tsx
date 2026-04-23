@@ -231,12 +231,13 @@ function getConditionPreview(data: Record<string, any>): string | null {
 
 //  NodeCard
 
-function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connecting }: {
+function FlowNodeCard({ node, selected, onSelect, onDelete, onPortMouseDown, isConnectTarget, isHoverTarget }: {
   node: FlowNode; selected: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
-  onConnect: (id: string) => void;
-  connecting: string | null;
+  onPortMouseDown: (e: React.MouseEvent, sourceId: string) => void;
+  isConnectTarget: boolean;
+  isHoverTarget: boolean;
 }) {
   const styles: Record<NodeType, { bg: string; border: string; iconBg: string; icon: React.ReactNode; label: string; labelColor: string }> = {
     trigger: { bg: "bg-indigo-50", border: "border-indigo-300", iconBg: "bg-indigo-100", icon: <Zap size={14} className="text-indigo-600" />, label: "Gatilho", labelColor: "text-indigo-600" },
@@ -252,7 +253,7 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
 
   return (
     <div
-      className={`rounded-xl border-2 shadow-sm ${s.bg} ${incompleto ? "border-amber-400" : s.border} transition-all ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${connecting && connecting !== node.id ? "ring-2 ring-emerald-400 ring-offset-1 cursor-crosshair" : ""}`}
+      className={`rounded-xl border-2 shadow-sm ${s.bg} ${incompleto ? "border-amber-400" : s.border} transition-all ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${isHoverTarget ? "ring-2 ring-emerald-400 ring-offset-2 scale-105" : ""} ${isConnectTarget && !isHoverTarget ? "ring-1 ring-emerald-300 ring-offset-1" : ""}`}
       style={{ width: 220 }}
       onClick={() => onSelect(node.id)}
     >
@@ -260,11 +261,10 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
         <div className={`w-6 h-6 rounded-md ${s.iconBg} flex items-center justify-center`}>{s.icon}</div>
         <span className={`text-xs font-bold uppercase tracking-wider ${s.labelColor}`}>{s.label}</span>
         <div className="ml-auto flex items-center gap-1">
-          {connecting && connecting !== node.id && (
-            <button className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 z-10"
-              onClick={e => { e.stopPropagation(); onConnect(node.id); }}>
+          {isHoverTarget && (
+            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
               <Plus size={10} />
-            </button>
+            </span>
           )}
           {incompleto && (
             <TooltipProvider>
@@ -306,16 +306,26 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onConnect, connectin
           ) : null;
         })()}
       </div>
-      {node.type !== "end" && !connecting && (
-        <div className="px-3 pb-2 flex justify-center">
-          <button className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 transition-colors"
-            onClick={e => { e.stopPropagation(); onConnect(node.id); }}>
-            <ArrowRight size={11} /><span>Conectar próximo</span>
-          </button>
+      {/* Porta de saída (source port) — arraste para conectar */}
+      {node.type !== "end" && (
+        <div className="px-3 pb-3 flex justify-center">
+          <div
+            data-port="source"
+            title="Arraste para conectar ao próximo nó"
+            className="group flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 shadow-sm cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition-all select-none"
+            onMouseDown={e => onPortMouseDown(e, node.id)}
+          >
+            <div className="w-3 h-3 rounded-full bg-indigo-400 group-hover:bg-indigo-600 transition-colors" />
+            <span className="text-[10px] text-gray-400 group-hover:text-indigo-600 font-medium">Conectar</span>
+          </div>
         </div>
       )}
-      {/* Dot de conexão */}
-      <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-400 shadow-sm z-10" />
+      {/* Porta de entrada (target port) — ponto no topo */}
+      {node.type !== "trigger" && (
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-indigo-400 shadow-sm z-10 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-full bg-indigo-400" />
+        </div>
+      )}
     </div>
   );
 }
@@ -970,10 +980,13 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ id: string; ox: number; oy: number } | null>(null);
-  const [connecting, setConnecting] = useState<string | null>(null);
+  // Estado do drag-to-connect: {sourceId, cursorX, cursorY (relativo ao canvas)}
+  const [connectDrag, setConnectDrag] = useState<{ sourceId: string; x: number; y: number } | null>(null);
+  const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
 
+  // ── Drag de nó ──────────────────────────────────────────────────────────────
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if ((e.target as HTMLElement).closest("button,select,input,textarea")) return;
+    if ((e.target as HTMLElement).closest("button,select,input,textarea,[data-port]")) return;
     const node = nodes.find(n => n.id === id);
     if (!node) return;
     setDragging({ id, ox: e.clientX - node.x, oy: e.clientY - node.y });
@@ -982,20 +995,42 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragging || !canvasRef.current) return;
-    const r = canvasRef.current.getBoundingClientRect();
-    const x = Math.max(0, e.clientX - r.left - dragging.ox);
-    const y = Math.max(0, e.clientY - r.top - dragging.oy);
-    onNodesChange(nodes.map(n => n.id === dragging.id ? { ...n, x, y } : n));
-  }, [dragging, nodes, onNodesChange]);
-
-  const handleMouseUp = useCallback(() => {
-    if (dragging) {
-      // Notifica o pai com os nós atualizados para auto-save de posições
-      onDragEnd?.(nodes);
+    if (canvasRef.current) {
+      const r = canvasRef.current.getBoundingClientRect();
+      if (dragging) {
+        const x = Math.max(0, e.clientX - r.left - dragging.ox);
+        const y = Math.max(0, e.clientY - r.top - dragging.oy);
+        onNodesChange(nodes.map(n => n.id === dragging.id ? { ...n, x, y } : n));
+      }
+      if (connectDrag) {
+        setConnectDrag(prev => prev ? { ...prev, x: e.clientX - r.left, y: e.clientY - r.top } : null);
+      }
     }
-    setDragging(null);
-  }, [dragging, nodes, onDragEnd]);
+  }, [dragging, connectDrag, nodes, onNodesChange]);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (dragging) {
+      onDragEnd?.(nodes);
+      setDragging(null);
+    }
+    if (connectDrag) {
+      // Verificar se soltou em cima de um nó alvo
+      if (hoverTargetId && hoverTargetId !== connectDrag.sourceId) {
+        // Impedir conexão duplicada ou ciclo direto
+        const sourceNode = nodes.find(n => n.id === connectDrag.sourceId);
+        if (sourceNode && !sourceNode.connections.includes(hoverTargetId)) {
+          onNodesChange(nodes.map(n =>
+            n.id === connectDrag.sourceId
+              ? { ...n, connections: [...n.connections, hoverTargetId] }
+              : n
+          ));
+          toast.success("Nós conectados!");
+        }
+      }
+      setConnectDrag(null);
+      setHoverTargetId(null);
+    }
+  }, [dragging, connectDrag, hoverTargetId, nodes, onNodesChange, onDragEnd]);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -1003,36 +1038,90 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
     return () => { window.removeEventListener("mousemove", handleMouseMove); window.removeEventListener("mouseup", handleMouseUp); };
   }, [handleMouseMove, handleMouseUp]);
 
+  // ── Porta de saída (source port) ────────────────────────────────────────────
+  const handlePortMouseDown = (e: React.MouseEvent, sourceId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!canvasRef.current) return;
+    const r = canvasRef.current.getBoundingClientRect();
+    setConnectDrag({ sourceId, x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+
+  // ── Deletar nó ──────────────────────────────────────────────────────────────
   const handleDelete = (id: string) => {
     onNodesChange(nodes.filter(n => n.id !== id).map(n => ({ ...n, connections: n.connections.filter(c => c !== id) })));
     if (selectedId === id) onSelect(null);
   };
 
-  const handleConnect = (targetId: string) => {
-    if (!connecting) { setConnecting(targetId); return; }
-    if (connecting !== targetId) {
-      onNodesChange(nodes.map(n => n.id === connecting ? { ...n, connections: Array.from(new Set([...n.connections, targetId])) } : n));
-      toast.success("Nós conectados!");
-    }
-    setConnecting(null);
+  // ── Deletar aresta ──────────────────────────────────────────────────────────
+  const handleDeleteEdge = (sourceId: string, targetId: string) => {
+    onNodesChange(nodes.map(n =>
+      n.id === sourceId ? { ...n, connections: n.connections.filter(c => c !== targetId) } : n
+    ));
   };
+
+  // ── Renderizar arestas ──────────────────────────────────────────────────────
+  const NODE_W = 220;
+  const NODE_H = 110; // altura aproximada do card
 
   const renderConnections = () => nodes.flatMap(node =>
     node.connections.map(tid => {
       const t = nodes.find(n => n.id === tid);
       if (!t) return null;
-      const x1 = node.x + 110, y1 = node.y + 90;
-      const x2 = t.x + 110, y2 = t.y;
-      const cy = (y1 + y2) / 2;
+      // Porta de saída: centro-base do nó fonte
+      const x1 = node.x + NODE_W / 2;
+      const y1 = node.y + NODE_H;
+      // Porta de entrada: centro-topo do nó destino
+      const x2 = t.x + NODE_W / 2;
+      const y2 = t.y;
+      const cy1 = y1 + Math.abs(y2 - y1) * 0.5;
+      const cy2 = y2 - Math.abs(y2 - y1) * 0.5;
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const pathId = `edge-${node.id}-${tid}`;
       return (
-        <g key={`${node.id}-${tid}`}>
-          <path d={`M ${x1} ${y1} C ${x1} ${cy}, ${x2} ${cy}, ${x2} ${y2}`}
-            stroke="#6366f1" strokeWidth="2" fill="none" strokeDasharray="6 3" opacity="0.6" />
-          <circle cx={x2} cy={y2} r="4" fill="#6366f1" opacity="0.8" />
+        <g key={pathId}>
+          {/* Sombra da aresta para melhor visibilidade */}
+          <path d={`M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`}
+            stroke="white" strokeWidth="4" fill="none" opacity="0.6" />
+          {/* Aresta principal */}
+          <path d={`M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`}
+            stroke="#6366f1" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" />
+          {/* Ponto de entrada */}
+          <circle cx={x2} cy={y2} r="5" fill="white" stroke="#6366f1" strokeWidth="2" />
+          {/* Botão de deletar aresta (aparece no meio da curva) */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={() => handleDeleteEdge(node.id, tid)}
+          >
+            <circle cx={midX} cy={midY} r="9" fill="white" stroke="#e5e7eb" strokeWidth="1.5" opacity="0.9" />
+            <line x1={midX - 4} y1={midY - 4} x2={midX + 4} y2={midY + 4} stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1={midX + 4} y1={midY - 4} x2={midX - 4} y2={midY + 4} stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
+          </g>
         </g>
       );
     })
   );
+
+  // ── Linha de preview durante drag-to-connect ─────────────────────────────────
+  const renderConnectPreview = () => {
+    if (!connectDrag) return null;
+    const src = nodes.find(n => n.id === connectDrag.sourceId);
+    if (!src) return null;
+    const x1 = src.x + NODE_W / 2;
+    const y1 = src.y + NODE_H;
+    const x2 = connectDrag.x;
+    const y2 = connectDrag.y;
+    const cy = (y1 + y2) / 2;
+    return (
+      <g>
+        <path d={`M ${x1} ${y1} C ${x1} ${cy}, ${x2} ${cy}, ${x2} ${y2}`}
+          stroke="#6366f1" strokeWidth="2" fill="none" strokeDasharray="6 3" opacity="0.7"
+          markerEnd="url(#arrowhead)" />
+        <circle cx={x2} cy={y2} r="5" fill="#6366f1" opacity="0.6" />
+      </g>
+    );
+  };
 
   return (
     <div
@@ -1043,34 +1132,39 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
         backgroundImage: "radial-gradient(circle, #c7d2fe 1px, transparent 1px)",
         backgroundSize: "24px 24px",
         backgroundColor: "#f8faff",
+        cursor: connectDrag ? "crosshair" : "default",
       }}
-      onClick={e => { if (e.target === canvasRef.current) { onSelect(null); setConnecting(null); } }}
+      onClick={e => { if (e.target === canvasRef.current) onSelect(null); }}
     >
-      <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+      <svg className="absolute inset-0" style={{ width: "100%", height: "100%", overflow: "visible", pointerEvents: connectDrag ? "none" : "auto" }}>
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#6366f1" />
+          </marker>
+        </defs>
         {renderConnections()}
+        {renderConnectPreview()}
       </svg>
-
-      {connecting && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-indigo-600 text-white text-xs px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-          <ArrowRight size={12} />
-          Clique em outro nó para conectar ·{" "}
-          <button onClick={() => setConnecting(null)} className="underline">Cancelar</button>
-        </div>
-      )}
 
       {nodes.map(node => (
         <div
           key={node.id}
           onMouseDown={e => handleMouseDown(e, node.id)}
-          style={{ position: "absolute", left: node.x, top: node.y, cursor: dragging?.id === node.id ? "grabbing" : "grab" }}
+          onMouseEnter={() => connectDrag && setHoverTargetId(node.id)}
+          onMouseLeave={() => connectDrag && setHoverTargetId(null)}
+          style={{
+            position: "absolute", left: node.x, top: node.y,
+            cursor: dragging?.id === node.id ? "grabbing" : "grab",
+          }}
         >
           <FlowNodeCard
             node={node}
             selected={selectedId === node.id}
             onSelect={onSelect}
             onDelete={handleDelete}
-            onConnect={handleConnect}
-            connecting={connecting}
+            onPortMouseDown={handlePortMouseDown}
+            isConnectTarget={!!connectDrag && connectDrag.sourceId !== node.id}
+            isHoverTarget={hoverTargetId === node.id}
           />
         </div>
       ))}
@@ -1320,7 +1414,13 @@ export default function Automacoes() {
 
   const addNode = (type: NodeType) => {
     const id = `${type}-${Date.now()}`;
-    setNodes(prev => [...prev, { id, type, x: 80 + Math.random() * 250, y: 80 + Math.random() * 200, data: {}, connections: [] }]);
+    setNodes(prev => {
+      // Posicionar o novo nó abaixo do último nó existente, com offset horizontal
+      const lastNode = prev.length > 0 ? prev[prev.length - 1] : null;
+      const x = lastNode ? lastNode.x + (Math.random() > 0.5 ? 20 : -20) : 80;
+      const y = lastNode ? lastNode.y + 160 : 80;
+      return [...prev, { id, type, x, y, data: {}, connections: [] }];
+    });
     setSelectedNodeId(id);
     setAddNodeMenu(false);
   };

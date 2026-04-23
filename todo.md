@@ -2027,10 +2027,18 @@
 - [x] Multi-select de serviços para filtro "por serviço" (em vez de texto livre)
 
 ## Melhorias Condição Automações v2 (2026-04-22)
-- [ ] Backend: motor de execução interpreta por_categoria, por_valor, por_tipo_cliente
-- [ ] Frontend: multi-select de profissionais no filtro "por profissional"
-- [ ] Frontend: pré-visualização do filtro configurado no card do nó de condição no canvas
+- [x] Backend: motor de execução interpreta por_categoria, por_valor, por_tipo_cliente
+- [x] Frontend: multi-select de profissionais no filtro "por profissional"
+- [x] Frontend: pré-visualização do filtro configurado no card do nó de condição no canvas
 
 ## Persistência de Posições dos Nós no Canvas (2026-04-22)
 - [x] Salvar posição (x, y) de cada nó no flowJson ao arrastar (auto-save após drag)
 - [x] Restaurar posições ao abrir uma automação existente (já funcionava via flowJson)
+
+## Conexão Visual de Nós por Arrastar (2026-04-22)
+- [x] Portas de saída (source) e entrada (target) visíveis nos nós
+- [x] Drag-to-connect: arrastar da porta de saída para a porta de entrada de outro nó
+- [x] Linha de preview durante o drag (curva bezier pontilhada)
+- [x] Remover conexão via botão X no meio da aresta
+- [x] Highlight do nó alvo ao passar por cima durante o drag
+- [x] Posicionamento inteligente de novos nós (abaixo do último)
