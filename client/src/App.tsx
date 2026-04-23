@@ -50,7 +50,7 @@ import { SupportChat } from "./components/SupportChat";
 import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 function WithAdmin({ children }: { children: ReactNode }) {
   return (
@@ -123,6 +123,9 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    document.title = "Hubly - Gestão de Agendamentos e Clientes";
+  }, []);
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
