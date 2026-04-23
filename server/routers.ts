@@ -4083,13 +4083,17 @@ export const appRouter = router({
       const { isAdmin } = await resolveAdminContext(ctx, empresa);
       if (!isAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem gerenciar assinaturas" });
       const subscription = await getOrCreateSubscription(empresa.id);
-      if (!subscription.stripeCustomerId) {
-        throw new Error("Nenhuma assinatura ativa encontrada");
-      }
-      const { stripe: stripeClient } = await import("./stripe");
+      const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
+      // Validar/criar customer (trata IDs inválidos de outro ambiente)
+      const customerId = await getOrCreateStripeCustomer(
+        empresa.id,
+        empresa.email ?? "",
+        empresa.nome,
+        subscription.stripeCustomerId
+      );
       const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
       const session = await stripeClient.billingPortal.sessions.create({
-        customer: subscription.stripeCustomerId,
+        customer: customerId,
         return_url: `${origin}/admin/assinatura`,
       });
       return { url: session.url };
@@ -4195,9 +4199,48 @@ export const appRouter = router({
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return null;
       const subscription = await getOrCreateSubscription(empresa.id);
-      if (!subscription.stripeSubscriptionId) return null;
+      const { stripe: stripeClient, getOrCreateStripeCustomer } = await import("./stripe");
+
+      /**
+       * Busca o método de pagamento padrão do Customer diretamente.
+       * Usado como fallback quando não há assinatura ativa.
+       */
+      async function getMetodoPagamentoDoCustomer(customerId: string) {
+        try {
+          const pms = await stripeClient.paymentMethods.list({ customer: customerId, type: "card", limit: 1 });
+          const pm = pms.data[0] as any;
+          if (!pm) return null;
+          return {
+            tipo: "card",
+            bandeira: pm.card?.brand ?? null,
+            ultimos4: pm.card?.last4 ?? null,
+            expMes: pm.card?.exp_month ?? null,
+            expAno: pm.card?.exp_year ?? null,
+          };
+        } catch { return null; }
+      }
+
+      // Se não há assinatura ativa, tentar retornar apenas o método de pagamento do customer
+      if (!subscription.stripeSubscriptionId) {
+        if (!subscription.stripeCustomerId) return null;
+        try {
+          const metodoPagamento = await getMetodoPagamentoDoCustomer(subscription.stripeCustomerId);
+          if (!metodoPagamento) return null;
+          return {
+            stripeSubId: null,
+            status: null,
+            proximaCobranca: null,
+            inicioPerioodo: null,
+            cancelarAoFinal: false,
+            cancelarEm: null,
+            metodoPagamento,
+            valorMensal: null,
+            intervalo: null,
+          };
+        } catch { return null; }
+      }
+
       try {
-        const { stripe: stripeClient } = await import("./stripe");
         const sub = await stripeClient.subscriptions.retrieve(
           subscription.stripeSubscriptionId,
           { expand: ["default_payment_method"] }
@@ -4213,9 +4256,18 @@ export const appRouter = router({
             type: string;
             card?: { brand: string; last4: string; exp_month: number; exp_year: number };
           } | null;
+          customer: string;
           items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
         };
-        const pm = subAny.default_payment_method;
+        let pm = subAny.default_payment_method;
+        // Se a assinatura não tem default_payment_method, buscar do customer
+        let metodoPagamento = pm ? {
+          tipo: pm.type,
+          bandeira: pm.card?.brand ?? null,
+          ultimos4: pm.card?.last4 ?? null,
+          expMes: pm.card?.exp_month ?? null,
+          expAno: pm.card?.exp_year ?? null,
+        } : await getMetodoPagamentoDoCustomer(subAny.customer);
         return {
           stripeSubId: subAny.id,
           status: subAny.status,
@@ -4223,13 +4275,7 @@ export const appRouter = router({
           inicioPerioodo: new Date(subAny.current_period_start * 1000),
           cancelarAoFinal: subAny.cancel_at_period_end,
           cancelarEm: subAny.cancel_at ? new Date(subAny.cancel_at * 1000) : null,
-          metodoPagamento: pm ? {
-            tipo: pm.type,
-            bandeira: pm.card?.brand ?? null,
-            ultimos4: pm.card?.last4 ?? null,
-            expMes: pm.card?.exp_month ?? null,
-            expAno: pm.card?.exp_year ?? null,
-          } : null,
+          metodoPagamento,
           valorMensal: subAny.items.data[0]?.price?.unit_amount
             ? subAny.items.data[0].price.unit_amount / 100
             : null,

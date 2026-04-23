@@ -1,7 +1,6 @@
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 
-// Usar ENV.stripeSecretKey que já tem fallback para a chave LIVE hardcoded
 const stripeKey = ENV.stripeSecretKey;
 
 if (!stripeKey) {
@@ -18,7 +17,8 @@ console.log(
 
 /**
  * Cria ou recupera um Customer do Stripe para a empresa.
- * Armazena o stripeCustomerId na tabela subscriptions.
+ * Se o stripeCustomerId salvo no banco não existir mais no Stripe
+ * (ex: troca de ambiente test→live, sandbox resetado), cria um novo.
  */
 export async function getOrCreateStripeCustomer(
   empresaId: number,
@@ -26,11 +26,44 @@ export async function getOrCreateStripeCustomer(
   nome: string,
   stripeCustomerId: string | null
 ): Promise<string> {
-  if (stripeCustomerId) return stripeCustomerId;
+  // Se temos um ID salvo, verificar se ele ainda existe no Stripe
+  if (stripeCustomerId) {
+    try {
+      const existing = await stripe.customers.retrieve(stripeCustomerId);
+      // Se o customer foi deletado no Stripe, o objeto retorna com deleted: true
+      if (!(existing as any).deleted) {
+        return stripeCustomerId;
+      }
+      console.warn(`[Stripe] Customer ${stripeCustomerId} foi deletado no Stripe. Criando novo...`);
+    } catch (err: any) {
+      // Erro "No such customer" — o ID não existe neste ambiente (test/live)
+      console.warn(`[Stripe] Customer ID inválido ou de outro ambiente (${stripeCustomerId}). Criando novo...`);
+    }
+  }
+
+  // Criar novo customer no Stripe
   const customer = await stripe.customers.create({
     email,
     name: nome,
     metadata: { empresaId: String(empresaId) },
   });
+
+  // Persistir o novo ID no banco
+  try {
+    const { getDb } = await import("./db");
+    const { subscriptions: subsTable } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await getDb();
+    if (db) {
+      await db
+        .update(subsTable)
+        .set({ stripeCustomerId: customer.id, updatedAt: new Date() })
+        .where(eq(subsTable.empresaId, empresaId));
+    }
+  } catch (e) {
+    console.error("[Stripe] Falha ao persistir novo stripeCustomerId:", e);
+  }
+
+  console.log(`[Stripe] Novo customer criado: ${customer.id} para empresa ${empresaId}`);
   return customer.id;
 }
