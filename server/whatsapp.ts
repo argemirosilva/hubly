@@ -637,6 +637,28 @@ export async function sendPacoteVencendo(params: {
   return waManager.sendMessage(clienteTelefone, mensagem);
 }
 
+export async function sendCreditoGerado(params: {
+  clienteNome: string;
+  clienteTelefone: string;
+  valorCredito: number;
+  saldoTotal: number;
+  empresaNome: string;
+  origem?: string;
+}): Promise<boolean> {
+  const { clienteNome, clienteTelefone, valorCredito, saldoTotal, empresaNome, origem } = params;
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const origemTexto = origem ? `\n• Origem: ${origem}` : '';
+  const mensagem =
+    `💰 *Crédito Disponível!*\n\n` +
+    `Olá, *${clienteNome}*! Um crédito foi adicionado à sua conta.\n\n` +
+    `📊 *Detalhes:*\n` +
+    `• Valor adicionado: *${fmt(valorCredito)}*${origemTexto}\n` +
+    `• Saldo total: *${fmt(saldoTotal)}*\n\n` +
+    `📍 *${empresaNome}*\n\n` +
+    `_Seu crédito será descontado automaticamente no próximo atendimento. Qualquer dúvida, entre em contato!_`;
+  return waManager.sendMessage(clienteTelefone, mensagem);
+}
+
 export async function sendWAMedia(params: {
   telefone: string;
   mediaUrl: string;

@@ -5068,6 +5068,7 @@ export const appRouter = router({
         valor: z.number().positive(),
         origem: z.string().optional(),
         agendamentoId: z.number().optional(),
+        notificarWhatsApp: z.boolean().optional().default(true),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
@@ -5081,6 +5082,44 @@ export const appRouter = router({
           agendamentoId: input.agendamentoId,
         });
         const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+
+        // Notificar cliente via WhatsApp (não bloqueia a resposta)
+        if (input.notificarWhatsApp !== false) {
+          try {
+            const cliente = await getClienteById(input.clienteId);
+            const telefone = cliente?.whatsapp || cliente?.telefone;
+            if (cliente && telefone) {
+              const { routedSendMessage } = await import('./whatsapp-router');
+              const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+              const origemTexto = input.origem ? `\n• Origem: ${input.origem}` : '';
+              const mensagem =
+                `💰 *Crédito Disponível!*\n\n` +
+                `Olá, *${cliente.nome}*! Um crédito foi adicionado à sua conta.\n\n` +
+                `📊 *Detalhes:*\n` +
+                `• Valor adicionado: *${fmt(input.valor)}*${origemTexto}\n` +
+                `• Saldo total: *${fmt(novoSaldo)}*\n\n` +
+                `📍 *${empresa.nome ?? 'Estabelecimento'}*\n\n` +
+                `_Seu crédito será descontado automaticamente no próximo atendimento. Qualquer dúvida, entre em contato!_`;
+              const enviado = await routedSendMessage(empresa.id, telefone, mensagem);
+              // Registrar no histórico de envios
+              await registrarEnvioAutomacao({
+                empresaId: empresa.id,
+                automacaoNome: 'Notificação de Crédito',
+                clienteId: input.clienteId,
+                clienteNome: cliente.nome,
+                telefone,
+                canal: 'whatsapp',
+                mensagem,
+                status: enviado ? 'enviado' : 'falhou',
+                agendamentoId: input.agendamentoId,
+              });
+            }
+          } catch (err) {
+            // Falha no WhatsApp não deve impedir o registro do crédito
+            console.error('[Credito] Erro ao notificar cliente via WhatsApp:', err);
+          }
+        }
+
         return { success: true, novoSaldo };
       }),
 

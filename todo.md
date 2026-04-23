@@ -2115,3 +2115,11 @@
 - [x] Backend: procedure getResumoCreditos (total em aberto, total devolvido, nº clientes com crédito)
 - [x] Clientes.tsx: badge discreto de crédito ao lado do nome do cliente
 - [x] Financeiro: seção "Créditos em Aberto" com total passivo e lista por cliente com nome
+
+## Automação WhatsApp - Notificação de Crédito
+- [x] Analisar helper de envio WhatsApp existente no backend
+- [x] Backend: enviar WhatsApp ao cliente quando registrarCreditoCliente for chamado (tipo 'credito')
+- [x] Mensagem com variáveis: nome do cliente, valor do crédito, saldo total
+- [x] Não enviar para tipo 'uso' e 'devolucao' (apenas geração de crédito)
+- [x] Registrar envio no histórico de Automações com nome 'Notificação de Crédito'
+- [x] Documentar no Manual
