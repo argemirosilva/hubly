@@ -139,6 +139,22 @@ const SECTIONS: Section[] = [
         ],
         tip: "Esses registros ficam no histórico do cliente e ajudam nas análises do sistema.",
       },
+      {
+        title: "Sinal recebido fora do prazo (reativar agendamento cancelado)",
+        steps: [
+          "Quando um pré-agendamento exige sinal e o cliente não paga dentro do prazo, o sistema cancela o agendamento automaticamente.",
+          "Se o cliente pagar o sinal depois do prazo, você não precisa criar um novo agendamento do zero.",
+          "Abra o agendamento cancelado — ele ainda aparece na lista com o status Cancelado.",
+          "Na seção Alterar status, procure o botão verde Sinal Recebido.",
+          "Um painel vai abrir mostrando o valor do sinal original já preenchido. Você pode ajustar o valor se necessário.",
+          "Adicione uma observação opcional, por exemplo: cliente pagou via PIX após o prazo.",
+          "Clique em Confirmar Recebimento.",
+          "O agendamento volta automaticamente para o status Agendado e o valor do sinal é registrado no financeiro como pagamento parcial.",
+          "Uma anotação interna é salva com a data, hora e nome de quem confirmou o recebimento.",
+        ],
+        tip: "O botão Sinal Recebido só aparece em agendamentos com status Cancelado que tinham um valor de sinal configurado. Se o agendamento foi cancelado por outro motivo (sem sinal), esse botão não será exibido.",
+        warning: "Essa ação não reenvia mensagens automáticas ao cliente. Se quiser notificar o cliente sobre a reativação, envie uma mensagem manualmente pelo WhatsApp.",
+      },
     ],
   },
   {

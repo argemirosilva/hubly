@@ -1633,6 +1633,61 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    /**
+     * Confirma o recebimento do sinal fora do prazo.
+     * Reativa o agendamento cancelado por expiração de reserva:
+     *   - status: cancelado → agendado
+     *   - reservaPaga: true
+     *   - lança pagamento parcial no financeiro
+     *   - registra observação interna com data/hora e nome do usuário
+     */
+    confirmarSinalForaDoPrazo: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        valorSinal: z.string().optional(),
+        observacao: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error('Empresa não encontrada');
+        const ag = await getAgendamentoById(input.id);
+        if (!ag) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
+        if (ag.status !== 'cancelado') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Apenas agendamentos cancelados podem ser reativados por este fluxo' });
+        }
+        const valorFinal = input.valorSinal ?? ag.valorReserva ?? '0';
+        const agora = new Date();
+        const nomeUsuario = ctx.systemUser?.nome ?? ctx.user.name ?? 'usuário';
+        const dataHoraStr = agora.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const linhaHistorico = `[${dataHoraStr}] Sinal recebido fora do prazo — confirmado manualmente por ${nomeUsuario}.${
+          input.observacao ? ` Obs: ${input.observacao}` : ''
+        }`;
+        const obsAtual = ag.observacoesInternas ?? '';
+        const obsInterna = [obsAtual, linhaHistorico].filter(Boolean).join('\n').trim();
+        await updateAgendamento(input.id, {
+          status: 'agendado',
+          reservaPaga: true,
+          reservaPagaEm: agora,
+          observacoesInternas: obsInterna,
+        });
+        if (parseFloat(valorFinal) > 0) {
+          try {
+            const { addPagamentoAgendamento } = await import('./db');
+            await addPagamentoAgendamento({
+              agendamentoId: input.id,
+              valor: valorFinal,
+              observacao: input.observacao
+                ? `Sinal fora do prazo — ${input.observacao}`
+                : 'Sinal recebido fora do prazo',
+            });
+          } catch (e) {
+            console.error('[confirmarSinalForaDoPrazo] Erro ao registrar pagamento:', e);
+          }
+        }
+        return { success: true };
+      }),
+
     updateServicos: protectedProcedure
       .input(z.object({
         agendamentoId: z.number(),

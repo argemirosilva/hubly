@@ -180,6 +180,25 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const [comissaoModal, setComissaoModal] = useState(false);
   const [resumoConclusaoModal, setResumoConclusaoModal] = useState(false);
   const [confirmarExclusaoModal, setConfirmarExclusaoModal] = useState(false);
+  // Modal de sinal fora do prazo
+  const [sinalForaDoPrazoModal, setSinalForaDoPrazoModal] = useState(false);
+  const [sinalValor, setSinalValor] = useState("");
+  const [sinalObs, setSinalObs] = useState("");
+  const confirmarSinalForaDoPrazoMutation = trpc.agendamentos.confirmarSinalForaDoPrazo.useMutation({
+    onSuccess: async () => {
+      toast.success("✅ Sinal confirmado! Agendamento reativado para Agendado.");
+      setSinalForaDoPrazoModal(false);
+      setSinalValor("");
+      setSinalObs("");
+      await Promise.all([
+        utils.agendamentos.getById.invalidate({ id: agendamentoId }),
+        utils.agendamentos.getPagamentos.invalidate({ agendamentoId }),
+        utils.agendamentos.list.invalidate(),
+        utils.financeiro.comissoes.invalidate(),
+      ]);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
   const deleteMutation = trpc.agendamentos.delete.useMutation({
     onSuccess: () => {
       toast.success("Agendamento excluído com sucesso!");
@@ -945,6 +964,21 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   loading={updateMutation.isPending}
                 />
               )}
+              {/* Confirmar Sinal Fora do Prazo: apenas para agendamentos cancelados que tinham valorReserva */}
+              {ag.status === "cancelado" && ag.valorReserva && parseFloat(String(ag.valorReserva)) > 0 && (
+                <ActionBtn
+                  label="Sinal Recebido"
+                  icon={DollarSign}
+                  bg="oklch(55% 0.22 155 / 14%)"
+                  color="oklch(28% 0.14 155)"
+                  border="oklch(55% 0.22 155 / 35%)"
+                  onClick={() => {
+                    setSinalValor(String(ag.valorReserva ?? ""));
+                    setSinalForaDoPrazoModal(true);
+                  }}
+                  loading={confirmarSinalForaDoPrazoMutation.isPending}
+                />
+              )}
             </div>
           </div>
 
@@ -1213,6 +1247,60 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {updateMutation.isPending ? "Concluindo..." : "Confirmar Conclusão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Confirmar Sinal Fora do Prazo */}
+    <Dialog open={sinalForaDoPrazoModal} onOpenChange={(open) => { if (!open) { setSinalForaDoPrazoModal(false); setSinalValor(""); setSinalObs(""); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-green-600" />
+            Confirmar Sinal Recebido
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700">
+              O prazo de pagamento do sinal havia expirado e o agendamento foi cancelado automaticamente.
+              Ao confirmar o recebimento, o agendamento volta para o status <strong>Agendado</strong> e o valor é registrado no financeiro.
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Valor do sinal recebido (R$)</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={sinalValor}
+              onChange={e => setSinalValor(e.target.value)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Observação <span className="text-muted-foreground/60">(opcional)</span></Label>
+            <Input
+              value={sinalObs}
+              onChange={e => setSinalObs(e.target.value)}
+              placeholder="Ex: cliente pagou via PIX após o prazo"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => { setSinalForaDoPrazoModal(false); setSinalValor(""); setSinalObs(""); }}>Cancelar</Button>
+          <Button
+            onClick={() => confirmarSinalForaDoPrazoMutation.mutate({
+              id: agendamentoId,
+              valorSinal: sinalValor || undefined,
+              observacao: sinalObs || undefined,
+            })}
+            disabled={confirmarSinalForaDoPrazoMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {confirmarSinalForaDoPrazoMutation.isPending ? "Confirmando..." : "Confirmar Recebimento"}
           </Button>
         </DialogFooter>
       </DialogContent>

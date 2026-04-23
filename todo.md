@@ -2063,3 +2063,18 @@
 - [x] Cards com nome, telefone, serviço e tempo restante
 - [x] Atualização automática a cada 15 segundos
 - [x] Jornada ao Vivo mobile: abas deslizáveis por status em vez de colunas
+
+## Confirmar Sinal Fora do Prazo (2026-04-23)
+- [ ] Procedure tRPC confirmarSinalForaDoPrazo: reativar agendamento cancelado por prazo e lançar sinal no financeiro
+- [ ] Botão "Confirmar Sinal Recebido" no painel de status do agendamento (visível apenas quando cancelado por prazo de sinal)
+- [ ] Modal com valor do sinal pré-preenchido, campo de observação e confirmação
+- [ ] Histórico do agendamento: registrar "sinal recebido fora do prazo — confirmado manualmente"
+- [ ] Documentar no manual do sistema
+
+## Confirmar Sinal Fora do Prazo (reativar agendamento cancelado)
+- [x] Procedure tRPC confirmarSinalForaDoPrazo
+- [x] Botão "Sinal Recebido" no painel de status do agendamento cancelado
+- [x] Modal com valor do sinal e observação
+- [x] Reativação: cancelado → agendado + lançamento financeiro
+- [x] Registro de observação interna com data/hora e nome do usuário
+- [x] Documentação no manual
