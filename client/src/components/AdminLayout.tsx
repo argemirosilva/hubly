@@ -529,7 +529,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "#ffffff", borderRight: "1px solid #e5e7eb" }}
+        style={{ background: "#ffffff", borderRight: "1px solid #e5e7eb", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
@@ -862,7 +862,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          style={{ background: "white", borderBottom: "1px solid oklch(90% 0.012 250)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-xl hover:bg-muted transition-colors -ml-1">

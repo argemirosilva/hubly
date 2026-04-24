@@ -49,7 +49,7 @@ interface FlowAutomacao {
 //  Opções
 
 const TRIGGER_OPTIONS = [
-  { value: "evento_agendamento_criado", label: "Agendamento criado", icon: Calendar, color: "#6366f1", desc: "Dispara quando qualquer agendamento é criado, independente do status inicial." },
+  { value: "evento_agendamento_criado", label: "Agendamento criado", icon: Calendar, color: "#6366f1", desc: "Dispara quando qualquer agendamento é criado. Também é usada automaticamente quando uma reserva é confirmada, caso não exista automação específica para 'Reserva paga'." },
   { value: "evento_agendamento_pre_agendado", label: "Pré-agendamento criado", icon: Calendar, color: "#8b5cf6", desc: "Dispara quando um pré-agendamento é criado (aguardando confirmação do salão)." },
   { value: "evento_agendamento_confirmado", label: "Agendamento confirmado", icon: Check, color: "#10b981", desc: "Dispara quando o status do agendamento muda para confirmado." },
   { value: "evento_agendamento_cancelado", label: "Agendamento cancelado", icon: X, color: "#ef4444", desc: "Dispara quando um agendamento é cancelado pelo salão ou pelo cliente." },

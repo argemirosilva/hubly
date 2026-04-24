@@ -2194,3 +2194,7 @@
 - [x] Etapa 3: Adicionar UI de multi-trigger no frontend (Automacoes.tsx)
 - [x] Testes de validação (19/19 + 17/17 passed)
 - [x] Atualizar WHATSAPP_POLICY.md com novas regras (v3)
+
+## Feedback Maria — 24/04/2026
+- [x] Adicionar nota explicativa na UI de Automações: agendamento_criado é fallback para reserva_paga
+- [x] Fix iOS safe area: header mobile sobreposto pela barra de status (env safe-area-inset-top + viewport-fit=cover)
