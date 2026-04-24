@@ -322,9 +322,9 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
         </DialogHeader>
 
         <div className="space-y-4 py-2 px-5 overflow-y-auto flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {/* Cliente */}
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
               <ClienteAutocomplete
                 clientes={clientes}
@@ -335,7 +335,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Pessoas da Reserva */}
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5" />
@@ -420,7 +420,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
             {/* Pacotes Ativos do Cliente */}
             {clienteIdNum && pacotesAtivos.length > 0 && (
-              <div className="sm:col-span-2">
+              <div className="col-span-2">
                 <Label className="text-xs text-muted-foreground mb-1.5 block">
                   <Package className="w-3 h-3 inline mr-1" />
                   Pacotes Ativos
@@ -468,7 +468,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             )}
 
             {/* Serviços (múltiplos) — fluxo: profissional → serviço */}
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-xs text-muted-foreground">Serviços *</Label>
                 <Button
@@ -630,19 +630,18 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
             </div>
 
-            {/* Data */}
-            <div className="sm:col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
-              <Input
-                type="date"
-                value={form.data}
-                onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-              />
-            </div>
-
-            {/* Horários */}
-            <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+            {/* Data + Horários em linha única */}
+            <div className="col-span-2 grid grid-cols-[1fr_auto_auto] gap-3 items-end">
               <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
+                <Input
+                  type="date"
+                  value={form.data}
+                  onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+              <div style={{ width: "7rem" }}>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
                 <Input
                   type="time"
@@ -654,7 +653,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                   className="w-full"
                 />
               </div>
-              <div>
+              <div style={{ width: "7rem" }}>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
                 <Input
                   type="time"
@@ -666,7 +665,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Observações */}
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Observações</Label>
               <Textarea
                 placeholder="Observações para o agendamento..."
@@ -677,7 +676,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Status inicial */}
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Status inicial</Label>
               <Select
                 value={form.status}
@@ -695,7 +694,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Reserva (sinal) */}
-            <div className="sm:col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="col-span-2 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-foreground">Solicitar sinal / reserva</p>
                 <p className="text-xs text-muted-foreground">
@@ -714,7 +713,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
             {/* Resumo do valor total */}
             {valorTotal > 0 && (
-              <div className="sm:col-span-2 p-3 bg-secondary/50 rounded-lg">
+              <div className="col-span-2 p-3 bg-secondary/50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
                     {servicosSelecionados.filter(s => s.servicoId).length > 1
@@ -741,7 +740,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
 
             {/* Aviso de automação */}
             {form.comReserva && (
-              <div className="sm:col-span-2 flex items-start gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40">
+              <div className="col-span-2 flex items-start gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40">
                 <Zap className="h-4 w-4 text-violet-500 mt-0.5 shrink-0" />
                 <p className="text-xs text-violet-700 dark:text-violet-300">
                   A automação <strong>"Pré-agendamento criado"</strong> será disparada ao salvar, enviando a mensagem de sinal configurada.
