@@ -81,6 +81,7 @@ import {
   removerPessoaAgendamento,
   definirPrincipalAgendamento,
   getPessoasByAgendamentos,
+  jaEnviouNaCriacaoDoAgendamento,
 } from "./db";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
@@ -1631,15 +1632,52 @@ export const appRouter = router({
               const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
               const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
 
-              // Buscar automação configurada: primeiro reserva_paga, fallback para agendamento_criado
-              let automacaoReserva = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
+              // ── Buscar automação: primeiro reserva_paga (específica), fallback para agendamento_criado ──
+              const automacaoReservaPaga = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
+              let automacaoReserva = automacaoReservaPaga;
+              let usouFallback = false;
               if (!automacaoReserva) {
                 automacaoReserva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+                usouFallback = true;
               }
+
+              // ── GUARDA ANTI-DUPLICIDADE ─────────────────────────────────────────────────
+              // Se está usando fallback (agendamento_criado) e já enviou na criação,
+              // NÃO envia novamente para evitar duplicidade.
+              // Só envia se houver automação específica de reserva_paga (intencional).
+              if (usouFallback) {
+                const jaEnviou = await jaEnviouNaCriacaoDoAgendamento(empresa.id, input.id);
+                if (jaEnviou) {
+                  console.log(`[confirmarReserva] Guarda anti-duplicidade: já enviou na criação do ag. ${input.id} — envio de fallback ignorado`);
+                  automacaoReserva = null; // anula para não enviar
+                }
+              }
+
+              // ── Buscar TODOS os serviços do agendamento (principal + itens compostos) ──
+              const todosServicosReserva: string[] = [];
+              if (servico?.nome) todosServicosReserva.push(servico.nome);
+              if (db) {
+                try {
+                  const { agendamentoItens: agItensTable, servicos: servicosTable } = await import('../drizzle/schema');
+                  const { eq: eqDrizzle3 } = await import('drizzle-orm');
+                  const itensReserva = await db
+                    .select({ servicoNome: servicosTable.nome })
+                    .from(agItensTable)
+                    .leftJoin(servicosTable, eqDrizzle3(agItensTable.servicoId, servicosTable.id))
+                    .where(eqDrizzle3(agItensTable.agendamentoId, input.id));
+                  for (const item of itensReserva) {
+                    if (item.servicoNome && !todosServicosReserva.includes(item.servicoNome)) {
+                      todosServicosReserva.push(item.servicoNome);
+                    }
+                  }
+                } catch (e) { console.error('[confirmarReserva] Erro ao buscar itens compostos:', e); }
+              }
+              const servicoNomeReserva = todosServicosReserva.length > 0 ? todosServicosReserva.join(', ') : (servico?.nome ?? '');
+
               const templateVarsReserva = {
                 nome_cliente: cliente.nome || 'Cliente',
                 primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
-                servico: servico?.nome ?? '',
+                servico: servicoNomeReserva,
                 data: dataFormatada,
                 hora: `${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
                 profissional: profissional?.nome ?? '',
@@ -1649,7 +1687,10 @@ export const appRouter = router({
               };
               // SEM FALLBACK HARDCODED: se não há automação configurada, não envia nada
               if (!automacaoReserva || !automacaoReserva.corpoMensagem) {
-                console.log(`[confirmarReserva] Nenhuma automação ativa para reserva_paga/agendamento_criado — envio ignorado (ag. ${input.id})`);
+                if (!usouFallback || !automacaoReservaPaga) {
+                  // Só loga se não foi a guarda anti-duplicidade que anulou (já logou acima)
+                  console.log(`[confirmarReserva] Nenhuma automação ativa para reserva_paga/agendamento_criado — envio ignorado (ag. ${input.id})`);
+                }
               } else {
                 const mensagemReserva = processarVariaveisTemplate(automacaoReserva.corpoMensagem, templateVarsReserva);
                 const midiaUrlReserva = extrairMidiaUrl(automacaoReserva.flowJson);
@@ -1665,7 +1706,7 @@ export const appRouter = router({
                   mensagem: mensagemReserva,
                   status: 'pendente',
                   enviarEm: new Date(),
-                  servicoNome: servico?.nome ?? undefined,
+                  servicoNome: servicoNomeReserva || undefined,
                   midiaUrl: midiaUrlReserva ?? undefined,
                 });
               }
@@ -2508,6 +2549,7 @@ export const appRouter = router({
         descricao: z.string().optional(),
         tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento", "manual"]),
         evento: z.string().optional(),
+        eventosAdicionais: z.string().nullable().optional(), // JSON array de eventos adicionais (multi-trigger)
         delayMinutos: z.number().optional(),
         dataFixaDia: z.number().optional(),
         dataFixaMes: z.number().optional(),
@@ -2565,6 +2607,7 @@ export const appRouter = router({
         // Campos de agendamento temporal (necessários para dias_antes_agendamento funcionar após edição)
         tipoGatilho: z.enum(["evento", "data_fixa", "aniversario_mes", "dias_antes_agendamento", "horas_antes_agendamento", "horas_apos_agendamento", "dias_depois_agendamento", "manual"]).optional(),
         evento: z.string().nullable().optional(),
+        eventosAdicionais: z.string().nullable().optional(), // JSON array de eventos adicionais (multi-trigger)
         diasAntesDepois: z.number().nullable().optional(),
         horaDisparo: z.string().nullable().optional(),
         delayMinutos: z.number().nullable().optional(),

@@ -839,6 +839,57 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                 Dispara no <strong>1º dia do mês</strong> do aniversário da cliente — ela tem o mês inteiro para aproveitar!
               </div>
             )}
+
+            {/* ── MULTI-TRIGGER: Gatilhos adicionais ──────────────────────────────────── */}
+            {data.tipo?.startsWith("evento_") && (() => {
+              const currentEvento = data.tipo;
+              // Filtrar apenas eventos compatíveis (não temporais, não o próprio)
+              const eventosCompativeis = TRIGGER_OPTIONS.filter(t =>
+                t.value.startsWith("evento_") && t.value !== currentEvento
+              );
+              const selecionados: string[] = data.eventosAdicionais || [];
+              const toggleEvento = (val: string) => {
+                const novoArr = selecionados.includes(val)
+                  ? selecionados.filter((v: string) => v !== val)
+                  : [...selecionados, val];
+                set("eventosAdicionais", novoArr);
+              };
+              return (
+                <div className="mt-2">
+                  <Label className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+                    <Layers size={11} />
+                    Gatilhos adicionais
+                    <span className="text-[10px] text-muted-foreground">(mesma mensagem, múltiplos eventos)</span>
+                  </Label>
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/50 p-2 space-y-1 max-h-[180px] overflow-y-auto">
+                    {eventosCompativeis.map(t => {
+                      const evValue = t.value.replace("evento_", "");
+                      const checked = selecionados.includes(evValue);
+                      return (
+                        <label key={t.value} className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-xs ${
+                          checked ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-gray-100'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleEvento(evValue)}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          <t.icon size={12} style={{ color: t.color }} />
+                          <span className={checked ? 'font-medium text-indigo-700' : 'text-gray-600'}>{t.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {selecionados.length > 0 && (
+                    <p className="text-[10px] text-indigo-600 mt-1 px-1">
+                      <Check size={10} className="inline mr-0.5" />
+                      Esta automação dispara em {selecionados.length + 1} evento(s)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </>
         )}
 
@@ -1599,7 +1650,17 @@ export default function Automacoes() {
     if (flow?.flowJson) {
       try {
         const parsed = JSON.parse(flow.flowJson);
-        setNodes(Array.isArray(parsed) ? parsed : []);
+        // Injetar eventosAdicionais do backend no triggerNode (multi-trigger)
+        const flowWithExtras = Array.isArray(parsed) ? parsed.map((n: any) => {
+          if (n.type === 'trigger' && (flow as any).eventosAdicionais) {
+            try {
+              const extras = JSON.parse((flow as any).eventosAdicionais);
+              return { ...n, data: { ...n.data, eventosAdicionais: Array.isArray(extras) ? extras : [] } };
+            } catch { return n; }
+          }
+          return n;
+        }) : [];
+        setNodes(flowWithExtras);
       } catch {
         setNodes(flow?.nodes || []);
       }
@@ -1648,6 +1709,9 @@ export default function Automacoes() {
     const actionNode = nodesParaSalvar.find(n => n.type === "action");
     const flowJsonStr = JSON.stringify(nodesParaSalvar);
     const eventoValue = tipo.startsWith("manual_") ? tipo.replace("manual_", "") : tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined;
+    // Extrair gatilhos adicionais do triggerNode
+    const eventosAdicionaisArr = triggerNode.data.eventosAdicionais || [];
+    const eventosAdicionaisStr = eventosAdicionaisArr.length > 0 ? JSON.stringify(eventosAdicionaisArr) : null;
     if (currentFlow.id) {
       // Atualizar automação existente — inclui campos temporais para garantir que dias_antes_agendamento funcione
       updateMutation.mutate({
@@ -1657,6 +1721,7 @@ export default function Automacoes() {
         flowJson: flowJsonStr,
         tipoGatilho,
         evento: eventoValue,
+        eventosAdicionais: eventosAdicionaisStr,
         diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
           ? undefined
           : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
@@ -1685,6 +1750,7 @@ export default function Automacoes() {
         descricao: currentFlow.descricao,
         tipoGatilho,
         evento: eventoValue,
+        eventosAdicionais: eventosAdicionaisStr,
         diasAntesDepois: (tipoGatilho === 'horas_antes_agendamento' || tipoGatilho === 'horas_apos_agendamento')
           ? undefined
           : (triggerNode.data.dias ? Number(triggerNode.data.dias) : undefined),
@@ -1742,7 +1808,17 @@ export default function Automacoes() {
           pacote_vencendo: "Pacote vencendo",
           sessoes_acabando: "Sessões acabando",
         };
-        return evtLabels[a.evento] ?? `Evento: ${a.evento || "agendamento"}`;
+        const label = evtLabels[a.evento] ?? `Evento: ${a.evento || "agendamento"}`;
+        // Indicar multi-trigger se houver eventosAdicionais
+        if (a.eventosAdicionais) {
+          try {
+            const extras = JSON.parse(a.eventosAdicionais);
+            if (Array.isArray(extras) && extras.length > 0) {
+              return `${label} +${extras.length}`;
+            }
+          } catch {}
+        }
+        return label;
       }
       case "manual": {
         const manualLabels: Record<string, string> = {
@@ -2327,7 +2403,7 @@ export default function Automacoes() {
                           onClick={() => setTesteEnvioId(a.id)}>
                           <Send size={13} className="text-indigo-500" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2 })}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2, eventosAdicionais: (a as any).eventosAdicionais ?? null } as any)}>
                           <Edit2 size={13} />
                         </Button>
 

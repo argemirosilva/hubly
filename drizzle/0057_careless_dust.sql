@@ -1,0 +1,1 @@
+ALTER TABLE `automacoes` ADD `eventosAdicionais` text;

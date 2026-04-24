@@ -333,6 +333,7 @@ export const automacoes = mysqlTable("automacoes", {
   ]).notNull(),
   // Para tipo 'evento'
   evento: varchar("evento", { length: 100 }),
+  eventosAdicionais: text("eventosAdicionais"), // JSON array de eventos adicionais para multi-trigger
   delayMinutos: int("delayMinutos"),
   // Para tipo 'data_fixa'
   dataFixaDia: int("dataFixaDia"),

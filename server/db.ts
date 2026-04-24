@@ -571,6 +571,7 @@ export async function getAutomacoesByEmpresa(empresaId: number) {
 export async function getAutomacaoByEvento(empresaId: number, evento: string) {
   const db = await getDb();
   if (!db) return null;
+  // Busca pelo evento principal OU pelo eventosAdicionais (multi-trigger)
   const [result] = await db
     .select()
     .from(automacoes)
@@ -578,8 +579,11 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
       and(
         eq(automacoes.empresaId, empresaId),
         eq(automacoes.tipoGatilho, 'evento'),
-        eq(automacoes.evento, evento),
         eq(automacoes.ativo, true),
+        or(
+          eq(automacoes.evento, evento),
+          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+        ),
       )
     )
     .limit(1);
@@ -593,6 +597,7 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
 export async function getAutomacoesByEvento(empresaId: number, evento: string) {
   const db = await getDb();
   if (!db) return [];
+  // Busca pelo evento principal OU pelo eventosAdicionais (multi-trigger)
   const results = await db
     .select()
     .from(automacoes)
@@ -600,8 +605,11 @@ export async function getAutomacoesByEvento(empresaId: number, evento: string) {
       and(
         eq(automacoes.empresaId, empresaId),
         eq(automacoes.tipoGatilho, 'evento'),
-        eq(automacoes.evento, evento),
         eq(automacoes.ativo, true),
+        or(
+          eq(automacoes.evento, evento),
+          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+        ),
       )
     );
   return results;
@@ -1867,6 +1875,35 @@ export async function jaEnviouParaCliente(empresaId: number, automacaoId: number
       eq(historicoEnviosAutomacao.clienteId, clienteId),
       sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
       gte(historicoEnviosAutomacao.criadoEm, hoje),
+    ))
+    .limit(1);
+  return result.length > 0;
+}
+
+/**
+ * Verifica se já foi enviada uma mensagem de criação (agendamento_criado ou agendamento_pre_agendado)
+ * para este agendamento. Usado para evitar duplicidade quando confirmarReserva dispara.
+ */
+export async function jaEnviouNaCriacaoDoAgendamento(empresaId: number, agendamentoId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  // Buscar automações cujo evento seja agendamento_criado ou agendamento_pre_agendado
+  const automacoesEvento = await db.select({ id: automacoes.id })
+    .from(automacoes)
+    .where(and(
+      eq(automacoes.empresaId, empresaId),
+      eq(automacoes.tipoGatilho, 'evento'),
+      sql`${automacoes.evento} IN ('agendamento_criado', 'agendamento_pre_agendado')`,
+    ));
+  if (automacoesEvento.length === 0) return false;
+  const autoIds = automacoesEvento.map(a => a.id);
+  const result = await db.select({ id: historicoEnviosAutomacao.id })
+    .from(historicoEnviosAutomacao)
+    .where(and(
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      sql`${historicoEnviosAutomacao.automacaoId} IN (${sql.join(autoIds.map(id => sql`${id}`), sql`, `)})`,
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
     ))
     .limit(1);
   return result.length > 0;

@@ -1,6 +1,6 @@
 # Politica de Envio de Mensagens WhatsApp
 
-**Ultima atualizacao:** 24 de abril de 2026
+**Ultima atualizacao:** 24 de abril de 2026 (v3 — Multi-trigger + Anti-duplicidade)
 
 ---
 
@@ -82,6 +82,54 @@ await registrarEnvioAutomacao({
 
 ---
 
+## Multi-trigger (Gatilhos Adicionais)
+
+A partir da v3, cada automacao pode responder a **multiplos eventos** sem precisar duplicar a configuracao.
+
+### Como funciona
+
+- O campo `evento` continua sendo o gatilho principal.
+- O campo `eventosAdicionais` (JSON array) armazena gatilhos extras.
+- As funcoes `getAutomacaoByEvento()` e `getAutomacoesByEvento()` buscam automaticamente em ambos os campos usando `OR + JSON_CONTAINS`.
+
+### Exemplo pratico
+
+Uma automacao com:
+- `evento: "agendamento_criado"`
+- `eventosAdicionais: ["reserva_paga"]`
+
+Sera disparada tanto quando um agendamento e criado diretamente quanto quando uma reserva e paga.
+
+### Na interface
+
+O usuario configura os gatilhos adicionais na secao "Gatilhos adicionais" do editor de automacoes, marcando checkboxes dos eventos compativeis.
+
+---
+
+## Guarda Anti-duplicidade
+
+Para evitar que o cliente receba **duas mensagens** no fluxo pre-agendamento + pagamento:
+
+1. Quando o agendamento e criado (com ou sem reserva), o sistema verifica se ha automacao para `agendamento_criado` e envia.
+2. Quando a reserva e paga (`confirmarReserva`), o sistema verifica:
+   - Se ja enviou para este agendamento na criacao (`jaEnviouNaCriacaoDoAgendamento()`)
+   - Se sim, **pula o envio** (log: "ja enviou na criacao — skip")
+   - Se nao, busca automacao para `reserva_paga`, com fallback para `agendamento_criado`
+
+### Resultado
+
+Independente do fluxo (direto ou com reserva), o cliente recebe **exatamente 1 mensagem**.
+
+---
+
+## Servicos Compostos
+
+O `confirmarReserva` agora busca os **itens compostos** do agendamento (via `agendamentoItens`) para incluir todos os servicos na mensagem de confirmacao, nao apenas o servico principal.
+
+Exemplo: Agendamento com "Maquiagem + Penteado" agora mostra ambos os servicos na variavel `{servico}`.
+
+---
+
 ## Eventos Disponiveis
 
 | Evento | Descricao | Gatilho |
@@ -91,7 +139,7 @@ await registrarEnvioAutomacao({
 | `agendamento_confirmado` | Status mudou para confirmado | Mudanca de status |
 | `agendamento_cancelado` | Agendamento cancelado | Mudanca de status |
 | `agendamento_concluido` | Atendimento finalizado | Mudanca de status |
-| `reserva_paga` | Sinal/reserva confirmado (fallback: agendamento_criado) | Pagamento Stripe/PIX |
+| `reserva_paga` | Sinal/reserva confirmado | Pagamento Stripe/PIX |
 | `credito_gerado` | Credito adicionado a conta do cliente | Registro de credito |
 | `cliente_criado` | Novo cliente cadastrado | Cadastro de cliente |
 | `pre_agendamento_cancelado` | Pre-agendamento expirado | Expiracao automatica |
@@ -106,4 +154,6 @@ Para adicionar um novo evento, siga o fluxo da secao "Fluxo Obrigatorio" acima.
 
 ## Historico
 
-- **24/04/2026:** Politica criada apos remocao de mensagens hardcoded de "Reserva Confirmada" e "Notificacao de Credito". Quatro funcoes helper legadas removidas do whatsapp.ts.
+- **24/04/2026 v3:** Multi-trigger (eventosAdicionais), guarda anti-duplicidade no confirmarReserva, servicos compostos, testes automatizados (36/36 passed).
+- **24/04/2026 v2:** Diretrizes anti-hardcode adicionadas no topo de routers.ts, whatsapp.ts e scheduler.ts.
+- **24/04/2026 v1:** Politica criada apos remocao de mensagens hardcoded de "Reserva Confirmada" e "Notificacao de Credito". Quatro funcoes helper legadas removidas do whatsapp.ts.

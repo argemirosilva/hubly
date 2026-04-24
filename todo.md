@@ -2175,3 +2175,22 @@
 ## Diretriz Anti-Hardcode Permanente
 - [x] Adicionar bloco de diretriz no topo do routers.ts, whatsapp.ts e scheduler.ts proibindo mensagens hardcoded
 - [x] Criar arquivo WHATSAPP_POLICY.md com regras claras para o sistema de envio
+
+## Unificação de Gatilhos + Agendamentos Duplos (v-critical-3)
+- [ ] Auditar fluxo atual: como agendamento_criado e reserva_paga disparam automações
+- [ ] Auditar agendamentos duplos/vinculados: como a automação trata múltiplos serviços
+- [ ] Implementar suporte a múltiplos gatilhos por automação (multi-trigger)
+- [ ] Garantir que reserva_paga reutilize a mesma automação de agendamento_criado sem duplicar
+- [ ] Garantir que agendamentos vinculados (duplos) incluam todos os serviços na notificação
+- [x] Testes de validação (19/19 + 17/17 passed) do fluxo unificado
+
+## Implementação: Unificação de Gatilhos (v-critical-3)
+- [x] Etapa 1: Criar função jaEnviouNaCriacaoDoAgendamento no db.ts
+- [x] Etapa 1: Aplicar guarda anti-duplicidade no confirmarReserva
+- [x] Etapa 2: Buscar serviços compostos (agendamentoItens) no confirmarReserva
+- [x] Etapa 3: Adicionar campo eventosAdicionais no schema (migration)
+- [x] Etapa 3: Alterar getAutomacaoByEvento/getAutomacoesByEvento para buscar em eventosAdicionais
+- [x] Etapa 3: Alterar routers.ts para salvar/atualizar eventosAdicionais
+- [x] Etapa 3: Adicionar UI de multi-trigger no frontend (Automacoes.tsx)
+- [x] Testes de validação (19/19 + 17/17 passed)
+- [x] Atualizar WHATSAPP_POLICY.md com novas regras (v3)
