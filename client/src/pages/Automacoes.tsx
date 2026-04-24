@@ -58,6 +58,7 @@ const TRIGGER_OPTIONS = [
   { value: "evento_pre_agendamento_cancelado", label: "Pré-agendamento expirado", icon: UserX, color: "#f97316", desc: "Dispara quando um pré-agendamento expira sem ser confirmado." },
   { value: "evento_profissional_atribuido", label: "Profissional atribuído", icon: UserPlus, color: "#0ea5e9", desc: "Dispara quando um profissional é atribuído a um agendamento que estava sem profissional definido." },
   { value: "evento_reserva_paga", label: "Reserva paga", icon: Check, color: "#10b981", desc: "Dispara quando o cliente confirma o pagamento da reserva de um pré-agendamento." },
+  { value: "evento_credito_gerado", label: "Crédito gerado", icon: DollarSign, color: "#10b981", desc: "Dispara quando um crédito é adicionado à conta do cliente (pagamento a maior, devolução, etc.)." },
   { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6", desc: "Dispara quando um pacote de serviços é renovado para o cliente." },
   { value: "evento_pacote_vencendo", label: "Pacote vencendo", icon: Package, color: "#f59e0b", desc: "Dispara automaticamente quando um pacote está a 7 dias ou menos de vencer. Ideal para convidar o cliente a renovar." },
   { value: "evento_sessoes_acabando", label: "Sessões acabando", icon: Package, color: "#ef4444", desc: "Dispara automaticamente quando restam apenas 1 ou 2 sessões no pacote do cliente." },
@@ -1423,6 +1424,13 @@ const TEMPLATES = [
       { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Confirmar reserva", tipo: "enviar_whatsapp", mensagem: "✅ *Reserva Confirmada!*\n\nOlá, *{{nome_cliente}}*! Sua reserva foi confirmada com sucesso.\n\n📅 *Data:* {{data}}\n⏰ *Horário:* {{hora}}\n✂️ *Serviço:* {{servico}}\n🔒 *Reserva paga:* {{valor_reserva}}\n\n_{{empresa}}_" }, connections: [] },
     ],
   },
+  {
+    nome: "Crédito gerado", descricao: "Notifica o cliente quando um crédito é adicionado à sua conta", icon: DollarSign,
+    nodes: [
+      { id: "t1", type: "trigger" as NodeType, x: 300, y: 60, data: { label: "Crédito gerado", tipo: "evento_credito_gerado" }, connections: ["a1"] },
+      { id: "a1", type: "action" as NodeType, x: 300, y: 220, data: { label: "Notificar crédito", tipo: "enviar_whatsapp", mensagem: "💰 *Crédito Disponível!*\n\nOlá, *{{nome_cliente}}*! Um crédito foi adicionado à sua conta.\n\n📊 *Detalhes:*\n• Valor adicionado: *{{valor}}*\n• Saldo total: *{{saldo_total}}*\n\n_{{empresa}}_\n\n_Seu crédito será descontado automaticamente no próximo atendimento._" }, connections: [] },
+    ],
+  },
 ];
 
 //  Página principal
@@ -1729,6 +1737,7 @@ export default function Automacoes() {
           pre_agendamento_cancelado: "Pré-agend. expirado",
           profissional_atribuido: "Profissional atribuído",
           reserva_paga: "Reserva paga",
+          credito_gerado: "Crédito gerado",
           pacote_renovado: "Pacote renovado",
           pacote_vencendo: "Pacote vencendo",
           sessoes_acabando: "Sessões acabando",

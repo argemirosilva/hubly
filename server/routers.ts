@@ -1601,8 +1601,11 @@ export const appRouter = router({
               const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
               const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
 
-              // Verificar automação personalizada para reserva_paga
-              const automacaoReserva = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
+              // Buscar automação configurada: primeiro reserva_paga, fallback para agendamento_criado
+              let automacaoReserva = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
+              if (!automacaoReserva) {
+                automacaoReserva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+              }
               const templateVarsReserva = {
                 nome_cliente: cliente.nome || 'Cliente',
                 primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
@@ -1614,37 +1617,28 @@ export const appRouter = router({
                 valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
                 valor_reserva: valorReservaCalc,
               };
-              const mensagemPadraoReserva = [
-                `✅ *Reserva Confirmada!*`,
-                ``,
-                `Olá, *${cliente.nome}*!`,
-                `Sua reserva foi confirmada com sucesso.`,
-                ``,
-                `📅 *Data:* ${dataFormatada}`,
-                `⏰ *Horário:* ${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
-                servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                valorReservaCalc ? `🔒 *Reserva paga:* ${valorReservaCalc}` : null,
-                ``,
-                `_${empresa.nome}_`,
-              ].filter(Boolean).join('\n');
-              const mensagemReserva = automacaoReserva?.corpoMensagem
-                ? processarVariaveisTemplate(automacaoReserva.corpoMensagem, templateVarsReserva)
-                : mensagemPadraoReserva;
-              await registrarEnvioAutomacao({
-                empresaId: empresa.id,
-                automacaoId: automacaoReserva?.id,
-                automacaoNome: automacaoReserva?.nome ?? 'Reserva Confirmada',
-                clienteId: cliente.id,
-                clienteNome: cliente.nome,
-                agendamentoId: input.id,
-                telefone,
-                canal: 'whatsapp',
-                mensagem: mensagemReserva,
-                status: 'pendente',
-                enviarEm: new Date(),
-                servicoNome: servico?.nome ?? undefined,
-              });
+              // SEM FALLBACK HARDCODED: se não há automação configurada, não envia nada
+              if (!automacaoReserva || !automacaoReserva.corpoMensagem) {
+                console.log(`[confirmarReserva] Nenhuma automação ativa para reserva_paga/agendamento_criado — envio ignorado (ag. ${input.id})`);
+              } else {
+                const mensagemReserva = processarVariaveisTemplate(automacaoReserva.corpoMensagem, templateVarsReserva);
+                const midiaUrlReserva = extrairMidiaUrl(automacaoReserva.flowJson);
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  automacaoId: automacaoReserva.id,
+                  automacaoNome: automacaoReserva.nome,
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  agendamentoId: input.id,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem: mensagemReserva,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                  servicoNome: servico?.nome ?? undefined,
+                  midiaUrl: midiaUrlReserva ?? undefined,
+                });
+              }
             }
           }
         } catch (e) {
@@ -5098,36 +5092,43 @@ export const appRouter = router({
         });
         const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
 
-        // Notificar cliente via WhatsApp (não bloqueia a resposta)
+        // Notificar cliente via automação configurada (SEM hardcode)
         if (input.notificarWhatsApp !== false) {
           try {
             const cliente = await getClienteById(input.clienteId);
             const telefone = cliente?.whatsapp || cliente?.telefone;
             if (cliente && telefone) {
-              const { routedSendMessage } = await import('./whatsapp-router');
-              const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-              const origemTexto = input.origem ? `\n• Origem: ${input.origem}` : '';
-              const mensagem =
-                `💰 *Crédito Disponível!*\n\n` +
-                `Olá, *${cliente.nome}*! Um crédito foi adicionado à sua conta.\n\n` +
-                `📊 *Detalhes:*\n` +
-                `• Valor adicionado: *${fmt(input.valor)}*${origemTexto}\n` +
-                `• Saldo total: *${fmt(novoSaldo)}*\n\n` +
-                `📍 *${empresa.nome ?? 'Estabelecimento'}*\n\n` +
-                `_Seu crédito será descontado automaticamente no próximo atendimento. Qualquer dúvida, entre em contato!_`;
-              const enviado = await routedSendMessage(empresa.id, telefone, mensagem);
-              // Registrar no histórico de envios
-              await registrarEnvioAutomacao({
-                empresaId: empresa.id,
-                automacaoNome: 'Notificação de Crédito',
-                clienteId: input.clienteId,
-                clienteNome: cliente.nome,
-                telefone,
-                canal: 'whatsapp',
-                mensagem,
-                status: enviado ? 'enviado' : 'falhou',
-                agendamentoId: input.agendamentoId,
-              });
+              // Buscar automação configurada para credito_gerado
+              const automacaoCredito = await getAutomacaoByEvento(empresa.id, 'credito_gerado');
+              if (!automacaoCredito || !automacaoCredito.corpoMensagem) {
+                console.log(`[Credito] Nenhuma automação ativa para credito_gerado — envio ignorado (cliente ${input.clienteId})`);
+              } else {
+                const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+                const templateVarsCredito: Record<string, string> = {
+                  nome_cliente: cliente.nome || 'Cliente',
+                  primeiro_nome: (cliente.nome || 'Cliente').split(' ')[0],
+                  valor: fmt(input.valor),
+                  saldo_total: fmt(novoSaldo),
+                  empresa: empresa.nome ?? 'Estabelecimento',
+                  origem: input.origem ?? '',
+                };
+                const mensagem = processarVariaveisTemplate(automacaoCredito.corpoMensagem, templateVarsCredito);
+                const midiaUrlCredito = extrairMidiaUrl(automacaoCredito.flowJson);
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  automacaoId: automacaoCredito.id,
+                  automacaoNome: automacaoCredito.nome,
+                  clienteId: input.clienteId,
+                  clienteNome: cliente.nome,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                  agendamentoId: input.agendamentoId,
+                  midiaUrl: midiaUrlCredito ?? undefined,
+                });
+              }
             }
           } catch (err) {
             // Falha no WhatsApp não deve impedir o registro do crédito

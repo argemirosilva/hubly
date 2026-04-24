@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initScheduler } from "../scheduler";
+import { provisionarNovosTemplatesParaEmpresasExistentes } from "../automation-templates";
 import { registerStripeWebhook } from "../stripe-webhook";
 import { waManager } from "../whatsapp";
 import { registerConfirmacaoRoute } from "../confirmacao";
@@ -74,6 +75,8 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     initScheduler();
+    // Provisionar novos tipos de automação (reserva_paga, credito_gerado) para empresas existentes
+    setTimeout(() => provisionarNovosTemplatesParaEmpresasExistentes().catch(e => console.error('[Templates] Erro:', e)), 10_000);
     // Reconectar WhatsApp automaticamente se houver sessão salva no banco
     waManager.init().catch(err => console.error('[WhatsApp] Erro na inicialização:', err));
   });

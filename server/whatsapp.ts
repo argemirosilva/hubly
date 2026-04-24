@@ -570,94 +570,9 @@ class WhatsAppManager extends EventEmitter {
 // ─── SINGLETON GLOBAL ─────────────────────────────────────────────────────────
 export const waManager = new WhatsAppManager();
 
-// ─── HELPERS DE MENSAGEM ──────────────────────────────────────────────────────
-
-export async function sendAgendamentoConfirmacao(params: {
-  clienteNome: string;
-  clienteTelefone: string;
-  profissionalNome: string;
-  servicoNome: string;
-  data: string;
-  hora: string;
-  empresaNome: string;
-}): Promise<boolean> {
-  const { clienteNome, clienteTelefone, profissionalNome, servicoNome, data, hora, empresaNome } = params;
-  const mensagem =
-    `✅ *Agendamento Confirmado!*\n\n` +
-    `Olá, *${clienteNome}*! Seu agendamento foi confirmado.\n\n` +
-    `📋 *Detalhes:*\n` +
-    `• Serviço: ${servicoNome}\n` +
-    `• Profissional: ${profissionalNome}\n` +
-    `• Data: ${data}\n` +
-    `• Horário: ${hora}\n\n` +
-    `📍 *${empresaNome}*\n\n` +
-    `_Caso precise reagendar ou cancelar, entre em contato conosco._`;
-  return waManager.sendMessage(clienteTelefone, mensagem);
-}
-
-export async function sendAgendamentoCancelado(params: {
-  clienteNome: string;
-  clienteTelefone: string;
-  servicoNome: string;
-  data: string;
-  hora: string;
-  empresaNome: string;
-}): Promise<boolean> {
-  const { clienteNome, clienteTelefone, servicoNome, data, hora, empresaNome } = params;
-  const mensagem =
-    `❌ *Agendamento Cancelado*\n\n` +
-    `Olá, *${clienteNome}*. Informamos que seu agendamento foi cancelado.\n\n` +
-    `📋 *Detalhes:*\n` +
-    `• Serviço: ${servicoNome}\n` +
-    `• Data: ${data}\n` +
-    `• Horário: ${hora}\n\n` +
-    `📍 *${empresaNome}*\n\n` +
-    `_Entre em contato para reagendar._`;
-  return waManager.sendMessage(clienteTelefone, mensagem);
-}
-
-export async function sendPacoteVencendo(params: {
-  clienteNome: string;
-  clienteTelefone: string;
-  pacoteNome: string;
-  sessoesRestantes: number;
-  diasParaVencer: number;
-  empresaNome: string;
-}): Promise<boolean> {
-  const { clienteNome, clienteTelefone, pacoteNome, sessoesRestantes, diasParaVencer, empresaNome } = params;
-  const mensagem =
-    `⚠️ *Aviso de Pacote*\n\n` +
-    `Olá, *${clienteNome}*!\n\n` +
-    `Seu pacote *${pacoteNome}* está próximo do vencimento.\n\n` +
-    `📊 *Situação:*\n` +
-    `• Sessões restantes: ${sessoesRestantes}\n` +
-    `• Vence em: ${diasParaVencer} dia(s)\n\n` +
-    `📍 *${empresaNome}*\n\n` +
-    `_Entre em contato para renovar seu pacote e não perder seus benefícios!_`;
-  return waManager.sendMessage(clienteTelefone, mensagem);
-}
-
-export async function sendCreditoGerado(params: {
-  clienteNome: string;
-  clienteTelefone: string;
-  valorCredito: number;
-  saldoTotal: number;
-  empresaNome: string;
-  origem?: string;
-}): Promise<boolean> {
-  const { clienteNome, clienteTelefone, valorCredito, saldoTotal, empresaNome, origem } = params;
-  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  const origemTexto = origem ? `\n• Origem: ${origem}` : '';
-  const mensagem =
-    `💰 *Crédito Disponível!*\n\n` +
-    `Olá, *${clienteNome}*! Um crédito foi adicionado à sua conta.\n\n` +
-    `📊 *Detalhes:*\n` +
-    `• Valor adicionado: *${fmt(valorCredito)}*${origemTexto}\n` +
-    `• Saldo total: *${fmt(saldoTotal)}*\n\n` +
-    `📍 *${empresaNome}*\n\n` +
-    `_Seu crédito será descontado automaticamente no próximo atendimento. Qualquer dúvida, entre em contato!_`;
-  return waManager.sendMessage(clienteTelefone, mensagem);
-}
+// Funções helper de mensagem hardcoded foram REMOVIDAS.
+// Todas as mensagens agora são controladas exclusivamente pelo sistema de automações.
+// Nenhum texto fixo deve ser enviado sem automação configurada pelo usuário.
 
 export async function sendWAMedia(params: {
   telefone: string;

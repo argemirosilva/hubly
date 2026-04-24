@@ -6,7 +6,7 @@
  * passa a false e o template original deixa de ser referência.
  */
 
-import { createAutomacao } from "./db";
+import { createAutomacao, getAutomacaoByEvento } from "./db";
 import {
   createPipeline,
   createColuna,
@@ -180,7 +180,50 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
-  // 8. Aniversariante do mês
+  // 8. Reserva paga / sinal confirmado
+  {
+    nome: "Reserva paga",
+    descricao: "Notifica o cliente quando o sinal/reserva é confirmado",
+    tipoGatilho: "evento",
+    evento: "reserva_paga",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "✅ *Reserva Confirmada!*\n\n" +
+      "Olá, *{{nome_cliente}}*! Sua reserva foi confirmada com sucesso.\n\n" +
+      "📅 *Data:* {{data}}\n" +
+      "⏰ *Horário:* {{hora}}\n" +
+      "✂️ *Serviço:* {{servico}}\n" +
+      "👩‍💼 *Profissional:* {{profissional}}\n" +
+      ("🔒 *Reserva paga:* {{valor_reserva}}\n\n" ) +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_reserva_paga", label: "Reserva paga / sinal confirmado" },
+      { id: "a1", label: "Confirmação de reserva", tipo: "enviar_whatsapp", mensagem: "✅ *Reserva Confirmada!*\n\nOlá, *{{nome_cliente}}*! Sua reserva foi confirmada com sucesso.\n\n📅 *Data:* {{data}}\n⏰ *Horário:* {{hora}}\n✂️ *Serviço:* {{servico}}\n👩‍💼 *Profissional:* {{profissional}}\n🔒 *Reserva paga:* {{valor_reserva}}\n\n_{{empresa}}_" },
+    ),
+  },
+
+  // 9. Crédito gerado
+  {
+    nome: "Notificação de crédito",
+    descricao: "Notifica o cliente quando um crédito é adicionado à sua conta",
+    tipoGatilho: "evento",
+    evento: "credito_gerado",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "💰 *Crédito Disponível!*\n\n" +
+      "Olá, *{{nome_cliente}}*! Um crédito foi adicionado à sua conta.\n\n" +
+      "📊 *Detalhes:*\n" +
+      "• Valor adicionado: *{{valor}}*\n" +
+      "• Saldo total: *{{saldo_total}}*\n\n" +
+      "_{{empresa}}_\n\n" +
+      "_Seu crédito será descontado automaticamente no próximo atendimento._",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_credito_gerado", label: "Crédito gerado" },
+      { id: "a1", label: "Notificar crédito", tipo: "enviar_whatsapp", mensagem: "💰 *Crédito Disponível!*\n\nOlá, *{{nome_cliente}}*! Um crédito foi adicionado à sua conta.\n\n📊 *Detalhes:*\n• Valor adicionado: *{{valor}}*\n• Saldo total: *{{saldo_total}}*\n\n_{{empresa}}_\n\n_Seu crédito será descontado automaticamente no próximo atendimento._" },
+    ),
+  },
+
+  // 10. Aniversariante do mês
   {
     nome: "Aniversariante do mês",
     descricao: "Mensagem especial no mês de aniversário do cliente",
@@ -283,5 +326,70 @@ async function gerarPipelineDefault(
     console.log(`[Templates] Pipeline "Jornada do Cliente" criado para empresa ${empresaId}`);
   } catch (err) {
     console.error(`[Templates] Erro ao gerar pipeline para empresa ${empresaId}:`, err);
+  }
+}
+
+/**
+ * Provisiona automações de novos tipos (reserva_paga, credito_gerado) para empresas existentes
+ * que ainda não possuem essas automações. Seguro para rodar múltiplas vezes (idempotente).
+ */
+export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise<void> {
+  try {
+    const { getDb } = await import('./db');
+    const db = await getDb();
+    if (!db) return;
+
+    const { empresas } = await import('../drizzle/schema');
+    const todasEmpresas = await db.select({ id: empresas.id, nome: empresas.nome }).from(empresas);
+
+    const novosEventos = ['reserva_paga', 'credito_gerado'];
+    const templatesPorEvento = new Map<string, AutomacaoTemplate>();
+    for (const t of AUTOMATION_TEMPLATES) {
+      if (t.evento && novosEventos.includes(t.evento)) {
+        templatesPorEvento.set(t.evento, t);
+      }
+    }
+
+    let totalCriados = 0;
+
+    for (const empresa of todasEmpresas) {
+      for (const evento of novosEventos) {
+        // Verificar se já existe automação para este evento nesta empresa
+        const existente = await getAutomacaoByEvento(empresa.id, evento);
+        if (existente) continue; // já existe, pular
+
+        const template = templatesPorEvento.get(evento);
+        if (!template) continue;
+
+        await createAutomacao({
+          empresaId: empresa.id,
+          nome: template.nome,
+          descricao: template.descricao,
+          tipoGatilho: template.tipoGatilho,
+          evento: template.evento,
+          diasAntesDepois: template.diasAntesDepois,
+          delayMinutos: template.delayMinutos,
+          horaDisparo: template.horaDisparo,
+          dataFixaDia: template.dataFixaDia,
+          dataFixaMes: template.dataFixaMes,
+          canalEnvio: template.canalEnvio,
+          corpoMensagem: template.corpoMensagem,
+          flowJson: template.flowJson,
+          ativo: true,
+          isTemplate: true,
+        });
+
+        totalCriados++;
+        console.log(`[Templates] Criada automação "${template.nome}" para empresa ${empresa.nome} (${empresa.id})`);
+      }
+    }
+
+    if (totalCriados > 0) {
+      console.log(`[Templates] ${totalCriados} nova(s) automação(ões) provisionada(s) para empresas existentes.`);
+    } else {
+      console.log(`[Templates] Todas as empresas já possuem os novos tipos de automação.`);
+    }
+  } catch (err) {
+    console.error('[Templates] Erro ao provisionar novos templates para empresas existentes:', err);
   }
 }

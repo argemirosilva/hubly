@@ -2156,3 +2156,18 @@
 - [x] Calendário: badge "+N" no grid desktop (branco semitransparente) e na lista mobile (badge azul)
 - [x] Backend: procedure getVinculadosByCliente + função getAgendamentosVinculadosByCliente no db.ts
 - [x] ClienteDetalhe: histórico inclui reservas vinculadas com badge "convidada" e nome do titular
+
+## Remoção de Mensagens Hardcoded + Unificação de Gatilhos (v-critical)
+- [x] Remover mensagem hardcoded de 'Reserva Confirmada' no confirmarReserva (routers.ts ~linha 1617-1633)
+- [x] Remover funções helper hardcoded não utilizadas: sendAgendamentoConfirmacao, sendAgendamentoCancelado, sendPacoteVencendo, sendCreditoGerado (whatsapp.ts)
+- [x] Remover mensagem hardcoded de 'Notificação de Crédito' no creditos.registrar (routers.ts ~linha 5110-5130)
+- [x] Unificar gatilho: reserva_paga deve disparar a automação de agendamento_criado (mesma mensagem personalizada)
+- [x] Garantir que NENHUM envio de WhatsApp aconteça sem automação configurada (zero fallback hardcoded)
+- [x] Testes: validar que sem automação ativa, nenhuma mensagem é enviada (17/17 passed)
+
+## Novos Tipos de Automação + Provisionar Templates (v-critical-2)
+- [x] Adicionar evento 'reserva_paga' como opção na tela de automações (frontend)
+- [x] Adicionar evento 'credito_gerado' como opção na tela de automações (frontend)
+- [x] Criar template padrão de automação para 'reserva_paga' no automation-templates.ts
+- [x] Criar template padrão de automação para 'credito_gerado' no automation-templates.ts
+- [x] Provisionar automaticamente os novos templates para empresas existentes (migration)
