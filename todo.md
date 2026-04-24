@@ -2208,3 +2208,6 @@
 - [x] Atualizar automação "Agendamento Confirmado" da Maguie com gatilho adicional reserva_paga
 - [x] Atualizar as 3 automações "Agen. confirmado" da Maguie: gatilho agendamento_criado + reserva_paga adicional
 - [x] Verificar filtro por tipo de serviço: confirmarReserva agora usa getAutomacoesByEvento com verificarCondicoesFlowRouter
+
+## UX Editor de Fluxo
+- [x] Drag-to-pan no canvas do editor de fluxo de automações (arrastar com mouse para mover)

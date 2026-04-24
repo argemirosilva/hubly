@@ -1131,9 +1131,21 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  // ── Pan com arrastar fundo ────────────────────────────────────────────────────
+    // ── Pan com arrastar fundo ────────────────────────────────────────────
+  // Verifica se o clique foi em área vazia do canvas (não em cima de um nó ou botão)
+  const isCanvasBackground = (target: HTMLElement): boolean => {
+    if (!containerRef.current) return false;
+    // Clique no próprio container ou no div de conteúdo transformado (4000x4000) ou no SVG de conexões
+    if (target === containerRef.current) return true;
+    if (target.closest('[data-flow-node]')) return false; // é um nó
+    if (target.closest('button,select,input,textarea,[data-port]')) return false;
+    // Qualquer filho direto do canvas que não seja um nó
+    return containerRef.current.contains(target);
+  };
+
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && (e.target as HTMLElement) === containerRef.current)) {
+    // Botão do meio sempre ativa pan; botão esquerdo só em área vazia
+    if (e.button === 1 || (e.button === 0 && isCanvasBackground(e.target as HTMLElement) && !dragging)) {
       e.preventDefault();
       setPanning({ startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y });
     }
@@ -1323,7 +1335,7 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
     );
   };
 
-  const cursor = connectDrag ? "crosshair" : panning ? "grabbing" : dragging ? "grabbing" : "default";
+  const cursor = connectDrag ? "crosshair" : panning ? "grabbing" : dragging ? "grabbing" : "grab";
   const dotSize = Math.max(0.5, zoom);
   const gridSize = 24 * zoom;
   const bgOffsetX = pan.x % gridSize;
@@ -1366,6 +1378,7 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
         {nodes.map(node => (
           <div
             key={node.id}
+            data-flow-node="true"
             onMouseDown={e => handleMouseDown(e, node.id)}
             onMouseEnter={() => connectDrag && setHoverTargetId(node.id)}
             onMouseLeave={() => connectDrag && setHoverTargetId(null)}
