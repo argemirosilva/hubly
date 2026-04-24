@@ -334,6 +334,90 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               />
             </div>
 
+            {/* Pessoas da Reserva */}
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Pessoas da reserva
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">opcional</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setMostrarBuscaPessoa(v => !v)}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Adicionar pessoa
+                </button>
+              </div>
+
+              {/* Campo de busca */}
+              {mostrarBuscaPessoa && (
+                <div className="relative mb-2">
+                  <Input
+                    placeholder="Buscar cliente pelo nome..."
+                    value={buscaPessoa}
+                    onChange={e => setBuscaPessoa(e.target.value)}
+                    autoFocus
+                    className="text-sm h-8"
+                  />
+                  {clientesFiltradosPessoas.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {clientesFiltradosPessoas.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => adicionarPessoa(c.id, c.nome)}
+                        >
+                          {c.nome}
+                          {c.telefone && <span className="text-xs text-muted-foreground ml-2">{c.telefone}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {buscaPessoa.trim() && clientesFiltradosPessoas.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1 px-1">Nenhum cliente encontrado.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Lista de pessoas adicionadas */}
+              {pessoasAdicionais.length > 0 && (
+                <div className="space-y-1.5">
+                  {pessoasAdicionais.map(p => (
+                    <div key={p.clienteId} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          title={p.isPrincipal ? "Contato principal (recebe automações)" : "Definir como contato principal"}
+                          onClick={() => togglePrincipal(p.clienteId)}
+                          className={`transition-colors ${p.isPrincipal ? "text-amber-500" : "text-muted-foreground hover:text-amber-400"}`}
+                        >
+                          <Star className="h-3.5 w-3.5" fill={p.isPrincipal ? "currentColor" : "none"} />
+                        </button>
+                        <span className="text-sm text-foreground">{p.nome}</span>
+                        {p.isPrincipal && (
+                          <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full">principal</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removerPessoa(p.clienteId)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    ★ = contato principal (recebe as mensagens automáticas). Se nenhum for marcado, as automações vão para o cliente principal do agendamento.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Pacotes Ativos do Cliente */}
             {clienteIdNum && pacotesAtivos.length > 0 && (
               <div className="sm:col-span-2">
@@ -664,90 +748,6 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                 </p>
               </div>
             )}
-
-            {/* Pessoas da Reserva */}
-            <div className="sm:col-span-2">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  Pessoas da reserva
-                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">opcional</span>
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setMostrarBuscaPessoa(v => !v)}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Adicionar pessoa
-                </button>
-              </div>
-
-              {/* Campo de busca */}
-              {mostrarBuscaPessoa && (
-                <div className="relative mb-2">
-                  <Input
-                    placeholder="Buscar cliente pelo nome..."
-                    value={buscaPessoa}
-                    onChange={e => setBuscaPessoa(e.target.value)}
-                    autoFocus
-                    className="text-sm h-8"
-                  />
-                  {clientesFiltradosPessoas.length > 0 && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                      {clientesFiltradosPessoas.map(c => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => adicionarPessoa(c.id, c.nome)}
-                        >
-                          {c.nome}
-                          {c.telefone && <span className="text-xs text-muted-foreground ml-2">{c.telefone}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {buscaPessoa.trim() && clientesFiltradosPessoas.length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-1 px-1">Nenhum cliente encontrado.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Lista de pessoas adicionadas */}
-              {pessoasAdicionais.length > 0 && (
-                <div className="space-y-1.5">
-                  {pessoasAdicionais.map(p => (
-                    <div key={p.clienteId} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          title={p.isPrincipal ? "Contato principal (recebe automações)" : "Definir como contato principal"}
-                          onClick={() => togglePrincipal(p.clienteId)}
-                          className={`transition-colors ${p.isPrincipal ? "text-amber-500" : "text-muted-foreground hover:text-amber-400"}`}
-                        >
-                          <Star className="h-3.5 w-3.5" fill={p.isPrincipal ? "currentColor" : "none"} />
-                        </button>
-                        <span className="text-sm text-foreground">{p.nome}</span>
-                        {p.isPrincipal && (
-                          <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full">principal</span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removerPessoa(p.clienteId)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-muted-foreground px-1">
-                    ★ = contato principal (recebe as mensagens automáticas). Se nenhum for marcado, as automações vão para o cliente principal do agendamento.
-                  </p>
-                </div>
-              )}
-            </div>
 
           </div>
         </div>
