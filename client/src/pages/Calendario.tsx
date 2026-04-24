@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle, Users } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -84,6 +84,7 @@ export default function Calendario() {
     profissionalId: number | null;
     servicoNome: string;
     isItemBloco: boolean; // true = bloco expandido de item multi-profissional
+    pessoasCount: number;
   };
 
   // Expandir agendamentos multi-profissional em blocos por item (quando item tem horaInicio próprio)
@@ -105,6 +106,7 @@ export default function Calendario() {
             profissionalId: item.profissionalId ?? ag.profissionalId ?? null,
             servicoNome: item.servicoNome ?? (ag as any).servicoNome ?? "",
             isItemBloco: true,
+            pessoasCount: (ag as any).pessoasCount ?? 0,
           });
         });
       } else {
@@ -119,6 +121,7 @@ export default function Calendario() {
           profissionalId: ag.profissionalId ?? null,
           servicoNome: (ag as any).servicoNome ?? "",
           isItemBloco: false,
+          pessoasCount: (ag as any).pessoasCount ?? 0,
         });
       }
     });
@@ -411,6 +414,12 @@ export default function Calendario() {
                         >
                           <SvcIcon className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
                           <span className="truncate font-medium">{bloco.horaInicio.slice(0, 5)} {clienteMap[bloco.clienteId]?.split(" ")[0] ?? ""}{bloco.isItemBloco ? ` · ${profNome}` : ""}</span>
+                          {bloco.pessoasCount > 0 && (
+                            <span className="flex items-center gap-0.5 flex-shrink-0 bg-white/20 rounded px-0.5">
+                              <Users className="w-2 h-2" />
+                              <span className="text-[9px] font-bold">+{bloco.pessoasCount}</span>
+                            </span>
+                          )}
                           {bloco.profissionalId == null && <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />}
                         </div>
                       );
@@ -511,7 +520,15 @@ export default function Calendario() {
                         </div>
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{clienteMap[bloco.clienteId] ?? "Cliente"}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold truncate">{clienteMap[bloco.clienteId] ?? "Cliente"}</p>
+                            {bloco.pessoasCount > 0 && (
+                              <span className="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "oklch(92% 0.04 264)", color: "oklch(40% 0.18 264)" }}>
+                                <Users className="w-2.5 h-2.5" />
+                                +{bloco.pessoasCount}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {bloco.servicoNome || "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}
                           </p>

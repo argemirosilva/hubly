@@ -95,6 +95,10 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
     }
   }, [cliente]);
   const { data: agendamentos } = trpc.agendamentos.list.useQuery({});
+  const { data: agendamentosVinculados = [] } = trpc.agendamentos.getVinculadosByCliente.useQuery(
+    { clienteId: id },
+    { enabled: !!id }
+  );
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: analiseIA } = trpc.iaClientes.getClienteAnalise.useQuery({ clienteId: id }, { enabled: !!id });
   const { data: pacotesCliente = [], isLoading: loadingPacotes } = trpc.pacotes.listarPorCliente.useQuery(
@@ -208,10 +212,16 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   }, [servicos]);
 
   const agendamentosCliente = useMemo(() => {
-    return (agendamentos ?? [])
+    const titulares = (agendamentos ?? [])
       .filter(ag => ag.clienteId === id)
+      .map(ag => ({ ...ag, isVinculado: false, titularNome: '' }));
+    // Combinar com reservas onde o cliente é pessoa vinculada (sem duplicar)
+    const titularIds = new Set(titulares.map(ag => ag.id));
+    const vinculados = (agendamentosVinculados as any[])
+      .filter(ag => !titularIds.has(ag.id));
+    return [...titulares, ...vinculados]
       .sort((a, b) => b.data.localeCompare(a.data));
-  }, [agendamentos, id]);
+  }, [agendamentos, agendamentosVinculados, id]);
 
   const pacotesAtivos = useMemo(() => pacotesCliente.filter(p => p.status === "ativo"), [pacotesCliente]);
 
@@ -516,11 +526,21 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                     ) : (
                       <div className="divide-y divide-border">
                         {agendamentosCliente.map(ag => (
-                          <div key={ag.id} className="flex items-center justify-between px-5 py-3">
+                          <div key={`${ag.id}-${(ag as any).isVinculado ? 'v' : 't'}`} className="flex items-center justify-between px-5 py-3">
                             <div>
-                              <p className="text-sm font-medium">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-medium">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}</p>
+                                {(ag as any).isVinculado && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "oklch(92% 0.04 264)", color: "oklch(40% 0.18 264)" }}>
+                                    convidada
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {ag.data.split("-").reverse().join("/")} · {ag.horaInicio.slice(0, 5)}
+                                {(ag as any).isVinculado && (ag as any).titularNome && (
+                                  <span className="ml-1">· titular: {(ag as any).titularNome}</span>
+                                )}
                               </p>
                             </div>
                             <div className="flex items-center gap-3">

@@ -2150,3 +2150,9 @@
 - [x] NovaAgendaModal: seção "Pessoas da Reserva" com busca e lista de clientes adicionais
 - [x] Após criar o agendamento, salvar automaticamente as pessoas vinculadas via procedure reservaPessoas.adicionar
 - [x] Indicação visual de quem é o contato principal (estrela dourada) e aviso sobre automações
+
+## Badge "+ N Pessoas" no Calendário e Histórico Cruzado
+- [x] Backend: incluir contagem de pessoas vinculadas (pessoasCount) na query getAgendamentosByEmpresa
+- [x] Calendário: badge "+N" no grid desktop (branco semitransparente) e na lista mobile (badge azul)
+- [x] Backend: procedure getVinculadosByCliente + função getAgendamentosVinculadosByCliente no db.ts
+- [x] ClienteDetalhe: histórico inclui reservas vinculadas com badge "convidada" e nome do titular

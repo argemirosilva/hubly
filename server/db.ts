@@ -260,6 +260,17 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
         pagamentosPorAg[p.agendamentoId] = (pagamentosPorAg[p.agendamentoId] ?? 0) + parseFloat(String(p.valor));
       });
 
+      // Buscar contagem de pessoas vinculadas por agendamento
+      const pessoasRows = await db
+        .select({ agendamentoId: agendamentoPessoas.agendamentoId })
+        .from(agendamentoPessoas)
+        .where(inArray(agendamentoPessoas.agendamentoId, agIds));
+
+      const pessoasPorAg: Record<number, number> = {};
+      pessoasRows.forEach(p => {
+        pessoasPorAg[p.agendamentoId] = (pessoasPorAg[p.agendamentoId] ?? 0) + 1;
+      });
+
     return rows.map(ag => {
       const itens = itensPorAg[ag.id] ?? [];
       let servicoNome: string;
@@ -274,7 +285,8 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
       const desconto = parseFloat(String((ag as any).desconto ?? 0));
       const valorTotal = parseFloat(String(ag.valorTotal ?? 0));
       const emAberto = Math.max(0, valorTotal - desconto - totalPago);
-      return { ...ag, servicoNome, itens, totalPago, emAberto };
+      const pessoasCount = pessoasPorAg[ag.id] ?? 0;
+      return { ...ag, servicoNome, itens, totalPago, emAberto, pessoasCount };
     });
   } catch (error) {
     console.error('[getAgendamentosByEmpresa] Erro:', error);
@@ -2389,4 +2401,58 @@ export async function getPessoasByAgendamentos(agendamentoIds: number[]) {
     mapa[r.agendamentoId].push(r);
   }
   return mapa;
+}
+
+/** Retorna agendamentos onde o cliente é uma pessoa vinculada (não o titular) */
+export async function getAgendamentosVinculadosByCliente(clienteId: number, empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    // Buscar agendamentoIds onde este cliente é pessoa vinculada
+    const vinculados = await db
+      .select({ agendamentoId: agendamentoPessoas.agendamentoId })
+      .from(agendamentoPessoas)
+      .where(eq(agendamentoPessoas.clienteId, clienteId));
+    if (vinculados.length === 0) return [];
+    const { inArray } = await import('drizzle-orm');
+    const agIds = vinculados.map(v => v.agendamentoId);
+    // Buscar os agendamentos (apenas da empresa correta, excluindo onde o cliente já é titular)
+    const rows = await db
+      .select()
+      .from(agendamentos)
+      .where(
+        and(
+          eq(agendamentos.empresaId, empresaId),
+          inArray(agendamentos.id, agIds),
+          sql`${agendamentos.clienteId} != ${clienteId}`
+        )
+      )
+      .orderBy(agendamentos.data, agendamentos.horaInicio);
+    if (rows.length === 0) return rows;
+    // Enriquecer com servicoNome
+    const servicoIds = Array.from(new Set(rows.map(r => r.servicoId).filter(Boolean) as number[]));
+    const servicosMap: Record<number, string> = {};
+    if (servicoIds.length > 0) {
+      const { inArray: inArr } = await import('drizzle-orm');
+      const sRows = await db.select({ id: servicos.id, nome: servicos.nome }).from(servicos).where(inArr(servicos.id, servicoIds));
+      sRows.forEach(s => { servicosMap[s.id] = s.nome; });
+    }
+    // Enriquecer com nome do titular
+    const titularIds = Array.from(new Set(rows.map(r => r.clienteId).filter(Boolean) as number[]));
+    const titularMap: Record<number, string> = {};
+    if (titularIds.length > 0) {
+      const { inArray: inArr2 } = await import('drizzle-orm');
+      const cRows = await db.select({ id: clientes.id, nome: clientes.nome }).from(clientes).where(inArr2(clientes.id, titularIds));
+      cRows.forEach(c => { titularMap[c.id] = c.nome; });
+    }
+    return rows.map(ag => ({
+      ...ag,
+      servicoNome: servicosMap[ag.servicoId ?? 0] ?? '',
+      titularNome: titularMap[ag.clienteId ?? 0] ?? '',
+      isVinculado: true,
+    }));
+  } catch (error) {
+    console.error('[getAgendamentosVinculadosByCliente] Erro:', error);
+    return [];
+  }
 }

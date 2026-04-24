@@ -10,7 +10,7 @@ import {
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
-  getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento,
+  getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento, getAgendamentosVinculadosByCliente,
   getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
   getNotificacoesByDestinatario, createNotificacao, marcarNotificacaoLida, marcarTodasNotificacoesLidas,
@@ -904,6 +904,13 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return [];
         return getItensByAgendamento(input.agendamentoId);
+      }),
+    getVinculadosByCliente: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        return getAgendamentosVinculadosByCliente(input.clienteId, empresa.id);
       }),
     create: protectedProcedure
       .input(z.object({
