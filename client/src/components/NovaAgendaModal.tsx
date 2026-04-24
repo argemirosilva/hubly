@@ -630,37 +630,40 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
             </div>
 
-            {/* Data */}
-            <div className="col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
-              <Input
-                type="date"
-                value={form.data}
-                onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-              />
-            </div>
-
-            {/* Início */}
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
-              <Input
-                type="time"
-                value={form.horaInicio}
-                onChange={e => {
-                  setForm(f => ({ ...f, horaInicio: e.target.value }));
-                  recalcularHoraFim(e.target.value, servicosSelecionados);
-                }}
-              />
-            </div>
-
-            {/* Fim */}
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
-              <Input
-                type="time"
-                value={form.horaFim}
-                onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
-              />
+            {/* Data e Horários */}
+            <div className="col-span-2 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground block">Data *</Label>
+                <Input
+                  type="date"
+                  value={form.data}
+                  onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+                  className="h-9 text-sm w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground block">Início</Label>
+                  <Input
+                    type="time"
+                    value={form.horaInicio}
+                    onChange={e => {
+                      setForm(f => ({ ...f, horaInicio: e.target.value }));
+                      recalcularHoraFim(e.target.value, servicosSelecionados);
+                    }}
+                    className="h-9 text-sm w-full"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground block">Fim</Label>
+                  <Input
+                    type="time"
+                    value={form.horaFim}
+                    onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
+                    className="h-9 text-sm w-full"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Observações */}
