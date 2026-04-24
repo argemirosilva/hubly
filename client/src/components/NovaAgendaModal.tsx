@@ -314,14 +314,14 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0 flex flex-col max-h-[95dvh] sm:max-h-[90vh] w-[calc(100%-1rem)] sm:w-full">
+      <DialogContent className="max-w-lg p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col max-h-[95dvh] sm:max-h-[90vh] w-[calc(100%-1rem)] sm:w-full">
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 px-5 overflow-y-auto flex-1">
+        <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1">
           <div className="grid grid-cols-2 gap-4">
             {/* Cliente */}
             <div className="col-span-2">
@@ -630,18 +630,20 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
               </div>
             </div>
 
-            {/* Data + Horários em linha única */}
-            <div className="col-span-2 grid grid-cols-[1fr_auto_auto] gap-3 items-end">
+            {/* Data */}
+            <div className="col-span-2">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
+              <Input
+                type="date"
+                value={form.data}
+                onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+                className="w-full"
+              />
+            </div>
+
+            {/* Horários */}
+            <div className="col-span-2 grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
-                <Input
-                  type="date"
-                  value={form.data}
-                  onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-              <div style={{ width: "7rem" }}>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
                 <Input
                   type="time"
@@ -653,7 +655,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                   className="w-full"
                 />
               </div>
-              <div style={{ width: "7rem" }}>
+              <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
                 <Input
                   type="time"
