@@ -321,8 +321,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1 min-w-0">
+          <div className="grid grid-cols-2 gap-4 min-w-0 w-full">
             {/* Cliente */}
             <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
@@ -631,19 +631,19 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Data */}
-            <div className="col-span-2">
+            <div className="col-span-2 w-full min-w-0">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Data *</Label>
               <Input
                 type="date"
                 value={form.data}
                 onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                className="w-full"
+                className="w-full box-border"
               />
             </div>
 
             {/* Horários */}
-            <div className="col-span-2 flex justify-between">
-              <div style={{ width: "35.5%" }}>
+            <div className="col-span-2 w-full min-w-0 flex justify-between">
+              <div className="w-[35%] min-w-0">
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
                 <Input
                   type="time"
@@ -652,16 +652,16 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                     setForm(f => ({ ...f, horaInicio: e.target.value }));
                     recalcularHoraFim(e.target.value, servicosSelecionados);
                   }}
-                  className="w-full"
+                  className="w-full box-border"
                 />
               </div>
-              <div style={{ width: "35.5%" }}>
+              <div className="w-[35%] min-w-0">
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
                 <Input
                   type="time"
                   value={form.horaFim}
                   onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
-                  className="w-full"
+                  className="w-full box-border"
                 />
               </div>
             </div>
