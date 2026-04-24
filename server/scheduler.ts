@@ -20,7 +20,7 @@ import {
   contasReceber,
   agendamentoItens,
 } from "../drizzle/schema";
-import { eq, and, lte, gt, sql, gte, lt, isNull, or } from "drizzle-orm";
+import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { waManager } from "./whatsapp";
 import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
@@ -1133,6 +1133,8 @@ async function processarAniversarioMes() {
           .where(and(
             eq(clientes.empresaId, empresaId),
             eq(clientes.ativo, true),
+            isNotNull(clientes.dataNascimento),
+            sql`${clientes.dataNascimento} != ''`,
             sql`MONTH(${clientes.dataNascimento}) = ${mesAtual}`,
           ));
 

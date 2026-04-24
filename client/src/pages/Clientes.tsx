@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus, Search, Users, Phone, Calendar, Pencil, Trash2, RotateCcw,
-  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX, Wallet,
+  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX, Wallet, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -455,8 +455,25 @@ function ClienteForm({ form, onChange }: { form: FormCliente; onChange: (f: Form
         <Input value={form.cpf} onChange={e => set("cpf", e.target.value)} placeholder="000.000.000-00" />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground mb-1.5 block">Data de nascimento</Label>
-        <Input type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)} placeholder="DD/MM/AAAA" />
+        <Label className="text-xs text-muted-foreground mb-1.5 block">Data de nascimento <span className="font-normal text-muted-foreground/60">(opcional)</span></Label>
+        <div className="relative">
+          <Input
+            type="date"
+            value={form.dataNascimento}
+            onChange={e => set("dataNascimento", e.target.value)}
+            className={!form.dataNascimento ? "text-muted-foreground" : ""}
+          />
+          {form.dataNascimento && (
+            <button
+              type="button"
+              onClick={() => set("dataNascimento", "")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Remover data"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Endereço</Label>

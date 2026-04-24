@@ -2123,3 +2123,9 @@
 - [x] Não enviar para tipo 'uso' e 'devolucao' (apenas geração de crédito)
 - [x] Registrar envio no histórico de Automações com nome 'Notificação de Crédito'
 - [x] Documentar no Manual
+
+## Campo Data de Nascimento Opcional
+- [x] Clientes.tsx: campo dataNascimento sem valor padrão, com botão de limpar (ícone X)
+- [x] ClienteDetalhe.tsx: mesmo comportamento no modal de edição
+- [x] Backend: string vazia convertida para NULL ao salvar (create e update)
+- [x] Automações de aniversário: filtro isNotNull + != '' para ignorar clientes sem data

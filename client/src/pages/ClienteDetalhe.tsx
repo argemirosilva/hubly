@@ -311,8 +311,25 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                     <Input value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} placeholder="000.000.000-00" />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Data de nascimento</Label>
-                    <Input type="date" value={form.dataNascimento} onChange={e => setForm(f => ({ ...f, dataNascimento: e.target.value }))} />
+                    <Label className="text-xs text-muted-foreground mb-1 block">Data de nascimento <span className="font-normal text-muted-foreground/60">(opcional)</span></Label>
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={form.dataNascimento}
+                        onChange={e => setForm(f => ({ ...f, dataNascimento: e.target.value }))}
+                        className={!form.dataNascimento ? "text-muted-foreground" : ""}
+                      />
+                      {form.dataNascimento && (
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, dataNascimento: "" }))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Remover data"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Endereço</Label>

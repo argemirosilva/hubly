@@ -643,7 +643,7 @@ export const appRouter = router({
         telefone: z.string().optional(),
         whatsapp: z.string().optional(),
         cpf: z.string().optional(),
-        dataNascimento: z.string().optional(),
+        dataNascimento: z.string().optional().transform(v => v === '' ? undefined : v),
         endereco: z.string().optional(),
         observacoes: z.string().optional(),
       }))
@@ -697,7 +697,7 @@ export const appRouter = router({
         telefone: z.string().optional(),
         whatsapp: z.string().optional(),
         cpf: z.string().optional(),
-        dataNascimento: z.string().optional(),
+        dataNascimento: z.string().optional().transform(v => v === '' ? null : v),
         endereco: z.string().optional(),
         observacoes: z.string().optional(),
         tags: z.array(z.string()).optional(),
