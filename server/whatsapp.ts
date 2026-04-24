@@ -1,3 +1,21 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║  DIRETRIZ: ESTE ARQUIVO É APENAS INFRAESTRUTURA DE CONEXÃO               ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                            ║
+ * ║  NÃO ADICIONE funções de envio com texto fixo (hardcoded) aqui.            ║
+ * ║  Este arquivo gerencia APENAS a conexão Baileys e o envio genérico.        ║
+ * ║                                                                            ║
+ * ║  Para enviar mensagens ao cliente:                                         ║
+ * ║  1. Crie um tipo de evento em automation-templates.ts                      ║
+ * ║  2. Adicione o trigger no frontend (Automacoes.tsx)                        ║
+ * ║  3. No backend, busque a automação via getAutomacaoByEvento()              ║
+ * ║  4. Enfilere via registrarEnvioAutomacao() com status 'pendente'           ║
+ * ║  5. Se não houver automação configurada → NÃO ENVIAR (silenciar)            ║
+ * ║                                                                            ║
+ * ║  Referência completa: WHATSAPP_POLICY.md na raiz do projeto                ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,

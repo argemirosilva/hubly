@@ -2171,3 +2171,7 @@
 - [x] Criar template padrão de automação para 'reserva_paga' no automation-templates.ts
 - [x] Criar template padrão de automação para 'credito_gerado' no automation-templates.ts
 - [x] Provisionar automaticamente os novos templates para empresas existentes (migration)
+
+## Diretriz Anti-Hardcode Permanente
+- [x] Adicionar bloco de diretriz no topo do routers.ts, whatsapp.ts e scheduler.ts proibindo mensagens hardcoded
+- [x] Criar arquivo WHATSAPP_POLICY.md com regras claras para o sistema de envio

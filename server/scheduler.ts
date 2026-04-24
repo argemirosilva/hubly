@@ -1,6 +1,13 @@
 /**
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │  DIRETRIZ: ZERO MENSAGENS HARDCODED                                       │
+ * │  Todas as mensagens WhatsApp DEVEM vir de automações configuradas.         │
+ * │  Se não houver automação ativa para o evento → NÃO ENVIAR (silenciar).     │
+ * │  NUNCA monte texto fixo no código. Ver WHATSAPP_POLICY.md                  │
+ * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";

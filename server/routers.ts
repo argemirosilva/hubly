@@ -1,4 +1,34 @@
 import { COOKIE_NAME } from "@shared/const";
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║  DIRETRIZ OBRIGATÓRIA: ZERO MENSAGENS HARDCODED VIA WHATSAPP              ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                            ║
+ * ║  É TERMINANTEMENTE PROIBIDO enviar mensagens WhatsApp com texto fixo       ║
+ * ║  (hardcoded) diretamente no código.                                        ║
+ * ║                                                                            ║
+ * ║  REGRA: Toda mensagem WhatsApp DEVE passar pelo sistema de automações:     ║
+ * ║                                                                            ║
+ * ║  1. Buscar automação configurada: getAutomacaoByEvento(empresaId, evento)   ║
+ * ║  2. Se NÃO existir automação ativa → NÃO ENVIAR (silenciar)                ║
+ * ║  3. Se existir → usar processarVariaveisTemplate() com o corpo da msg      ║
+ * ║  4. Enfileirar via registrarEnvioAutomacao() com status 'pendente'         ║
+ * ║                                                                            ║
+ * ║  NUNCA faça:                                                               ║
+ * ║  - routedSendMessage(empresaId, tel, "texto fixo aqui")                    ║
+ * ║  - waManager.sendMessage(tel, "texto fixo aqui")                           ║
+ * ║  - Montar string de mensagem com template literals no código               ║
+ * ║  - Criar fallback com mensagem padrão quando não há automação              ║
+ * ║                                                                            ║
+ * ║  SEMPRE faça:                                                              ║
+ * ║  - Criar novo tipo de evento em automation-templates.ts                    ║
+ * ║  - Adicionar o trigger no frontend (Automacoes.tsx → TRIGGER_OPTIONS)      ║
+ * ║  - Buscar automação no backend antes de enviar                             ║
+ * ║  - Logar "envio ignorado" se não houver automação configurada              ║
+ * ║                                                                            ║
+ * ║  Referência: WHATSAPP_POLICY.md na raiz do projeto                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
