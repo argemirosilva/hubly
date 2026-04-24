@@ -1689,28 +1689,8 @@ export const appRouter = router({
               const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
               const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
 
-              // ── Buscar automação: primeiro reserva_paga (específica), fallback para agendamento_criado ──
-              const automacaoReservaPaga = await getAutomacaoByEvento(empresa.id, 'reserva_paga');
-              let automacaoReserva = automacaoReservaPaga;
-              let usouFallback = false;
-              if (!automacaoReserva) {
-                automacaoReserva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
-                usouFallback = true;
-              }
-
-              // ── GUARDA ANTI-DUPLICIDADE ─────────────────────────────────────────────────
-              // Se está usando fallback (agendamento_criado) e já enviou na criação,
-              // NÃO envia novamente para evitar duplicidade.
-              // Só envia se houver automação específica de reserva_paga (intencional).
-              if (usouFallback) {
-                const jaEnviou = await jaEnviouNaCriacaoDoAgendamento(empresa.id, input.id);
-                if (jaEnviou) {
-                  console.log(`[confirmarReserva] Guarda anti-duplicidade: já enviou na criação do ag. ${input.id} — envio de fallback ignorado`);
-                  automacaoReserva = null; // anula para não enviar
-                }
-              }
-
               // ── Buscar TODOS os serviços do agendamento (principal + itens compostos) ──
+              // (precisa ser feito ANTES da busca de automação para aplicar filtro por serviço)
               const todosServicosReserva: string[] = [];
               if (servico?.nome) todosServicosReserva.push(servico.nome);
               if (db) {
@@ -1730,6 +1710,44 @@ export const appRouter = router({
                 } catch (e) { console.error('[confirmarReserva] Erro ao buscar itens compostos:', e); }
               }
               const servicoNomeReserva = todosServicosReserva.length > 0 ? todosServicosReserva.join(', ') : (servico?.nome ?? '');
+
+              // ── Buscar automação com filtro por serviço ──────────────────────────────────────
+              // Usa getAutomacoesByEvento para suportar múltiplas automações (ex: 3 da Maguie)
+              // e aplica o filtro por serviço do flowJson em cada uma
+              const extrasCondicaoReserva = {
+                profissionalNome: profissional?.nome ?? null,
+                categoriaServico: servico?.categoria ?? null,
+                todasCategorias: servico?.categoria ? [servico.categoria] : [],
+                valorAgendamento: valorServico,
+                clienteTags: Array.isArray(cliente.tags) ? cliente.tags as string[] : [],
+                totalAgendamentosCliente: 0,
+                ultimoAgendamentoData: null as Date | null,
+              };
+              const automacaoesReservaPaga = await getAutomacoesByEvento(empresa.id, 'reserva_paga');
+              const automacaoReservaPaga = automacaoesReservaPaga.find(a =>
+                verificarCondicoesFlowRouter(a.flowJson, servicoNomeReserva, todosServicosReserva, extrasCondicaoReserva)
+              ) ?? null;
+              let automacaoReserva = automacaoReservaPaga;
+              let usouFallback = false;
+              if (!automacaoReserva) {
+                // Fallback: buscar automação de agendamento_criado que passe no filtro de serviço
+                const automacaoesAgCriado = await getAutomacoesByEvento(empresa.id, 'agendamento_criado');
+                automacaoReserva = automacaoesAgCriado.find(a =>
+                  verificarCondicoesFlowRouter(a.flowJson, servicoNomeReserva, todosServicosReserva, extrasCondicaoReserva)
+                ) ?? null;
+                usouFallback = true;
+              }
+              // ── GUARDA ANTI-DUPLICIDADE ─────────────────────────────────────────────────
+              // Se está usando fallback (agendamento_criado) e já enviou na criação,
+              // NÃO envia novamente para evitar duplicidade.
+              // Só envia se houver automação específica de reserva_paga (intencional).
+              if (usouFallback) {
+                const jaEnviou = await jaEnviouNaCriacaoDoAgendamento(empresa.id, input.id);
+                if (jaEnviou) {
+                  console.log(`[confirmarReserva] Guarda anti-duplicidade: já enviou na criação do ag. ${input.id} — envio de fallback ignorado`);
+                  automacaoReserva = null; // anula para não enviar
+                }
+              }
 
               const templateVarsReserva = {
                 nome_cliente: cliente.nome || 'Cliente',

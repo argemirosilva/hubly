@@ -2203,3 +2203,8 @@
 - [x] Criar variável de template {{link_agenda}} que gera link Google Calendar com dados do agendamento
 - [x] Disponibilizar {{link_agenda}} como variável nas automações
 - [x] Configurar automação de agendamento_criado para incluir o link na mensagem
+
+## Configuração Gatilho Adicional Maguie
+- [x] Atualizar automação "Agendamento Confirmado" da Maguie com gatilho adicional reserva_paga
+- [x] Atualizar as 3 automações "Agen. confirmado" da Maguie: gatilho agendamento_criado + reserva_paga adicional
+- [x] Verificar filtro por tipo de serviço: confirmarReserva agora usa getAutomacoesByEvento com verificarCondicoesFlowRouter
