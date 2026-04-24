@@ -2145,3 +2145,8 @@
 - [x] Modal: indicação visual do contato principal e aviso de automações
 - [x] Automações: usar contato principal (fallback para clienteId original) em todos os gatilhos
 - [x] Compatibilidade: reservas antigas continuam funcionando normalmente
+
+## Pessoas da Reserva no Modal de Novo Agendamento
+- [x] NovaAgendaModal: seção "Pessoas da Reserva" com busca e lista de clientes adicionais
+- [x] Após criar o agendamento, salvar automaticamente as pessoas vinculadas via procedure reservaPessoas.adicionar
+- [x] Indicação visual de quem é o contato principal (estrela dourada) e aviso sobre automações
