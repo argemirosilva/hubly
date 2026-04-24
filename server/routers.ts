@@ -43,6 +43,14 @@ import {
   getHistoricoCreditoCliente,
   listSaldosCreditoPorEmpresa,
   getResumoCreditosEmpresa,
+  editarCreditoCliente,
+  removerCreditoCliente,
+  getPessoasAgendamento,
+  getContatoPrincipalAgendamento,
+  adicionarPessoaAgendamento,
+  removerPessoaAgendamento,
+  definirPrincipalAgendamento,
+  getPessoasByAgendamentos,
 } from "./db";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
@@ -5199,6 +5207,95 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
         return getResumoCreditosEmpresa(empresa.id);
+      }),
+
+    /** Edita uma movimentação de crédito (valor e/ou descrição) */
+    editar: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        clienteId: z.number(),
+        valor: z.number().optional(),
+        origem: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await editarCreditoCliente(input.id, empresa.id, {
+          valor: input.valor,
+          origem: input.origem,
+        });
+        const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { success: true, novoSaldo };
+      }),
+
+    /** Remove uma movimentação de crédito */
+    remover: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        clienteId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await removerCreditoCliente(input.id, empresa.id);
+        const novoSaldo = await getSaldoCreditoCliente(input.clienteId, empresa.id);
+        return { success: true, novoSaldo };
+      }),
+  }),
+
+  /** Router de Pessoas da Reserva */
+  reservaPessoas: router({
+    /** Lista todas as pessoas vinculadas a um agendamento */
+    listar: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ input }) => {
+        return getPessoasAgendamento(input.agendamentoId);
+      }),
+
+    /** Adiciona uma pessoa a um agendamento */
+    adicionar: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        clienteId: z.number(),
+        isPrincipal: z.boolean().optional(),
+        role: z.enum(['principal', 'acompanhante', 'dependente', 'outro']).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        // Verificar duplicata
+        const existentes = await getPessoasAgendamento(input.agendamentoId);
+        if (existentes.some(p => p.clienteId === input.clienteId)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Esta pessoa já está vinculada à reserva.' });
+        }
+        const id = await adicionarPessoaAgendamento(input);
+        return { success: true, id };
+      }),
+
+    /** Remove uma pessoa de um agendamento */
+    remover: protectedProcedure
+      .input(z.object({ id: z.number(), agendamentoId: z.number() }))
+      .mutation(async ({ input }) => {
+        const pessoas = await getPessoasAgendamento(input.agendamentoId);
+        const pessoa = pessoas.find(p => p.id === input.id);
+        if (pessoa?.isPrincipal && pessoas.length > 1) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Não é possível remover o contato principal. Defina outro contato principal antes.' });
+        }
+        await removerPessoaAgendamento(input.id);
+        return { success: true };
+      }),
+
+    /** Define o contato principal de um agendamento */
+    definirPrincipal: protectedProcedure
+      .input(z.object({ agendamentoId: z.number(), pessoaId: z.number() }))
+      .mutation(async ({ input }) => {
+        await definirPrincipalAgendamento(input.agendamentoId, input.pessoaId);
+        return { success: true };
+      }),
+
+    /** Retorna o contato principal de um agendamento */
+    getContatoPrincipal: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ input }) => {
+        return getContatoPrincipalAgendamento(input.agendamentoId);
       }),
   }),
 });

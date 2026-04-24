@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown } from "lucide-react";
 import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
 import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,36 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     { enabled: !!ag?.clienteId }
   );
   const saldoCredito = saldoCreditoData?.saldo ?? 0;
+
+  // Pessoas da reserva
+  const { data: pessoasReserva = [], refetch: refetchPessoas } = trpc.reservaPessoas.listar.useQuery(
+    { agendamentoId },
+    { enabled: !!agendamentoId }
+  );
+  const [mostrarAddPessoa, setMostrarAddPessoa] = useState(false);
+  const [novaClienteId, setNovaClienteId] = useState<string>("");
+  const [novaRole, setNovaRole] = useState<'acompanhante' | 'dependente' | 'outro'>('acompanhante');
+
+  const adicionarPessoaMutation = trpc.reservaPessoas.adicionar.useMutation({
+    onSuccess: () => {
+      toast.success('Pessoa adicionada à reserva!');
+      refetchPessoas();
+      setMostrarAddPessoa(false);
+      setNovaClienteId("");
+      setNovaRole('acompanhante');
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const removerPessoaMutation = trpc.reservaPessoas.remover.useMutation({
+    onSuccess: () => { toast.success('Pessoa removida!'); refetchPessoas(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const definirPrincipalMutation = trpc.reservaPessoas.definirPrincipal.useMutation({
+    onSuccess: () => { toast.success('Contato principal definido!'); refetchPessoas(); },
+    onError: (e) => toast.error(e.message),
+  });
 
   // Estado para edição de serviços
   const [editandoServicos, setEditandoServicos] = useState(false);
@@ -940,6 +970,134 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Observações</p>
               <p className="text-sm">{ag.observacoes}</p>
+            </div>
+          )}
+
+          {/* ── Seção: Pessoas da Reserva ── */}
+          {isAdmin && (
+            <div className="rounded-xl overflow-hidden"
+              style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                <div className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pessoas da Reserva</p>
+                  {pessoasReserva.length > 0 && (
+                    <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5">{pessoasReserva.length}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setMostrarAddPessoa(v => !v)}
+                  className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
+                  style={{ color: "oklch(45% 0.18 264)", background: "oklch(55% 0.22 264 / 10%)" }}
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Adicionar
+                </button>
+              </div>
+
+              {/* Lista de pessoas */}
+              {pessoasReserva.length > 0 && (
+                <div className="divide-y" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                  {pessoasReserva.map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between px-4 py-2.5 group hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          p.isPrincipal ? 'bg-amber-100' : 'bg-muted'
+                        }`}>
+                          {p.isPrincipal
+                            ? <Crown className="w-3 h-3 text-amber-600" />
+                            : <User className="w-3 h-3 text-muted-foreground" />
+                          }
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{p.clienteNome ?? 'Cliente'}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {p.isPrincipal ? 'Contato principal' : (
+                              p.role === 'acompanhante' ? 'Acompanhante' :
+                              p.role === 'dependente' ? 'Dependente' : 'Outro'
+                            )}
+                            {p.clienteTelefone && <span> · {p.clienteTelefone}</span>}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!p.isPrincipal && (
+                          <button
+                            title="Definir como contato principal"
+                            className="p-1 rounded hover:bg-amber-50 text-muted-foreground hover:text-amber-600 transition-colors"
+                            onClick={() => definirPrincipalMutation.mutate({ agendamentoId, pessoaId: p.id })}
+                          >
+                            <Star className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          title="Remover"
+                          className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
+                          onClick={() => removerPessoaMutation.mutate({ id: p.id, agendamentoId })}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {pessoasReserva.length === 0 && !mostrarAddPessoa && (
+                <div className="px-4 py-4 text-center">
+                  <p className="text-xs text-muted-foreground">Nenhuma pessoa vinculada. Adicione acompanhantes ou dependentes.</p>
+                </div>
+              )}
+
+              {/* Formulário de adicionar pessoa */}
+              {mostrarAddPessoa && (
+                <div className="px-4 py-3 space-y-2.5 border-t" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Cliente</Label>
+                    <Select value={novaClienteId} onValueChange={setNovaClienteId}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecionar cliente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(clientes ?? []).filter((c: any) => c.id !== ag.clienteId).map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Relação</Label>
+                    <Select value={novaRole} onValueChange={(v: any) => setNovaRole(v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="acompanhante">Acompanhante</SelectItem>
+                        <SelectItem value="dependente">Dependente</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm" variant="outline" className="flex-1 h-7 text-xs"
+                      onClick={() => { setMostrarAddPessoa(false); setNovaClienteId(""); }}
+                    >Cancelar</Button>
+                    <Button
+                      size="sm" className="flex-1 h-7 text-xs"
+                      disabled={!novaClienteId || adicionarPessoaMutation.isPending}
+                      onClick={() => adicionarPessoaMutation.mutate({
+                        agendamentoId,
+                        clienteId: parseInt(novaClienteId),
+                        role: novaRole,
+                        isPrincipal: false,
+                      })}
+                    >
+                      {adicionarPessoaMutation.isPending ? 'Adicionando...' : 'Adicionar'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

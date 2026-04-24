@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
-import { creditosCliente } from '../drizzle/schema';
+import { creditosCliente, agendamentoPessoas } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -2245,4 +2245,148 @@ export async function getResumoCreditosEmpresa(empresaId: number) {
     clientesComCredito: detalhes.length,
     detalhes,
   };
+}
+
+/** Edita uma movimentação de crédito (valor e/ou origem) */
+export async function editarCreditoCliente(
+  id: number,
+  empresaId: number,
+  data: { valor?: number; origem?: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  const updates: Record<string, unknown> = {};
+  if (data.valor !== undefined) updates['valor'] = data.valor.toFixed(2);
+  if (data.origem !== undefined) updates['origem'] = data.origem;
+  if (Object.keys(updates).length === 0) return;
+  await db.update(creditosCliente)
+    .set(updates as any)
+    .where(and(eq(creditosCliente.id, id), eq(creditosCliente.empresaId, empresaId)));
+}
+
+/** Remove uma movimentação de crédito pelo id */
+export async function removerCreditoCliente(id: number, empresaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.delete(creditosCliente)
+    .where(and(eq(creditosCliente.id, id), eq(creditosCliente.empresaId, empresaId)));
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// PESSOAS DA RESERVA
+// ────────────────────────────────────────────────────────────────────────────────
+
+/** Retorna todas as pessoas vinculadas a um agendamento */
+export async function getPessoasAgendamento(agendamentoId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: agendamentoPessoas.id,
+      agendamentoId: agendamentoPessoas.agendamentoId,
+      clienteId: agendamentoPessoas.clienteId,
+      isPrincipal: agendamentoPessoas.isPrincipal,
+      role: agendamentoPessoas.role,
+      createdAt: agendamentoPessoas.createdAt,
+      clienteNome: clientes.nome,
+      clienteTelefone: clientes.telefone,
+      clienteWhatsapp: clientes.whatsapp,
+    })
+    .from(agendamentoPessoas)
+    .leftJoin(clientes, eq(agendamentoPessoas.clienteId, clientes.id))
+    .where(eq(agendamentoPessoas.agendamentoId, agendamentoId))
+    .orderBy(desc(agendamentoPessoas.isPrincipal), agendamentoPessoas.createdAt);
+  return rows;
+}
+
+/** Retorna o contato principal de um agendamento (para automações) */
+export async function getContatoPrincipalAgendamento(agendamentoId: number): Promise<{
+  clienteId: number; nome: string | null; telefone: string | null; whatsapp: string | null;
+} | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({
+      clienteId: agendamentoPessoas.clienteId,
+      nome: clientes.nome,
+      telefone: clientes.telefone,
+      whatsapp: clientes.whatsapp,
+    })
+    .from(agendamentoPessoas)
+    .leftJoin(clientes, eq(agendamentoPessoas.clienteId, clientes.id))
+    .where(and(eq(agendamentoPessoas.agendamentoId, agendamentoId), eq(agendamentoPessoas.isPrincipal, true)))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Adiciona uma pessoa a um agendamento */
+export async function adicionarPessoaAgendamento(data: {
+  agendamentoId: number;
+  clienteId: number;
+  isPrincipal?: boolean;
+  role?: 'principal' | 'acompanhante' | 'dependente' | 'outro';
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  // Se for principal, remover flag de outros
+  if (data.isPrincipal) {
+    await db.update(agendamentoPessoas)
+      .set({ isPrincipal: false })
+      .where(eq(agendamentoPessoas.agendamentoId, data.agendamentoId));
+  }
+  const [result] = await db.insert(agendamentoPessoas).values({
+    agendamentoId: data.agendamentoId,
+    clienteId: data.clienteId,
+    isPrincipal: data.isPrincipal ?? false,
+    role: data.role ?? 'acompanhante',
+  });
+  return (result as any).insertId as number;
+}
+
+/** Remove uma pessoa de um agendamento */
+export async function removerPessoaAgendamento(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.delete(agendamentoPessoas).where(eq(agendamentoPessoas.id, id));
+}
+
+/** Define o contato principal de um agendamento */
+export async function definirPrincipalAgendamento(agendamentoId: number, pessoaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  // Remove flag de todos
+  await db.update(agendamentoPessoas)
+    .set({ isPrincipal: false })
+    .where(eq(agendamentoPessoas.agendamentoId, agendamentoId));
+  // Define o novo principal
+  await db.update(agendamentoPessoas)
+    .set({ isPrincipal: true, role: 'principal' })
+    .where(eq(agendamentoPessoas.id, pessoaId));
+}
+
+/** Retorna mapa agendamentoId → pessoas para uma lista de agendamentos */
+export async function getPessoasByAgendamentos(agendamentoIds: number[]) {
+  if (agendamentoIds.length === 0) return {};
+  const db = await getDb();
+  if (!db) return {};
+  const rows = await db
+    .select({
+      id: agendamentoPessoas.id,
+      agendamentoId: agendamentoPessoas.agendamentoId,
+      clienteId: agendamentoPessoas.clienteId,
+      isPrincipal: agendamentoPessoas.isPrincipal,
+      role: agendamentoPessoas.role,
+      clienteNome: clientes.nome,
+      clienteTelefone: clientes.telefone,
+      clienteWhatsapp: clientes.whatsapp,
+    })
+    .from(agendamentoPessoas)
+    .leftJoin(clientes, eq(agendamentoPessoas.clienteId, clientes.id))
+    .where(sql`${agendamentoPessoas.agendamentoId} IN (${sql.join(agendamentoIds.map(id => sql`${id}`), sql`, `)})`);
+  const mapa: Record<number, typeof rows> = {};
+  for (const r of rows) {
+    if (!mapa[r.agendamentoId]) mapa[r.agendamentoId] = [];
+    mapa[r.agendamentoId].push(r);
+  }
+  return mapa;
 }

@@ -1188,3 +1188,16 @@ export const creditosCliente = mysqlTable("creditos_cliente", {
 });
 export type CreditoCliente = typeof creditosCliente.$inferSelect;
 export type InsertCreditoCliente = typeof creditosCliente.$inferInsert;
+
+// ─── PESSOAS DA RESERVA ────────────────────────────────────────────────────────────────────────────────
+// Permite vincular múltiplas pessoas a uma reserva, com um contato principal
+export const agendamentoPessoas = mysqlTable("agendamento_pessoas", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  isPrincipal: boolean("isPrincipal").default(false).notNull(), // true = contato principal (recebe automações)
+  role: mysqlEnum("role", ["principal", "acompanhante", "dependente", "outro"]).default("acompanhante").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AgendamentoPessoa = typeof agendamentoPessoas.$inferSelect;
+export type InsertAgendamentoPessoa = typeof agendamentoPessoas.$inferInsert;

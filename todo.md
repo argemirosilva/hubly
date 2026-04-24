@@ -2129,3 +2129,19 @@
 - [x] ClienteDetalhe.tsx: mesmo comportamento no modal de edição
 - [x] Backend: string vazia convertida para NULL ao salvar (create e update)
 - [x] Automações de aniversário: filtro isNotNull + != '' para ignorar clientes sem data
+
+## Editar e Remover Movimentações de Crédito
+- [x] Backend: procedure creditos.editarMovimentacao (atualiza valor e origem de um registro)
+- [x] Backend: procedure creditos.removerMovimentacao (deleta o registro e recalcula saldo)
+- [x] ClienteDetalhe: botões de editar (lápis) e remover (lixeira) em cada linha do histórico
+- [x] Modal de edição com campos valor e descrição/origem
+- [x] Confirmação antes de remover
+
+## Reserva com Múltiplas Pessoas
+- [x] Schema: tabela agendamento_pessoas (id, agendamentoId, clienteId, isPrincipal, role, createdAt)
+- [x] Migration aplicada no banco
+- [x] Backend: procedures para listar, adicionar, remover pessoa e trocar contato principal
+- [x] AgendamentoDetalheModal: seção "Pessoas da reserva" com busca e cadastro rápido
+- [x] Modal: indicação visual do contato principal e aviso de automações
+- [x] Automações: usar contato principal (fallback para clienteId original) em todos os gatilhos
+- [x] Compatibilidade: reservas antigas continuam funcionando normalmente

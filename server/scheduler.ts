@@ -19,6 +19,7 @@ import {
   contasPagar,
   contasReceber,
   agendamentoItens,
+  agendamentoPessoas,
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
@@ -153,6 +154,41 @@ async function getTodosServicosAgendamento(agendamentoId: number, servicoPrincip
     console.error(`[Scheduler] Erro ao buscar itens compostos do agendamento ${agendamentoId}:`, err);
   }
   return result;
+}
+
+/**
+ * Retorna o contato principal da reserva (pessoa com isPrincipal=true).
+ * Se não houver nenhum definido, retorna null (usar o cliente padrão do agendamento).
+ */
+async function getContatoPrincipalReserva(
+  agendamentoId: number
+): Promise<{ clienteId: number; nome: string; telefone: string } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const [principal] = await db
+      .select({
+        clienteId: agendamentoPessoas.clienteId,
+        nome: clientes.nome,
+        telefone: clientes.telefone,
+        whatsapp: clientes.whatsapp,
+      })
+      .from(agendamentoPessoas)
+      .leftJoin(clientes, eq(agendamentoPessoas.clienteId, clientes.id))
+      .where(
+        and(
+          eq(agendamentoPessoas.agendamentoId, agendamentoId),
+          eq(agendamentoPessoas.isPrincipal, true)
+        )
+      )
+      .limit(1);
+    if (!principal) return null;
+    const tel = principal.whatsapp || principal.telefone;
+    if (!tel) return null;
+    return { clienteId: principal.clienteId, nome: principal.nome ?? '', telefone: tel };
+  } catch {
+    return null;
+  }
 }
 
 // ── Verificar pacotes vencendo para todas as empresas ─────────────────────────────────────────
@@ -643,9 +679,15 @@ async function processarAutomacoesAgendadas() {
             continue;
           }
 
-          // Deduplicação: verificar se já enviou para este agendamento+automação
+          // Deduplication: verificar se já enviou para este agendamento+automação
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
+
+          // Usar contato principal da reserva se definido, senão usar cliente padrão
+          const contatoPrincipal = await getContatoPrincipalReserva(ag.id);
+          const telefoneEnvio = contatoPrincipal?.telefone ?? ag.clienteTelefone;
+          const nomeEnvio = contatoPrincipal?.nome ?? ag.clienteNome ?? 'Cliente';
+          const clienteIdEnvio = contatoPrincipal?.clienteId ?? ag.clienteId ?? undefined;
 
           // Gerar link de confirmação
           let linkConfirmacao = '';
@@ -668,8 +710,8 @@ async function processarAutomacoesAgendadas() {
           const _schOriginDiasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
           const _linkAgDiasAntes = ag.empresaPortalSlug ? `${_schOriginDiasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome || 'Cliente',
-            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+            nome_cliente: nomeEnvio,
+            primeiro_nome: nomeEnvio.split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: horaFormatada,
@@ -699,18 +741,18 @@ async function processarAutomacoesAgendadas() {
             empresaId,
             automacaoId: automacao.id,
             automacaoNome: automacao.nome,
-            clienteId: ag.clienteId ?? undefined,
-            clienteNome: ag.clienteNome ?? undefined,
+            clienteId: clienteIdEnvio,
+            clienteNome: nomeEnvio,
             agendamentoId: ag.id,
-            telefone: ag.clienteTelefone,
+            telefone: telefoneEnvio,
             canal: 'whatsapp',
             mensagem,
             status: 'pendente',
-            enviarEm: new Date(), // deve ser enviado agora
+            enviarEm: new Date(),
             midiaUrl: midiaUrlDiasAntes,
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): enfileirado para ${nomeEnvio}${contatoPrincipal ? ' [contato principal]' : ''} (ag. ${ag.id})`);
         }
       }
 
@@ -783,6 +825,12 @@ async function processarAutomacoesAgendadas() {
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
 
+          // Usar contato principal da reserva se definido, senão usar cliente padrão
+          const contatoPrincipalHA = await getContatoPrincipalReserva(ag.id);
+          const telefoneEnvioHA = contatoPrincipalHA?.telefone ?? ag.clienteTelefone;
+          const nomeEnvioHA = contatoPrincipalHA?.nome ?? ag.clienteNome ?? 'Cliente';
+          const clienteIdEnvioHA = contatoPrincipalHA?.clienteId ?? ag.clienteId ?? undefined;
+
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatada = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -791,8 +839,8 @@ async function processarAutomacoesAgendadas() {
           const _schOriginHorasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
           const _linkAgHorasAntes = ag.empresaPortalSlug ? `${_schOriginHorasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome || 'Cliente',
-            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+            nome_cliente: nomeEnvioHA,
+            primeiro_nome: nomeEnvioHA.split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: formatarHora(ag.horaInicio),
@@ -820,18 +868,18 @@ async function processarAutomacoesAgendadas() {
             empresaId,
             automacaoId: automacao.id,
             automacaoNome: automacao.nome,
-            clienteId: ag.clienteId ?? undefined,
-            clienteNome: ag.clienteNome ?? undefined,
+            clienteId: clienteIdEnvioHA,
+            clienteNome: nomeEnvioHA,
             agendamentoId: ag.id,
-            telefone: ag.clienteTelefone,
+            telefone: telefoneEnvioHA,
             canal: 'whatsapp',
             mensagem,
             status: 'pendente',
-            enviarEm: new Date(), // deve ser enviado agora
+            enviarEm: new Date(),
             midiaUrl: midiaUrlHorasAntes,
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): enfileirado para ${nomeEnvioHA}${contatoPrincipalHA ? ' [contato principal]' : ''} (ag. ${ag.id})`);
         }
       }
 
@@ -905,6 +953,12 @@ async function processarAutomacoesAgendadas() {
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
 
+          // Usar contato principal da reserva se definido, senão usar cliente padrão
+          const contatoPrincipalApos = await getContatoPrincipalReserva(ag.id);
+          const telefoneEnvioApos = contatoPrincipalApos?.telefone ?? ag.clienteTelefone;
+          const nomeEnvioApos = contatoPrincipalApos?.nome ?? ag.clienteNome ?? 'Cliente';
+          const clienteIdEnvioApos = contatoPrincipalApos?.clienteId ?? ag.clienteId ?? undefined;
+
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatada = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -913,8 +967,8 @@ async function processarAutomacoesAgendadas() {
           const _schOriginHorasApos = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
           const _linkAgHorasApos = ag.empresaPortalSlug ? `${_schOriginHorasApos}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasApos}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome || 'Cliente',
-            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+            nome_cliente: nomeEnvioApos,
+            primeiro_nome: nomeEnvioApos.split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: formatarHora(ag.horaInicio),
@@ -942,18 +996,18 @@ async function processarAutomacoesAgendadas() {
             empresaId,
             automacaoId: automacao.id,
             automacaoNome: automacao.nome,
-            clienteId: ag.clienteId ?? undefined,
-            clienteNome: ag.clienteNome ?? undefined,
+            clienteId: clienteIdEnvioApos,
+            clienteNome: nomeEnvioApos,
             agendamentoId: ag.id,
-            telefone: ag.clienteTelefone,
+            telefone: telefoneEnvioApos,
             canal: 'whatsapp',
             mensagem,
             status: 'pendente',
-            enviarEm: new Date(), // deve ser enviado agora
+            enviarEm: new Date(),
             midiaUrl: midiaUrlHorasApos,
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): enfileirado para ${nomeEnvioApos}${contatoPrincipalApos ? ' [contato principal]' : ''} (ag. ${ag.id})`);
         }
       }
 
@@ -1026,6 +1080,12 @@ async function processarAutomacoesAgendadas() {
           const jaEnviou = await jaEnviouLembrete(empresaId, automacao.id, ag.id);
           if (jaEnviou) continue;
 
+          // Usar contato principal da reserva se definido, senão usar cliente padrão
+          const contatoPrincipalDD = await getContatoPrincipalReserva(ag.id);
+          const telefoneEnvioDD = contatoPrincipalDD?.telefone ?? ag.clienteTelefone;
+          const nomeEnvioDD = contatoPrincipalDD?.nome ?? ag.clienteNome ?? 'Cliente';
+          const clienteIdEnvioDD = contatoPrincipalDD?.clienteId ?? ag.clienteId ?? undefined;
+
           const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatada = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -1034,8 +1094,8 @@ async function processarAutomacoesAgendadas() {
           const _schOriginDiasDepois = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
           const _linkAgDiasDepois = ag.empresaPortalSlug ? `${_schOriginDiasDepois}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasDepois}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
-            nome_cliente: ag.clienteNome || 'Cliente',
-            primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+            nome_cliente: nomeEnvioDD,
+            primeiro_nome: nomeEnvioDD.split(' ')[0],
             servico: ag.servicoNome ?? '',
             data: dataFormatada,
             hora: formatarHora(ag.horaInicio),
@@ -1050,8 +1110,6 @@ async function processarAutomacoesAgendadas() {
           if (!automacao.corpoMensagem) continue;
           const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
 
-          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
-          // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
           const midiaUrlDiasDepois = (() => {
             if (!automacao.flowJson) return undefined;
             try {
@@ -1064,18 +1122,18 @@ async function processarAutomacoesAgendadas() {
             empresaId,
             automacaoId: automacao.id,
             automacaoNome: automacao.nome,
-            clienteId: ag.clienteId ?? undefined,
-            clienteNome: ag.clienteNome ?? undefined,
+            clienteId: clienteIdEnvioDD,
+            clienteNome: nomeEnvioDD,
             agendamentoId: ag.id,
-            telefone: ag.clienteTelefone,
+            telefone: telefoneEnvioDD,
             canal: 'whatsapp',
             mensagem,
             status: 'pendente',
-            enviarEm: new Date(), // deve ser enviado agora
+            enviarEm: new Date(),
             midiaUrl: midiaUrlDiasDepois,
           }).catch(() => {});
 
-          console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): enfileirado para ${ag.clienteNome} (ag. ${ag.id})`);
+          console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): enfileirado para ${nomeEnvioDD}${contatoPrincipalDD ? ' [contato principal]' : ''} (ag. ${ag.id})`);
         }
       }
     }

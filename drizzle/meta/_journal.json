@@ -393,6 +393,13 @@
       "when": 1776985191750,
       "tag": "0055_nostalgic_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "5",
+      "when": 1776989965058,
+      "tag": "0056_dashing_starbolt",
+      "breakpoints": true
     }
   ]
 }

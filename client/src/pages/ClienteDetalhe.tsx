@@ -52,6 +52,10 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const [pacoteHistoricoId, setPacoteHistoricoId] = useState<number | null>(null);
   const [devolverCreditoModal, setDevolverCreditoModal] = useState(false);
   const [devolverValor, setDevolverValor] = useState("");
+  // Estados para editar/remover movimentação de crédito
+  const [editarCreditoModal, setEditarCreditoModal] = useState(false);
+  const [editarCreditoItem, setEditarCreditoItem] = useState<{ id: number; valor: string; origem: string } | null>(null);
+  const [removerCreditoId, setRemoverCreditoId] = useState<number | null>(null);
   const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
@@ -118,6 +122,29 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
       utils.creditos.getHistorico.invalidate({ clienteId: id });
       setDevolverCreditoModal(false);
       setDevolverValor("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const editarCreditoMutation = trpc.creditos.editar.useMutation({
+    onSuccess: () => {
+      toast.success('Movimentação atualizada!');
+      utils.creditos.getSaldo.invalidate({ clienteId: id });
+      utils.creditos.getHistorico.invalidate({ clienteId: id });
+      utils.creditos.listSaldos.invalidate();
+      setEditarCreditoModal(false);
+      setEditarCreditoItem(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const removerCreditoMutation = trpc.creditos.remover.useMutation({
+    onSuccess: () => {
+      toast.success('Movimentação removida!');
+      utils.creditos.getSaldo.invalidate({ clienteId: id });
+      utils.creditos.getHistorico.invalidate({ clienteId: id });
+      utils.creditos.listSaldos.invalidate();
+      setRemoverCreditoId(null);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -760,8 +787,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                     ) : (
                       <div className="divide-y divide-border">
                         {historicoCreditoData.map((mov: any) => (
-                          <div key={mov.id} className="flex items-center justify-between px-5 py-3">
-                            <div className="flex items-center gap-3">
+                          <div key={mov.id} className="flex items-center justify-between px-5 py-3 group hover:bg-muted/30 transition-colors">
+                            <div className="flex items-center gap-3 min-w-0">
                               <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 mov.tipo === 'credito' ? 'bg-green-100' : 'bg-amber-100'
                               }`}>
@@ -770,21 +797,43 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                   : <ArrowUpRight className="w-3.5 h-3.5 text-amber-600" />
                                 }
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-sm font-medium">
                                   {mov.tipo === 'credito' ? 'Crédito' : mov.tipo === 'uso' ? 'Uso em agendamento' : 'Devolução'}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground truncate">
                                   {mov.origem && <span>{mov.origem} · </span>}
                                   {mov.createdAt ? new Date(mov.createdAt).toLocaleDateString('pt-BR') : ''}
                                 </p>
                               </div>
                             </div>
-                            <span className={`text-sm font-bold ${
-                              Number(mov.valor) >= 0 ? 'text-green-600' : 'text-amber-600'
-                            }`}>
-                              {Number(mov.valor) >= 0 ? '+' : ''}{formatCurrency(Number(mov.valor))}
-                            </span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className={`text-sm font-bold ${
+                                Number(mov.valor) >= 0 ? 'text-green-600' : 'text-amber-600'
+                              }`}>
+                                {Number(mov.valor) >= 0 ? '+' : ''}{formatCurrency(Number(mov.valor))}
+                              </span>
+                              {/* Ações visíveis no hover */}
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  title="Editar"
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                  onClick={() => {
+                                    setEditarCreditoItem({ id: mov.id, valor: Math.abs(Number(mov.valor)).toFixed(2), origem: mov.origem ?? '' });
+                                    setEditarCreditoModal(true);
+                                  }}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  title="Remover"
+                                  className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
+                                  onClick={() => setRemoverCreditoId(mov.id)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -842,6 +891,81 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Modal de edição de movimentação de crédito ── */}
+      <Dialog open={editarCreditoModal} onOpenChange={(open) => { setEditarCreditoModal(open); if (!open) setEditarCreditoItem(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-blue-600" />
+              Editar Movimentação de Crédito
+            </DialogTitle>
+          </DialogHeader>
+          {editarCreditoItem && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={editarCreditoItem.valor}
+                  onChange={e => setEditarCreditoItem(prev => prev ? { ...prev, valor: e.target.value } : null)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Descrição / Origem</Label>
+                <Input
+                  value={editarCreditoItem.origem}
+                  onChange={e => setEditarCreditoItem(prev => prev ? { ...prev, origem: e.target.value } : null)}
+                  placeholder="Ex: Pagamento a maior, Ajuste manual..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditarCreditoModal(false); setEditarCreditoItem(null); }}>Cancelar</Button>
+            <Button
+              disabled={!editarCreditoItem?.valor || Number(editarCreditoItem.valor) <= 0 || editarCreditoMutation.isPending}
+              onClick={() => {
+                if (!editarCreditoItem) return;
+                editarCreditoMutation.mutate({
+                  id: editarCreditoItem.id,
+                  clienteId: id,
+                  valor: Number(editarCreditoItem.valor),
+                  origem: editarCreditoItem.origem,
+                });
+              }}
+            >
+              {editarCreditoMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Confirmação de remoção de movimentação de crédito ── */}
+      <AlertDialog open={!!removerCreditoId} onOpenChange={(open) => !open && setRemoverCreditoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover movimentação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O saldo do cliente será recalculado automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                if (removerCreditoId) removerCreditoMutation.mutate({ id: removerCreditoId, clienteId: id });
+              }}
+            >
+              {removerCreditoMutation.isPending ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Modal de renovação de pacote ── */}
       <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>
