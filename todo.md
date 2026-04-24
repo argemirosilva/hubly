@@ -2198,3 +2198,8 @@
 ## Feedback Maria — 24/04/2026
 - [x] Adicionar nota explicativa na UI de Automações: agendamento_criado é fallback para reserva_paga
 - [x] Fix iOS safe area: header mobile sobreposto pela barra de status (env safe-area-inset-top + viewport-fit=cover)
+
+## Botão "Adicionar à Agenda" na Automação
+- [x] Criar variável de template {{link_agenda}} que gera link Google Calendar com dados do agendamento
+- [x] Disponibilizar {{link_agenda}} como variável nas automações
+- [x] Configurar automação de agendamento_criado para incluir o link na mensagem

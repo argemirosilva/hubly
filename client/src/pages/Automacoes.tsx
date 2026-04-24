@@ -100,6 +100,7 @@ const VARIAVEIS_GRUPOS = [
       { var: "{{valor_reserva}}", label: "valor reserva", desc: "Valor calculado da reserva antecipada. Baseado no percentual configurado em Configurações × valor do serviço.", exemplo: "Ex: R$ 45,00 (30% de R$ 150,00)" },
       { var: "{{link_confirmacao}}", label: "link confirmação", desc: "Link único para o cliente confirmar o agendamento com 1 clique. Válido por 24h.", exemplo: "Ex: https://agendei.../confirmar/abc123" },
       { var: "{{link_agendamento}}", label: "link agendamento", desc: "Link do portal público de agendamento da sua empresa. Ideal para campanhas de reativação e convites.", exemplo: "Ex: https://agendei.../agendar/meu-salao" },
+      { var: "{{link_agenda}}", label: "📅 adicionar à agenda", desc: "Link para o cliente salvar o compromisso direto no Google Calendar / Apple Calendar do celular. Ao clicar, abre a agenda com data, horário e serviço já preenchidos.", exemplo: "Ex: https://calendar.google.com/calendar/render?action=TEMPLATE&text=..." },
       { var: "{{observacoes}}", label: "observações", desc: "Observações registradas no agendamento (campo livre preenchido na criação do agendamento).", exemplo: "Ex: Cliente prefere produto sem amônia" },
     ],
   },

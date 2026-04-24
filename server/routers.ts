@@ -214,6 +214,43 @@ function verificarCondicoesFlowRouter(
 }
 
 /**
+ * Gera link "Adicionar à Agenda" do Google Calendar a partir dos dados do agendamento.
+ * Funciona em qualquer celular: abre o Google Calendar ou, no iOS, oferece adicionar ao Apple Calendar.
+ */
+function gerarLinkAgenda(params: {
+  data: string;       // formato ISO: "2026-04-25" ou "YYYY-MM-DD"
+  horaInicio: string; // formato "HH:mm" ou "HH:mm:ss"
+  horaFim: string;    // formato "HH:mm" ou "HH:mm:ss"
+  servico: string;
+  empresa: string;
+  profissional?: string;
+  observacoes?: string;
+}): string {
+  // Montar datas no formato Google Calendar: YYYYMMDDTHHmmSS
+  const dataLimpa = params.data.replace(/-/g, '');
+  const hIni = (params.horaInicio ?? '00:00').replace(/:/g, '').slice(0, 4) + '00';
+  const hFim = (params.horaFim ?? '01:00').replace(/:/g, '').slice(0, 4) + '00';
+  const dtStart = `${dataLimpa}T${hIni}`;
+  const dtEnd = `${dataLimpa}T${hFim}`;
+
+  const titulo = `${params.servico} - ${params.empresa}`;
+  const detalhes = [
+    params.profissional ? `Profissional: ${params.profissional}` : '',
+    params.observacoes ? `Obs: ${params.observacoes}` : '',
+  ].filter(Boolean).join('\n');
+
+  const url = new URL('https://calendar.google.com/calendar/render');
+  url.searchParams.set('action', 'TEMPLATE');
+  url.searchParams.set('text', titulo);
+  url.searchParams.set('dates', `${dtStart}/${dtEnd}`);
+  url.searchParams.set('ctz', 'America/Sao_Paulo');
+  if (detalhes) url.searchParams.set('details', detalhes);
+  url.searchParams.set('location', params.empresa);
+
+  return url.toString();
+}
+
+/**
  * Processa variáveis de template em mensagens de WhatsApp/automações.
  * Substitui {{variavel}} pelos valores reais do agendamento.
  */
@@ -229,6 +266,7 @@ function processarVariaveisTemplate(template: string, vars: {
   valor_reserva?: string;
   link_confirmacao?: string;
   link_agendamento?: string;
+  link_agenda?: string;
   observacoes?: string;
 }): string {
   return template
@@ -243,6 +281,7 @@ function processarVariaveisTemplate(template: string, vars: {
     .replace(/\{\{valor_reserva\}\}/g, vars.valor_reserva ?? '')
     .replace(/\{\{link_confirmacao\}\}/g, vars.link_confirmacao ?? '')
     .replace(/\{\{link_agendamento\}\}/g, vars.link_agendamento ?? '')
+    .replace(/\{\{link_agenda\}\}/g, vars.link_agenda ?? '')
     .replace(/\{\{observacoes\}\}/g, vars.observacoes ?? '');
 }
 
@@ -1111,6 +1150,15 @@ export const appRouter = router({
               valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
               valor_reserva: valorReservaCalc,
               link_agendamento: _linkAgendamento,
+              link_agenda: gerarLinkAgenda({
+                data: rest.data,
+                horaInicio: String(rest.horaInicio ?? '00:00'),
+                horaFim: String(rest.horaFim ?? '01:00'),
+                servico: servico?.nome ?? 'Agendamento',
+                empresa: empresa.nome,
+                profissional: profissional?.nome,
+                observacoes: rest.observacoes,
+              }),
               observacoes: rest.observacoes ?? '',
             };
             // ── Lógica de prioridade de automação por status inicial ────────────────
@@ -1478,6 +1526,15 @@ export const appRouter = router({
                   valor: `R$ ${valorServico2.toFixed(2).replace('.', ',')}`,
                   valor_reserva: valorReservaCalc2,
                   link_agendamento: _linkAgendamento2,
+                  link_agenda: gerarLinkAgenda({
+                    data: String(agendamento.data),
+                    horaInicio: String(agendamento.horaInicio ?? '00:00'),
+                    horaFim: String(agendamento.horaFim ?? '01:00'),
+                    servico: servico?.nome ?? 'Agendamento',
+                    empresa: empresa.nome,
+                    profissional: profissional?.nome,
+                    observacoes: agendamento.observacoes ?? undefined,
+                  }),
                   observacoes: agendamento.observacoes ?? '',
                 };
 
@@ -1684,6 +1741,14 @@ export const appRouter = router({
                 empresa: empresa.nome,
                 valor: `R$ ${valorServico.toFixed(2).replace('.', ',')}`,
                 valor_reserva: valorReservaCalc,
+                link_agenda: gerarLinkAgenda({
+                  data: String(ag.data),
+                  horaInicio: String(ag.horaInicio ?? '00:00'),
+                  horaFim: String(ag.horaFim ?? '01:00'),
+                  servico: servicoNomeReserva || 'Agendamento',
+                  empresa: empresa.nome,
+                  profissional: profissional?.nome,
+                }),
               };
               // SEM FALLBACK HARDCODED: se não há automação configurada, não envia nada
               if (!automacaoReserva || !automacaoReserva.corpoMensagem) {

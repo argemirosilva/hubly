@@ -96,6 +96,31 @@ function formatarHora(hora: string | null | undefined): string {
   return String(hora).slice(0, 5);
 }
 
+// Helper: gerar link "Adicionar à Agenda" do Google Calendar
+function gerarLinkAgendaScheduler(params: {
+  data: string; horaInicio: string; horaFim: string;
+  servico: string; empresa: string; profissional?: string; observacoes?: string;
+}): string {
+  const dataLimpa = params.data.replace(/-/g, '');
+  const hIni = (params.horaInicio ?? '00:00').replace(/:/g, '').slice(0, 4) + '00';
+  const hFim = (params.horaFim ?? '01:00').replace(/:/g, '').slice(0, 4) + '00';
+  const dtStart = `${dataLimpa}T${hIni}`;
+  const dtEnd = `${dataLimpa}T${hFim}`;
+  const titulo = `${params.servico} - ${params.empresa}`;
+  const detalhes = [
+    params.profissional ? `Profissional: ${params.profissional}` : '',
+    params.observacoes ? `Obs: ${params.observacoes}` : '',
+  ].filter(Boolean).join('\n');
+  const url = new URL('https://calendar.google.com/calendar/render');
+  url.searchParams.set('action', 'TEMPLATE');
+  url.searchParams.set('text', titulo);
+  url.searchParams.set('dates', `${dtStart}/${dtEnd}`);
+  url.searchParams.set('ctz', 'America/Sao_Paulo');
+  if (detalhes) url.searchParams.set('details', detalhes);
+  url.searchParams.set('location', params.empresa);
+  return url.toString();
+}
+
 // Helper: verificar se um agendamento passa pelas condições do flowJson
 // Retorna true se o agendamento deve receber a mensagem (sem condições = envia para todos)
 function verificarCondicoesFlow(
@@ -652,6 +677,7 @@ async function processarAutomacoesAgendadas() {
             clienteId: agendamentos.clienteId,
             data: agendamentos.data,
             horaInicio: agendamentos.horaInicio,
+            horaFim: agendamentos.horaFim,
             valorTotal: agendamentos.valorTotal,
             status: agendamentos.status,
             clienteNome: clientes.nome,
@@ -674,7 +700,6 @@ async function processarAutomacoesAgendadas() {
             sql`${agendamentos.data} = ${dataAlvoStr}`,
             sql`${agendamentos.status} IN ('agendado', 'confirmado')`,
           ));
-
         for (const ag of ags) {
           if (!ag.clienteTelefone) continue;
 
@@ -728,6 +753,15 @@ async function processarAutomacoesAgendadas() {
             valor_reserva: `R$ ${valorReserva.replace('.', ',')}`,
             link_confirmacao: linkConfirmacao,
             link_agendamento: _linkAgDiasAntes,
+            link_agenda: gerarLinkAgendaScheduler({
+              data: getDataStr(ag.data),
+              horaInicio: String(ag.horaInicio ?? '00:00'),
+              horaFim: String(ag.horaFim ?? '01:00'),
+              servico: ag.servicoNome ?? 'Agendamento',
+              empresa: ag.empresaNome ?? '',
+              profissional: ag.profissionalNome ?? undefined,
+              observacoes: ag.observacoes ?? undefined,
+            }),
             observacoes: ag.observacoes ?? '',
             dias_antes: String(dias),
           };
@@ -785,6 +819,7 @@ async function processarAutomacoesAgendadas() {
             clienteId: agendamentos.clienteId,
             data: agendamentos.data,
             horaInicio: agendamentos.horaInicio,
+            horaFim: agendamentos.horaFim,
             valorTotal: agendamentos.valorTotal,
             status: agendamentos.status,
             clienteNome: clientes.nome,
@@ -855,6 +890,15 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgHorasAntes,
+            link_agenda: gerarLinkAgendaScheduler({
+              data: getDataStr(ag.data),
+              horaInicio: String(ag.horaInicio ?? '00:00'),
+              horaFim: String(ag.horaFim ?? '01:00'),
+              servico: ag.servicoNome ?? 'Agendamento',
+              empresa: ag.empresaNome ?? '',
+              profissional: ag.profissionalNome ?? undefined,
+              observacoes: ag.observacoes ?? undefined,
+            }),
             observacoes: ag.observacoes ?? '',
             horas_antes: String(Math.round(delayMin / 60)),
           };
@@ -913,6 +957,7 @@ async function processarAutomacoesAgendadas() {
             clienteId: agendamentos.clienteId,
             data: agendamentos.data,
             horaInicio: agendamentos.horaInicio,
+            horaFim: agendamentos.horaFim,
             valorTotal: agendamentos.valorTotal,
             status: agendamentos.status,
             clienteNome: clientes.nome,
@@ -983,6 +1028,15 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgHorasApos,
+            link_agenda: gerarLinkAgendaScheduler({
+              data: getDataStr(ag.data),
+              horaInicio: String(ag.horaInicio ?? '00:00'),
+              horaFim: String(ag.horaFim ?? '01:00'),
+              servico: ag.servicoNome ?? 'Agendamento',
+              empresa: ag.empresaNome ?? '',
+              profissional: ag.profissionalNome ?? undefined,
+              observacoes: ag.observacoes ?? undefined,
+            }),
             observacoes: ag.observacoes ?? '',
             horas_apos: String(Math.round(delayMin / 60)),
           };
@@ -1042,6 +1096,7 @@ async function processarAutomacoesAgendadas() {
             clienteId: agendamentos.clienteId,
             data: agendamentos.data,
             horaInicio: agendamentos.horaInicio,
+            horaFim: agendamentos.horaFim,
             valorTotal: agendamentos.valorTotal,
             status: agendamentos.status,
             clienteNome: clientes.nome,
@@ -1110,6 +1165,15 @@ async function processarAutomacoesAgendadas() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
             link_agendamento: _linkAgDiasDepois,
+            link_agenda: gerarLinkAgendaScheduler({
+              data: getDataStr(ag.data),
+              horaInicio: String(ag.horaInicio ?? '00:00'),
+              horaFim: String(ag.horaFim ?? '01:00'),
+              servico: ag.servicoNome ?? 'Agendamento',
+              empresa: ag.empresaNome ?? '',
+              profissional: ag.profissionalNome ?? undefined,
+              observacoes: ag.observacoes ?? undefined,
+            }),
             observacoes: ag.observacoes ?? '',
             dias_depois: String(diasDepois),
           };
@@ -1413,6 +1477,7 @@ async function preRegistrarEnviosPendentes() {
           clienteId: agendamentos.clienteId,
           data: agendamentos.data,
           horaInicio: agendamentos.horaInicio,
+          horaFim: agendamentos.horaFim,
           status: agendamentos.status,
           clienteNome: clientes.nome,
           clienteTelefone: clientes.telefone,
@@ -1990,6 +2055,7 @@ async function processarConfirmacaoAutomatica() {
           empresaId: agendamentos.empresaId,
           data: agendamentos.data,
           horaInicio: agendamentos.horaInicio,
+          horaFim: agendamentos.horaFim,
           status: agendamentos.status,
           clienteNome: clientes.nome,
           profissionalNome: profissionais.nome,
