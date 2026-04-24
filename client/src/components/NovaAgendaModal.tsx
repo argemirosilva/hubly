@@ -642,8 +642,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
             </div>
 
             {/* Horários */}
-            <div className="col-span-2 grid grid-cols-2 gap-3">
-              <div>
+            <div className="col-span-2 flex gap-3">
+              <div style={{ width: "35.5%" }}>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Início</Label>
                 <Input
                   type="time"
@@ -655,7 +655,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                   className="w-full"
                 />
               </div>
-              <div>
+              <div style={{ width: "35.5%" }}>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Fim</Label>
                 <Input
                   type="time"
