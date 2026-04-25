@@ -1616,8 +1616,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
     {/* Modal de Preview de Reenvio de Mensagem */}
     <Dialog open={!!previewEnvioId || !!previewMensagem} onOpenChange={(open) => { if (!open) { setPreviewMensagem(null); setPreviewEnvioId(null); } }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm flex flex-col max-h-[85dvh]">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-green-600" />
             Reenviar Mensagem
@@ -1629,27 +1629,27 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             <span className="text-sm">Carregando pré-visualização...</span>
           </div>
         ) : previewMensagem ? (
-          <div className="space-y-3 py-1">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-3 py-1 min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-1.5 text-xs text-muted-foreground shrink-0">
               <span className="font-medium text-foreground">{previewMensagem.nome}</span>
               {previewMensagem.telefone && (
-                <span className="bg-green-50 text-green-700 border border-green-200 rounded-full px-2 py-0.5">
+                <span className="inline-flex w-fit bg-green-50 text-green-700 border border-green-200 rounded-full px-2 py-0.5">
                   {previewMensagem.telefone}
                 </span>
               )}
               {previewMensagem.linkRegenerado && (
-                <span className="bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-0.5 flex items-center gap-1">
-                  <Link2 className="w-3 h-3" /> Link regenerado automaticamente
+                <span className="inline-flex w-fit bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-0.5 items-center gap-1">
+                  <Link2 className="w-3 h-3 shrink-0" /> Link regenerado automaticamente
                 </span>
               )}
             </div>
-            <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-              <p className="text-xs text-green-900 whitespace-pre-wrap">{previewMensagem.mensagem || '(sem pré-visualização disponível)'}</p>
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 overflow-y-auto">
+              <p className="text-xs text-green-900 whitespace-pre-wrap break-words">{previewMensagem.mensagem || '(sem pré-visualização disponível)'}</p>
             </div>
-            <p className="text-[11px] text-muted-foreground">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
+            <p className="text-[11px] text-muted-foreground shrink-0">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
           </div>
         ) : null}
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+        <DialogFooter className="flex flex-col gap-2 shrink-0">
           <Button
             onClick={() => { if (previewMensagem) { setReenvioId(previewMensagem.id); reenviarMensagemMut.mutate({ envioId: previewMensagem.id }); } }}
             disabled={reenviarMensagemMut.isPending || previewLoading || !previewMensagem}
