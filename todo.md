@@ -2248,3 +2248,11 @@
 
 ## Reordenar campos do Novo Agendamento
 - [x] Corrigir ordem: Cliente → Pessoas da Reserva → Data → Hora → Card de Serviços → Observações → Status → Solicitar sinal
+
+## Reordenar campos do Editar Agendamento
+- [ ] Corrigir ordem no EditarAgendamentoModal: Cliente → Data → Hora → Serviços → Observações → Status
+
+## Horário de fim automático no agendamento
+- [x] NovaAgendaModal: campo Fim agora é somente leitura (disabled) com label "(automático)", atualiza conforme serviços são adicionados/removidos
+- [x] EditarAgendamentoModal: idem
+- [x] 301/301 testes passando

@@ -443,12 +443,12 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground block">Fim</Label>
+                  <Label className="text-xs text-muted-foreground block">Fim <span className="text-[10px] text-muted-foreground/60">(automático)</span></Label>
                   <Input
                     type="time"
                     value={form.horaFim}
-                    onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
-                    className="h-9 text-sm w-full"
+                    disabled
+                    className="h-9 text-sm w-full bg-muted/50 cursor-not-allowed opacity-70"
                   />
                 </div>
               </div>
