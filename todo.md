@@ -2245,3 +2245,6 @@
 - [x] Backend: procedure agendamentos.getMensagens(agendamentoId) buscando na tabela historicoEnviosAutomacao
 - [x] Frontend: seção colapsável "Mensagens Enviadas" no AgendamentoDetalheModal com automação, data/hora, status de envio, status de entrega (lido/entregue/enviado) e preview da mensagem
 - [x] 301/301 testes passando
+
+## Reordenar campos do Novo Agendamento
+- [x] Corrigir ordem: Cliente → Pessoas da Reserva → Data → Hora → Card de Serviços → Observações → Status → Solicitar sinal
