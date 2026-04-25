@@ -195,6 +195,58 @@ export async function updateServico(id: number, data: Partial<typeof servicos.$i
   await db.update(servicos).set(data).where(eq(servicos.id, id));
 }
 
+/**
+ * Verifica se um serviço tem vínculos ativos (agendamentos, pacotes).
+ * Retorna { temVinculos, totalAgendamentos, totalPacotes }
+ */
+export async function verificarVinculosServico(servicoId: number) {
+  const db = await getDb();
+  if (!db) return { temVinculos: false, totalAgendamentos: 0, totalPacotes: 0 };
+  const { agendamentos: agTable, agendamentoItens, pacotesModelosItens, pacotesClientesItens } = await import('../drizzle/schema');
+  const [agCount, agItensCount, pacModelosCount, pacClientesCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(agTable).where(eq(agTable.servicoId, servicoId)),
+    db.select({ count: sql<number>`count(*)` }).from(agendamentoItens).where(eq(agendamentoItens.servicoId, servicoId)),
+    db.select({ count: sql<number>`count(*)` }).from(pacotesModelosItens).where(eq(pacotesModelosItens.servicoId, servicoId)),
+    db.select({ count: sql<number>`count(*)` }).from(pacotesClientesItens).where(eq(pacotesClientesItens.servicoId, servicoId)),
+  ]);
+  const totalAgendamentos = Number(agCount[0]?.count ?? 0) + Number(agItensCount[0]?.count ?? 0);
+  const totalPacotes = Number(pacModelosCount[0]?.count ?? 0) + Number(pacClientesCount[0]?.count ?? 0);
+  return { temVinculos: totalAgendamentos > 0 || totalPacotes > 0, totalAgendamentos, totalPacotes };
+}
+
+/**
+ * Deleta ou desativa um serviço.
+ * - Se tiver vínculos: desativa (ativo = false)
+ * - Se não tiver vínculos: deleta permanentemente
+ * Retorna { acao: 'deletado' | 'desativado', motivo? }
+ */
+export async function deleteOuDesativarServico(servicoId: number): Promise<{ acao: 'deletado' | 'desativado'; motivo?: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const { temVinculos, totalAgendamentos, totalPacotes } = await verificarVinculosServico(servicoId);
+  if (temVinculos) {
+    await db.update(servicos).set({ ativo: false }).where(eq(servicos.id, servicoId));
+    const partes = [];
+    if (totalAgendamentos > 0) partes.push(`${totalAgendamentos} agendamento${totalAgendamentos > 1 ? 's' : ''}`);
+    if (totalPacotes > 0) partes.push(`${totalPacotes} pacote${totalPacotes > 1 ? 's' : ''}`);
+    return { acao: 'desativado', motivo: `Serviço desativado pois possui ${partes.join(' e ')} vinculado${partes.length > 1 ? 's' : ''}.` };
+  }
+  await db.delete(servicos).where(eq(servicos.id, servicoId));
+  return { acao: 'deletado' };
+}
+
+/**
+ * Deleta ou desativa múltiplos serviços em lote.
+ * Retorna um resumo: { deletados, desativados, detalhes }
+ */
+export async function deleteLoteServicos(servicoIds: number[]): Promise<{ deletados: number; desativados: number; detalhes: string[] }> {
+  const resultados = await Promise.all(servicoIds.map(id => deleteOuDesativarServico(id)));
+  const deletados = resultados.filter(r => r.acao === 'deletado').length;
+  const desativados = resultados.filter(r => r.acao === 'desativado').length;
+  const detalhes = resultados.filter(r => r.motivo).map(r => r.motivo!);
+  return { deletados, desativados, detalhes };
+}
+
 // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
 export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: string, dataFim?: string, profissionalId?: number | null) {
   try {

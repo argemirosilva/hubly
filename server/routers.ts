@@ -40,6 +40,7 @@ import {
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
+  deleteOuDesativarServico, deleteLoteServicos, verificarVinculosServico,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento, getAgendamentosVinculadosByCliente,
   getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
@@ -927,6 +928,41 @@ export const appRouter = router({
         const { id, ...data } = input;
         await updateServico(id, data as any);
         return { success: true };
+      }),
+    // Verifica vínculos antes de mostrar o modal de confirmação
+    verificarVinculos: protectedProcedure
+      .input(z.object({ ids: z.array(z.number()) }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosExcluir');
+        const resultados = await Promise.all(
+          input.ids.map(async (id) => {
+            const vinculos = await verificarVinculosServico(id);
+            return { id, ...vinculos };
+          })
+        );
+        const comVinculos = resultados.filter(r => r.temVinculos);
+        const semVinculos = resultados.filter(r => !r.temVinculos);
+        return { comVinculos, semVinculos };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosExcluir');
+        const resultado = await deleteOuDesativarServico(input.id);
+        return resultado;
+      }),
+    deleteLote: protectedProcedure
+      .input(z.object({ ids: z.array(z.number()).min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosExcluir');
+        const resultado = await deleteLoteServicos(input.ids);
+        return resultado;
       }),
   }),
 

@@ -2211,3 +2211,13 @@
 
 ## UX Editor de Fluxo
 - [x] Drag-to-pan no canvas do editor de fluxo de automações (arrastar com mouse para mover)
+- [ ] Botão "Centralizar" no canvas do editor de fluxo (ajusta zoom e centraliza todos os nós)
+
+## Delete/Desativar Serviços
+- [x] Backend: procedure servicos.delete com verificação de vínculos (agendamentos/pacotes)
+- [x] Backend: procedure servicos.deleteLote para exclusão em lote
+- [x] Backend: lógica de desativação (ativo=false) quando há vínculos, delete real quando não há
+- [x] Frontend: botão de delete individual em cada serviço
+- [x] Frontend: seleção em lote (checkboxes) + botão "Excluir selecionados"
+- [x] Frontend: modal de confirmação com aviso quando serviço tem vínculos (desativar vs deletar)
+- [x] Testes: 21/21 passando (delete-servicos.test.ts)
