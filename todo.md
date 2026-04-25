@@ -2273,3 +2273,8 @@
 - [x] Backend: procedure automacoes.reenviarMensagem(id) já existia no routers.ts
 - [x] Frontend: botão "Reenviar" adicionado em cada item da seção "Mensagens Enviadas" com spinner de loading e toast de sucesso/erro
 - [x] 301/301 testes passando
+
+## Bug: Reenvio de mensagem
+- [x] Corrigido erro "enviold undefined" — botão agora passa `{ envioId: m.id }` (campo correto)
+- [x] Modal de preview adicionado: mostra nome da automação, telefone do cliente e texto completo da mensagem antes de confirmar o reenvio
+- [x] 301/301 testes passando

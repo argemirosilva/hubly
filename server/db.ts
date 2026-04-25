@@ -21,7 +21,8 @@ export async function getDb() {
         enableKeepAlive: true,
         keepAliveInitialDelay: 30000,
       });
-      _db = drizzle(pool);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _db = drizzle(pool as any);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

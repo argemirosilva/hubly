@@ -37,10 +37,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: mensagens = [], refetch: refetchMensagens } = trpc.agendamentos.getMensagens.useQuery({ agendamentoId }, { enabled: !!agendamentoId && open });
   const [mostrarMensagens, setMostrarMensagens] = useState(false);
   const reenviarMensagemMut = trpc.automacoes.reenviarMensagem.useMutation({
-    onSuccess: () => { toast.success('Mensagem reenviada com sucesso!'); refetchMensagens(); },
+    onSuccess: () => { toast.success('Mensagem reenviada com sucesso!'); refetchMensagens(); setPreviewMensagem(null); },
     onError: (e) => toast.error(`Falha no reenvio: ${e.message}`),
   });
   const [reenvioId, setReenvioId] = useState<number | null>(null);
+  const [previewMensagem, setPreviewMensagem] = useState<{ id: number; nome: string; mensagem: string; telefone?: string } | null>(null);
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
@@ -1139,7 +1140,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                             <button
                               title="Reenviar mensagem"
                               disabled={isReenviando}
-                              onClick={() => { setReenvioId(m.id); reenviarMensagemMut.mutate({ id: m.id }); }}
+                              onClick={() => { const cli = clientes?.find(c => c.id === ag?.clienteId); setPreviewMensagem({ id: m.id, nome: m.automacaoNome || 'Automação', mensagem: m.mensagem || '', telefone: (cli as any)?.whatsapp || (cli as any)?.telefone }); }}
                               className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border transition-colors hover:bg-green-50 hover:border-green-400 hover:text-green-700 disabled:opacity-50"
                               style={{ borderColor: 'oklch(80% 0.12 155)', color: 'oklch(45% 0.14 155)' }}
                             >
@@ -1595,7 +1596,44 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       </DialogContent>
     </Dialog>
 
-    {/* Modal de Preview de PDF */}
+    {/* Modal de Preview de Reenvio de Mensagem */}
+    <Dialog open={!!previewMensagem} onOpenChange={(open) => { if (!open) setPreviewMensagem(null); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-green-600" />
+            Reenviar Mensagem
+          </DialogTitle>
+        </DialogHeader>
+        {previewMensagem && (
+          <div className="space-y-3 py-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{previewMensagem.nome}</span>
+              {previewMensagem.telefone && (
+                <span className="bg-green-50 text-green-700 border border-green-200 rounded-full px-2 py-0.5">
+                  {previewMensagem.telefone}
+                </span>
+              )}
+            </div>
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+              <p className="text-xs text-green-900 whitespace-pre-wrap">{previewMensagem.mensagem || '(sem pré-visualização disponível)'}</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
+          </div>
+        )}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setPreviewMensagem(null)}>Cancelar</Button>
+          <Button
+            onClick={() => { if (previewMensagem) { setReenvioId(previewMensagem.id); reenviarMensagemMut.mutate({ envioId: previewMensagem.id }); } }}
+            disabled={reenviarMensagemMut.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {reenviarMensagemMut.isPending ? 'Enviando...' : 'Confirmar Reenvio'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
