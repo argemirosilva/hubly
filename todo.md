@@ -2211,7 +2211,7 @@
 
 ## UX Editor de Fluxo
 - [x] Drag-to-pan no canvas do editor de fluxo de automações (arrastar com mouse para mover)
-- [ ] Botão "Centralizar" no canvas do editor de fluxo (ajusta zoom e centraliza todos os nós)
+- [x] Botão "Centralizar" no canvas do editor de fluxo (ajusta zoom e centraliza todos os nós)
 
 ## Delete/Desativar Serviços
 - [x] Backend: procedure servicos.delete com verificação de vínculos (agendamentos/pacotes)

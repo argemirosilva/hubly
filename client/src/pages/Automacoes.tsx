@@ -10,7 +10,7 @@ import {
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
-  Package, MousePointerClick, Info, AlertTriangle, Layers, DollarSign, Star,
+  Package, MousePointerClick, Info, AlertTriangle, Layers, DollarSign, Star, Maximize2, Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1409,23 +1409,52 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
         )}
       </div>
 
-      {/* Controles de zoom */}
+      {/* Controles de zoom + Centralizar */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
-        <button
-          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 text-lg font-bold leading-none"
-          onClick={() => setZoom(z => Math.min(z * 1.2, MAX_ZOOM))}
-          title="Zoom in"
-        >+</button>
-        <button
-          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 text-xs"
-          onClick={fitView}
-          title="Ajustar tela (centralizar todos os nós)"
-        >⊡</button>
-        <button
-          className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 text-lg font-bold leading-none"
-          onClick={() => setZoom(z => Math.max(z * 0.8, MIN_ZOOM))}
-          title="Zoom out"
-        >−</button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                onClick={() => setZoom(z => Math.min(z * 1.2, MAX_ZOOM))}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>Aumentar zoom</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                onClick={() => setZoom(z => Math.max(z * 0.8, MIN_ZOOM))}
+              >
+                <Minus size={14} strokeWidth={2.5} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>Reduzir zoom</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <div className="w-8 h-px bg-gray-200 mx-auto" />
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                onClick={fitView}
+                disabled={nodes.length === 0}
+              >
+                <Maximize2 size={13} strokeWidth={2} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>Centralizar todos os nós</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Indicador de zoom */}
