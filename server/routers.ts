@@ -1716,7 +1716,7 @@ export const appRouter = router({
             const { eq: eqDrizzle } = await import('drizzle-orm');
             const clienteRows = db ? await db.select().from(clientesTable).where(eqDrizzle(clientesTable.id, ag.clienteId)).limit(1) : [];
             const cliente = clienteRows[0];
-            const telefone = cliente?.telefone?.replace(/\D/g, '') ?? '';
+            const telefone = (cliente?.whatsapp || cliente?.telefone || '').replace(/\D/g, '');
             if (telefone && cliente) {
               const servico = ag.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === ag.servicoId) : null;
               const profissional = ag.profissionalId ? await getProfissionalById(ag.profissionalId) : null;

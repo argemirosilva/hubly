@@ -2221,3 +2221,9 @@
 - [x] Frontend: seleção em lote (checkboxes) + botão "Excluir selecionados"
 - [x] Frontend: modal de confirmação com aviso quando serviço tem vínculos (desativar vs deletar)
 - [x] Testes: 21/21 passando (delete-servicos.test.ts)
+
+## Bug: confirmarReserva não disparava automação de confirmação
+- [x] Investigado: código local já correto (usa getAutomacoesByEvento com eventosAdicionais)
+- [x] Causa raiz real: campo telefone do cliente Vitor estava vazio, mas whatsapp tinha o número. Código usava apenas cliente.telefone, ignorando whatsapp silenciosamente
+- [x] Correção: linha 1719 do routers.ts agora usa (cliente?.whatsapp || cliente?.telefone || '').replace(/\D/g, '') — igual ao padrão do resto do código
+- [x] 301/301 testes passando
