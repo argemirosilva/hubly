@@ -34,8 +34,13 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
   const { data: itens } = trpc.agendamentos.getItens.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
   const { data: pagamentos, refetch: refetchPagamentos } = trpc.agendamentos.getPagamentos.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
-  const { data: mensagens = [] } = trpc.agendamentos.getMensagens.useQuery({ agendamentoId }, { enabled: !!agendamentoId && open });
+  const { data: mensagens = [], refetch: refetchMensagens } = trpc.agendamentos.getMensagens.useQuery({ agendamentoId }, { enabled: !!agendamentoId && open });
   const [mostrarMensagens, setMostrarMensagens] = useState(false);
+  const reenviarMensagemMut = trpc.automacoes.reenviarMensagem.useMutation({
+    onSuccess: () => { toast.success('Mensagem reenviada com sucesso!'); refetchMensagens(); },
+    onError: (e) => toast.error(`Falha no reenvio: ${e.message}`),
+  });
+  const [reenvioId, setReenvioId] = useState<number | null>(null);
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
@@ -1124,11 +1129,24 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     const statusColor = m.status === 'enviado' ? 'text-green-600' : m.status === 'falhou' ? 'text-red-500' : 'text-amber-500';
                     const statusLabel = m.status === 'enviado' ? 'Enviado' : m.status === 'falhou' ? 'Falhou' : m.status === 'pendente' ? 'Pendente' : 'Agendado';
                     const deliveryLabel = m.messageStatus === 'read' ? '✓✓ Lido' : m.messageStatus === 'delivered' ? '✓✓ Entregue' : m.messageStatus === 'sent' ? '✓ Enviado' : m.messageStatus === 'failed' ? '✗ Falhou' : null;
+                    const isReenviando = reenvioId === m.id && reenviarMensagemMut.isPending;
                     return (
                       <div key={m.id} className="px-4 py-3 space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs font-semibold text-foreground truncate flex-1">{m.automacaoNome || 'Automação'}</span>
-                          <span className={`text-[10px] font-semibold ${statusColor}`}>{statusLabel}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-semibold ${statusColor}`}>{statusLabel}</span>
+                            <button
+                              title="Reenviar mensagem"
+                              disabled={isReenviando}
+                              onClick={() => { setReenvioId(m.id); reenviarMensagemMut.mutate({ id: m.id }); }}
+                              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border transition-colors hover:bg-green-50 hover:border-green-400 hover:text-green-700 disabled:opacity-50"
+                              style={{ borderColor: 'oklch(80% 0.12 155)', color: 'oklch(45% 0.14 155)' }}
+                            >
+                              {isReenviando ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <MessageCircle className="w-2.5 h-2.5" />}
+                              {isReenviando ? 'Enviando...' : 'Reenviar'}
+                            </button>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span>{new Date(m.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>

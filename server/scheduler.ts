@@ -726,8 +726,11 @@ async function processarAutomacoesAgendadas() {
           try {
             const token = await gerarTokenConfirmacao(ag.id, ag.empresaId);
             linkConfirmacao = `${origin}/confirmar/${token}`;
+            console.log(`[Scheduler] Token de confirmação gerado para agendamento ${ag.id}: ${linkConfirmacao}`);
           } catch (e) {
-            console.error(`[Scheduler] Erro ao gerar token para agendamento ${ag.id}:`, e);
+            const errMsg = e instanceof Error ? e.message : String(e);
+            console.error(`[Scheduler] ERRO ao gerar token para agendamento ${ag.id}: ${errMsg}`);
+            // Continua sem link — a mensagem será enviada sem o link de confirmação
           }
 
           // Montar mensagem

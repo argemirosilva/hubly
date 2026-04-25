@@ -2263,3 +2263,13 @@
 - [x] Código corrigido: fator de desconto proporcional aplicado antes do cálculo de comissão (itens e fallback)
 - [x] Código corrigido: pular criação de comissão quando valor após desconto é R$0
 - [x] 301/301 testes passando
+
+## Bug: Link de confirmação ausente na mensagem de automação
+- [x] Causa raiz: ECONNRESET no banco fazia getDb() retornar instância quebrada. gerarTokenConfirmacao falhava silenciosamente e {{link_confirmacao}} ficava vazio
+- [x] Correção: db.ts agora usa mysql2.createPool() com pool de 10 conexões + keepAlive (30s), eliminando ECONNRESET
+- [x] Log melhorado: erros de geração de token agora aparecem como ERRO no log do servidor
+
+## Botão de reenvio na lista de mensagens do agendamento
+- [x] Backend: procedure automacoes.reenviarMensagem(id) já existia no routers.ts
+- [x] Frontend: botão "Reenviar" adicionado em cada item da seção "Mensagens Enviadas" com spinner de loading e toast de sucesso/erro
+- [x] 301/301 testes passando

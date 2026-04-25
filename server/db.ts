@@ -5,12 +5,23 @@ import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
 import { creditosCliente, agendamentoPessoas } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
+import { createPool } from "mysql2/promise";
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Usar pool com reconexão automática para evitar ECONNRESET
+      const pool = createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 30000,
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
