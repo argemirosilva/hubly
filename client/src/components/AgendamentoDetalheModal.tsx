@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
 import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: ag, isLoading } = trpc.agendamentos.getById.useQuery({ id: agendamentoId });
   const { data: itens } = trpc.agendamentos.getItens.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
   const { data: pagamentos, refetch: refetchPagamentos } = trpc.agendamentos.getPagamentos.useQuery({ agendamentoId }, { enabled: !!agendamentoId });
+  const { data: mensagens = [] } = trpc.agendamentos.getMensagens.useQuery({ agendamentoId }, { enabled: !!agendamentoId && open });
+  const [mostrarMensagens, setMostrarMensagens] = useState(false);
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
@@ -1096,6 +1098,48 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       {adicionarPessoaMutation.isPending ? 'Adicionando...' : 'Adicionar'}
                     </Button>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Seção: Mensagens Enviadas ── */}
+          {isAdmin && mensagens.length > 0 && (
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+              <button
+                className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-muted/30"
+                style={{ background: "oklch(97% 0.006 250)", borderBottom: mostrarMensagens ? "1px solid oklch(91% 0.010 250)" : undefined }}
+                onClick={() => setMostrarMensagens(v => !v)}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mensagens Enviadas</span>
+                  <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5">{mensagens.length}</span>
+                </div>
+                {mostrarMensagens ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              </button>
+              {mostrarMensagens && (
+                <div className="divide-y" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                  {mensagens.map((m: any) => {
+                    const statusColor = m.status === 'enviado' ? 'text-green-600' : m.status === 'falhou' ? 'text-red-500' : 'text-amber-500';
+                    const statusLabel = m.status === 'enviado' ? 'Enviado' : m.status === 'falhou' ? 'Falhou' : m.status === 'pendente' ? 'Pendente' : 'Agendado';
+                    const deliveryLabel = m.messageStatus === 'read' ? '✓✓ Lido' : m.messageStatus === 'delivered' ? '✓✓ Entregue' : m.messageStatus === 'sent' ? '✓ Enviado' : m.messageStatus === 'failed' ? '✗ Falhou' : null;
+                    return (
+                      <div key={m.id} className="px-4 py-3 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-foreground truncate flex-1">{m.automacaoNome || 'Automação'}</span>
+                          <span className={`text-[10px] font-semibold ${statusColor}`}>{statusLabel}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span>{new Date(m.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          {deliveryLabel && <span className="text-green-600 font-medium">{deliveryLabel}</span>}
+                        </div>
+                        {m.mensagem && (
+                          <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2 whitespace-pre-wrap line-clamp-3">{m.mensagem}</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -2052,6 +2052,24 @@ export const appRouter = router({
         return getPagamentosByAgendamento(input.agendamentoId);
       }),
 
+    // Histórico de mensagens enviadas para o agendamento
+    getMensagens: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return [];
+        const db = await getDb();
+        if (!db) return [];
+        const { historicoEnviosAutomacao: hea } = await import('../drizzle/schema.js');
+        const rows = await db
+          .select()
+          .from(hea)
+          .where(and(eq(hea.empresaId, empresa.id), eq(hea.agendamentoId, input.agendamentoId)))
+          .orderBy(desc(hea.criadoEm))
+          .limit(50);
+        return rows;
+      }),
+
     // Adicionar pagamento parcial
     addPagamento: protectedProcedure
       .input(z.object({
