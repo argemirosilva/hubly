@@ -2233,3 +2233,10 @@
 - [x] Frontend: no formulário de cliente (Clientes.tsx e ClienteDetalhe.tsx), sincronizar os dois campos automaticamente ao sair do campo (onBlur)
 - [x] Migração: 12 clientes atualizados (10 sem telefone + 2 sem whatsapp) — agora todos os 120 clientes têm ambos os campos sincronizados
 - [x] 301/301 testes passando
+
+## Unificação telefone + whatsapp em campo único
+- [x] Clientes.tsx: campo unificado "Telefone / WhatsApp", ícone MessageCircle verde na listagem
+- [x] ClienteDetalhe.tsx: campo unificado no formulário de edição e exibição com ícone verde
+- [x] Agendamento: não há campos separados de telefone/whatsapp
+- [x] Importação CSV: não há mapeamento separado
+- [x] 301/301 testes passando

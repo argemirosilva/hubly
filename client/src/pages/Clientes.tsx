@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus, Search, Users, Phone, Calendar, Pencil, Trash2, RotateCcw,
-  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX, Wallet, X,
+  Mail, ChevronRight, TrendingUp, DollarSign, UserCheck, UserX, Wallet, X, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -21,6 +21,8 @@ function formatCurrency(v: number | string | null | undefined) {
 }
 
 const FORM_VAZIO = { nome: "", telefone: "", whatsapp: "", email: "", cpf: "", dataNascimento: "", endereco: "", observacoes: "" };
+// Helpers para unificação: telefone e whatsapp sempre iguais
+const setTelWhats = (form: FormCliente, v: string): FormCliente => ({ ...form, telefone: v, whatsapp: v });
 
 type FormCliente = typeof FORM_VAZIO;
 
@@ -149,8 +151,8 @@ export default function Clientes() {
       id: c.id,
       form: {
         nome: c.nome ?? "",
-        telefone: c.telefone ?? "",
-        whatsapp: c.whatsapp ?? "",
+        telefone: c.telefone ?? c.whatsapp ?? "",
+        whatsapp: c.whatsapp ?? c.telefone ?? "",
         email: c.email ?? "",
         cpf: c.cpf ?? "",
         dataNascimento: c.dataNascimento ?? "",
@@ -291,9 +293,9 @@ export default function Clientes() {
                       {inativo && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Inativo</Badge>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {c.telefone && (
+                      {(c.telefone || c.whatsapp) && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3 flex-shrink-0" />{c.telefone}
+                          <MessageCircle className="w-3 h-3 flex-shrink-0 text-green-500" />{c.telefone || c.whatsapp}
                         </span>
                       )}
                       {c.email && (
@@ -432,22 +434,15 @@ export default function Clientes() {
 // ─── Formulário reutilizável ────────────────────────────────────────────────
 function ClienteForm({ form, onChange }: { form: FormCliente; onChange: (f: FormCliente) => void }) {
   const set = (k: keyof FormCliente, v: string) => onChange({ ...form, [k]: v });
-  // Sincroniza telefone ↔ whatsapp: ao sair do campo, copia para o outro se estiver vazio
-  const syncTelefone = (v: string) => onChange({ ...form, telefone: v, whatsapp: form.whatsapp || v });
-  const syncWhatsapp = (v: string) => onChange({ ...form, whatsapp: v, telefone: form.telefone || v });
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
       <div className="sm:col-span-2">
         <Label className="text-xs text-muted-foreground mb-1.5 block">Nome completo *</Label>
         <Input value={form.nome} onChange={e => set("nome", e.target.value)} placeholder="Nome do cliente" />
       </div>
-      <div>
-        <Label className="text-xs text-muted-foreground mb-1.5 block">Telefone</Label>
-        <Input value={form.telefone} onChange={e => set("telefone", e.target.value)} onBlur={e => syncTelefone(e.target.value)} placeholder="(11) 99999-9999" />
-      </div>
-      <div>
-        <Label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</Label>
-        <Input value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} onBlur={e => syncWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+      <div className="sm:col-span-2">
+        <Label className="text-xs text-muted-foreground mb-1.5 block">Telefone / WhatsApp</Label>
+        <Input value={form.telefone || form.whatsapp} onChange={e => onChange(setTelWhats(form, e.target.value))} placeholder="(11) 99999-9999" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Email</Label>

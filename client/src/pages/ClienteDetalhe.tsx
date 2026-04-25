@@ -19,7 +19,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
   Pencil, Save, X, Trash2, MapPin, CreditCard, History, RefreshCw, ChevronDown, ChevronUp,
-  TrendingUp, TrendingDown, Activity, Star, Ban, Wallet, ArrowDownLeft, ArrowUpRight,
+  TrendingUp, TrendingDown, Activity, Star, Ban, Wallet, ArrowDownLeft, ArrowUpRight, MessageCircle,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -84,8 +84,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
       const c = cliente as any;
       setForm({
         nome: c.nome ?? "",
-        telefone: c.telefone ?? "",
-        whatsapp: c.whatsapp ?? "",
+        telefone: c.telefone ?? c.whatsapp ?? "",
+        whatsapp: c.whatsapp ?? c.telefone ?? "",
         email: c.email ?? "",
         cpf: c.cpf ?? "",
         dataNascimento: c.dataNascimento ?? "",
@@ -229,8 +229,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
     if (cliente) {
       setForm({
         nome: (cliente as any).nome ?? "",
-        telefone: (cliente as any).telefone ?? "",
-        whatsapp: (cliente as any).whatsapp ?? "",
+        telefone: (cliente as any).telefone ?? (cliente as any).whatsapp ?? "",
+        whatsapp: (cliente as any).whatsapp ?? (cliente as any).telefone ?? "",
         email: (cliente as any).email ?? "",
         cpf: (cliente as any).cpf ?? "",
         dataNascimento: (cliente as any).dataNascimento ?? "",
@@ -332,12 +332,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                     <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Telefone</Label>
-                    <Input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} onBlur={e => setForm(f => ({ ...f, telefone: e.target.value, whatsapp: f.whatsapp || e.target.value }))} placeholder="(11) 99999-9999" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">WhatsApp</Label>
-                    <Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} onBlur={e => setForm(f => ({ ...f, whatsapp: e.target.value, telefone: f.telefone || e.target.value }))} placeholder="(11) 99999-9999" />
+                    <Label className="text-xs text-muted-foreground mb-1 block">Telefone / WhatsApp</Label>
+                    <Input value={form.telefone || form.whatsapp} onChange={e => setForm(f => ({ ...f, telefone: e.target.value, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>
@@ -380,15 +376,9 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               ) : (
                 /* Visualização dos dados */
                 <div className="space-y-2.5">
-                  {c.telefone && (
+                  {(c.telefone || c.whatsapp) && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="w-4 h-4 shrink-0" />{c.telefone}
-                    </div>
-                  )}
-                  {c.whatsapp && c.whatsapp !== c.telefone && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="w-4 h-4 shrink-0 text-green-500" />
-                      <span>{c.whatsapp} <span className="text-xs text-green-600">(WhatsApp)</span></span>
+                      <MessageCircle className="w-4 h-4 shrink-0 text-green-500" />{c.telefone || c.whatsapp}
                     </div>
                   )}
                   {c.email && (
