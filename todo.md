@@ -2227,3 +2227,9 @@
 - [x] Causa raiz real: campo telefone do cliente Vitor estava vazio, mas whatsapp tinha o número. Código usava apenas cliente.telefone, ignorando whatsapp silenciosamente
 - [x] Correção: linha 1719 do routers.ts agora usa (cliente?.whatsapp || cliente?.telefone || '').replace(/\D/g, '') — igual ao padrão do resto do código
 - [x] 301/301 testes passando
+
+## Sincronização telefone ↔ whatsapp
+- [x] Backend: ao criar/editar cliente, se telefone preenchido e whatsapp vazio (ou vice-versa), copiar o valor para o campo vazio
+- [x] Frontend: no formulário de cliente (Clientes.tsx e ClienteDetalhe.tsx), sincronizar os dois campos automaticamente ao sair do campo (onBlur)
+- [x] Migração: 12 clientes atualizados (10 sem telefone + 2 sem whatsapp) — agora todos os 120 clientes têm ambos os campos sincronizados
+- [x] 301/301 testes passando

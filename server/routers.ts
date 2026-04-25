@@ -729,7 +729,10 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-        const id = await createCliente({ ...input, empresaId: empresa.id });
+        // Sincronizar telefone ↔ whatsapp: se um estiver vazio, copiar do outro
+        const telefoneSync = input.telefone || input.whatsapp || '';
+        const whatsappSync = input.whatsapp || input.telefone || '';
+        const id = await createCliente({ ...input, telefone: telefoneSync, whatsapp: whatsappSync, empresaId: empresa.id });
 
         // Disparar automação cliente_criado se existir e houver telefone
         const telefoneContato = input.whatsapp || input.telefone;
@@ -787,6 +790,14 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
+        // Sincronizar telefone ↔ whatsapp: se um for atualizado e o outro não, copiar
+        if (data.telefone !== undefined || data.whatsapp !== undefined) {
+          const clienteAtual = await getClienteById(id);
+          const novoTelefone = data.telefone ?? clienteAtual?.telefone ?? '';
+          const novoWhatsapp = data.whatsapp ?? clienteAtual?.whatsapp ?? '';
+          data.telefone = novoTelefone || novoWhatsapp || data.telefone;
+          data.whatsapp = novoWhatsapp || novoTelefone || data.whatsapp;
+        }
         await updateCliente(id, data as any);
         return { success: true };
       }),

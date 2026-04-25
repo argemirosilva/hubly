@@ -333,11 +333,11 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Telefone</Label>
-                    <Input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} placeholder="(11) 99999-9999" />
+                    <Input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} onBlur={e => setForm(f => ({ ...f, telefone: e.target.value, whatsapp: f.whatsapp || e.target.value }))} placeholder="(11) 99999-9999" />
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">WhatsApp</Label>
-                    <Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
+                    <Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} onBlur={e => setForm(f => ({ ...f, whatsapp: e.target.value, telefone: f.telefone || e.target.value }))} placeholder="(11) 99999-9999" />
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">Email</Label>

@@ -432,6 +432,9 @@ export default function Clientes() {
 // ─── Formulário reutilizável ────────────────────────────────────────────────
 function ClienteForm({ form, onChange }: { form: FormCliente; onChange: (f: FormCliente) => void }) {
   const set = (k: keyof FormCliente, v: string) => onChange({ ...form, [k]: v });
+  // Sincroniza telefone ↔ whatsapp: ao sair do campo, copia para o outro se estiver vazio
+  const syncTelefone = (v: string) => onChange({ ...form, telefone: v, whatsapp: form.whatsapp || v });
+  const syncWhatsapp = (v: string) => onChange({ ...form, whatsapp: v, telefone: form.telefone || v });
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
       <div className="sm:col-span-2">
@@ -440,11 +443,11 @@ function ClienteForm({ form, onChange }: { form: FormCliente; onChange: (f: Form
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Telefone</Label>
-        <Input value={form.telefone} onChange={e => set("telefone", e.target.value)} placeholder="(11) 99999-9999" />
+        <Input value={form.telefone} onChange={e => set("telefone", e.target.value)} onBlur={e => syncTelefone(e.target.value)} placeholder="(11) 99999-9999" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp</Label>
-        <Input value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} placeholder="(11) 99999-9999" />
+        <Input value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} onBlur={e => syncWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">Email</Label>
