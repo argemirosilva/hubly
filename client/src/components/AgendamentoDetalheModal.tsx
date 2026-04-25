@@ -1649,15 +1649,15 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             <p className="text-[11px] text-muted-foreground">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
           </div>
         ) : null}
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => { setPreviewMensagem(null); setPreviewEnvioId(null); }}>Cancelar</Button>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
           <Button
             onClick={() => { if (previewMensagem) { setReenvioId(previewMensagem.id); reenviarMensagemMut.mutate({ envioId: previewMensagem.id }); } }}
             disabled={reenviarMensagemMut.isPending || previewLoading || !previewMensagem}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
           >
             {reenviarMensagemMut.isPending ? 'Enviando...' : 'Confirmar Reenvio'}
           </Button>
+          <Button variant="outline" className="w-full" onClick={() => { setPreviewMensagem(null); setPreviewEnvioId(null); }}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
