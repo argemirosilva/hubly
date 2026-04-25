@@ -2089,6 +2089,34 @@ export const appRouter = router({
         return rows;
       }),
 
+    // Preview de reenvio: retorna a mensagem com link de confirmação regenerado se necessário
+    previewReenvio: protectedProcedure
+      .input(z.object({ envioId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        const envio = await getEnvioById(input.envioId, empresa.id);
+        if (!envio) throw new TRPCError({ code: "NOT_FOUND", message: "Envio não encontrado" });
+        let mensagemFinal = envio.mensagem ?? '';
+        let linkRegenerado = false;
+        if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
+          try {
+            const { gerarTokenConfirmacao } = await import('./confirmacao.js');
+            const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
+            const linkConfirmacao = `${origin}/confirmar/${token}`;
+            mensagemFinal = mensagemFinal.replace(
+              /(confirmar sua presença[\s\S]*?)(\n\n|\nPara|\n\*Para)/,
+              `$1\n${linkConfirmacao}$2`
+            );
+            linkRegenerado = true;
+          } catch (e) {
+            console.error('[previewReenvio] Falha ao regenerar link:', e);
+          }
+        }
+        return { mensagem: mensagemFinal, telefone: envio.telefone, automacaoNome: envio.automacaoNome, linkRegenerado };
+      }),
+
     // Adicionar pagamento parcial
     addPagamento: protectedProcedure
       .input(z.object({
@@ -3292,16 +3320,34 @@ export const appRouter = router({
 
         const envio = await getEnvioById(input.envioId, empresa.id);
         if (!envio) throw new TRPCError({ code: "NOT_FOUND", message: "Envio não encontrado" });
-        if (envio.status !== "falhou") throw new TRPCError({ code: "BAD_REQUEST", message: "Apenas envios com falha podem ser reenviados" });
 
         // Tentar reenviar via WhatsApp (roteamento inteligente: Pro=Z-API, demais=Baileys)
         if (!envio.telefone || !envio.mensagem) {
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Dados insuficientes para reenvio" });
         }
 
+        // Regenerar link de confirmação se a mensagem contiver o placeholder vazio ou link ausente
+        let mensagemFinal = envio.mensagem;
+        if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
+          try {
+            const { gerarTokenConfirmacao } = await import('./confirmacao.js');
+            const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
+            const linkConfirmacao = `${origin}/confirmar/${token}`;
+            // Inserir o link logo após a linha que pede confirmação
+            mensagemFinal = mensagemFinal.replace(
+              /(confirmar sua presença[\s\S]*?)(\n\n|\nPara|\n\*Para)/,
+              `$1\n${linkConfirmacao}$2`
+            );
+            console.log(`[Reenvio] Link de confirmação regenerado para agendamento ${envio.agendamentoId}: ${linkConfirmacao}`);
+          } catch (e) {
+            console.error('[Reenvio] Falha ao regenerar link de confirmação:', e);
+          }
+        }
+
         try {
           const { routedSendMessage } = await import("./whatsapp-router");
-          await routedSendMessage(empresa.id, envio.telefone, envio.mensagem);
+          await routedSendMessage(empresa.id, envio.telefone, mensagemFinal);
 
           // Registrar novo envio bem-sucedido
           await registrarEnvioAutomacao({
@@ -3312,11 +3358,12 @@ export const appRouter = router({
             clienteNome: envio.clienteNome ?? undefined,
             telefone: envio.telefone,
             canal: envio.canal,
-            mensagem: envio.mensagem,
+            mensagem: mensagemFinal,
             status: "enviado",
+            agendamentoId: envio.agendamentoId ?? undefined,
           });
 
-          return { success: true };
+          return { success: true, mensagem: mensagemFinal };
         } catch (err: any) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Falha no reenvio: ${err?.message ?? "erro desconhecido"}` });
         }

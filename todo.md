@@ -2278,3 +2278,7 @@
 - [x] Corrigido erro "enviold undefined" — botão agora passa `{ envioId: m.id }` (campo correto)
 - [x] Modal de preview adicionado: mostra nome da automação, telefone do cliente e texto completo da mensagem antes de confirmar o reenvio
 - [x] 301/301 testes passando
+
+## Bug: Reenvio não regenera link de confirmação
+- [ ] procedure reenviarMensagem deve regenerar {{link_confirmacao}} na hora do reenvio em vez de usar o texto salvo (que pode estar vazio)
+- [ ] Preview no modal deve mostrar a mensagem com o link já regenerado
