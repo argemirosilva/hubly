@@ -2256,3 +2256,10 @@
 - [x] NovaAgendaModal: campo Fim agora é somente leitura (disabled) com label "(automático)", atualiza conforme serviços são adicionados/removidos
 - [x] EditarAgendamentoModal: idem
 - [x] 301/301 testes passando
+
+## Bug: Comissões com problemas
+- [x] Bug 1: Julia Alves tinha 2 comissões para agendamento 450015 (race condition no duplo clique). Comissão duplicada 120003 deletada do banco.
+- [x] Bug 2: Maria Isabella tinha comissões indevidas de R$350 para agendamentos com desconto 100%. IDs 120001 e 120002 deletadas do banco.
+- [x] Código corrigido: fator de desconto proporcional aplicado antes do cálculo de comissão (itens e fallback)
+- [x] Código corrigido: pular criação de comissão quando valor após desconto é R$0
+- [x] 301/301 testes passando

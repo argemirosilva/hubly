@@ -1467,11 +1467,17 @@ export const appRouter = router({
                   const percentualDona = parseFloat(String(empresa.percentualDona ?? 0));
 
                   if (itens.length > 0) {
+                    // Calcular fator de desconto proporcional do agendamento
+                    const descontoTotal = parseFloat(String(agendamento.desconto ?? 0));
+                    const valorBrutoTotal = itens.reduce((s, i) => s + parseFloat(String(i.valorUnitario ?? 0)), 0);
+                    const fatorDesconto = valorBrutoTotal > 0 ? Math.max(0, 1 - (descontoTotal / valorBrutoTotal)) : 0;
+
                     // Agrupar itens por profissional
                     const itensPorProfissional = new Map<number, { valorTotal: number; nomes: string[] }>();
                     for (const item of itens) {
                       const profId = item.profissionalId ?? agendamento.profissionalId ?? 0;
-                      const valor = parseFloat(String(item.valorUnitario ?? 0));
+                      const valorBruto = parseFloat(String(item.valorUnitario ?? 0));
+                      const valor = valorBruto * fatorDesconto; // aplica desconto proporcional
                       const servNome = todosServicos.find(s => s.id === item.servicoId)?.nome ?? 'Serviço';
                       if (!itensPorProfissional.has(profId)) {
                         itensPorProfissional.set(profId, { valorTotal: 0, nomes: [] });
@@ -1482,6 +1488,11 @@ export const appRouter = router({
                     }
                     // Criar comissão para cada profissional
                     for (const [profId, { valorTotal }] of itensPorProfissional) {
+                      // Pular se valor líquido é zero (ex: agendamento com 100% de desconto)
+                      if (valorTotal <= 0) {
+                        console.log(`[Comissao] Pulando prof ${profId}: valor após desconto = R$ 0,00`);
+                        continue;
+                      }
                       const prof = todosProfissionais.find(p => p.id === profId);
                       // R3: fallback = 0, não percentualDona
                       const percentual = parseFloat(String(prof?.percentualComissao ?? 0));
@@ -1512,25 +1523,33 @@ export const appRouter = router({
                     // R3: fallback = 0, não percentualDona
                     const percentual = parseFloat(String(prof?.percentualComissao ?? 0));
                     if (percentual > 0) {
-                      const valorServico = parseFloat(String(agendamento.valorTotal ?? 0));
-                      const taxaMaquininha = calcularTaxaPagamento(valorServico);
-                      const valorLiquido = valorServico - taxaMaquininha;
-                      const valorComissao = valorLiquido * (percentual / 100);
-                      const receitaDona = valorLiquido * (percentualDona / 100);
-                      const tipoPag = pagamentos.length > 0 ? (pagamentos[0].meioPagamento ?? 'outro') : 'outro';
-                      await createComissao({
-                        empresaId: empresa.id,
-                        profissionalId: agendamento.profissionalId,
-                        agendamentoId: id,
-                        valorServico: valorServico.toFixed(2),
-                        percentualComissao: percentual.toFixed(2),
-                        tipoPagamento: tipoPag,
-                        taxaMaquininha: taxaMaquininha.toFixed(2),
-                        custoReposicao: '0.00',
-                        valorLiquido: valorLiquido.toFixed(2),
-                        valorComissao: valorComissao.toFixed(2),
-                        receitaDona: receitaDona.toFixed(2),
-                      } as any);
+                      // Aplicar desconto do agendamento no valor do serviço
+                      const valorBruto = parseFloat(String(agendamento.valorTotal ?? 0));
+                      const descontoAg = parseFloat(String(agendamento.desconto ?? 0));
+                      const valorServico = Math.max(0, valorBruto - descontoAg);
+                      // Pular se valor após desconto é zero
+                      if (valorServico <= 0) {
+                        console.log(`[Comissao] Pulando prof ${agendamento.profissionalId}: valor após desconto = R$ 0,00`);
+                      } else {
+                        const taxaMaquininha = calcularTaxaPagamento(valorServico);
+                        const valorLiquido = valorServico - taxaMaquininha;
+                        const valorComissao = valorLiquido * (percentual / 100);
+                        const receitaDona = valorLiquido * (percentualDona / 100);
+                        const tipoPag = pagamentos.length > 0 ? (pagamentos[0].meioPagamento ?? 'outro') : 'outro';
+                        await createComissao({
+                          empresaId: empresa.id,
+                          profissionalId: agendamento.profissionalId,
+                          agendamentoId: id,
+                          valorServico: valorServico.toFixed(2),
+                          percentualComissao: percentual.toFixed(2),
+                          tipoPagamento: tipoPag,
+                          taxaMaquininha: taxaMaquininha.toFixed(2),
+                          custoReposicao: '0.00',
+                          valorLiquido: valorLiquido.toFixed(2),
+                          valorComissao: valorComissao.toFixed(2),
+                          receitaDona: receitaDona.toFixed(2),
+                        } as any);
+                      }
                     }
                   }
                 }
