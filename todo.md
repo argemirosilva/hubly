@@ -171,6 +171,9 @@
 - [x] Template padrão "Agradecimento pós-atendimento" criado para gatilho agendamento_concluido
 - [x] Template provisionado automaticamente para empresas existentes e novas
 - [x] Manual atualizado com o novo template na lista de templates prontos
+- [x] Sincronização automática do Pipeline ao provisionar automações (função sincronizarPipelineParaEmpresa)
+- [x] Limpeza de 25 pipelines duplicados da empresa Maguie (mantido pipeline 120001)
+- [x] Vínculos statusVinculo configurados: Pré-Agendamento→agendamento_criado, Confirmação→agendamento_confirmado, Pós-Atendimento→agendamento_concluido, Cancelado pelo cliente→agendamento_cancelado_pelo_cliente
 
 ## Bugs (v5)
 - [x] Perfil: erro ao salvar — reservaPercentual enviado como number mas schema espera string

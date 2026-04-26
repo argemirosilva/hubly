@@ -6,12 +6,7 @@
  * passa a false e o template original deixa de ser referência.
  */
 
-import { createAutomacao, getAutomacaoByEvento } from "./db";
-import {
-  createPipeline,
-  createColuna,
-  getPipelinesByEmpresa,
-} from "./db";
+import { createAutomacao, getAutomacaoByEvento, getPipelinesByEmpresa, createPipeline, createColuna, getColunasByPipeline } from "./db";
 
 // ─── DEFINIÇÃO DOS TEMPLATES ─────────────────────────────────────────────────
 
@@ -287,6 +282,84 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
  * Cria as automações default para uma nova empresa.
  * Só deve ser chamado ao criar empresa — empresas existentes não são afetadas.
  */
+
+// ─── SINCRONIZAÇÃO DE PIPELINE ────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<string, { label: string; cor: string }> = {
+  agendamento_criado: { label: "Agendado", cor: "#6366f1" },
+  pre_agendamento: { label: "Pré-agendado", cor: "#8b5cf6" },
+  agendamento_confirmado: { label: "Confirmado", cor: "#10b981" },
+  agendamento_cancelado: { label: "Cancelado", cor: "#ef4444" },
+  agendamento_cancelado_pelo_cliente: { label: "Cancelado pelo cliente", cor: "#f97316" },
+  agendamento_concluido: { label: "Concluído", cor: "#059669" },
+};
+
+/**
+ * Sincroniza as colunas do pipeline principal de uma empresa com as automações de evento ativas.
+ * Cria colunas vinculadas para cada evento que ainda não tem coluna. Idempotente.
+ */
+export async function sincronizarPipelineParaEmpresa(empresaId: number): Promise<void> {
+  try {
+    const db = await (await import('./db')).getDb();
+    if (!db) return;
+
+    const { automacoes: automacoesTable, pipelineColunas } = await import('../drizzle/schema');
+    const { eq, and } = await import('drizzle-orm');
+
+    const pipelines = await getPipelinesByEmpresa(empresaId);
+    if (!pipelines.length) return;
+    const pipeline = pipelines[0];
+
+    const automacoesAtivas = await db
+      .select()
+      .from(automacoesTable)
+      .where(and(eq(automacoesTable.empresaId, empresaId), eq(automacoesTable.ativo, true)));
+
+    const eventosAtivos = automacoesAtivas
+      .filter((a) => a.tipoGatilho === 'evento' && a.evento && STATUS_CONFIG[a.evento])
+      .map((a) => a.evento!);
+
+    const colunasAtuais = await getColunasByPipeline(pipeline.id);
+    const colunasVinculadas = colunasAtuais
+      .filter((c) => (c as any).statusVinculo)
+      .map((c) => (c as any).statusVinculo as string);
+
+    let colunasAdicionadas = 0;
+    for (const evento of eventosAtivos) {
+      if (colunasVinculadas.includes(evento)) continue;
+      const cfg = STATUS_CONFIG[evento];
+      const maxOrdem = colunasAtuais.reduce((m, c) => Math.max(m, c.ordem), -1);
+      await createColuna({
+        pipelineId: pipeline.id,
+        empresaId,
+        nome: cfg.label,
+        cor: cfg.cor,
+        ordem: maxOrdem + 1 + colunasAdicionadas,
+        statusVinculo: evento,
+      } as any);
+      colunasAdicionadas++;
+      console.log(`[Templates] Pipeline: coluna "${cfg.label}" vinculada a "${evento}" para empresa ${empresaId}`);
+    }
+
+    // Remover vínculo de colunas cujas automações foram desativadas
+    for (const coluna of colunasAtuais) {
+      const sv = (coluna as any).statusVinculo;
+      if (sv && !eventosAtivos.includes(sv)) {
+        await db
+          .update(pipelineColunas)
+          .set({ statusVinculo: null } as any)
+          .where(eq(pipelineColunas.id, coluna.id));
+      }
+    }
+
+    if (colunasAdicionadas > 0) {
+      console.log(`[Templates] ${colunasAdicionadas} coluna(s) adicionada(s) ao pipeline da empresa ${empresaId}`);
+    }
+  } catch (err) {
+    console.error(`[Templates] Erro ao sincronizar pipeline para empresa ${empresaId}:`, err);
+  }
+}
+
 export async function provisionarAutomacoesDefault(empresaId: number): Promise<void> {
   try {
     const automacaoIds: { id: number; nome: string; tipoGatilho: string; evento?: string }[] = [];
@@ -320,6 +393,9 @@ export async function provisionarAutomacoesDefault(empresaId: number): Promise<v
 
     // Gerar pipeline default baseado nas automações criadas
     await gerarPipelineDefault(empresaId, automacaoIds);
+
+    // Sincronizar colunas do pipeline com as automações de evento criadas
+    await sincronizarPipelineParaEmpresa(empresaId);
 
     console.log(`[Templates] ${AUTOMATION_TEMPLATES.length} automações + pipeline criados para empresa ${empresaId}`);
   } catch (err) {
@@ -422,6 +498,9 @@ export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise
         totalCriados++;
         console.log(`[Templates] Criada automação "${template.nome}" para empresa ${empresa.nome} (${empresa.id})`);
       }
+
+      // Sincronizar pipeline desta empresa após provisionar novas automações
+      await sincronizarPipelineParaEmpresa(empresa.id);
     }
 
     if (totalCriados > 0) {
