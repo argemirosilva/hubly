@@ -103,7 +103,7 @@ import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
 import { nanoid } from "nanoid";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
-import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray } from "drizzle-orm";
+import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
 
 /**
  * Extrai midiaUrl do flowJson de uma automação.
@@ -5234,6 +5234,101 @@ export const appRouter = router({
         if (tokenRow.usadoEm) return { status: 'ja_confirmado' as const, usadoEm: tokenRow.usadoEm, ...dadosExtras };
         if (tokenRow.expiresAt < agora) return { status: 'expirado' as const, expiresAt: tokenRow.expiresAt, ...dadosExtras };
         return { status: 'pendente' as const, ...dadosExtras };
+      }),
+
+    /** Busca detalhes completos do agendamento pelo token (para a página de confirmação) */
+    detalhes: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        const { tokensConfirmacao: tbl, agendamentos: agTbl, empresas: empTbl, clientes: cliTbl, profissionais: profTbl, servicos: svcTbl, agendamentoItens: itensTbl } = await import('../drizzle/schema.js');
+        const agora = new Date();
+        const [tokenRow] = await db.select().from(tbl).where(eq(tbl.token, input.token)).limit(1);
+        if (!tokenRow) return null;
+        const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+        if (!ag) return null;
+        const [empresa] = await db.select({
+          nome: empTbl.nome, logoUrl: empTbl.logoUrl, corPrimaria: empTbl.corPrimaria,
+          corSecundaria: empTbl.corSecundaria, whatsappNumero: empTbl.whatsappNumero, telefone: empTbl.telefone,
+        }).from(empTbl).where(eq(empTbl.id, tokenRow.empresaId)).limit(1);
+        const [cliente] = await db.select({ nome: cliTbl.nome }).from(cliTbl).where(eq(cliTbl.id, ag.clienteId)).limit(1);
+        const [profissional] = ag.profissionalId
+          ? await db.select({ nome: profTbl.nome }).from(profTbl).where(eq(profTbl.id, ag.profissionalId)).limit(1)
+          : [null];
+        const itens = await db.select({ nomeServico: svcTbl.nome, duracaoMinutos: svcTbl.duracaoMinutos })
+          .from(itensTbl)
+          .innerJoin(svcTbl, eq(itensTbl.servicoId, svcTbl.id))
+          .where(eq(itensTbl.agendamentoId, ag.id));
+        const [servicoPrincipal] = itens.length === 0
+          ? await db.select({ nomeServico: svcTbl.nome, duracaoMinutos: svcTbl.duracaoMinutos }).from(svcTbl).where(eq(svcTbl.id, ag.servicoId)).limit(1)
+          : [null];
+        const servicos = itens.length > 0 ? itens : (servicoPrincipal ? [servicoPrincipal] : []);
+        const statusToken = tokenRow.usadoEm ? 'ja_confirmado' : tokenRow.expiresAt < agora ? 'expirado' : ag.status === 'cancelado' ? 'cancelado' : 'pendente';
+        return {
+          token: input.token,
+          status: statusToken,
+          agendamentoStatus: ag.status,
+          data: ag.data,
+          horaInicio: String(ag.horaInicio).slice(0, 5),
+          horaFim: String(ag.horaFim).slice(0, 5),
+          valorTotal: ag.valorTotal,
+          observacoes: ag.observacoes,
+          clienteNome: cliente?.nome ?? null,
+          profissionalNome: profissional?.nome ?? null,
+          servicos,
+          empresa: empresa ? {
+            nome: empresa.nome,
+            logoUrl: empresa.logoUrl,
+            corPrimaria: empresa.corPrimaria ?? '#1a3a6b',
+            corSecundaria: empresa.corSecundaria ?? '#e8d5c4',
+            contato: empresa.whatsappNumero ?? empresa.telefone ?? null,
+          } : null,
+          usadoEm: tokenRow.usadoEm,
+          expiresAt: tokenRow.expiresAt,
+        };
+      }),
+
+    /** Confirma o agendamento via token (chamado pelo botão na página) */
+    confirmar: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DB indisponível' });
+        const { tokensConfirmacao: tbl, agendamentos: agTbl } = await import('../drizzle/schema.js');
+        const agora = new Date();
+        const [tokenRow] = await db.select().from(tbl).where(and(eq(tbl.token, input.token), isNull(tbl.usadoEm), gt(tbl.expiresAt, agora))).limit(1);
+        if (!tokenRow) {
+          const [usado] = await db.select().from(tbl).where(eq(tbl.token, input.token)).limit(1);
+          if (usado?.usadoEm) return { resultado: 'ja_confirmado' as const };
+          return { resultado: 'expirado' as const };
+        }
+        await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
+        await db.update(agTbl).set({ status: 'confirmado', confirmadoEm: agora }).where(eq(agTbl.id, tokenRow.agendamentoId));
+        try {
+          const { notificarConfirmacaoPublica } = await import('./confirmacao.js');
+          const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+          if (ag) await notificarConfirmacaoPublica(ag, tokenRow.empresaId, db);
+        } catch (e) { console.error('[confirmar] Erro ao notificar:', e); }
+        return { resultado: 'confirmado' as const };
+      }),
+
+    /** Cancela o agendamento via token */
+    cancelar: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DB indisponível' });
+        const { tokensConfirmacao: tbl, agendamentos: agTbl } = await import('../drizzle/schema.js');
+        const agora = new Date();
+        const [tokenRow] = await db.select().from(tbl).where(eq(tbl.token, input.token)).limit(1);
+        if (!tokenRow) return { resultado: 'invalido' as const };
+        const [ag] = await db.select({ status: agTbl.status }).from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+        if (!ag || ag.status === 'cancelado') return { resultado: 'ja_cancelado' as const };
+        if (ag.status === 'concluido') return { resultado: 'ja_concluido' as const };
+        await db.update(agTbl).set({ status: 'cancelado' }).where(eq(agTbl.id, tokenRow.agendamentoId));
+        await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
+        return { resultado: 'cancelado' as const };
       }),
   }),
 

@@ -2282,3 +2282,15 @@
 ## Bug: Reenvio não regenera link de confirmação
 - [ ] procedure reenviarMensagem deve regenerar {{link_confirmacao}} na hora do reenvio em vez de usar o texto salvo (que pode estar vazio)
 - [ ] Preview no modal deve mostrar a mensagem com o link já regenerado
+
+## Página de Confirmação de Agendamento Redesenhada
+- [x] Procedure pública confirmacao.detalhes: retorna dados completos do agendamento pelo token
+- [x] Procedure pública confirmacao.confirmar: confirma agendamento via botão na página
+- [x] Procedure pública confirmacao.cancelar: cancela agendamento via botão na página
+- [x] Exportar notificarConfirmacaoPublica do confirmacao.ts
+- [x] ConfirmarAgendamento.tsx redesenhado com visual do PortalCliente (header com logo, footer Hubly)
+- [x] Página mostra detalhes: data/hora, serviço(s), profissional, valor, observações
+- [x] Botões Confirmar Presença e Não poderei comparecer com loading states
+- [x] Telas de resultado personalizadas por ação (confirmado, cancelado, expirado, etc.)
+- [x] Links clicáveis no preview de reenvio de mensagem
+- [x] Botões do modal de preview em coluna (mobile-friendly)

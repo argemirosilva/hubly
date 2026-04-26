@@ -118,6 +118,13 @@ export function registerConfirmacaoRoute(app: Express) {
 }
 
 // ─── Notificar admin e profissional após confirmação ─────────────────────────
+export async function notificarConfirmacaoPublica(
+  ag: typeof agendamentos.$inferSelect,
+  empresaId: number,
+  db: Awaited<ReturnType<typeof getDb>>
+) {
+  return notificarConfirmacao(ag, empresaId, db);
+}
 async function notificarConfirmacao(
   ag: typeof agendamentos.$inferSelect,
   empresaId: number,
