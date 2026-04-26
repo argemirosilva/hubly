@@ -254,11 +254,11 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     corpoMensagem:
       "💜 *Obrigada pela sua visita!*\n\n" +
       "Olá, *{{nome_cliente}}*! Foi um prazer te atender hoje. 😊\n\n" +
-      "Esperamos que tenha adorado o resultado! Quando quiser voltar, é só agendar:\n{{link_agendamento}}\n\n" +
+      "Esperamos que tenha adorado o resultado e te vemos em breve!\n\n" +
       "_{{empresa}}_",
     flowJson: buildFlowJson(
       { id: "t1", tipo: "evento_agendamento_concluido", label: "Agendamento concluído" },
-      { id: "a1", label: "Agradecimento", tipo: "enviar_whatsapp", mensagem: "💜 *Obrigada pela sua visita!*\n\nOlá, *{{nome_cliente}}*! Foi um prazer te atender hoje. 😊\n\nEsperamos que tenha adorado o resultado! Quando quiser voltar, é só agendar:\n{{link_agendamento}}\n\n_{{empresa}}_" },
+      { id: "a1", label: "Agradecimento", tipo: "enviar_whatsapp", mensagem: "💜 *Obrigada pela sua visita!*\n\nOlá, *{{nome_cliente}}*! Foi um prazer te atender hoje. 😊\n\nEsperamos que tenha adorado o resultado e te vemos em breve!\n\n_{{empresa}}_" },
     ),
   },
 
