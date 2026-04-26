@@ -2267,7 +2267,14 @@ export async function deleteAgendamentoCompleto(agendamentoId: number): Promise<
   await db.delete(pipelineCartoes).where(eq(pipelineCartoes.agendamentoId, agendamentoId));
   // 6. Remover tokens de confirmação
   await db.delete(tokensConfirmacao).where(eq(tokensConfirmacao.agendamentoId, agendamentoId));
-  // 7. Remover o agendamento em si
+  // 7. Cancelar envios pendentes/agendados para este agendamento (evitar mensagens fantasma)
+  await db.update(historicoEnviosAutomacao)
+    .set({ status: 'cancelado' as any })
+    .where(and(
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      sql`${historicoEnviosAutomacao.status} IN ('agendado', 'pendente')`,
+    ));
+  // 8. Remover o agendamento em si
   await db.delete(agendamentos).where(eq(agendamentos.id, agendamentoId));
 }
 

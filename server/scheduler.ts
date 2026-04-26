@@ -1573,6 +1573,14 @@ async function preRegistrarEnviosPendentes() {
           const dataFormatadaPre = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
+          // Gerar token de confirmação para incluir link na mensagem
+          let _preLinkConfirmacao = '';
+          try {
+            const _preToken = await gerarTokenConfirmacao(ag.id, ag.empresaId);
+            _preLinkConfirmacao = `${_preOrigin}/confirmar/${_preToken}`;
+          } catch (e) {
+            console.error(`[Scheduler] Pré-registro: ERRO ao gerar token para ag. ${ag.id}:`, e);
+          }
           const preTemplateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -1583,6 +1591,7 @@ async function preRegistrarEnviosPendentes() {
             empresa: ag.empresaNome ?? '',
             valor: `R$ ${valorTotalPre.toFixed(2).replace('.', ',')}`,
             link_agendamento: _preLink,
+            link_confirmacao: _preLinkConfirmacao,
             observacoes: ag.observacoes ?? '',
           };
           if (!automacao.corpoMensagem) continue;
