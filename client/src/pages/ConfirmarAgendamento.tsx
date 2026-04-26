@@ -257,8 +257,13 @@ export default function ConfirmarAgendamento() {
 
   // ── Tela principal: detalhes + botões ─────────────────────────────────────
   const dataFormatada = data.data ? formatarDataCompleta(data.data) : null;
-  const valorNum = parseFloat(data.valorTotal ?? "0");
-  const temValor = !isNaN(valorNum) && valorNum > 0;
+  // Usar valorFinal (já com desconto aplicado) se disponível, senão calcular
+  const valorFinal = data.valorFinal ?? data.valorTotal;
+  const valorNum = parseFloat(valorFinal ?? "0");
+  const temDesconto = parseFloat(data.desconto ?? "0") > 0;
+  // Mostrar valor se houver valorTotal definido (mesmo que seja 0 por desconto total)
+  const valorBrutoNum = parseFloat(data.valorTotal ?? "0");
+  const temValor = !isNaN(valorBrutoNum) && valorBrutoNum > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -331,7 +336,12 @@ export default function ConfirmarAgendamento() {
               {temValor && (
                 <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: corPrimaria + "0f", border: `1px solid ${corPrimaria}22` }}>
                   <span className="text-sm font-medium text-slate-600">Valor total</span>
-                  <span className="font-bold text-base" style={{ color: corPrimaria }}>{formatCurrency(data.valorTotal)}</span>
+                  <span className="font-bold text-base" style={{ color: corPrimaria }}>
+                    {valorNum === 0 ? 'R$ 0,00' : formatCurrency(valorFinal)}
+                  </span>
+                  {temDesconto && (
+                    <span className="text-xs text-muted-foreground line-through ml-2">{formatCurrency(data.valorTotal)}</span>
+                  )}
                 </div>
               )}
 

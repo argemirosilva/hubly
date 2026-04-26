@@ -5265,6 +5265,10 @@ export const appRouter = router({
           : [null];
         const servicos = itens.length > 0 ? itens : (servicoPrincipal ? [servicoPrincipal] : []);
         const statusToken = tokenRow.usadoEm ? 'ja_confirmado' : tokenRow.expiresAt < agora ? 'expirado' : ag.status === 'cancelado' ? 'cancelado' : 'pendente';
+        // Calcular valor final com desconto aplicado
+        const valorBruto = parseFloat(String(ag.valorTotal ?? '0'));
+        const descontoAg = parseFloat(String(ag.desconto ?? '0'));
+        const valorFinal = Math.max(0, valorBruto - descontoAg);
         return {
           token: input.token,
           status: statusToken,
@@ -5273,6 +5277,8 @@ export const appRouter = router({
           horaInicio: String(ag.horaInicio).slice(0, 5),
           horaFim: String(ag.horaFim).slice(0, 5),
           valorTotal: ag.valorTotal,
+          desconto: ag.desconto ?? '0',
+          valorFinal: valorFinal.toFixed(2),
           observacoes: ag.observacoes,
           clienteNome: cliente?.nome ?? null,
           profissionalNome: profissional?.nome ?? null,
@@ -5305,11 +5311,85 @@ export const appRouter = router({
         }
         await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
         await db.update(agTbl).set({ status: 'confirmado', confirmadoEm: agora }).where(eq(agTbl.id, tokenRow.agendamentoId));
+        // Buscar agendamento atualizado para notificações e automações
+        const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+        // Notificação push para admin e profissional
         try {
           const { notificarConfirmacaoPublica } = await import('./confirmacao.js');
-          const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
           if (ag) await notificarConfirmacaoPublica(ag, tokenRow.empresaId, db);
         } catch (e) { console.error('[confirmar] Erro ao notificar:', e); }
+        // Disparar automação agendamento_confirmado (mesma lógica do painel interno)
+        if (ag) {
+          try {
+            const { empresas: empTbl2, clientes: cliTbl2, profissionais: profTbl2, servicos: svcTbl2, agendamentoItens: itensTbl2 } = await import('../drizzle/schema.js');
+            const { getAutomacoesByEvento, registrarEnvioAutomacao } = await import('./db.js');
+            const automacoesConfirmado = await getAutomacoesByEvento(tokenRow.empresaId, 'agendamento_confirmado');
+            if (automacoesConfirmado.length > 0) {
+              const [empresa2] = await db.select({ nome: empTbl2.nome, portalSlug: empTbl2.portalSlug }).from(empTbl2).where(eq(empTbl2.id, tokenRow.empresaId)).limit(1);
+              const [cliente2] = await db.select({ id: cliTbl2.id, nome: cliTbl2.nome, telefone: cliTbl2.telefone, tags: cliTbl2.tags }).from(cliTbl2).where(eq(cliTbl2.id, ag.clienteId)).limit(1);
+              const [profissional2] = ag.profissionalId ? await db.select({ nome: profTbl2.nome }).from(profTbl2).where(eq(profTbl2.id, ag.profissionalId)).limit(1) : [null];
+              const [servico2] = ag.servicoId ? await db.select({ nome: svcTbl2.nome, categoria: svcTbl2.categoria }).from(svcTbl2).where(eq(svcTbl2.id, ag.servicoId)).limit(1) : [null];
+              if (cliente2?.telefone) {
+                const dataPartes = String(ag.data).split('-');
+                const dataFormatada2 = dataPartes.length === 3 ? `${dataPartes[2]}/${dataPartes[1]}/${dataPartes[0]}` : String(ag.data);
+                const valorBruto2 = parseFloat(String(ag.valorTotal ?? '0'));
+                const descontoAg2 = parseFloat(String(ag.desconto ?? '0'));
+                const valorFinal2 = Math.max(0, valorBruto2 - descontoAg2);
+                const origin2 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+                const linkAgendamento2 = empresa2?.portalSlug ? `${origin2}/agendar/${empresa2.portalSlug}` : `${origin2}/agendar?e=${tokenRow.empresaId}`;
+                const templateVarsConf = {
+                  nome_cliente: cliente2.nome,
+                  primeiro_nome: cliente2.nome.split(' ')[0],
+                  servico: servico2?.nome ?? '',
+                  data: dataFormatada2,
+                  hora: `${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
+                  profissional: profissional2?.nome ?? '',
+                  empresa: empresa2?.nome ?? '',
+                  valor: `R$ ${valorFinal2.toFixed(2).replace('.', ',')}`,
+                  valor_reserva: '',
+                  link_agendamento: linkAgendamento2,
+                  link_agenda: '',
+                  observacoes: ag.observacoes ?? '',
+                };
+                // Buscar itens compostos para filtros de condição
+                const itensConf = await db.select({ servicoNome: svcTbl2.nome }).from(itensTbl2).leftJoin(svcTbl2, eq(itensTbl2.servicoId, svcTbl2.id)).where(eq(itensTbl2.agendamentoId, ag.id));
+                const todosServicosConf: string[] = servico2?.nome ? [servico2.nome] : [];
+                for (const it of itensConf) { if (it.servicoNome && !todosServicosConf.includes(it.servicoNome)) todosServicosConf.push(it.servicoNome); }
+                for (const automacaoConf of automacoesConfirmado) {
+                  if (!verificarCondicoesFlowRouter(automacaoConf.flowJson, servico2?.nome, todosServicosConf, {
+                    profissionalNome: profissional2?.nome ?? null,
+                    categoriaServico: servico2?.categoria ?? null,
+                    todasCategorias: servico2?.categoria ? [servico2.categoria] : [],
+                    valorAgendamento: valorFinal2,
+                    clienteTags: Array.isArray(cliente2.tags) ? cliente2.tags as string[] : [],
+                    totalAgendamentosCliente: 0,
+                    ultimoAgendamentoData: null,
+                  })) continue;
+                  const mensagemConf = automacaoConf.corpoMensagem ? processarVariaveisTemplate(automacaoConf.corpoMensagem, templateVarsConf) : null;
+                  if (!mensagemConf) continue;
+                  const midiaUrlConf = extrairMidiaUrl(automacaoConf.flowJson);
+                  await registrarEnvioAutomacao({
+                    empresaId: tokenRow.empresaId,
+                    agendamentoId: ag.id,
+                    automacaoId: automacaoConf.id,
+                    automacaoNome: automacaoConf.nome ?? 'Confirmação de Agendamento',
+                    clienteId: cliente2.id,
+                    clienteNome: cliente2.nome,
+                    telefone: cliente2.telefone,
+                    canal: 'whatsapp',
+                    mensagem: mensagemConf,
+                    status: 'pendente',
+                    enviarEm: new Date(),
+                    midiaUrl: midiaUrlConf ?? undefined,
+                    servicoNome: servico2?.nome ?? undefined,
+                  });
+                  console.log(`[confirmar] Automação "${automacaoConf.nome}" enfileirada para ag. ${ag.id} (${cliente2.telefone})`);
+                  try { await (await import('./db-plans.js')).incrementWhatsappCount(tokenRow.empresaId); } catch {}
+                }
+              }
+            }
+          } catch (e) { console.error('[confirmar] Erro ao disparar automação:', e); }
+        }
         return { resultado: 'confirmado' as const };
       }),
 
