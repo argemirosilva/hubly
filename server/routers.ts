@@ -5403,11 +5403,85 @@ export const appRouter = router({
         const agora = new Date();
         const [tokenRow] = await db.select().from(tbl).where(eq(tbl.token, input.token)).limit(1);
         if (!tokenRow) return { resultado: 'invalido' as const };
-        const [ag] = await db.select({ status: agTbl.status }).from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+        const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
         if (!ag || ag.status === 'cancelado') return { resultado: 'ja_cancelado' as const };
         if (ag.status === 'concluido') return { resultado: 'ja_concluido' as const };
         await db.update(agTbl).set({ status: 'cancelado' }).where(eq(agTbl.id, tokenRow.agendamentoId));
         await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
+        // Disparar automação agendamento_cancelado_pelo_cliente
+        try {
+          const { clientes: cliTbl3, empresas: empTbl3, profissionais: profTbl3, servicos: svcTbl3, agendamentoItens: itensTbl3 } = await import('../drizzle/schema.js');
+          const automacoesCancel = await getAutomacoesByEvento(tokenRow.empresaId, 'agendamento_cancelado_pelo_cliente');
+          if (automacoesCancel.length > 0) {
+            const [empresa3] = await db.select({ nome: empTbl3.nome, portalSlug: empTbl3.portalSlug }).from(empTbl3).where(eq(empTbl3.id, tokenRow.empresaId)).limit(1);
+            const [cliente3] = await db.select({ id: cliTbl3.id, nome: cliTbl3.nome, telefone: cliTbl3.telefone, tags: cliTbl3.tags }).from(cliTbl3).where(eq(cliTbl3.id, ag.clienteId)).limit(1);
+            const [profissional3] = ag.profissionalId ? await db.select({ nome: profTbl3.nome }).from(profTbl3).where(eq(profTbl3.id, ag.profissionalId)).limit(1) : [null];
+            const [servico3] = ag.servicoId ? await db.select({ nome: svcTbl3.nome, categoria: svcTbl3.categoria }).from(svcTbl3).where(eq(svcTbl3.id, ag.servicoId)).limit(1) : [null];
+            if (cliente3?.telefone) {
+              const dataPartes3 = String(ag.data).split('-');
+              const dataFormatada3 = dataPartes3.length === 3 ? `${dataPartes3[2]}/${dataPartes3[1]}/${dataPartes3[0]}` : String(ag.data);
+              const valorBruto3 = parseFloat(String(ag.valorTotal ?? '0'));
+              const descontoAg3 = parseFloat(String(ag.desconto ?? '0'));
+              const valorFinal3 = Math.max(0, valorBruto3 - descontoAg3);
+              const origin3 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+              const linkAgendamento3 = empresa3?.portalSlug ? `${origin3}/agendar/${empresa3.portalSlug}` : `${origin3}/agendar?e=${tokenRow.empresaId}`;
+              const templateVarsCancel = {
+                nome_cliente: cliente3.nome,
+                primeiro_nome: cliente3.nome.split(' ')[0],
+                servico: servico3?.nome ?? '',
+                data: dataFormatada3,
+                hora: `${String(ag.horaInicio ?? '').slice(0, 5)} – ${String(ag.horaFim ?? '').slice(0, 5)}`,
+                profissional: profissional3?.nome ?? '',
+                empresa: empresa3?.nome ?? '',
+                valor: `R$ ${valorFinal3.toFixed(2).replace('.', ',')}`,
+                valor_reserva: '',
+                link_agendamento: linkAgendamento3,
+                link_agenda: '',
+                observacoes: ag.observacoes ?? '',
+              };
+              const itensCancel = await db.select({ servicoNome: svcTbl3.nome }).from(itensTbl3).leftJoin(svcTbl3, eq(itensTbl3.servicoId, svcTbl3.id)).where(eq(itensTbl3.agendamentoId, ag.id));
+              const todosServicosCancel: string[] = servico3?.nome ? [servico3.nome] : [];
+              for (const it of itensCancel) { if (it.servicoNome && !todosServicosCancel.includes(it.servicoNome)) todosServicosCancel.push(it.servicoNome); }
+              for (const automacaoCancel of automacoesCancel) {
+                if (!verificarCondicoesFlowRouter(automacaoCancel.flowJson, servico3?.nome, todosServicosCancel, {
+                  profissionalNome: profissional3?.nome ?? null,
+                  categoriaServico: servico3?.categoria ?? null,
+                  todasCategorias: servico3?.categoria ? [servico3.categoria] : [],
+                  valorAgendamento: valorFinal3,
+                  clienteTags: Array.isArray(cliente3.tags) ? cliente3.tags as string[] : [],
+                  totalAgendamentosCliente: 0,
+                  ultimoAgendamentoData: null,
+                })) continue;
+                const mensagemCancel = automacaoCancel.corpoMensagem ? processarVariaveisTemplate(automacaoCancel.corpoMensagem, templateVarsCancel) : null;
+                if (!mensagemCancel) continue;
+                const midiaUrlCancel = extrairMidiaUrl(automacaoCancel.flowJson);
+                await registrarEnvioAutomacao({
+                  empresaId: tokenRow.empresaId,
+                  agendamentoId: ag.id,
+                  automacaoId: automacaoCancel.id,
+                  automacaoNome: automacaoCancel.nome ?? 'Cancelamento pelo cliente',
+                  clienteId: cliente3.id,
+                  clienteNome: cliente3.nome,
+                  telefone: cliente3.telefone,
+                  canal: 'whatsapp',
+                  mensagem: mensagemCancel,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                  midiaUrl: midiaUrlCancel ?? undefined,
+                  servicoNome: servico3?.nome ?? undefined,
+                });
+                console.log(`[cancelar] Automação "${automacaoCancel.nome}" enfileirada para ag. ${ag.id} (${cliente3.telefone})`);
+                try { await (await import('./db-plans.js')).incrementWhatsappCount(tokenRow.empresaId); } catch {}
+              }
+            }
+          }
+          // Notificar owner sobre cancelamento pelo cliente
+          const { notifyOwner } = await import('./_core/notification.js');
+          await notifyOwner({
+            title: `❌ Cancelamento pelo cliente`,
+            content: `Um cliente cancelou o agendamento via link de confirmação.`,
+          }).catch(() => {});
+        } catch (e) { console.error('[cancelar] Erro ao disparar automação:', e); }
         return { resultado: 'cancelado' as const };
       }),
   }),

@@ -223,7 +223,28 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
-  // 10. Aniversariante do mês
+  // 10. Cancelamento pelo cliente (via link de confirmação)
+  {
+    nome: "Cancelamento pelo cliente",
+    descricao: "Enviado ao cliente quando ele cancela o agendamento pelo link de confirmação",
+    tipoGatilho: "evento",
+    evento: "agendamento_cancelado_pelo_cliente",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "😔 *Agendamento Cancelado*\n\n" +
+      "Olá, *{{nome_cliente}}*! Recebemos o cancelamento do seu agendamento.\n\n" +
+      "📅 *Data:* {{data}}\n" +
+      "⏰ *Horário:* {{hora}}\n" +
+      "✂️ *Serviço:* {{servico}}\n\n" +
+      "Sentiremos sua falta! Quando quiser reagendar, estamos aqui:\n{{link_agendamento}}\n\n" +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_agendamento_cancelado_pelo_cliente", label: "Cancelamento pelo cliente" },
+      { id: "a1", label: "Mensagem de cancelamento", tipo: "enviar_whatsapp", mensagem: "😔 *Agendamento Cancelado*\n\nOlá, *{{nome_cliente}}*! Recebemos o cancelamento do seu agendamento.\n\n📅 *Data:* {{data}}\n⏰ *Horário:* {{hora}}\n✂️ *Serviço:* {{servico}}\n\nSentiremos sua falta! Quando quiser reagendar, estamos aqui:\n{{link_agendamento}}\n\n_{{empresa}}_" },
+    ),
+  },
+
+  // 11. Aniversariante do mês
   {
     nome: "Aniversariante do mês",
     descricao: "Mensagem especial no mês de aniversário do cliente",
@@ -330,7 +351,7 @@ async function gerarPipelineDefault(
 }
 
 /**
- * Provisiona automações de novos tipos (reserva_paga, credito_gerado) para empresas existentes
+ * Provisiona automações de novos tipos para empresas existentes
  * que ainda não possuem essas automações. Seguro para rodar múltiplas vezes (idempotente).
  */
 export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise<void> {
@@ -342,7 +363,8 @@ export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise
     const { empresas } = await import('../drizzle/schema');
     const todasEmpresas = await db.select({ id: empresas.id, nome: empresas.nome }).from(empresas);
 
-    const novosEventos = ['reserva_paga', 'credito_gerado'];
+    // Adicionar novos eventos aqui quando novos templates forem criados
+    const novosEventos = ['reserva_paga', 'credito_gerado', 'agendamento_cancelado_pelo_cliente'];
     const templatesPorEvento = new Map<string, AutomacaoTemplate>();
     for (const t of AUTOMATION_TEMPLATES) {
       if (t.evento && novosEventos.includes(t.evento)) {
