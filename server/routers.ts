@@ -1184,7 +1184,7 @@ export const appRouter = router({
             const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
             const valorServico = parseFloat(rest.valorTotal ?? '0');
             const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
-            const _portalOrigin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const _portalOrigin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
             const _linkAgendamento = empresa.portalSlug ? `${_portalOrigin}/agendar/${empresa.portalSlug}` : `${_portalOrigin}/agendar?e=${empresa.id}`;
             const templateVars = {
               nome_cliente: cliente.nome || 'Cliente',
@@ -1579,7 +1579,7 @@ export const appRouter = router({
                 const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
                 const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
                 const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
-                const _portalOrigin2 = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+                const _portalOrigin2 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
                 const _linkAgendamento2 = empresa.portalSlug ? `${_portalOrigin2}/agendar/${empresa.portalSlug}` : `${_portalOrigin2}/agendar?e=${empresa.id}`;
                 const templateVars2 = {
                   nome_cliente: cliente.nome,
@@ -2102,7 +2102,7 @@ export const appRouter = router({
         if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
           try {
             const { gerarTokenConfirmacao } = await import('./confirmacao.js');
-            const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
             const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
             const linkConfirmacao = `${origin}/confirmar/${token}`;
             mensagemFinal = mensagemFinal.replace(
@@ -3331,7 +3331,7 @@ export const appRouter = router({
         if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
           try {
             const { gerarTokenConfirmacao } = await import('./confirmacao.js');
-            const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+            const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
             const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
             const linkConfirmacao = `${origin}/confirmar/${token}`;
             // Inserir o link logo após a linha que pede confirmação
@@ -5193,7 +5193,7 @@ export const appRouter = router({
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
         const { gerarTokenConfirmacao } = await import('./confirmacao');
         const token = await gerarTokenConfirmacao(input.agendamentoId, empresa.id);
-        const origin = input.origin ?? 'https://agendei-app-bkct9rps.manus.space';
+        const origin = input.origin ?? process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
         const link = `${origin}/api/confirmar/${token}`;
         return { token, link };
       }),

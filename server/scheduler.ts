@@ -641,7 +641,7 @@ async function processarAutomacoesAgendadas() {
 
     if (todasEmpresas.length === 0) return;
 
-    const origin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+    const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
 
     for (const empresaId of todasEmpresas) {
       // Obter timezone da empresa para comparação de horaDisparo
@@ -742,7 +742,7 @@ async function processarAutomacoesAgendadas() {
             : '';
           const horaFormatada = formatarHora(ag.horaInicio);
 
-          const _schOriginDiasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _schOriginDiasAntes = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _linkAgDiasAntes = ag.empresaPortalSlug ? `${_schOriginDiasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvio,
@@ -881,7 +881,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginHorasAntes = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _schOriginHorasAntes = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _linkAgHorasAntes = ag.empresaPortalSlug ? `${_schOriginHorasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioHA,
@@ -1019,7 +1019,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginHorasApos = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _schOriginHorasApos = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _linkAgHorasApos = ag.empresaPortalSlug ? `${_schOriginHorasApos}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasApos}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioApos,
@@ -1156,7 +1156,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginDiasDepois = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _schOriginDiasDepois = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _linkAgDiasDepois = ag.empresaPortalSlug ? `${_schOriginDiasDepois}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasDepois}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioDD,
@@ -1271,7 +1271,7 @@ async function processarAniversarioMes() {
           ));
 
         const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
-        const _schOriginAniv = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+        const _schOriginAniv = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
         const _linkAgAniv = empresaData?.portalSlug ? `${_schOriginAniv}/agendar/${empresaData.portalSlug}` : `${_schOriginAniv}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesAniversario) {
@@ -1387,7 +1387,7 @@ async function processarDataFixa() {
           ));
 
         const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
-        const _schOriginCamp = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+        const _schOriginCamp = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
         const _linkAgCamp = empresaData?.portalSlug ? `${_schOriginCamp}/agendar/${empresaData.portalSlug}` : `${_schOriginCamp}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesEmpresa) {
@@ -1567,7 +1567,7 @@ async function preRegistrarEnviosPendentes() {
           if (jaExiste.length > 0) continue;
 
           // Gerar texto real da mensagem usando o template da automação
-          const _preOrigin = process.env.VITE_OAUTH_PORTAL_URL ?? 'https://agendei-app-bkct9rps.manus.space';
+          const _preOrigin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _preLink = ag.empresaPortalSlug ? `${_preOrigin}/agendar/${ag.empresaPortalSlug}` : `${_preOrigin}/agendar?e=${ag.empresaId}`;
           const valorTotalPre = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatadaPre = ag.data
