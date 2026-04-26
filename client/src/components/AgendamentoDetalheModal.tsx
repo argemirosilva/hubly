@@ -1644,7 +1644,13 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               )}
             </div>
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 overflow-y-auto">
-              <p className="text-xs text-green-900 whitespace-pre-wrap break-words">{previewMensagem.mensagem || '(sem pré-visualização disponível)'}</p>
+              <p className="text-xs text-green-900 whitespace-pre-wrap break-words">
+                {(previewMensagem.mensagem || '(sem pré-visualização disponível)').split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                  /^https?:\/\//.test(part)
+                    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline text-blue-700 break-all">{part}</a>
+                    : part
+                )}
+              </p>
             </div>
             <p className="text-[11px] text-muted-foreground shrink-0">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
           </div>
