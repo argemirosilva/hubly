@@ -167,6 +167,11 @@
 - [x] Pipeline: botões "Adicionar cartão" e "Nova coluna" removidos — pipeline gerenciado automaticamente pelas automações
 - [x] Pipeline: modal de "Nova Coluna" e variáveis não utilizadas removidos (limpeza de código)
 
+## Automação Agradecimento Pós-Atendimento
+- [x] Template padrão "Agradecimento pós-atendimento" criado para gatilho agendamento_concluido
+- [x] Template provisionado automaticamente para empresas existentes e novas
+- [x] Manual atualizado com o novo template na lista de templates prontos
+
 ## Bugs (v5)
 - [x] Perfil: erro ao salvar — reservaPercentual enviado como number mas schema espera string
 

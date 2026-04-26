@@ -616,7 +616,7 @@ const SECTIONS: Section[] = [
           "📦 PACOTE VENCENDO — Dispara quando um pacote ativo está próximo do vencimento (última sessão ou data de expiração). Ideal para oferecer renovação.",
           "📅 DATA FIXA — Dispara em uma data e hora específica do ano (ex: 24 de dezembro às 10h). Ideal para mensagens sazonais como Natal, Ano Novo ou promoções especiais.",
         ],
-        tip: "Dica de fluxo completo: crie uma automação 'Horas antes' com link de confirmação → outra 'Agendamento confirmado' com cardápio → outra 'Agendamento concluído' pedindo avaliação. Assim o cliente é acompanhado do início ao fim!",
+        tip: "Dica de fluxo completo: crie uma automação 'Horas antes' com link de confirmação → outra 'Agendamento confirmado' → outra 'Agendamento concluído' com mensagem de agradecimento. Assim o cliente é acompanhado do início ao fim!",
       },
       {
         title: "Variáveis disponíveis nas mensagens",
@@ -659,6 +659,7 @@ const SECTIONS: Section[] = [
           "Agradecimento por confirmar — enviado quando o cliente confirma pelo link.",
           "Cancelamento pela atendente — avisa o cliente quando a atendente cancela pelo painel.",
           "Cancelamento pelo cliente — resposta automática quando o cliente cancela pelo link.",
+          "Agradecimento pós-atendimento — enviado quando o agendamento é marcado como Concluído, agradecendo a visita e convidando para retornar.",
           "Reserva paga — confirma o recebimento do sinal.",
           "Crédito gerado — informa o cliente sobre crédito disponível na conta.",
           "Profissional atribuído — apresenta a profissional ao cliente.",

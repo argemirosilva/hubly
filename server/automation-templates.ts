@@ -244,7 +244,25 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
-  // 11. Aniversariante do mês
+  // 11. Agendamento concluído — mensagem de agradecimento
+  {
+    nome: "Agradecimento pós-atendimento",
+    descricao: "Envia mensagem de agradecimento quando o atendimento é concluído",
+    tipoGatilho: "evento",
+    evento: "agendamento_concluido",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "💜 *Obrigada pela sua visita!*\n\n" +
+      "Olá, *{{nome_cliente}}*! Foi um prazer te atender hoje. 😊\n\n" +
+      "Esperamos que tenha adorado o resultado! Quando quiser voltar, é só agendar:\n{{link_agendamento}}\n\n" +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_agendamento_concluido", label: "Agendamento concluído" },
+      { id: "a1", label: "Agradecimento", tipo: "enviar_whatsapp", mensagem: "💜 *Obrigada pela sua visita!*\n\nOlá, *{{nome_cliente}}*! Foi um prazer te atender hoje. 😊\n\nEsperamos que tenha adorado o resultado! Quando quiser voltar, é só agendar:\n{{link_agendamento}}\n\n_{{empresa}}_" },
+    ),
+  },
+
+  // 12. Aniversariante do mês
   {
     nome: "Aniversariante do mês",
     descricao: "Mensagem especial no mês de aniversário do cliente",
@@ -364,7 +382,7 @@ export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise
     const todasEmpresas = await db.select({ id: empresas.id, nome: empresas.nome }).from(empresas);
 
     // Adicionar novos eventos aqui quando novos templates forem criados
-    const novosEventos = ['reserva_paga', 'credito_gerado', 'agendamento_cancelado_pelo_cliente'];
+    const novosEventos = ['reserva_paga', 'credito_gerado', 'agendamento_cancelado_pelo_cliente', 'agendamento_concluido'];
     const templatesPorEvento = new Map<string, AutomacaoTemplate>();
     for (const t of AUTOMATION_TEMPLATES) {
       if (t.evento && novosEventos.includes(t.evento)) {
