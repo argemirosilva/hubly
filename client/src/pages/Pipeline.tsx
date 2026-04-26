@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { toast } from "sonner";
 import { Link } from "wouter";
 import {
-  Plus, MoreHorizontal, Pencil, Trash2, GripVertical,
+  MoreHorizontal, Pencil, Trash2, GripVertical,
   User, Calendar, DollarSign, Loader2, KanbanSquare,
   CalendarDays, UserCircle
 } from "lucide-react";
@@ -67,9 +67,6 @@ export default function Pipeline() {
   }, [pipelines]);
   const [modalNovoPipeline, setModalNovoPipeline] = useState(false);
   const [nomePipeline, setNomePipeline] = useState(""); // mantido para compatibilidade futura
-  const [modalNovaColuna, setModalNovaColuna] = useState(false);
-  const [nomeColuna, setNomeColuna] = useState("");
-  const [corColuna, setCorColuna] = useState("#6366f1");
   const [modalCartao, setModalCartao] = useState<{ open: boolean; colunaId?: number; cartaoId?: number }>({ open: false });
   const [cartaoForm, setCartaoForm] = useState<CartaoForm>(CARTAO_FORM_INICIAL);
   const [draggingCartao, setDraggingCartao] = useState<number | null>(null);
@@ -82,11 +79,6 @@ export default function Pipeline() {
 
   const excluirPipeline = trpc.pipeline.excluir.useMutation({
     onSuccess: () => { utils.pipeline.listar.invalidate(); setPipelineAtivo(null); toast.success("Pipeline excluído"); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const criarColuna = trpc.pipeline.criarColuna.useMutation({
-    onSuccess: () => { utils.pipeline.listar.invalidate(); setModalNovaColuna(false); setNomeColuna(""); toast.success("Coluna criada!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -310,30 +302,9 @@ export default function Pipeline() {
                   ))}
                 </div>
 
-                {/* Adicionar cartão */}
-                <div className="p-1.5 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground hover:text-foreground justify-start"
-                    onClick={() => { setCartaoForm(CARTAO_FORM_INICIAL); setModalCartao({ open: true, colunaId: coluna.id }); }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" /> Adicionar cartão
-                  </Button>
-                </div>
               </div>
             ))}
 
-            {/* Adicionar coluna */}
-            <div className="w-56 flex-shrink-0">
-              <Button
-                variant="outline"
-                className="w-full h-12 border-dashed text-muted-foreground"
-                onClick={() => setModalNovaColuna(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" /> Nova coluna
-              </Button>
-            </div>
           </div>
         </div>
       )}
@@ -361,47 +332,6 @@ export default function Pipeline() {
             <Button variant="outline" onClick={() => setModalNovoPipeline(false)}>Cancelar</Button>
             <Button onClick={() => criarPipeline.mutate({ nome: nomePipeline })} disabled={!nomePipeline.trim() || criarPipeline.isPending}>
               {criarPipeline.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Criar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: Nova Coluna */}
-      <Dialog open={modalNovaColuna} onOpenChange={setModalNovaColuna}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Nova Coluna</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label>Nome da coluna</Label>
-              <Input
-                placeholder="Ex: Em negociação..."
-                value={nomeColuna}
-                onChange={(e) => setNomeColuna(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Cor</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={corColuna}
-                  onChange={(e) => setCorColuna(e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer border"
-                />
-                <span className="text-sm text-muted-foreground font-mono">{corColuna}</span>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalNovaColuna(false)}>Cancelar</Button>
-            <Button
-              onClick={() => pipelineAtivoData && criarColuna.mutate({ pipelineId: pipelineAtivoData.id, nome: nomeColuna, cor: corColuna })}
-              disabled={!nomeColuna.trim() || criarColuna.isPending}
-            >
-              {criarColuna.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Criar
             </Button>
           </DialogFooter>

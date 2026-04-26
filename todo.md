@@ -164,6 +164,8 @@
 - [x] Cartão com título, status (Em andamento/Congelado/Cancelado/Concluído), lembrete e pessoa vinculada
 - [x] Configuração de pipelines e colunas
 - [ ] Link de integração externa (POST externo cria cartão no pipeline)
+- [x] Pipeline: botões "Adicionar cartão" e "Nova coluna" removidos — pipeline gerenciado automaticamente pelas automações
+- [x] Pipeline: modal de "Nova Coluna" e variáveis não utilizadas removidos (limpeza de código)
 
 ## Bugs (v5)
 - [x] Perfil: erro ao salvar — reservaPercentual enviado como number mas schema espera string
