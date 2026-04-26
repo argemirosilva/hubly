@@ -1538,6 +1538,13 @@ export default function Automacoes() {
   const [pipelinePreview, setPipelinePreview] = useState<{ nomePipeline: string; descricao: string; colunas: Array<{ nome: string; cor: string; descricao: string }>; estimativaCartoes: number } | null>(null);
   const [showSnapshotsModal, setShowSnapshotsModal] = useState(false);
   const [snapshotParaRestaurar, setSnapshotParaRestaurar] = useState<number | null>(null);
+  // Sincronização inteligente do Pipeline
+  const [showSincModal, setShowSincModal] = useState(false);
+  const [sincPreview, setSincPreview] = useState<{
+    pipelines: Array<{ id: number; nome: string; colunas: Array<{ id: number; nome: string; statusVinculo: string | null; totalCartoes: number }> }>;
+    automacoes: Array<{ id: number; nome: string; evento: string; label: string }>;
+  } | null>(null);
+  const [sincPipelineId, setSincPipelineId] = useState<number | null>(null);
 
   const previewPipelineMutation = trpc.pipeline.previewPipelinePorIA.useMutation({
     onSuccess: (data) => setPipelinePreview(data),
@@ -1566,15 +1573,43 @@ export default function Automacoes() {
   // Campos que definem o FLUXO da automação (mudança nesses campos justifica regenerar o pipeline)
   const CAMPOS_FLUXO = ["tipoGatilho", "evento", "diasAntesDepois", "delayMinutos", "horaDisparo", "dataFixaDia", "dataFixaMes", "canalEnvio", "ativo"] as const;
 
-  // Gera pipeline automaticamente apenas se campos de fluxo mudaram
+  // Sincronização inteligente do Pipeline com as automações ativas
+  const sincronizarMutation = trpc.pipeline.sincronizarComAutomacoes.useMutation({
+    onSuccess: (data) => {
+      setShowSincModal(false);
+      setSincPreview(null);
+      setSincPipelineId(null);
+      utils.pipeline.listar.invalidate();
+      if (data.colunasAdicionadas > 0) {
+        toast.success(`✅ Pipeline sincronizado! ${data.colunasAdicionadas} coluna(s) adicionada(s).`, { duration: 4000 });
+      } else {
+        toast.success('✅ Pipeline já está sincronizado com as automações.', { duration: 3000 });
+      }
+    },
+    onError: (e: any) => toast.error(e.message ?? 'Erro ao sincronizar pipeline'),
+  });
+
+  // Após salvar/ativar/desativar automação, verifica se há pipelines e oferece sincronização
   const gerarPipelineAutomatico = () => {
-    gerarPipelineMutation.mutate(undefined, {
-      onSuccess: (data) => {
-        toast.success(`✅ Pipeline atualizado automaticamente — "${data.nomePipeline}"`, { duration: 3500 });
-        utils.pipeline.listar.invalidate();
-      },
-      onError: () => { /* silencioso em segundo plano */ },
-    });
+    // Busca o preview de sincronização em segundo plano
+    utils.pipeline.previewSincronizacao.fetch().then((data) => {
+      if (!data) return;
+      // Se há pipelines existentes, mostra modal de sincronização
+      if (data.pipelines.length > 0) {
+        setSincPreview(data);
+        setSincPipelineId(data.pipelines[0].id);
+        setShowSincModal(true);
+      } else {
+        // Sem pipelines, gera um novo por IA silenciosamente
+        gerarPipelineMutation.mutate(undefined, {
+          onSuccess: (d) => {
+            toast.success(`✅ Pipeline criado automaticamente — "${d.nomePipeline}"`, { duration: 3500 });
+            utils.pipeline.listar.invalidate();
+          },
+          onError: () => { /* silencioso */ },
+        });
+      }
+    }).catch(() => { /* silencioso */ });
   };
 
   // Verifica se campos de fluxo mudaram comparando com os dados salvos
@@ -2494,6 +2529,67 @@ export default function Automacoes() {
             <p className="text-xs text-gray-400 mt-2">Edite a automação existente para alterar o comportamento, ou escolha um gatilho, canal ou timing diferente para criar uma nova.</p>
             <div className="flex gap-2 justify-end mt-4">
               <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => setDuplicataInfo(null)}>Entendi</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Sincronização inteligente do Pipeline */}
+        <Dialog open={showSincModal} onOpenChange={(open) => { if (!sincronizarMutation.isPending) { setShowSincModal(open); if (!open) { setSincPreview(null); setSincPipelineId(null); } } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-indigo-700">
+                <GitBranch size={18} className="text-indigo-600" />
+                Sincronizar Pipeline com Automações
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-2 space-y-3">
+              <p className="text-sm text-gray-600">
+                As automações foram atualizadas. Deseja sincronizar o Pipeline para refletir os novos gatilhos?
+              </p>
+              {sincPreview && sincPreview.pipelines.length > 0 && (
+                <div className="space-y-2">
+                  {sincPreview.pipelines.map((p) => (
+                    <div key={p.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sincPipelineId === p.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'}`}
+                      onClick={() => setSincPipelineId(p.id)}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm text-gray-800">{p.nome}</span>
+                        {sincPipelineId === p.id && <Check size={14} className="text-indigo-600" />}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {p.colunas.map((c) => (
+                          <span key={c.id} className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                            {c.nome} {c.totalCartoes > 0 && <span className="font-semibold text-indigo-600">({c.totalCartoes})</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {sincPreview && sincPreview.automacoes.length > 0 && (
+                <div className="bg-indigo-50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-indigo-700 mb-1.5">Colunas que serão adicionadas/vinculadas:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {sincPreview.automacoes.map((a) => (
+                      <span key={a.id} className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        {a.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-400">Os cartões existentes não serão removidos. Apenas novas colunas serão adicionadas conforme necessário.</p>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" size="sm" onClick={() => { setShowSincModal(false); setSincPreview(null); setSincPipelineId(null); }} disabled={sincronizarMutation.isPending}>
+                Agora não
+              </Button>
+              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!sincPipelineId || sincronizarMutation.isPending}
+                onClick={() => { if (sincPipelineId) sincronizarMutation.mutate({ pipelineId: sincPipelineId }); }}>
+                {sincronizarMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <GitBranch size={14} className="mr-1" />}
+                Sincronizar Pipeline
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

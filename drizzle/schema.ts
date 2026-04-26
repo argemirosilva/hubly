@@ -583,6 +583,8 @@ export const pipelineColunas = mysqlTable("pipeline_colunas", {
   nome: varchar("nome", { length: 120 }).notNull(),
   ordem: int("ordem").default(0).notNull(),
   cor: varchar("cor", { length: 7 }).default("#6366f1"),
+  // Vinculo automático: quando agendamento muda para este status, cartão é movido para esta coluna
+  statusVinculo: varchar("statusVinculo", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

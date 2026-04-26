@@ -2294,3 +2294,9 @@
 - [x] Telas de resultado personalizadas por ação (confirmado, cancelado, expirado, etc.)
 - [x] Links clicáveis no preview de reenvio de mensagem
 - [x] Botões do modal de preview em coluna (mobile-friendly)
+
+## Integração Pipeline x Agendamentos (automática)
+- [ ] Criar colunas padrão no Pipeline vinculadas a status de agendamento (Agendado, Confirmado, Concluído, Cancelado)
+- [ ] Mover cartão automaticamente ao mudar status do agendamento
+- [ ] Criar cartão no Pipeline ao criar novo agendamento (se pipeline ativo)
+- [ ] Atualizar manual com documentação da integração

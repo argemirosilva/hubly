@@ -1,0 +1,1 @@
+ALTER TABLE `pipeline_colunas` ADD `statusVinculo` varchar(50);

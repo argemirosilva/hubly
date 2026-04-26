@@ -60,6 +60,80 @@ function descreverGatilho(aut: {
   }
 }
 
+// ── Função interna para mover cartão por status (chamada diretamente do routers.ts) ───────
+export async function moverCartaoPorStatusInterno({
+  empresaId,
+  agendamentoId,
+  clienteId,
+  novoStatus,
+}: {
+  empresaId: number;
+  agendamentoId: number;
+  clienteId?: number;
+  novoStatus: string;
+}): Promise<{ movido: boolean; colunaDestino?: string }> {
+  try {
+    const db = await import("../db").then((m) => m.getDb());
+    if (!db) return { movido: false };
+    const { pipelineColunas, pipelineCartoes } = await import("../../drizzle/schema");
+    const { eq, and } = await import("drizzle-orm");
+    const statusParaEvento: Record<string, string> = {
+      confirmado: "agendamento_confirmado",
+      cancelado: "agendamento_cancelado",
+      concluido: "agendamento_concluido",
+      agendado: "agendamento_criado",
+      pre_agendado: "pre_agendamento",
+    };
+    const evento = statusParaEvento[novoStatus];
+    if (!evento) return { movido: false };
+    const colunaDestino = await db
+      .select()
+      .from(pipelineColunas)
+      .where(and(
+        eq(pipelineColunas.empresaId, empresaId),
+        eq((pipelineColunas as any).statusVinculo, evento)
+      ))
+      .limit(1);
+    if (!colunaDestino.length) return { movido: false };
+    const coluna = colunaDestino[0];
+    const cartaoVinculado = await db
+      .select()
+      .from(pipelineCartoes)
+      .where(and(
+        eq(pipelineCartoes.empresaId, empresaId),
+        eq(pipelineCartoes.agendamentoId, agendamentoId)
+      ))
+      .limit(1);
+    if (cartaoVinculado.length) {
+      await updateCartao(cartaoVinculado[0].id, { colunaId: coluna.id });
+      return { movido: true, colunaDestino: coluna.nome };
+    }
+    if (clienteId) {
+      const cliente = await getClienteById(clienteId);
+      if (cliente) {
+        const cartoes = await getCartoesByPipeline(coluna.pipelineId);
+        const maxOrdem = cartoes.filter((k) => k.colunaId === coluna.id).length;
+        await createCartao({
+          pipelineId: coluna.pipelineId,
+          colunaId: coluna.id,
+          empresaId,
+          titulo: cliente.nome,
+          clienteId: cliente.id,
+          clienteNome: cliente.nome,
+          agendamentoId,
+          status: "em_andamento",
+          ordem: maxOrdem,
+        });
+        return { movido: true, colunaDestino: coluna.nome };
+      }
+    }
+    return { movido: false };
+  } catch (e) {
+    console.error('[Pipeline] Erro ao mover cartão por status:', e);
+    return { movido: false };
+  }
+}
+
 export const pipelineRouter = router({
   // ── Pipelines ─────────────────────────────────────────────────────────────
   listar: protectedProcedure.query(async ({ ctx }) => {
@@ -697,5 +771,201 @@ Regras:
       }
 
       return { success: true, pipelineId, nomePipeline: snap.nomePipeline };
+    }),
+
+  // ── Preview de sincronização: retorna quantos cartões estão em cada etapa ──────
+  previewSincronizacao: protectedProcedure
+    .query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const db = await import("../db").then((m) => m.getDb());
+      if (!db) return { pipelines: [], automacoes: [] };
+      const { automacoes: automacoesTable } = await import("../../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const statusEventos: Record<string, string> = {
+        agendamento_criado: "Agendado",
+        agendamento_confirmado: "Confirmado",
+        agendamento_cancelado: "Cancelado",
+        agendamento_cancelado_pelo_cliente: "Cancelado pelo cliente",
+        agendamento_concluido: "Concluído",
+        pre_agendamento: "Pré-agendado",
+      };
+
+      const pipelinesData = await getPipelinesByEmpresa(empresa.id);
+      const automacoesAtivas = await db
+        .select()
+        .from(automacoesTable)
+        .where(and(eq(automacoesTable.empresaId, empresa.id), eq(automacoesTable.ativo, true)));
+
+      const pipelinesInfo = await Promise.all(
+        pipelinesData.map(async (p) => {
+          const colunas = await getColunasByPipeline(p.id);
+          const cartoes = await getCartoesByPipeline(p.id);
+          return {
+            id: p.id,
+            nome: p.nome,
+            colunas: colunas.map((c) => ({
+              id: c.id,
+              nome: c.nome,
+              statusVinculo: (c as any).statusVinculo ?? null,
+              totalCartoes: cartoes.filter((k) => k.colunaId === c.id).length,
+            })),
+          };
+        })
+      );
+
+      const automacoesRelevantes = automacoesAtivas
+        .filter((a) => a.tipoGatilho === "evento" && a.evento && statusEventos[a.evento])
+        .map((a) => ({
+          id: a.id,
+          nome: a.nome,
+          evento: a.evento!,
+          label: statusEventos[a.evento!] ?? a.evento!,
+        }));
+
+      return { pipelines: pipelinesInfo, automacoes: automacoesRelevantes };
+    }),
+
+  // ── Sincronizar Pipeline com Automações ativas ─────────────────────────────
+  sincronizarComAutomacoes: protectedProcedure
+    .input(z.object({ pipelineId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new Error("Empresa não encontrada");
+      const db = await import("../db").then((m) => m.getDb());
+      if (!db) throw new Error("DB indisponível");
+      const { pipelineColunas, automacoes: automacoesTable } = await import("../../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const statusConfig: Record<string, { label: string; cor: string }> = {
+        agendamento_criado: { label: "Agendado", cor: "#6366f1" },
+        pre_agendamento: { label: "Pré-agendado", cor: "#8b5cf6" },
+        agendamento_confirmado: { label: "Confirmado", cor: "#10b981" },
+        agendamento_cancelado: { label: "Cancelado", cor: "#ef4444" },
+        agendamento_cancelado_pelo_cliente: { label: "Cancelado pelo cliente", cor: "#f97316" },
+        agendamento_concluido: { label: "Concluído", cor: "#059669" },
+      };
+
+      const automacoesAtivas = await db
+        .select()
+        .from(automacoesTable)
+        .where(and(eq(automacoesTable.empresaId, empresa.id), eq(automacoesTable.ativo, true)));
+
+      const eventosAtivos = automacoesAtivas
+        .filter((a) => a.tipoGatilho === "evento" && a.evento && statusConfig[a.evento])
+        .map((a) => a.evento!);
+
+      const colunasAtuais = await getColunasByPipeline(input.pipelineId);
+      const colunasVinculadas = colunasAtuais
+        .filter((c) => (c as any).statusVinculo)
+        .map((c) => (c as any).statusVinculo as string);
+
+      let colunasAdicionadas = 0;
+
+      for (const evento of eventosAtivos) {
+        if (colunasVinculadas.includes(evento)) continue;
+        const cfg = statusConfig[evento];
+        const maxOrdem = colunasAtuais.reduce((m, c) => Math.max(m, c.ordem), -1);
+        await createColuna({
+          pipelineId: input.pipelineId,
+          empresaId: empresa.id,
+          nome: cfg.label,
+          cor: cfg.cor,
+          ordem: maxOrdem + 1 + colunasAdicionadas,
+          statusVinculo: evento,
+        } as any);
+        colunasAdicionadas++;
+      }
+
+      // Remover vínculo de colunas cujas automações foram desativadas
+      for (const coluna of colunasAtuais) {
+        const sv = (coluna as any).statusVinculo;
+        if (sv && !eventosAtivos.includes(sv)) {
+          await db
+            .update(pipelineColunas)
+            .set({ statusVinculo: null } as any)
+            .where(eq(pipelineColunas.id, coluna.id));
+        }
+      }
+
+      return { success: true, colunasAdicionadas };
+    }),
+
+  // ── Mover cartão automaticamente ao mudar status do agendamento ──────────────
+  moverCartaoPorStatus: protectedProcedure
+    .input(z.object({
+      agendamentoId: z.number(),
+      clienteId: z.number().optional(),
+      novoStatus: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { movido: false };
+      const db = await import("../db").then((m) => m.getDb());
+      if (!db) return { movido: false };
+      const { pipelineColunas, pipelineCartoes } = await import("../../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const statusParaEvento: Record<string, string> = {
+        confirmado: "agendamento_confirmado",
+        cancelado: "agendamento_cancelado",
+        concluido: "agendamento_concluido",
+        agendado: "agendamento_criado",
+        pre_agendado: "pre_agendamento",
+      };
+      const evento = statusParaEvento[input.novoStatus];
+      if (!evento) return { movido: false };
+
+      // Buscar coluna vinculada ao status em qualquer pipeline da empresa
+      const colunaDestino = await db
+        .select()
+        .from(pipelineColunas)
+        .where(and(
+          eq(pipelineColunas.empresaId, empresa.id),
+          eq((pipelineColunas as any).statusVinculo, evento)
+        ))
+        .limit(1);
+
+      if (!colunaDestino.length) return { movido: false };
+      const coluna = colunaDestino[0];
+
+      // Buscar cartão vinculado ao agendamento
+      const cartaoVinculado = await db
+        .select()
+        .from(pipelineCartoes)
+        .where(and(
+          eq(pipelineCartoes.empresaId, empresa.id),
+          eq(pipelineCartoes.agendamentoId, input.agendamentoId)
+        ))
+        .limit(1);
+
+      if (cartaoVinculado.length) {
+        await updateCartao(cartaoVinculado[0].id, { colunaId: coluna.id });
+        return { movido: true, cartaoId: cartaoVinculado[0].id, colunaDestino: coluna.nome };
+      }
+
+      // Se não há cartão mas há clienteId, criar um novo cartão na coluna de destino
+      if (input.clienteId) {
+        const cliente = await getClienteById(input.clienteId);
+        if (cliente) {
+          const cartoes = await getCartoesByPipeline(coluna.pipelineId);
+          const maxOrdem = cartoes.filter((k) => k.colunaId === coluna.id).length;
+          const novoCartao = await createCartao({
+            pipelineId: coluna.pipelineId,
+            colunaId: coluna.id,
+            empresaId: empresa.id,
+            titulo: cliente.nome,
+            clienteId: cliente.id,
+            clienteNome: cliente.nome,
+            agendamentoId: input.agendamentoId,
+            status: "em_andamento",
+            ordem: maxOrdem,
+          });
+          return { movido: true, cartaoId: novoCartao.id, colunaDestino: coluna.nome, criado: true };
+        }
+      }
+
+      return { movido: false };
     }),
 });

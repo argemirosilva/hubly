@@ -1706,6 +1706,24 @@ export const appRouter = router({
           }
         }
 
+        // ── Mover cartão no Pipeline automaticamente ao mudar status ─────────────
+        if (data.status && ['confirmado', 'cancelado', 'concluido', 'agendado', 'pre_agendado'].includes(data.status)) {
+          try {
+            const { moverCartaoPorStatusInterno } = await import('./routers/pipeline');
+            const agParaPipeline = await getAgendamentoById(id);
+            if (agParaPipeline) {
+              await moverCartaoPorStatusInterno({
+                empresaId: empresa.id,
+                agendamentoId: id,
+                clienteId: agParaPipeline.clienteId ?? undefined,
+                novoStatus: data.status,
+              });
+            }
+          } catch (e) {
+            console.error('[Pipeline] Erro ao mover cartão automaticamente:', e);
+          }
+        }
+
         return { success: true };
       }),
     confirmarReserva: protectedProcedure
@@ -5390,10 +5408,20 @@ export const appRouter = router({
             }
           } catch (e) { console.error('[confirmar] Erro ao disparar automação:', e); }
         }
+        // Mover cartão no Pipeline
+        try {
+          const { moverCartaoPorStatusInterno } = await import('./routers/pipeline.js');
+          await moverCartaoPorStatusInterno({
+            empresaId: tokenRow.empresaId,
+            agendamentoId: ag.id,
+            clienteId: ag.clienteId ?? undefined,
+            novoStatus: 'confirmado',
+          });
+        } catch (e) { console.error('[Pipeline/confirmar] Erro ao mover cartão:', e); }
         return { resultado: 'confirmado' as const };
       }),
 
-    /** Cancela o agendamento via token */
+    /** Cancela o agendamento via token de confirmação */
     cancelar: publicProcedure
       .input(z.object({ token: z.string() }))
       .mutation(async ({ input }) => {
@@ -5414,7 +5442,7 @@ export const appRouter = router({
           const automacoesCancel = await getAutomacoesByEvento(tokenRow.empresaId, 'agendamento_cancelado_pelo_cliente');
           if (automacoesCancel.length > 0) {
             const [empresa3] = await db.select({ nome: empTbl3.nome, portalSlug: empTbl3.portalSlug }).from(empTbl3).where(eq(empTbl3.id, tokenRow.empresaId)).limit(1);
-            const [cliente3] = await db.select({ id: cliTbl3.id, nome: cliTbl3.nome, telefone: cliTbl3.telefone, tags: cliTbl3.tags }).from(cliTbl3).where(eq(cliTbl3.id, ag.clienteId)).limit(1);
+            const [cliente3] = ag.clienteId ? await db.select({ id: cliTbl3.id, nome: cliTbl3.nome, telefone: cliTbl3.telefone, tags: cliTbl3.tags }).from(cliTbl3).where(eq(cliTbl3.id, ag.clienteId)).limit(1) : [null];
             const [profissional3] = ag.profissionalId ? await db.select({ nome: profTbl3.nome }).from(profTbl3).where(eq(profTbl3.id, ag.profissionalId)).limit(1) : [null];
             const [servico3] = ag.servicoId ? await db.select({ nome: svcTbl3.nome, categoria: svcTbl3.categoria }).from(svcTbl3).where(eq(svcTbl3.id, ag.servicoId)).limit(1) : [null];
             if (cliente3?.telefone) {
@@ -5482,6 +5510,16 @@ export const appRouter = router({
             content: `Um cliente cancelou o agendamento via link de confirmação.`,
           }).catch(() => {});
         } catch (e) { console.error('[cancelar] Erro ao disparar automação:', e); }
+        // Mover cartão no Pipeline
+        try {
+          const { moverCartaoPorStatusInterno } = await import('./routers/pipeline.js');
+          await moverCartaoPorStatusInterno({
+            empresaId: tokenRow.empresaId,
+            agendamentoId: ag.id,
+            clienteId: ag.clienteId ?? undefined,
+            novoStatus: 'cancelado',
+          });
+        } catch (e) { console.error('[Pipeline/cancelar] Erro ao mover cartão:', e); }
         return { resultado: 'cancelado' as const };
       }),
   }),
