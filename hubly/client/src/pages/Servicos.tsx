@@ -217,14 +217,12 @@ export default function Servicos() {
               <span className="sm:hidden">Tipos</span>
             </button>
           )}
-          {isAdmin && (
-            {pode("servicosCriar") && (
+          {isAdmin && pode("servicosCriar") && (
               <button onClick={abrirNovo} className="btn-primary py-2 px-3 text-xs">
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Novo Serviço</span>
                 <span className="sm:hidden">Novo</span>
               </button>
-            )}
           )}
         </div>
       </div>
