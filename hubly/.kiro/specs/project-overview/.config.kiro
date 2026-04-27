@@ -1,1 +1,4 @@
-{"specId": "2e54a85f-8bd4-4013-9e28-6ea9b79d5210", "workflowType": "requirements-first", "specType": "feature"}
+{
+  "specType": "feature",
+  "workflowType": "requirements-first"
+}
