@@ -1428,7 +1428,7 @@ export default function Equipe() {
   const totalAtivos = (membros as MembroEquipe[]).filter((m) => m.ativo).length;
   const totalInativos = (membros as MembroEquipe[]).filter((m) => m.ativo === false).length;
   const totalProfissionais = (membros as MembroEquipe[]).filter((m) => m.isProfissional).length;
-  const totalComAcesso = (membros as MembroEquipe[]).filter((m) => m.temAcesso).length;
+  const totalComAcesso = (membros as MembroEquipe[]).filter((m) => m.temAcesso && m.ativo).length;
 
   const handleEdit = (m: MembroEquipe) => {
     setMembroEditando(m);

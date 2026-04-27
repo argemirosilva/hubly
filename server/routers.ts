@@ -1937,6 +1937,53 @@ export const appRouter = router({
             console.error('[confirmarSinalForaDoPrazo] Erro ao registrar pagamento:', e);
           }
         }
+        // Disparar automação de agendamento_reativado
+        try {
+          const agReativado = await getAgendamentoById(input.id);
+          if (agReativado && agReativado.clienteId) {
+            const db = await (await import('./db')).getDb?.();
+            const { clientes: clientesTable } = await import('../drizzle/schema');
+            const { eq: eqDrizzle } = await import('drizzle-orm');
+            const clienteRows = db ? await db.select().from(clientesTable).where(eqDrizzle(clientesTable.id, agReativado.clienteId)).limit(1) : [];
+            const clienteReativado = clienteRows[0];
+            const telefoneReativado = (clienteReativado?.whatsapp || clienteReativado?.telefone || '').replace(/\D/g, '');
+            if (telefoneReativado && clienteReativado) {
+              const servicoReativado = agReativado.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === agReativado.servicoId) : null;
+              const profissionalReativado = agReativado.profissionalId ? await getProfissionalById(agReativado.profissionalId) : null;
+              const dataFormatadaReativado = new Date(agReativado.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+              const automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
+              if (automacaoReativado && automacaoReativado.corpoMensagem) {
+                const templateVarsReativado = {
+                  nome_cliente: clienteReativado.nome || 'Cliente',
+                  primeiro_nome: (clienteReativado.nome || 'Cliente').split(' ')[0],
+                  servico: servicoReativado?.nome ?? '',
+                  data: dataFormatadaReativado,
+                  hora: `${String(agReativado.horaInicio ?? '').slice(0, 5)} – ${String(agReativado.horaFim ?? '').slice(0, 5)}`,
+                  profissional: profissionalReativado?.nome ?? '',
+                  empresa: empresa.nome,
+                  valor: `R$ ${parseFloat(agReativado.valorTotal ?? '0').toFixed(2).replace('.', ',')}`,
+                };
+                const mensagemReativado = processarVariaveisTemplate(automacaoReativado.corpoMensagem, templateVarsReativado);
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  automacaoId: automacaoReativado.id,
+                  automacaoNome: automacaoReativado.nome,
+                  clienteId: clienteReativado.id,
+                  clienteNome: clienteReativado.nome,
+                  agendamentoId: input.id,
+                  telefone: telefoneReativado,
+                  mensagem: mensagemReativado,
+                  midiaUrl: extrairMidiaUrl(automacaoReativado.flowJson) ?? undefined,
+                  enviarEm: new Date(),
+                });
+                console.log(`[confirmarSinalForaDoPrazo] Automação agendamento_reativado agendada para ag. ${input.id}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[confirmarSinalForaDoPrazo] Erro ao disparar automação:', e);
+        }
+
         return { success: true };
       }),
 

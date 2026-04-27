@@ -257,7 +257,28 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
-  // 12. Aniversariante do mês
+  // 12. Agendamento reativado (sinal fora do prazo)
+  {
+    nome: "Agendamento reativado",
+    descricao: "Envia confirmação quando um agendamento cancelado é reativado após recebimento do sinal fora do prazo",
+    tipoGatilho: "evento",
+    evento: "agendamento_reativado",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "✅ *Agendamento Reativado!*\n\n" +
+      "Olá, *{{nome_cliente}}*! Seu agendamento foi confirmado e está na agenda. 😊\n\n" +
+      "📅 *Data:* {{data}}\n" +
+      "⏰ *Horário:* {{hora}}\n" +
+      "✂️ *Serviço:* {{servico}}\n" +
+      "👩\u200D💼 *Profissional:* {{profissional}}\n\n" +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_agendamento_reativado", label: "Agendamento reativado" },
+      { id: "a1", label: "Confirmação de reativação", tipo: "enviar_whatsapp", mensagem: "✅ *Agendamento Reativado!*\n\nOlá, *{{nome_cliente}}*! Seu agendamento foi confirmado e está na agenda. 😊\n\n📅 *Data:* {{data}}\n⏰ *Horário:* {{hora}}\n✂️ *Serviço:* {{servico}}\n👩\u200D💼 *Profissional:* {{profissional}}\n\n_{{empresa}}_" },
+    ),
+  },
+
+  // 13. Aniversariante do mês
   {
     nome: "Aniversariante do mês",
     descricao: "Mensagem especial no mês de aniversário do cliente",
@@ -458,7 +479,7 @@ export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise
     const todasEmpresas = await db.select({ id: empresas.id, nome: empresas.nome }).from(empresas);
 
     // Adicionar novos eventos aqui quando novos templates forem criados
-    const novosEventos = ['reserva_paga', 'credito_gerado', 'agendamento_cancelado_pelo_cliente', 'agendamento_concluido'];
+    const novosEventos = ['reserva_paga', 'credito_gerado', 'agendamento_cancelado_pelo_cliente', 'agendamento_concluido', 'agendamento_reativado'];
     const templatesPorEvento = new Map<string, AutomacaoTemplate>();
     for (const t of AUTOMATION_TEMPLATES) {
       if (t.evento && novosEventos.includes(t.evento)) {
