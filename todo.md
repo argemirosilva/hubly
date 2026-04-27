@@ -173,6 +173,7 @@
 - [x] Manual atualizado com o novo template na lista de templates prontos
 - [x] Sincronização automática do Pipeline ao provisionar automações (função sincronizarPipelineParaEmpresa)
 - [x] Limpeza de 25 pipelines duplicados da empresa Maguie (mantido pipeline 120001)
+- [x] Modal de criação e edição de agendamento: campo "Fim" agora editável (antes era somente leitura)
 - [x] Vínculos statusVinculo configurados: Pré-Agendamento→agendamento_criado, Confirmação→agendamento_confirmado, Pós-Atendimento→agendamento_concluido, Cancelado pelo cliente→agendamento_cancelado_pelo_cliente
 
 ## Bugs (v5)
