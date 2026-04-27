@@ -1937,6 +1937,20 @@ export const appRouter = router({
             console.error('[confirmarSinalForaDoPrazo] Erro ao registrar pagamento:', e);
           }
         }
+        // Mover cartão no Pipeline para "Pré-Agendamento" (agendamento_criado)
+        try {
+          const { moverCartaoPorStatusInterno } = await import('./routers/pipeline');
+          await moverCartaoPorStatusInterno({
+            empresaId: empresa.id,
+            agendamentoId: input.id,
+            clienteId: ag.clienteId ?? undefined,
+            novoStatus: 'agendado',
+          });
+          console.log(`[confirmarSinalForaDoPrazo] Cartão movido para Pré-Agendamento (ag. ${input.id})`);
+        } catch (e) {
+          console.error('[confirmarSinalForaDoPrazo] Erro ao mover cartão no Pipeline:', e);
+        }
+
         // Disparar automação de agendamento_reativado
         try {
           const agReativado = await getAgendamentoById(input.id);

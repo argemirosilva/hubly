@@ -178,6 +178,8 @@
 - [x] Verificação de conflito de horário: alertar se profissional já tem agendamento sobreposto
 - [x] Equipe: contador "Com acesso" deve contar apenas usuários ativos (não inativos)
 - [x] Gatilho agendamento_reativado: template de automação padrão + disparo no confirmarSinalForaDoPrazo
+- [x] Pipeline: adicionar coluna "Cancelado" vinculada ao statusVinculo agendamento_cancelado
+- [x] Pipeline: mover cartão para Pré-Agendamento ao confirmar sinal fora do prazo (reativação)
 - [x] Vínculos statusVinculo configurados: Pré-Agendamento→agendamento_criado, Confirmação→agendamento_confirmado, Pós-Atendimento→agendamento_concluido, Cancelado pelo cliente→agendamento_cancelado_pelo_cliente
 
 ## Bugs (v5)
