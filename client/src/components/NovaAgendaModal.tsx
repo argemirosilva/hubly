@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { getLocalDateString } from "@/lib/utils";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
-import { Plus, Trash2, Zap, Package, Users, UserPlus, X, Star } from "lucide-react";
+import { Plus, Trash2, Zap, Package, Users, UserPlus, X, Star, AlertTriangle } from "lucide-react";
 import ModalAbrirPacote from "@/components/ModalAbrirPacote";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ServicoItem {
   profissionalId: string;  // opcional: pode ser deixado em branco
@@ -105,6 +106,25 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     if (!vinculados || vinculados.size === 0) return servicos.filter((s: any) => s.ativo);
     return servicos.filter((s: any) => s.ativo && vinculados.has(s.id));
   };
+
+  // Profissional principal (primeiro serviço selecionado com profissional)
+  const profissionalPrincipalId = useMemo(() => {
+    const primeiro = servicosSelecionados.find(s => s.profissionalId);
+    return primeiro?.profissionalId ? parseInt(primeiro.profissionalId) : null;
+  }, [servicosSelecionados]);
+
+  // Verificar conflito de horário em tempo real
+  const { data: conflito } = trpc.agendamentos.verificarConflito.useQuery(
+    {
+      profissionalId: profissionalPrincipalId!,
+      data: form.data,
+      horaInicio: form.horaInicio,
+      horaFim: form.horaFim,
+    },
+    {
+      enabled: !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
+    }
+  );
 
   const adicionarPessoaMutation = trpc.reservaPessoas.adicionar.useMutation();
 
@@ -457,6 +477,19 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                 </div>
               </div>
             </div>
+
+            {/* Alerta de conflito de horário */}
+            {conflito?.conflito && (
+              <Alert className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 py-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 dark:text-amber-300 text-xs">
+                  <span className="font-semibold">Conflito de horário:</span> o profissional já tem {conflito.agendamentos.length > 1 ? 'agendamentos' : 'um agendamento'} neste período
+                  {conflito.agendamentos.map(a => (
+                    <span key={a.id} className="block mt-0.5">• {a.clienteNome} — {a.horaInicio}–{a.horaFim}</span>
+                  ))}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Pacotes Ativos do Cliente */}
             {clienteIdNum && pacotesAtivos.length > 0 && (

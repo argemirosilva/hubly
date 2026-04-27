@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Trash2, Save, Loader2, Edit3, AlertTriangle, CheckCircle2 } from "lucide-react";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ServicoItem {
   profissionalId: string;
@@ -63,6 +64,26 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
     { profissionalId: "", servicoId: "", valorUnitario: "" },
   ]);
   const [inicializado, setInicializado] = useState(false);
+
+  // Profissional principal (primeiro item com profissional)
+  const profissionalPrincipalId = useMemo(() => {
+    const primeiro = servicosSelecionados.find(s => s.profissionalId);
+    return primeiro?.profissionalId ? parseInt(primeiro.profissionalId) : null;
+  }, [servicosSelecionados]);
+
+  // Verificar conflito de horário em tempo real (excluindo o próprio agendamento)
+  const { data: conflito } = trpc.agendamentos.verificarConflito.useQuery(
+    {
+      profissionalId: profissionalPrincipalId!,
+      data: form.data,
+      horaInicio: form.horaInicio,
+      horaFim: form.horaFim,
+      excluirAgendamentoId: agendamentoId,
+    },
+    {
+      enabled: open && !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
+    }
+  );
 
   // Pré-preencher form quando dados carregarem
   useEffect(() => {
@@ -317,6 +338,19 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
               </div>
             </div>
           </div>
+
+          {/* Alerta de conflito de horário */}
+          {conflito?.conflito && (
+            <Alert className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 py-2.5">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-300 text-xs">
+                <span className="font-semibold">Conflito de horário:</span> o profissional já tem {conflito.agendamentos.length > 1 ? 'agendamentos' : 'um agendamento'} neste período
+                {conflito.agendamentos.map(a => (
+                  <span key={a.id} className="block mt-0.5">• {a.clienteNome} — {a.horaInicio}–{a.horaFim}</span>
+                ))}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Serviços */}
           <div className="space-y-2">

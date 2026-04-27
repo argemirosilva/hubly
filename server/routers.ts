@@ -2441,6 +2441,66 @@ export const appRouter = router({
 
         return { sucesso: true, dados };
       }),
+
+    // Verifica conflito de horário para um profissional
+    verificarConflito: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        data: z.string(),         // "YYYY-MM-DD"
+        horaInicio: z.string(),   // "HH:MM"
+        horaFim: z.string(),      // "HH:MM"
+        excluirAgendamentoId: z.number().optional(), // ao editar, excluir o próprio agendamento da verificação
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { conflito: false, agendamentos: [] };
+
+        const db = await getDb();
+        if (!db) return { conflito: false, agendamentos: [] };
+
+        const { agendamentos: agTable, clientes: clTable, profissionais: profTable } = await import('../drizzle/schema.js');
+        const { and, eq, ne, sql, lt, gt } = await import('drizzle-orm');
+
+        // Normaliza para "HH:MM:SS" para comparar com campo TIME do banco
+        const inicio = input.horaInicio.length === 5 ? input.horaInicio + ':00' : input.horaInicio;
+        const fim = input.horaFim.length === 5 ? input.horaFim + ':00' : input.horaFim;
+
+        // Busca agendamentos do mesmo profissional, na mesma data, com status ativo
+        // Conflito: (inicio_existente < fim_novo) AND (fim_existente > inicio_novo)
+        const conditions = [
+          eq(agTable.empresaId, empresa.id),
+          eq(agTable.profissionalId, input.profissionalId),
+          eq(agTable.data, input.data),
+          sql`${agTable.status} NOT IN ('cancelado', 'cancelado_pelo_cliente')`,
+          lt(agTable.horaInicio, fim),
+          gt(agTable.horaFim, inicio),
+        ];
+
+        if (input.excluirAgendamentoId) {
+          conditions.push(ne(agTable.id, input.excluirAgendamentoId));
+        }
+
+        const conflitantes = await db
+          .select({
+            id: agTable.id,
+            horaInicio: agTable.horaInicio,
+            horaFim: agTable.horaFim,
+            clienteNome: clTable.nome,
+          })
+          .from(agTable)
+          .leftJoin(clTable, eq(agTable.clienteId, clTable.id))
+          .where(and(...conditions));
+
+        return {
+          conflito: conflitantes.length > 0,
+          agendamentos: conflitantes.map(a => ({
+            id: a.id,
+            horaInicio: String(a.horaInicio).slice(0, 5),
+            horaFim: String(a.horaFim).slice(0, 5),
+            clienteNome: a.clienteNome ?? 'Cliente',
+          })),
+        };
+      }),
   }),
   // ─── BLOQUEIOS ─────────────────────────────────────────────────────────────
   bloqueios: router({
