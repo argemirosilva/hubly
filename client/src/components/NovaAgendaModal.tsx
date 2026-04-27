@@ -241,6 +241,10 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       toast.error("Selecione pelo menos um serviço");
       return;
     }
+    if (form.horaFim && form.horaInicio && form.horaFim <= form.horaInicio) {
+      toast.error("O horário de término deve ser após o horário de início");
+      return;
+    }
 
     const servicoPrincipal = servicosValidos[0];
     const primeiroProfissionalId = servicoPrincipal.profissionalId ? parseInt(servicoPrincipal.profissionalId) : undefined;

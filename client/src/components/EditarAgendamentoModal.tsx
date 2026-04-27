@@ -197,6 +197,10 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
     if (!form.clienteId) { toast.error("Selecione o cliente"); return; }
     const servicosValidos = servicosSelecionados.filter(s => s.servicoId);
     if (servicosValidos.length === 0) { toast.error("Selecione pelo menos um serviço"); return; }
+    if (form.horaFim && form.horaInicio && form.horaFim <= form.horaInicio) {
+      toast.error("O horário de término deve ser após o horário de início");
+      return;
+    }
 
     try {
       // 1. Atualizar dados principais
