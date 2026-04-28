@@ -438,7 +438,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     setResumoConclusaoModal(false);
     updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
       onSuccess: () => {
-        if (ag?.profissionalId) setComissaoModal(true);
+        if (!ag?.profissionalId) return;
+        // Não abrir modal se:
+        // 1. A profissional já tem percentual de comissão configurado (o servidor cria automaticamente), E
+        // 2. Já há pagamentos registrados (tipo de pagamento já informado)
+        const temPercentualConfigurado = pct > 0;
+        const temPagamentosRegistrados = (pagamentos ?? []).length > 0;
+        if (temPercentualConfigurado && temPagamentosRegistrados) {
+          // Comissão já foi criada automaticamente pelo servidor
+          toast.success("✅ Comissão registrada automaticamente!");
+          utils.financeiro.comissoes.invalidate();
+          return;
+        }
+        // Abrir modal apenas quando não há percentual configurado OU não há pagamentos
+        setComissaoModal(true);
       }
     });
   };
