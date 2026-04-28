@@ -335,7 +335,11 @@ function TabEmpresas() {
 
   function abrirModalWhatsapp(e: EmpItem) {
     setEmpresaSelecionada(e.id);
-    setFormWa({ zapiInstanceId: "", zapiToken: "", zapiAtivo: e.zapiAtivo ?? false });
+    setFormWa({
+      zapiInstanceId: e.zapiInstanceId ?? "",
+      zapiToken: "", // token nunca é retornado por segurança — deixar em branco para não sobrescrever se vazio
+      zapiAtivo: e.zapiAtivo ?? false,
+    });
     setModalWhatsapp(true);
   }
 
@@ -565,7 +569,8 @@ function TabEmpresas() {
                 <div>
                   <Label className="text-gray-600">Token</Label>
                   <Input value={formWa.zapiToken} onChange={e => setFormWa(f => ({ ...f, zapiToken: e.target.value }))}
-                    placeholder="Token da instância Z-API" className="bg-white border-gray-300 text-gray-900 mt-1" />
+                    placeholder="Deixe em branco para manter o token atual" className="bg-white border-gray-300 text-gray-900 mt-1" />
+                  <p className="text-xs text-gray-400 mt-1">Por segurança, o token não é exibido. Preencha apenas para alterar.</p>
                 </div>
               </>
             )}

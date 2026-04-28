@@ -196,11 +196,15 @@ export const orizontechRouter = router({
       await assertOrizontech(ctx.user.id);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      await db.update(assinaturas).set({
+      // Se zapiToken vier vazio, preserva o token existente no banco
+      const updateData: Record<string, unknown> = {
         zapiInstanceId: input.zapiInstanceId ?? null,
-        zapiToken: input.zapiToken ?? null,
         zapiAtivo: input.zapiAtivo,
-      }).where(eq(assinaturas.empresaId, input.empresaId));
+      };
+      if (input.zapiToken && input.zapiToken.trim() !== '') {
+        updateData.zapiToken = input.zapiToken;
+      }
+      await db.update(assinaturas).set(updateData).where(eq(assinaturas.empresaId, input.empresaId));
       return { ok: true };
     }),
 
