@@ -28,6 +28,14 @@ export async function getOrCreateStripeCustomer(
 ): Promise<string> {
   // Se temos um ID salvo, verificar se ele ainda existe no Stripe
   if (stripeCustomerId) {
+    // Proteção: se a chave é de teste mas o ID salvo é de produção,
+    // não validar no Stripe (evita sobrescrever o ID live correto com um ID de teste)
+    const isTestKey = (ENV.stripeSecretKey ?? '').startsWith('sk_test_');
+    const isLiveCustomerId = stripeCustomerId.startsWith('cus_') && !stripeCustomerId.startsWith('cus_test_');
+    if (isTestKey && isLiveCustomerId) {
+      console.warn(`[Stripe] Ambiente TEST com customer ID live (${stripeCustomerId}). Usando ID existente sem validar.`);
+      return stripeCustomerId;
+    }
     try {
       const existing = await stripe.customers.retrieve(stripeCustomerId);
       // Se o customer foi deletado no Stripe, o objeto retorna com deleted: true
