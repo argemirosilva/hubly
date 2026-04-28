@@ -379,7 +379,7 @@ function TabEmpresas() {
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Empresa</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Plano</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">WhatsApp</th>
+                <th className="text-left px-4 py-3 text-gray-500 font-medium">WhatsApp / API</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Cliente desde</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Início</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Fim</th>
@@ -408,15 +408,17 @@ function TabEmpresas() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {e.zapiAtivo ? (
-                      <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
-                        <Wifi className="w-3 h-3" /> Z-API
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-gray-500 text-xs">
-                        <WifiOff className="w-3 h-3" /> Baileys
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      {e.zapiAtivo ? (
+                        <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                          <Wifi className="w-3 h-3" /> Z-API {e.zapiInstanceId ? <span className="text-gray-400 font-normal">(configurada)</span> : null}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-gray-400 text-xs">
+                          <WifiOff className="w-3 h-3" /> {e.apiWhatsapp === 'zapi' ? 'Z-API (inativa)' : 'Baileys'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {e.createdAt ? new Date(e.createdAt).toLocaleDateString("pt-BR") : "—"}
@@ -437,9 +439,9 @@ function TabEmpresas() {
                         onClick={() => abrirModalAssinatura(e)}>
                         <Settings2 className="w-3 h-3 mr-1" /> Assinatura
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 h-7 px-2 text-xs"
+                      <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 h-7 w-7 p-0" title="Configurar WhatsApp"
                         onClick={() => abrirModalWhatsapp(e)}>
-                        <Wifi className="w-3 h-3 mr-1" /> WhatsApp
+                        <Wifi className="w-3 h-3" />
                       </Button>
                       <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600 h-7 w-7 p-0"
                         onClick={() => setModalExcluir({ id: e.id, nome: e.nome ?? "" })}>
