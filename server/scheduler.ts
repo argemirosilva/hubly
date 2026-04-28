@@ -1835,7 +1835,10 @@ async function cancelarPreAgendamentosExpirados() {
       const horasExpiracao = empresa.reservaHorasExpiracao ?? 24;
 
       // Buscar pré-agendamentos com reserva que passaram do prazo de expiração
-      // Critério: status = 'pre_agendado' E reservaPaga = false E criadoEm + horasExpiracao < agora
+      // CRITÉRIO CORRETO: usa reservaExpiracaoEm (prazo definido no momento da criação)
+      // Isso garante que mudanças posteriores na configuração da empresa não afetam
+      // agendamentos já criados. Fallback para createdAt + horasExpiracao quando
+      // reservaExpiracaoEm não está preenchido (agendamentos antigos).
       const expirados = await db
         .select({ id: agendamentos.id, clienteId: agendamentos.clienteId })
         .from(agendamentos)
@@ -1844,7 +1847,11 @@ async function cancelarPreAgendamentosExpirados() {
           eq(agendamentos.status, 'pre_agendado'),
           sql`${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL`,
           sql`${agendamentos.valorReserva} IS NOT NULL AND ${agendamentos.valorReserva} > 0`,
-          sql`${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR)`,
+          sql`(
+            (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} <= NOW())
+            OR
+            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR))
+          )`,
         ));
 
       for (const ag of expirados) {
