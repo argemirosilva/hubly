@@ -1876,12 +1876,15 @@ export default function Automacoes() {
     return labels[tipo] ?? tipo;
   };
 
-  const automacoesFiltradas = (automacoesSalvas as any[]).filter(a => {
+  const automacoesDoSistema = (automacoesSalvas as any[]).filter((a: any) => a.isTemplate);
+  const automacoesDoUsuario = (automacoesSalvas as any[]).filter((a: any) => !a.isTemplate);
+
+  const automacoesFiltradas = automacoesDoUsuario.filter((a: any) => {
     if (filtroTipoGatilho === "todos") return true;
     return a.tipoGatilho === filtroTipoGatilho;
   });
 
-  const tiposGatilhoUnicos = Array.from(new Set((automacoesSalvas as any[]).map(a => a.tipoGatilho)));
+  const tiposGatilhoUnicos = Array.from(new Set(automacoesDoUsuario.map((a: any) => a.tipoGatilho)));
 
   const getTriggerLabel = (a: any) => {
     switch (a.tipoGatilho) {
@@ -2542,6 +2545,55 @@ export default function Automacoes() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* Seção: Automações do Sistema */}
+              {automacoesDoSistema.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1 bg-gray-200" />
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
+                      <Settings size={11} /> Automações do Sistema
+                    </span>
+                    <div className="h-px flex-1 bg-gray-200" />
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3 text-center">Criadas automaticamente pelo Hubly. Você pode ativar, pausar ou editar o conteúdo.</p>
+                  <div className="space-y-2">
+                    {automacoesDoSistema.map((a: any) => (
+                      <div key={a.id} className={`bg-gray-50 rounded-xl border p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${a.ativo ? "border-gray-200" : "border-gray-100 opacity-70"}`}>
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-blue-100" : "bg-gray-100"}`}>
+                          <Settings size={14} className={a.ativo ? "text-blue-500" : "text-gray-400"} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-700 text-sm truncate">{a.nome}</p>
+                            <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
+                              {a.ativo ? "Ativa" : "Pausada"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{getTriggerLabel(a)}</p>
+                        </div>
+                        <Switch
+                          checked={a.ativo}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await updateMutation.mutateAsync({ id: a.id, ativo: checked });
+                              toast.success(checked ? "Automação ativada" : "Automação pausada");
+                            } catch {
+                              toast.error("Erro ao atualizar automação");
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => abrirEdicao(a.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </>
           )}

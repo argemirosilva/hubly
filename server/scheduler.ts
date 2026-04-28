@@ -1699,6 +1699,20 @@ export async function processarFilaPendente() {
     console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)/agendado(s)...`);
 
     for (const item of pendentes) {
+      // Verificar se a automação ainda está ativa antes de enviar
+      if (item.automacaoId) {
+        const [automacaoAtual] = await db.select({ ativo: automacoes.ativo })
+          .from(automacoes)
+          .where(eq(automacoes.id, item.automacaoId))
+          .limit(1);
+        if (automacaoAtual && !automacaoAtual.ativo) {
+          await db.update(historicoEnviosAutomacao)
+            .set({ status: 'falhou', erroDetalhe: 'Automação desativada pelo usuário' })
+            .where(eq(historicoEnviosAutomacao.id, item.id));
+          console.log(`[Fila] Envio ${item.id} cancelado — automação ${item.automacaoId} está desativada`);
+          continue;
+        }
+      }
       if (!item.telefone || !item.mensagem) {
         await db.update(historicoEnviosAutomacao)
           .set({ status: 'falhou', erroDetalhe: 'Telefone ou mensagem ausente' })
