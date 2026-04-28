@@ -2585,7 +2585,7 @@ export default function Automacoes() {
                           }}
                         />
                         <button
-                          onClick={() => abrirEdicao(a.id)}
+                          onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2 } as any)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                         >
                           <Edit2 size={14} />
