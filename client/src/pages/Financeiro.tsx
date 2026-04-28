@@ -59,7 +59,9 @@ export default function Financeiro() {
   }, [clientesLista]);
 
   // Fluxo de caixa consolidado
-  const receitasMes = metricasReceber?.totalRecebidoMes ?? 0;
+  // Receita real = soma dos agendamentos concluídos (metrics.receitaMes)
+  // Despesas = contas a pagar pagas no mês
+  const receitasMes = metrics?.receitaMes ?? 0;
   const despesasMes = metricasPagar?.totalPagoMes ?? 0;
   const saldoMes = receitasMes - despesasMes;
   const totalAPagar = metricasPagar?.totalPendente ?? 0;
@@ -166,41 +168,28 @@ export default function Financeiro() {
           <Wallet className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Fluxo de Caixa — Mês Atual</h2>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* 3 números principais */}
+        <div className="grid grid-cols-3 gap-3">
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
               <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
             </div>
             <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(receitasMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Recebido no mês</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Receita do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
               <ArrowDownRight className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
             </div>
             <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(despesasMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Pago no mês</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Despesas do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: saldoMes >= 0 ? "oklch(62% 0.18 155 / 12%)" : "oklch(60% 0.22 25 / 12%)" }}>
               <Wallet className="w-3 h-3" style={{ color: saldoMes >= 0 ? "oklch(38% 0.14 155)" : "oklch(42% 0.18 25)" }} />
             </div>
             <p className={`text-base font-bold tracking-tight ${saldoMes >= 0 ? "text-foreground" : "text-destructive"}`}>{formatCurrency(saldoMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Saldo do mês</p>
-          </div>
-          <div className="stat-card">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(72% 0.16 80 / 12%)" }}>
-              <Clock className="w-3 h-3" style={{ color: "oklch(40% 0.14 75)" }} />
-            </div>
-            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(totalAReceber)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">A receber (pendente)</p>
-          </div>
-          <div className="stat-card">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
-              <Clock className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
-            </div>
-            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(totalAPagar)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">A pagar (pendente)</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Saldo líquido</p>
           </div>
         </div>
         {/* Barra visual receita vs despesa */}
@@ -221,27 +210,27 @@ export default function Financeiro() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Cards de comissões */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        {[
-          { label: "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)" },
-          { label: "Ticket médio", value: formatCurrency(metrics?.ticketMedio ?? 0), icon: TrendingUp, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
-          { label: "Comissões pagas", value: formatCurrency(totalPago), icon: CheckCircle, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
-          { label: "Comissões pendentes", value: formatCurrency(metrics?.comissoesPendentes ?? totalPendente), icon: Clock, iconBg: "oklch(72% 0.16 80 / 12%)", iconColor: "oklch(40% 0.14 75)" },
-        ].map(stat => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="stat-card">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: stat.iconBg }}>
-                <Icon className="w-3 h-3" style={{ color: stat.iconColor }} />
-              </div>
-              <p className="text-base font-bold text-foreground tracking-tight">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{stat.label}</p>
+        {/* Detalhes secundários colapsáveis */}
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid oklch(90% 0.012 250)" }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="stat-card">
+              <p className="text-sm font-bold text-foreground tracking-tight">{formatCurrency(metrics?.ticketMedio ?? 0)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Ticket médio</p>
             </div>
-          );
-        })}
+            <div className="stat-card">
+              <p className="text-sm font-bold text-foreground tracking-tight">{metrics?.agendamentosMes ?? 0}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Atendimentos</p>
+            </div>
+            <div className="stat-card">
+              <p className="text-sm font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAPagar)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">A pagar (pendente)</p>
+            </div>
+            <div className="stat-card">
+              <p className="text-sm font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAReceber)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">A receber (pendente)</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Card de resumo do período */}
