@@ -2,6 +2,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import { verifySystemSession, SYSTEM_COOKIE_NAME } from "./system-auth";
+import { verifyOrizonToken, ORIZON_COOKIE_NAME } from "./orizon-auth";
 import { parse as parseCookies } from "cookie";
 import { getDb } from "../db";
 import { profissionais, empresas } from "../../drizzle/schema";
@@ -27,6 +28,38 @@ export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
   let user: User | null = null;
+
+  // Tentar autenticação via Painel Orizontech (cookie orizon_session)
+  try {
+    const cookies = parseCookies(opts.req.headers.cookie || "");
+    const orizonToken = cookies[ORIZON_COOKIE_NAME];
+    const isOrizonAdmin = await verifyOrizonToken(orizonToken);
+    if (isOrizonAdmin) {
+      user = {
+        id: -9999,
+        openId: "orizon_admin",
+        name: "Orizontech Admin",
+        email: "contato@orizontech.com.br",
+        loginMethod: "email",
+        role: "admin" as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+        pushToken: null,
+        pushTokenPlatform: null,
+        pushTokenUpdatedAt: null,
+        notifNovoAgendamento: false,
+        notifConfirmacao: false,
+        notifCancelamento: false,
+        notifLembrete: false,
+        notifPagamento: false,
+        notifComissao: false,
+      };
+      return { req: opts.req, res: opts.res, user };
+    }
+  } catch {
+    // Falha silenciosa
+  }
 
   // Tentar autenticação via system_user (email/senha) primeiro
   try {

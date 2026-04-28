@@ -11,7 +11,10 @@ import { eq, asc, sql as drizzleSql, ne } from "drizzle-orm";
 import { sendPushToEmpresa } from "../pushNotifications";
 
 // ─── Guard: apenas o owner da Orizontech pode acessar ────────────────────────
-async function assertOrizontech(userId: number) {
+async function assertOrizontech(userId: number, userOpenId?: string) {
+  // Aceitar sessão do Painel Orizontech (cookie orizon_session)
+  if (userOpenId === "orizon_admin") return;
+  // Aceitar owner do projeto (OWNER_OPEN_ID) ou id=1
   const ownerOpenId = process.env.OWNER_OPEN_ID;
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
@@ -27,7 +30,7 @@ async function assertOrizontech(userId: number) {
 export const orizontechRouter = router({
   // ─── Métricas gerais ──────────────────────────────────────────────────────
   getMetricas: protectedProcedure.query(async ({ ctx }) => {
-    await assertOrizontech(ctx.user.id);
+    await assertOrizontech(ctx.user.id, ctx.user.openId);
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
@@ -76,7 +79,7 @@ export const orizontechRouter = router({
       porPagina: z.number().default(20),
     }))
     .query(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const offset = (input.pagina - 1) * input.porPagina;
@@ -129,7 +132,7 @@ export const orizontechRouter = router({
   getEmpresa: protectedProcedure
     .input(z.object({ empresaId: z.number() }))
     .query(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [empresa] = await db.select().from(empresas).where(eq(empresas.id, input.empresaId)).limit(1);
@@ -143,7 +146,7 @@ export const orizontechRouter = router({
 
   // ─── Planos ───────────────────────────────────────────────────────────────
   listarPlanos: protectedProcedure.query(async ({ ctx }) => {
-    await assertOrizontech(ctx.user.id);
+    await assertOrizontech(ctx.user.id, ctx.user.openId);
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(planos).where(eq(planos.ativo, true)).orderBy(asc(planos.ordem));
@@ -159,7 +162,7 @@ export const orizontechRouter = router({
       periodoFim: z.date().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [existing] = await db.select().from(assinaturas).where(eq(assinaturas.empresaId, input.empresaId)).limit(1);
@@ -193,7 +196,7 @@ export const orizontechRouter = router({
       zapiAtivo: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       // Se zapiToken vier vazio, preserva o token existente no banco
@@ -212,7 +215,7 @@ export const orizontechRouter = router({
   verificarStatusZapi: protectedProcedure
     .input(z.object({ empresaId: z.number() }))
     .query(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const rows = await db.select({
@@ -247,7 +250,7 @@ export const orizontechRouter = router({
   reconectarZapi: protectedProcedure
     .input(z.object({ empresaId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const rows = await db.select({
@@ -287,7 +290,7 @@ export const orizontechRouter = router({
       porPagina: z.number().default(20),
     }))
     .query(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
@@ -322,7 +325,7 @@ export const orizontechRouter = router({
   getChamado: protectedProcedure
     .input(z.object({ chamadoId: z.number() }))
     .query(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [chamado] = await db.select().from(chamados).where(eq(chamados.id, input.chamadoId)).limit(1);
@@ -341,7 +344,7 @@ export const orizontechRouter = router({
       novoStatus: z.enum(["em_atendimento", "aguardando_cliente", "resolvido", "fechado"]).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [chamado] = await db.select().from(chamados).where(eq(chamados.id, input.chamadoId)).limit(1);
@@ -389,7 +392,7 @@ export const orizontechRouter = router({
 
   // ─── Base de Conhecimento ─────────────────────────────────────────────────
   listarBaseConhecimento: protectedProcedure.query(async ({ ctx }) => {
-    await assertOrizontech(ctx.user.id);
+    await assertOrizontech(ctx.user.id, ctx.user.openId);
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(baseConhecimento).where(eq(baseConhecimento.ativo, true)).orderBy(asc(baseConhecimento.categoria));
@@ -402,7 +405,7 @@ export const orizontechRouter = router({
       categoria: z.string().default("geral"),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [result] = await db.insert(baseConhecimento).values({
@@ -422,7 +425,7 @@ export const orizontechRouter = router({
       categoria: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db.update(baseConhecimento).set({
@@ -436,7 +439,7 @@ export const orizontechRouter = router({
   excluirBaseConhecimento: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db.update(baseConhecimento).set({ ativo: false }).where(eq(baseConhecimento.id, input.id));
@@ -447,7 +450,7 @@ export const orizontechRouter = router({
   excluirEmpresa: protectedProcedure
     .input(z.object({ empresaId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       // Remover assinatura primeiro (FK)
@@ -459,7 +462,7 @@ export const orizontechRouter = router({
 
   // ─── CRUD Planos ─────────────────────────────────────────────────────────
   listarPlanosCompleto: protectedProcedure.query(async ({ ctx }) => {
-    await assertOrizontech(ctx.user.id);
+    await assertOrizontech(ctx.user.id, ctx.user.openId);
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(planos).orderBy(asc(planos.ordem));
@@ -484,7 +487,7 @@ export const orizontechRouter = router({
       stripePriceIdAnual: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const [result] = await db.insert(planos).values({
@@ -529,7 +532,7 @@ export const orizontechRouter = router({
       stripePriceIdAnual: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { id, ...rest } = input;
@@ -548,7 +551,7 @@ export const orizontechRouter = router({
   excluirPlano: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await assertOrizontech(ctx.user.id);
+      await assertOrizontech(ctx.user.id, ctx.user.openId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db.update(planos).set({ ativo: false }).where(eq(planos.id, input.id));

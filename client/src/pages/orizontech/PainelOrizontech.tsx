@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,19 +30,28 @@ function LoginOrizontech({ onLogin }: { onLogin: () => void }) {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
     setCarregando(true);
-    setTimeout(() => {
-      if (email.trim().toLowerCase() === ORIZON_USER && senha === ORIZON_PASS) {
+    try {
+      const res = await fetch("/api/orizontech/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
+      });
+      if (res.ok) {
         sessionStorage.setItem(ORIZON_SESSION_KEY, "1");
         onLogin();
       } else {
         setErro("E-mail ou senha incorretos.");
       }
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
       setCarregando(false);
-    }, 400);
+    }
   }
 
   return (
@@ -143,7 +151,6 @@ function badgePrioridade(p: string) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function PainelOrizontech() {
-  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [aba, setAba] = useState("dashboard");
   const [autenticado, setAutenticado] = useState(() => sessionStorage.getItem(ORIZON_SESSION_KEY) === "1");
@@ -157,8 +164,6 @@ export default function PainelOrizontech() {
   if (!autenticado) {
     return <LoginOrizontech onLogin={() => setAutenticado(true)} />;
   }
-
-  if (!user) return <div className="flex items-center justify-center h-screen text-muted-foreground">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -186,7 +191,11 @@ export default function PainelOrizontech() {
             size="sm"
             className="text-gray-400 hover:text-red-600"
             title="Sair do painel"
-            onClick={() => { sessionStorage.removeItem(ORIZON_SESSION_KEY); setAutenticado(false); }}
+            onClick={async () => {
+              await fetch("/api/orizontech/logout", { method: "POST", credentials: "include" });
+              sessionStorage.removeItem(ORIZON_SESSION_KEY);
+              setAutenticado(false);
+            }}
           >
             <LogOut className="w-4 h-4" />
           </Button>

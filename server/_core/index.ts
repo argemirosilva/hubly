@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerSystemAuthRoutes } from "./system-auth";
+import { registerOrizonAuthRoutes } from "./orizon-auth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -46,6 +47,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // System user auth (email/senha)
   registerSystemAuthRoutes(app);
+  // Painel Orizontech — autenticação independente
+  registerOrizonAuthRoutes(app);
   // Confirmação pública de agendamento via token
   registerConfirmacaoRoute(app);
   // Webhook Z-API — status de entrega/leitura de mensagens
