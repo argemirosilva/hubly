@@ -2334,3 +2334,10 @@
 
 ## Controle de Acesso Painel Orizontech
 - [x] Tela de login independente para /orizontech (usuário/senha hardcoded, sessão via sessionStorage)
+
+## Atualização Planos Hubly (Stripe)
+- [x] Banco de dados atualizado: Essencial/Profissional/Premium → Hubly Solo/Plus/Pro
+- [x] IDs Stripe atualizados no banco (stripeProductId, stripePriceIdMensal, stripePriceIdAnual)
+- [x] Preços atualizados: Solo R$49/490, Plus R$149/1490, Pro R$299/2990
+- [x] suporte.ts atualizado com nomes corretos dos planos
+- [x] Assinatura da Maguie criada no banco (Hubly Pro, ativa, anual, stripeCustomerId/SubscriptionId vinculados)

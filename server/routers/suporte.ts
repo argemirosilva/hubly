@@ -105,7 +105,7 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 - Envio manual de mensagens para clientes
 
 ### Assinatura e Planos
-- Planos disponíveis: Essencial, Profissional e Premium com recursos e limites diferentes
+- Planos disponíveis: Hubly Solo, Hubly Plus e Hubly Pro com recursos e limites diferentes
 - Alerta automático ao atingir 80% do limite de qualquer recurso
 - Ao atingir 100%, não é possível cadastrar novos registros daquele tipo
 - Upgrade disponível em Assinatura > Ver Planos
