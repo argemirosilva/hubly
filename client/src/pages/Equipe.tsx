@@ -242,6 +242,7 @@ function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
     notificacoesEscopo: (permissoesIniciais as any).notificacoesEscopo ?? 'proprio',
     agendaEscopo: (permissoesIniciais as any).agendaEscopo ?? 'proprio',
     calendarioEscopo: (permissoesIniciais as any).calendarioEscopo ?? 'proprio',
+    financeiroEscopo: (permissoesIniciais as any).financeiroEscopo ?? 'proprio',
   }));
   const updateMutation = trpc.grupos.updatePermissoes.useMutation({
     onSuccess: () => { toast.success("Permissões salvas!"); utils.grupos.list.invalidate(); onClose(); },
@@ -268,6 +269,7 @@ function PermissoesEditor({ grupoId, permissoesIniciais, onClose }: {
             { key: 'notificacoesEscopo', label: 'Notificações' },
             { key: 'agendaEscopo', label: 'Agenda' },
             { key: 'calendarioEscopo', label: 'Calendário' },
+            { key: 'financeiroEscopo', label: 'Financeiro' },
           ].map(({ key, label }) => (
             <div key={key} className="flex items-center gap-2">
               <span className="text-xs text-foreground w-24">{label}</span>

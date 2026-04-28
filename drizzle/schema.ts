@@ -468,6 +468,7 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   servicosEditar: boolean("servicosEditar").default(false),
   servicosExcluir: boolean("servicosExcluir").default(false),
   // ── Financeiro ──
+  financeiroEscopo: mysqlEnum("financeiroEscopo", ["proprio", "todos"]).default("proprio"), // proprio = só os dados dela, todos = dados de toda a empresa
   financeiroVer: boolean("financeiroVer").default(false),
   financeiroVerComissoes: boolean("financeiroVerComissoes").default(false),
   financeiroEditarComissoes: boolean("financeiroEditarComissoes").default(false),

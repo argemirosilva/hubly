@@ -2797,13 +2797,21 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) return null;
-        // Admin vê métricas consolidadas; profissional vê apenas as suas
+        // Admin vê métricas consolidadas; profissional respeita financeiroEscopo do grupo
         let profId: number | null;
         if (input?.profissionalId !== undefined) {
           profId = input.profissionalId;
         } else {
-          const { profId: resolved } = await resolveAdminContext(ctx, empresa, "financeiroVer");
-          profId = resolved;
+          const { isAdmin, profId: resolved } = await resolveAdminContext(ctx, empresa, "financeiroVer");
+          if (isAdmin) {
+            profId = null; // owner/admin: vê todos
+          } else if (resolved !== null) {
+            const perms = await getPermissoesGrupoByProfissional(resolved);
+            const escopo = (perms as any)?.financeiroEscopo ?? 'proprio';
+            profId = escopo === 'todos' ? null : resolved;
+          } else {
+            profId = null;
+          }
         }
         return getDashboardMetrics(empresa.id, profId);
       }),
@@ -3957,7 +3965,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'FORBIDDEN', message: 'O grupo Administradores é protegido e suas permissões não podem ser alteradas.' });
         }
         // Filtrar campos booleanos e campos de escopo (enum strings)
-        const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo'];
+        const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo', 'financeiroEscopo'];
         const permissoesBooleanas = Object.fromEntries(
           Object.entries(input.permissoes).filter(([k, v]) => typeof v === 'boolean' || escopoFields.includes(k))
         ) as Record<string, boolean | string>;

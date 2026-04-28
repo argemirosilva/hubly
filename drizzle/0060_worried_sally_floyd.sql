@@ -1,0 +1,1 @@
+ALTER TABLE `permissoes_grupo` ADD `financeiroEscopo` enum('proprio','todos') DEFAULT 'proprio';
