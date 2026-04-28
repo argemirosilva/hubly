@@ -180,6 +180,20 @@
 - [x] Gatilho agendamento_reativado: template de automação padrão + disparo no confirmarSinalForaDoPrazo
 - [x] Pipeline: adicionar coluna "Cancelado" vinculada ao statusVinculo agendamento_cancelado
 - [x] Pipeline: mover cartão para Pré-Agendamento ao confirmar sinal fora do prazo (reativação)
+
+## Multi-tenant
+- [ ] Pipeline: scroll horizontal fácil (drag-to-scroll + barra visível)
+- [x] Remover referências hardcoded à Maguie nos templates de automação e textos do sistema (já usa {{empresa}} dinâmico em todos os pontos)
+- [x] Wizard de onboarding (3 passos): configurar empresa, adicionar serviços, convidar profissionais (já existia com 5 passos completos)
+- [x] Mudar tema padrão para light com identidade visual Orizontech (página /orizontech convertida de dark para light)
+
+## Painel Orizontech (melhorias)
+- [ ] Upload logo Orizontech e substituir coroa no header
+- [ ] Excluir empresa com diálogo de confirmação
+- [ ] Corrigir status WhatsApp (API usada + online/offline) na listagem
+- [ ] Aba Planos: gerenciamento Stripe (listar, criar, editar preços)
+- [ ] Aba Empresas: mostrar plano assinado por cada empresa
+- [ ] Planos com Stripe: Free e Pro com limites e bloqueio de features premium
 - [x] Vínculos statusVinculo configurados: Pré-Agendamento→agendamento_criado, Confirmação→agendamento_confirmado, Pós-Atendimento→agendamento_concluido, Cancelado pelo cliente→agendamento_cancelado_pelo_cliente
 
 ## Bugs (v5)

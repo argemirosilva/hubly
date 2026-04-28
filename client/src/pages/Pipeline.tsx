@@ -72,6 +72,35 @@ export default function Pipeline() {
   const [draggingCartao, setDraggingCartao] = useState<number | null>(null);
   const [dragOverColuna, setDragOverColuna] = useState<number | null>(null);
 
+  // Drag-to-scroll no board horizontal
+  const boardRef = useRef<HTMLDivElement>(null);
+  const isDraggingBoard = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+
+  const handleBoardMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Só ativa drag-to-scroll se clicar no fundo do board (não em cartões)
+    const target = e.target as HTMLElement;
+    if (target.closest('[draggable]') || target.closest('button') || target.closest('[role="menuitem"]')) return;
+    isDraggingBoard.current = true;
+    startX.current = e.pageX - (boardRef.current?.offsetLeft ?? 0);
+    scrollLeft.current = boardRef.current?.scrollLeft ?? 0;
+    if (boardRef.current) boardRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleBoardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingBoard.current || !boardRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - boardRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    boardRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
+  const handleBoardMouseUp = () => {
+    isDraggingBoard.current = false;
+    if (boardRef.current) boardRef.current.style.cursor = '';
+  };
+
   const criarPipeline = trpc.pipeline.criar.useMutation({
     onSuccess: () => { utils.pipeline.listar.invalidate(); setModalNovoPipeline(false); setNomePipeline(""); toast.success("Pipeline criado!"); },
     onError: (e) => toast.error(e.message),
@@ -186,7 +215,15 @@ export default function Pipeline() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto">
+        <div
+          ref={boardRef}
+          className="flex-1 overflow-x-auto cursor-grab select-none"
+          style={{ scrollbarWidth: 'auto', scrollbarColor: 'hsl(var(--border)) transparent' }}
+          onMouseDown={handleBoardMouseDown}
+          onMouseMove={handleBoardMouseMove}
+          onMouseUp={handleBoardMouseUp}
+          onMouseLeave={handleBoardMouseUp}
+        >
           <div className="flex gap-4 p-4 md:p-6 h-full min-h-[500px]" style={{ minWidth: "max-content" }}>
             {pipelineAtivoData.colunas.map((coluna) => (
               <div

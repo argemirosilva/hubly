@@ -7,7 +7,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { empresas, assinaturas, planos, chamados, chamadoMensagens, baseConhecimento } from "../../drizzle/schema";
-import { eq, asc, sql as drizzleSql } from "drizzle-orm";
+import { eq, asc, sql as drizzleSql, ne } from "drizzle-orm";
 import { sendPushToEmpresa } from "../pushNotifications";
 
 // ─── Guard: apenas o owner da Orizontech pode acessar ────────────────────────
@@ -363,6 +363,118 @@ export const orizontechRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db.update(baseConhecimento).set({ ativo: false }).where(eq(baseConhecimento.id, input.id));
+      return { ok: true };
+    }),
+
+  // ─── Excluir Empresa ─────────────────────────────────────────────────────
+  excluirEmpresa: protectedProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Remover assinatura primeiro (FK)
+      await db.execute(drizzleSql`DELETE FROM assinaturas WHERE empresaId = ${input.empresaId}`);
+      // Remover a empresa
+      await db.execute(drizzleSql`DELETE FROM empresas WHERE id = ${input.empresaId}`);
+      return { ok: true };
+    }),
+
+  // ─── CRUD Planos ─────────────────────────────────────────────────────────
+  listarPlanosCompleto: protectedProcedure.query(async ({ ctx }) => {
+    await assertOrizontech(ctx.user.id);
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    return db.select().from(planos).orderBy(asc(planos.ordem));
+  }),
+
+  criarPlano: protectedProcedure
+    .input(z.object({
+      nome: z.string().min(1),
+      descricao: z.string().optional(),
+      precoMensal: z.number().min(0),
+      precoAnual: z.number().min(0),
+      limiteUsuarios: z.number().default(3),
+      limiteAgendamentosMes: z.number().default(200),
+      temAutomacoes: z.boolean().default(true),
+      temPipeline: z.boolean().default(false),
+      temIaFinanceira: z.boolean().default(false),
+      temIaClientes: z.boolean().default(false),
+      slaSuporteHoras: z.number().default(48),
+      ordem: z.number().default(0),
+      stripeProductId: z.string().optional(),
+      stripePriceIdMensal: z.string().optional(),
+      stripePriceIdAnual: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [result] = await db.insert(planos).values({
+        nome: input.nome,
+        descricao: input.descricao ?? null,
+        precoMensal: String(input.precoMensal),
+        precoAnual: String(input.precoAnual),
+        limiteUsuarios: input.limiteUsuarios,
+        limiteAgendamentosMes: input.limiteAgendamentosMes,
+        temAutomacoes: input.temAutomacoes,
+        temPipeline: input.temPipeline,
+        temIaFinanceira: input.temIaFinanceira,
+        temIaClientes: input.temIaClientes,
+        slaSuporteHoras: input.slaSuporteHoras,
+        ordem: input.ordem,
+        ativo: true,
+        stripeProductId: input.stripeProductId ?? null,
+        stripePriceIdMensal: input.stripePriceIdMensal ?? null,
+        stripePriceIdAnual: input.stripePriceIdAnual ?? null,
+      });
+      return { id: (result as unknown as { insertId: number }).insertId };
+    }),
+
+  editarPlano: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      nome: z.string().min(1),
+      descricao: z.string().optional(),
+      precoMensal: z.number().min(0),
+      precoAnual: z.number().min(0),
+      limiteUsuarios: z.number(),
+      limiteAgendamentosMes: z.number(),
+      temAutomacoes: z.boolean(),
+      temPipeline: z.boolean(),
+      temIaFinanceira: z.boolean(),
+      temIaClientes: z.boolean(),
+      slaSuporteHoras: z.number(),
+      ordem: z.number(),
+      ativo: z.boolean(),
+      stripeProductId: z.string().optional(),
+      stripePriceIdMensal: z.string().optional(),
+      stripePriceIdAnual: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { id, ...rest } = input;
+      await db.update(planos).set({
+        ...rest,
+        precoMensal: String(rest.precoMensal),
+        precoAnual: String(rest.precoAnual),
+        descricao: rest.descricao ?? null,
+        stripeProductId: rest.stripeProductId ?? null,
+        stripePriceIdMensal: rest.stripePriceIdMensal ?? null,
+        stripePriceIdAnual: rest.stripePriceIdAnual ?? null,
+      }).where(eq(planos.id, id));
+      return { ok: true };
+    }),
+
+  excluirPlano: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(planos).set({ ativo: false }).where(eq(planos.id, input.id));
       return { ok: true };
     }),
 });
