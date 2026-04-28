@@ -208,6 +208,75 @@ export const orizontechRouter = router({
       return { ok: true };
     }),
 
+  // ─── Status e Reconexão Z-API por empresa ──────────────────────────────────
+  verificarStatusZapi: protectedProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const rows = await db.select({
+        zapiInstanceId: assinaturas.zapiInstanceId,
+        zapiToken: assinaturas.zapiToken,
+        zapiAtivo: assinaturas.zapiAtivo,
+      }).from(assinaturas).where(eq(assinaturas.empresaId, input.empresaId)).limit(1);
+
+      const row = rows[0];
+      if (!row?.zapiAtivo || !row?.zapiInstanceId || !row?.zapiToken) {
+        return { connected: false, status: 'not_configured', phone: null };
+      }
+
+      // Usar o Client-Token global da plataforma
+      const clientToken = process.env.ZAPI_CLIENT_TOKEN ?? '';
+      const BASE_URL = 'https://api.z-api.io';
+      const url = `${BASE_URL}/instances/${row.zapiInstanceId}/token/${row.zapiToken}/status`;
+      try {
+        const res = await fetch(url, {
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        });
+        const data = await res.json() as Record<string, unknown>;
+        const connected = data?.connected === true;
+        const phone = (data?.phone as string) ?? null;
+        const status = connected ? 'connected' : ((data?.status as string) ?? 'disconnected');
+        return { connected, status, phone };
+      } catch {
+        return { connected: false, status: 'error', phone: null };
+      }
+    }),
+
+  reconectarZapi: protectedProcedure
+    .input(z.object({ empresaId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertOrizontech(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const rows = await db.select({
+        zapiInstanceId: assinaturas.zapiInstanceId,
+        zapiToken: assinaturas.zapiToken,
+        zapiAtivo: assinaturas.zapiAtivo,
+      }).from(assinaturas).where(eq(assinaturas.empresaId, input.empresaId)).limit(1);
+
+      const row = rows[0];
+      if (!row?.zapiAtivo || !row?.zapiInstanceId || !row?.zapiToken) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Z-API não configurada para esta empresa' });
+      }
+
+      const clientToken = process.env.ZAPI_CLIENT_TOKEN ?? '';
+      const BASE_URL = 'https://api.z-api.io';
+      const url = `${BASE_URL}/instances/${row.zapiInstanceId}/token/${row.zapiToken}/restart`;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
+        });
+        const data = await res.json() as Record<string, unknown>;
+        return { ok: res.ok, message: (data?.message as string) ?? 'Reconexão solicitada' };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro ao reconectar';
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: msg });
+      }
+    }),
+
   // ─── Chamados de Suporte ──────────────────────────────────────────────────
   listarChamados: protectedProcedure
     .input(z.object({

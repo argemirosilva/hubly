@@ -3,10 +3,90 @@ import express from "express";
 import { stripe } from "./stripe";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
-import { subscriptions } from "../drizzle/schema";
+import { subscriptions, assinaturas, planos } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 import { invalidatePlanCache } from "./whatsapp-router";
+
+/**
+ * Sincroniza a tabela `assinaturas` (Painel Orizontech) com dados do Stripe.
+ * Busca o planoId pelo priceId, atualiza ou cria o registro da empresa.
+ */
+async function syncAssinatura(params: {
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string;
+  priceId: string;
+  billingInterval: string; // 'month' | 'year'
+  periodStart: Date;
+  periodEnd: Date;
+  status: 'ativa' | 'inadimplente' | 'cancelada';
+  empresaId?: number | null;
+}) {
+  const db = await getDb();
+  if (!db) return;
+
+  // Mapear priceId para planoId local
+  const allPlanos = await db.select().from(planos);
+  const plano = allPlanos.find(
+    p => p.stripePriceIdMensal === params.priceId || p.stripePriceIdAnual === params.priceId
+  );
+  if (!plano) {
+    console.warn(`[Stripe Webhook] Plano não encontrado para priceId: ${params.priceId}`);
+    return;
+  }
+
+  const ciclo = params.billingInterval === 'year' ? 'anual' : 'mensal';
+
+  // Tentar encontrar assinatura existente por stripeSubscriptionId ou stripeCustomerId
+  let existingRows = await db.select({ id: assinaturas.id, empresaId: assinaturas.empresaId })
+    .from(assinaturas)
+    .where(eq(assinaturas.stripeSubscriptionId, params.stripeSubscriptionId))
+    .limit(1);
+
+  if (existingRows.length === 0 && params.stripeCustomerId) {
+    existingRows = await db.select({ id: assinaturas.id, empresaId: assinaturas.empresaId })
+      .from(assinaturas)
+      .where(eq(assinaturas.stripeCustomerId, params.stripeCustomerId))
+      .limit(1);
+  }
+
+  if (existingRows.length === 0 && params.empresaId) {
+    existingRows = await db.select({ id: assinaturas.id, empresaId: assinaturas.empresaId })
+      .from(assinaturas)
+      .where(eq(assinaturas.empresaId, params.empresaId))
+      .limit(1);
+  }
+
+  if (existingRows.length > 0) {
+    // Atualizar assinatura existente
+    await db.update(assinaturas).set({
+      planoId: plano.id,
+      stripeCustomerId: params.stripeCustomerId,
+      stripeSubscriptionId: params.stripeSubscriptionId,
+      status: params.status,
+      ciclo,
+      periodoInicio: params.periodStart,
+      periodoFim: params.periodEnd,
+      canceladaEm: params.status === 'cancelada' ? new Date() : null,
+    }).where(eq(assinaturas.id, existingRows[0].id));
+    console.log(`[Stripe Webhook] assinaturas atualizada: empresaId=${existingRows[0].empresaId} plano=${plano.nome} ${ciclo}`);
+  } else if (params.empresaId) {
+    // Criar nova assinatura
+    await db.insert(assinaturas).values({
+      empresaId: params.empresaId,
+      planoId: plano.id,
+      stripeCustomerId: params.stripeCustomerId,
+      stripeSubscriptionId: params.stripeSubscriptionId,
+      status: params.status,
+      ciclo,
+      periodoInicio: params.periodStart,
+      periodoFim: params.periodEnd,
+    });
+    console.log(`[Stripe Webhook] assinaturas criada: empresaId=${params.empresaId} plano=${plano.nome} ${ciclo}`);
+  } else {
+    console.warn(`[Stripe Webhook] Não foi possível vincular assinatura Stripe a uma empresa local. stripeCustomerId=${params.stripeCustomerId}`);
+  }
+}
 
 // Webhook Secret carregado de ENV (que já tem fallback para a chave hardcoded)
 const webhookSecret = ENV.stripeWebhookSecret;
@@ -131,6 +211,18 @@ export function registerStripeWebhook(app: Express) {
               // Invalida cache de plano para que o roteamento WhatsApp use o novo plano imediatamente
               invalidatePlanCache(empresaId);
               console.log(`[Stripe Webhook] Assinatura ativada para empresa ${empresaId}: ${planType} ${billingCycle}`);
+
+              // Sincronizar tabela assinaturas (Painel Orizontech)
+              await syncAssinatura({
+                stripeCustomerId,
+                stripeSubscriptionId: resolvedSubscriptionId,
+                priceId,
+                billingInterval: sub.items.data[0]?.price?.recurring?.interval ?? 'month',
+                periodStart,
+                periodEnd,
+                status: 'ativa',
+                empresaId,
+              });
             }
             break;
           }
@@ -183,6 +275,21 @@ export function registerStripeWebhook(app: Express) {
               if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
             }
             console.log(`[Stripe Webhook] Assinatura atualizada: ${stripeSubscriptionId} → ${planType} ${status}`);
+
+            // Sincronizar tabela assinaturas (Painel Orizontech)
+            const statusAssinatura = status === 'active' ? 'ativa'
+              : status === 'past_due' ? 'inadimplente'
+              : status === 'canceled' ? 'cancelada'
+              : 'ativa';
+            await syncAssinatura({
+              stripeCustomerId: sub.customer,
+              stripeSubscriptionId,
+              priceId,
+              billingInterval: sub.items.data[0]?.price?.recurring?.interval ?? 'month',
+              periodStart: periodStart2,
+              periodEnd: periodEnd2,
+              status: statusAssinatura as 'ativa' | 'inadimplente' | 'cancelada',
+            });
             break;
           }
 
@@ -213,6 +320,14 @@ export function registerStripeWebhook(app: Express) {
               if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
             }
             console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para FREE`);
+
+            // Sincronizar tabela assinaturas (Painel Orizontech) — marcar como cancelada
+            if (db3) {
+              await db3.update(assinaturas).set({
+                status: 'cancelada',
+                canceladaEm: new Date(),
+              }).where(eq(assinaturas.stripeSubscriptionId, sub.id));
+            }
             break;
           }
 
@@ -237,6 +352,13 @@ export function registerStripeWebhook(app: Express) {
                     })
                     .where(eq(subscriptions.stripeSubscriptionId, invoice.subscription));
                   console.log(`[Stripe Webhook] Renovação registrada para assinatura: ${invoice.subscription}`);
+
+                  // Sincronizar tabela assinaturas (Painel Orizontech)
+                  await db5.update(assinaturas).set({
+                    status: 'ativa',
+                    periodoInicio: new Date(line.period.start * 1000),
+                    periodoFim: new Date(line.period.end * 1000),
+                  }).where(eq(assinaturas.stripeSubscriptionId, invoice.subscription));
                 }
               }
             }

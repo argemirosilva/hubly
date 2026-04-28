@@ -325,8 +325,16 @@ function TabEmpresas() {
 
   const [formAssinatura, setFormAssinatura] = useState({ planoId: 1, status: "ativa" as const, ciclo: "mensal" as const });
   const [formWa, setFormWa] = useState({ zapiInstanceId: "", zapiToken: "", zapiAtivo: false });
-
-  type EmpItem = NonNullable<typeof data>["empresas"][number];
+  const [zapiStatusEmpresaId, setZapiStatusEmpresaId] = useState<number | null>(null);
+  const { data: zapiStatus, isLoading: zapiStatusLoading, refetch: refetchZapiStatus } = trpc.orizontech.verificarStatusZapi.useQuery(
+    { empresaId: zapiStatusEmpresaId! },
+    { enabled: zapiStatusEmpresaId !== null && modalWhatsapp }
+  );
+  const reconectarZapi = trpc.orizontech.reconectarZapi.useMutation({
+    onSuccess: (res) => { toast(res.message || 'Reconexão solicitada!'); setTimeout(() => refetchZapiStatus(), 3000); },
+    onError: (e) => toast.error(`Erro ao reconectar: ${e.message}`),
+  });
+  type EmpItem = NonNullable<typeof data>["empresas"][number];;
   function abrirModalAssinatura(e: EmpItem) {
     setEmpresaSelecionada(e.id);
     setFormAssinatura({ planoId: e.planoId ?? 1, status: (e.assinaturaStatus as any) ?? "trial", ciclo: (e.ciclo as any) ?? "mensal" });
@@ -335,6 +343,7 @@ function TabEmpresas() {
 
   function abrirModalWhatsapp(e: EmpItem) {
     setEmpresaSelecionada(e.id);
+    setZapiStatusEmpresaId(e.id);
     setFormWa({
       zapiInstanceId: e.zapiInstanceId ?? "",
       zapiToken: "", // token nunca é retornado por segurança — deixar em branco para não sobrescrever se vazio
@@ -561,6 +570,43 @@ function TabEmpresas() {
             </div>
             {formWa.zapiAtivo && (
               <>
+                {/* Status em tempo real da instância Z-API */}
+                <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {zapiStatusLoading ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
+                      ) : zapiStatus?.connected ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                      ) : (
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700">
+                        {zapiStatusLoading ? 'Verificando...' : zapiStatus?.connected ? 'Conectada' : 'Desconectada'}
+                      </span>
+                      {zapiStatus?.phone && (
+                        <span className="text-xs text-gray-500">({zapiStatus.phone})</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-gray-500"
+                        onClick={() => refetchZapiStatus()}>
+                        Atualizar
+                      </Button>
+                      {!zapiStatus?.connected && !zapiStatusLoading && zapiStatus?.status !== 'not_configured' && (
+                        <Button size="sm" className="h-7 text-xs bg-orange-500 hover:bg-orange-600"
+                          disabled={reconectarZapi.isPending}
+                          onClick={() => reconectarZapi.mutate({ empresaId: empresaSelecionada! })}>
+                          {reconectarZapi.isPending ? 'Reconectando...' : 'Reconectar'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {zapiStatus?.status && zapiStatus.status !== 'connected' && zapiStatus.status !== 'not_configured' && (
+                    <p className="text-xs text-gray-400 mt-1">Status: {zapiStatus.status}</p>
+                  )}
+                </div>
+
                 <div>
                   <Label className="text-gray-600">Instance ID</Label>
                   <Input value={formWa.zapiInstanceId} onChange={e => setFormWa(f => ({ ...f, zapiInstanceId: e.target.value }))}

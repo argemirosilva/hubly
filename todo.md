@@ -2341,3 +2341,11 @@
 - [x] Preços atualizados: Solo R$49/490, Plus R$149/1490, Pro R$299/2990
 - [x] suporte.ts atualizado com nomes corretos dos planos
 - [x] Assinatura da Maguie criada no banco (Hubly Pro, ativa, anual, stripeCustomerId/SubscriptionId vinculados)
+
+## Webhook Stripe + Status Z-API
+- [x] Webhook Stripe sincroniza tabela assinaturas (Painel Orizontech) em checkout.session.completed, customer.subscription.updated, customer.subscription.deleted e invoice.paid
+- [x] syncAssinatura: mapeia priceId para planoId local, atualiza ou cria registro com ciclo/datas/status
+- [x] Modal WhatsApp: status Z-API em tempo real (Conectada/Desconectada) com indicador colorido
+- [x] Botão Reconectar no modal (chama /restart na Z-API da empresa)
+- [x] Botão Atualizar para refetch manual do status
+- [x] Procedures verificarStatusZapi e reconectarZapi no orizontech.ts
