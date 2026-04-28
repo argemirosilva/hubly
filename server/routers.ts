@@ -2978,6 +2978,14 @@ export const appRouter = router({
         await deleteAutomacao(input.id);
         return { success: true };
       }),
+    deleteMany: protectedProcedure
+      .input(z.object({ ids: z.array(z.number()).min(1).max(100) }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await Promise.all(input.ids.map(id => deleteAutomacao(id)));
+        return { success: true, deletedCount: input.ids.length };
+      }),
     uploadMidia: protectedProcedure
       .input(z.object({
         arquivoBase64: z.string(),

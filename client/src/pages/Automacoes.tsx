@@ -1644,8 +1644,23 @@ export default function Automacoes() {
     onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => toast.error(e.message),
   });
+  const deleteManyMutation = trpc.automacoes.deleteMany.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.deletedCount} automações excluídas!`);
+      utils.automacoes.list.invalidate();
+      gerarPipelineAutomatico();
+      setSelecionadas(new Set());
+      setModoSelecao(false);
+      setConfirmDeleteMany(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const savePositionsMutation = trpc.automacoes.savePositions.useMutation();
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionadas, setSelecionadas] = useState<Set<number>>(new Set());
+  const [confirmDeleteMany, setConfirmDeleteMany] = useState(false);
+  const toggleSelecao = (id: number) => setSelecionadas(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   const [testeEnvioId, setTesteEnvioId] = useState<number | null>(null);
   const [testeTelefone, setTesteTelefone] = useState("");
   const [testeComClienteId, setTesteComClienteId] = useState<number | null>(null);
@@ -2373,6 +2388,28 @@ export default function Automacoes() {
                 </div>
               ) : (
                 <>
+                  {/* Barra flutuante de seleção múltipla */}
+                  {modoSelecao && (
+                    <div className="flex items-center gap-2 mb-3 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl">
+                      <input type="checkbox" className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                        checked={selecionadas.size === automacoesFiltradas.length && automacoesFiltradas.length > 0}
+                        onChange={() => selecionadas.size === automacoesFiltradas.length ? setSelecionadas(new Set()) : setSelecionadas(new Set((automacoesFiltradas as any[]).map((a: any) => a.id)))}
+                      />
+                      <span className="text-sm text-indigo-700 font-medium flex-1">
+                        {selecionadas.size === 0 ? "Nenhuma selecionada" : `${selecionadas.size} selecionada${selecionadas.size > 1 ? "s" : ""}`}
+                      </span>
+                      {selecionadas.size > 0 && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                          onClick={() => setConfirmDeleteMany(true)}>
+                          <Trash2 size={12} className="mr-1" /> Excluir {selecionadas.size}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500"
+                        onClick={() => { setModoSelecao(false); setSelecionadas(new Set()); }}>
+                        <X size={12} className="mr-1" /> Cancelar
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                     <button
                       onClick={() => setFiltroTipoGatilho("todos")}
@@ -2400,9 +2437,16 @@ export default function Automacoes() {
                         </button>
                       );
                     })}
+                    {!modoSelecao && (
+                      <button
+                        onClick={() => setModoSelecao(true)}
+                        className="ml-auto px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1.5 flex-shrink-0"
+                      >
+                        <Check size={13} /> Selecionar
+                      </button>
+                    )}
                   </div>
-                  {automacoesFiltradas.length === 0 ? (
-                    <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-gray-200">
+                  {automacoesFiltradas.length === 0 ? (                    <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-gray-200">
                       <p className="text-gray-500 font-medium">Nenhuma automação neste tipo</p>
                     </div>
                   ) : (
@@ -2412,7 +2456,13 @@ export default function Automacoes() {
                         const incompletosLista = nodesLista.filter((n: FlowNode) => n.type !== "end" && getNodeIncompleto(n).length > 0);
                         const temIncompletoLista = incompletosLista.length > 0;
                         return (
-                    <div key={a.id} className={`bg-white rounded-xl border shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${temIncompletoLista ? "border-amber-200" : "border-gray-100"}`}>
+                    <div key={a.id} className={`bg-white rounded-xl border shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${temIncompletoLista ? "border-amber-200" : selecionadas.has(a.id) ? "border-indigo-400 bg-indigo-50" : "border-gray-100"}`}>
+                      {modoSelecao && (
+                        <input type="checkbox" className="w-4 h-4 accent-indigo-600 cursor-pointer flex-shrink-0"
+                          checked={selecionadas.has(a.id)}
+                          onChange={() => toggleSelecao(a.id)}
+                        />
+                      )}
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
                         <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
                       </div>
@@ -2517,6 +2567,27 @@ export default function Automacoes() {
           </DialogContent>
         </Dialog>
 
+        {/* Modal: Confirmação de exclusão em lote */}
+        <Dialog open={confirmDeleteMany} onOpenChange={open => !open && setConfirmDeleteMany(false)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 size={17} /> Excluir {selecionadas.size} automações
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600 mt-1">
+              Tem certeza que deseja excluir <strong>{selecionadas.size} automações</strong> selecionadas? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDeleteMany(false)}>Cancelar</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => deleteManyMutation.mutate({ ids: Array.from(selecionadas) })}
+                disabled={deleteManyMutation.isPending}>
+                {deleteManyMutation.isPending ? "Excluindo..." : `Sim, excluir ${selecionadas.size}`}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Modal: Aviso de Automação Duplicada */}
         <Dialog open={duplicataInfo !== null} onOpenChange={open => !open && setDuplicataInfo(null)}>
           <DialogContent className="max-w-sm">
