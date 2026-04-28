@@ -329,7 +329,7 @@ function TabEmpresas() {
   type EmpItem = NonNullable<typeof data>["empresas"][number];
   function abrirModalAssinatura(e: EmpItem) {
     setEmpresaSelecionada(e.id);
-    setFormAssinatura({ planoId: e.planoId ?? 1, status: (e.assinaturaStatus as any) ?? "trial", ciclo: "mensal" });
+    setFormAssinatura({ planoId: e.planoId ?? 1, status: (e.assinaturaStatus as any) ?? "trial", ciclo: (e.ciclo as any) ?? "mensal" });
     setModalAssinatura(true);
   }
 
@@ -380,7 +380,9 @@ function TabEmpresas() {
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Plano</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">WhatsApp</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-medium">Cadastro</th>
+                <th className="text-left px-4 py-3 text-gray-500 font-medium">Cliente desde</th>
+                <th className="text-left px-4 py-3 text-gray-500 font-medium">Início</th>
+                <th className="text-left px-4 py-3 text-gray-500 font-medium">Fim</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -419,6 +421,16 @@ function TabEmpresas() {
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {e.createdAt ? new Date(e.createdAt).toLocaleDateString("pt-BR") : "—"}
                   </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {e.periodoInicio ? new Date(e.periodoInicio).toLocaleDateString("pt-BR") : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {e.periodoFim
+                      ? new Date(e.periodoFim).toLocaleDateString("pt-BR")
+                      : e.trialFim
+                        ? new Date(e.trialFim).toLocaleDateString("pt-BR")
+                        : "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 h-7 px-2 text-xs"
@@ -438,7 +450,7 @@ function TabEmpresas() {
                 </tr>
               ))}
               {(data?.empresas ?? []).length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Nenhuma empresa encontrada</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Nenhuma empresa encontrada</td></tr>
               )}
             </tbody>
           </table>

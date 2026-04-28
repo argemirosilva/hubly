@@ -93,7 +93,9 @@ export const orizontechRouter = router({
         planoNome: planos.nome,
         planoId: planos.id,
         zapiAtivo: assinaturas.zapiAtivo,
+        ciclo: assinaturas.ciclo,
         trialFim: assinaturas.trialFim,
+        periodoInicio: assinaturas.periodoInicio,
         periodoFim: assinaturas.periodoFim,
       })
         .from(empresas)
