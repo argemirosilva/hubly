@@ -109,7 +109,7 @@ const SECTIONS: Section[] = [
           "Você também pode confirmar direto no modal de edição: abra o agendamento e clique no botão azul Confirmar agendamento que aparece no rodapé.",
         ],
         tip: "O cliente recebe uma notificação quando você confirma ou cancela o pré-agendamento dele. Pagar a reserva não confirma automaticamente o agendamento — a confirmação deve ser feita manualmente.",
-        warning: "Se você não confirmar em 24 horas (ou no tempo configurado), o pré-agendamento é cancelado automaticamente e o horário fica livre.",
+        warning: "Se você não confirmar dentro do prazo configurado no momento do agendamento, o pré-agendamento é cancelado automaticamente e o horário fica livre. O prazo é definido no momento da criação e não muda mesmo que você altere as configurações depois.",
       },
       {
         title: "Agendamento sem profissional definido",
@@ -393,11 +393,12 @@ const SECTIONS: Section[] = [
         title: "O que é escopo de visibilidade?",
         steps: [
           "Ao configurar um grupo, você pode definir o que os membros enxergam.",
-          "Próprio: o usuário só vê os próprios agendamentos, notificações e calendário.",
-          "Todos: o usuário vê os dados de todos os profissionais.",
-          "Isso se aplica separadamente para Notificações, Agenda e Calendário.",
+          "Próprio: o usuário só vê os próprios dados (agendamentos, notificações, calendário, financeiro).",
+          "Todos: o usuário vê os dados de todos os profissionais da empresa.",
+          "O escopo pode ser configurado separadamente para: Notificações, Agenda, Calendário e Financeiro.",
+          "Cada um desses escopos tem seu próprio toggle Próprio/Todos na seção Escopo de Visibilidade do grupo.",
         ],
-        tip: "Exemplo: um profissional com escopo Próprio só vê seus próprios horários no calendário. Já uma recepcionista com escopo Todos vê a agenda completa.",
+        tip: "Exemplo: uma profissional com escopo Financeiro = Próprio só vê a receita e comissões dela. Uma gerente com escopo Financeiro = Todos vê o consolidado da empresa.",
       },
       {
         title: "Quais permissões existem no sistema?",
@@ -558,13 +559,15 @@ const SECTIONS: Section[] = [
       {
         title: "Comissões — como funciona?",
         steps: [
-          "Quando você conclui um atendimento, o sistema pergunta se quer registrar a comissão.",
+          "Quando você conclui um atendimento, o sistema verifica se a profissional já tem percentual configurado e se o pagamento já foi registrado.",
+          "Se ambos estiverem preenchidos, a comissão é registrada automaticamente sem abrir nenhum modal.",
+          "Se faltar alguma informação, o modal de comissão abre para você preencher.",
           "O percentual já vem preenchido automaticamente (do serviço ou do profissional).",
           "Escolha a forma de pagamento: Dinheiro, PIX, Cartão, etc.",
           "Veja o valor calculado antes de confirmar.",
           "Clique em Registrar Comissão.",
         ],
-        tip: "O percentual configurado no serviço tem prioridade. Se não houver no serviço, o sistema usa o percentual do profissional.",
+        tip: "O percentual configurado no serviço tem prioridade. Se não houver no serviço, o sistema usa o percentual do profissional. Quando tudo já está configurado, a comissão é registrada na hora sem precisar de nenhuma ação extra.",
       },
       {
         title: "Ver comissões a pagar",
@@ -574,6 +577,28 @@ const SECTIONS: Section[] = [
           "Quando pagar, clique em Marcar como Pago para registrar.",
         ],
         tip: "Cada profissional só vê as próprias comissões. Apenas administradores veem as comissões de todos.",
+      },
+      {
+        title: "Fluxo de Caixa — Receita, Despesas e Saldo",
+        steps: [
+          "Na tela principal do Financeiro você vê 3 números: Receita do Mês, Despesas e Saldo.",
+          "A Receita do Mês mostra o total real dos pagamentos registrados nos agendamentos concluídos ou pagos no mês atual.",
+          "Despesas mostra o total de custos lançados manualmente no período.",
+          "Saldo é a diferença entre Receita e Despesas.",
+          "Abaixo dos 3 números principais, você encontra detalhes como comissões a pagar e outras informações secundárias.",
+        ],
+        tip: "A receita mostrada vem diretamente dos pagamentos registrados nos agendamentos, não de lançamentos manuais. Isso garante que o número reflita o que realmente entrou no caixa.",
+      },
+      {
+        title: "Controle de visibilidade financeira por grupo",
+        steps: [
+          "Em Equipe e Permissões, ao editar um grupo, você encontra a seção Escopo de Visibilidade.",
+          "O campo Financeiro pode ser configurado como Próprio ou Todos.",
+          "Próprio: a profissional vê apenas os dados financeiros dela (receita dos próprios atendimentos, comissões próprias).",
+          "Todos: a profissional vê os dados consolidados de toda a empresa.",
+          "Administradores sempre vêem tudo, independente dessa configuração.",
+        ],
+        tip: "Configure como Próprio para profissionais que não devem ver o financeiro geral da empresa. Use Todos apenas para gerentes ou administradores.",
       },
       {
         title: "Relatórios financeiros",
@@ -697,11 +722,12 @@ const SECTIONS: Section[] = [
         steps: [
           "Vá em Automações e clique em Caixa de Saída.",
           "Você vê todas as mensagens enviadas ou agendadas, com data, cliente, serviço e status.",
-          "Status possíveis: Pendente (aguardando envio), Enviado (entregue ao WhatsApp), Falhou (erro no envio), Cancelado (agendamento deletado antes do envio).",
+          "Status possíveis: Pendente (aguardando envio), Enviado (entregue ao WhatsApp), Falhou (erro no envio), Cancelado (agendamento deletado antes do envio ou automação desativada).",
           "A coluna Serviço mostra qual serviço gerou o envio — útil para agendamentos com múltiplos serviços.",
-          "Para reenviar uma mensagem com falha, abra o agendamento, vá em Mensagens Enviadas e clique em Reenviar.",
+          "Para reenviar uma mensagem com status Falhou ou Cancelado, abra o agendamento, vá em Mensagens Enviadas e clique em Reenviar.",
         ],
-        tip: "Mensagens com status Falhou podem ser reenviadas manualmente. O sistema gera um novo link de confirmação automaticamente se o original tiver expirado.",
+        tip: "Mensagens com status Falhou ou Cancelado podem ser reenviadas manualmente. O sistema gera um novo link de confirmação automaticamente se o original tiver expirado.",
+        warning: "Se você desativar uma automação, todos os envios pendentes dela são cancelados imediatamente. Para reativar os envios, você precisará reenviá-los manualmente.",
       },
       {
         title: "Automação de aniversário",
@@ -714,14 +740,38 @@ const SECTIONS: Section[] = [
         tip: "Combine com um cupom de desconto para aumentar o retorno dos clientes no mês do aniversário!",
       },
       {
-        title: "Histórico de envios e filtro de testes",
+        title: "Histórico de envios e filtros",
         steps: [
           "Vá em Automações e clique na aba Histórico.",
           "Você vê todos os envios realizados: data, cliente, automação, status e tipo.",
+          "Status no histórico: Enviado (verde), Falhou (vermelho), Cancelado (cinza) e Pendente (amarelo).",
+          "Cancelado significa que o envio foi interrompido antes de sair — por exclusão do agendamento ou desativação da automação.",
           "Para ver apenas os envios de teste, clique no botão Apenas testes no canto superior direito da aba.",
-          "O filtro ajuda a separar os testes reais dos envios de produção ao validar automações.",
+          "Você pode filtrar o histórico por status usando os filtros disponíveis.",
           "Clique em qualquer envio para ver a mensagem completa que foi enviada.",
         ],
+        tip: "Use o filtro de status Cancelado para identificar mensagens que não chegaram ao cliente por causa de uma automação desativada, e reenvie manualmente se necessário.",
+      },
+      {
+        title: "Automações do Sistema vs. Automações Personalizadas",
+        steps: [
+          "Na tela de Automações, as mensagens estão divididas em duas seções: Minhas Automações e Automações do Sistema.",
+          "Automações do Sistema são os templates padrão criados automaticamente quando você cadastrou a empresa.",
+          "Elas aparecem separadas no final da lista, com visual diferenciado.",
+          "Você pode ativar, desativar, editar ou excluir as automações do sistema como qualquer outra.",
+          "Se excluir uma automação do sistema, ela não será recriada automaticamente.",
+        ],
+        tip: "As automações do sistema já vem com gatilhos e mensagens prontos. Edite apenas o texto para personalizar com a sua linguagem antes de ativar.",
+      },
+      {
+        title: "Alerta de WhatsApp desconectado",
+        steps: [
+          "Quando o WhatsApp está desconectado, um alerta amarelo aparece no topo da tela de Automações.",
+          "O alerta avisa que as mensagens não serão enviadas enquanto o WhatsApp estiver desconectado.",
+          "Clique no botão Reconectar no alerta para ir direto à tela de WhatsApp e escanear o QR Code.",
+          "Após reconectar, o alerta desaparece automaticamente e os envios pendentes voltam a funcionar.",
+        ],
+        warning: "Mensagens agendadas para o período em que o WhatsApp ficou desconectado ficam com status Cancelado ou Falhou. Você pode reenviá-las manualmente pelo histórico do agendamento.",
       },
       {
         title: "Importante: o que acontece ao deletar um agendamento",

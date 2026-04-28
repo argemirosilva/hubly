@@ -53,7 +53,8 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 - O grupo Administradores tem acesso total e não pode ser editado nem excluído
 - O dono da conta é automaticamente Administrador
 - Escopo de visibilidade por grupo: "Próprio" (só vê os próprios dados) ou "Todos" (vê dados de toda a equipe)
-- Escopos se aplicam separadamente para: Notificações, Agenda e Calendário
+  - Escopos se aplicam separadamente para: Notificações, Agenda, Calendário e Financeiro
+  - Financeiro Próprio = profissional vê apenas sua receita e comissões; Financeiro Todos = vê dados consolidados da empresa
 - Permissões disponíveis por módulo:
   * Atendimentos: ver, criar, editar, concluir, remarcar, cancelar
   * Clientes: ver, cadastrar, editar, ver histórico, ver prontuário, editar prontuário, excluir
@@ -85,9 +86,11 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 
 ### Financeiro
 - Registrar receitas e custos com valor, descrição, data e categoria
-- Comissões: ao concluir atendimento, o percentual é preenchido automaticamente (do serviço ou do profissional)
+- Comissões: ao concluir atendimento, se a profissional já tem percentual configurado E o pagamento já foi registrado, a comissão é criada automaticamente sem abrir modal
+- Se faltar alguma informação, o modal de comissão abre para preencher
 - Formas de pagamento: Dinheiro, PIX, Cartão, etc.
 - Profissional só vê as próprias comissões; administradores veem todas
+- Fluxo de Caixa: 3 números principais (Receita do Mês, Despesas, Saldo). A receita vem dos pagamentos reais dos agendamentos, não de lançamentos manuais
 - Relatórios financeiros com filtros por período, profissional e categoria
 - Exportação de dados disponível
 
@@ -96,6 +99,11 @@ Seu papel é ajudar as usuárias a entenderem e utilizarem o sistema com clareza
 - Gatilhos disponíveis: agendamento confirmado, 1 dia antes, pacote vencendo, aniversário, etc.
 - Variáveis de mensagem: {{nome_cliente}}, {{primeiro_nome}}, {{data}}, {{hora}}, {{servico}}, {{profissional}}, {{empresa}}
 - Fila de Envios: mostra todas as mensagens enviadas ou agendadas para envio
+- Status de envio: Pendente, Enviado, Falhou, Cancelado. Cancelado ocorre quando o agendamento é excluído ou a automação é desativada antes do envio
+- Desativar uma automação cancela imediatamente todos os envios pendentes dela
+- Mensagens com status Falhou ou Cancelado podem ser reenviadas manualmente pelo histórico do agendamento
+- Automações do Sistema: templates padrão criados automaticamente, aparecem em seção separada no final da lista
+- Alerta amarelo aparece no topo da tela quando o WhatsApp está desconectado, com botão para reconectar
 
 ### WhatsApp
 - Conectar WhatsApp Business escaneando QR Code em Dispositivos Vinculados

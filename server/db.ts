@@ -877,7 +877,7 @@ export async function getPermissoesGrupoByProfissional(profissionalId: number) {
     const cols = await db.select().from(permissoesGrupo).limit(1);
     const sample = cols[0];
     if (sample) {
-      const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo'];
+      const escopoFields = ['notificacoesEscopo', 'agendaEscopo', 'calendarioEscopo', 'financeiroEscopo'];
       for (const key of Object.keys(sample)) {
         if (key === 'id' || key === 'grupoId' || key === 'createdAt' || key === 'updatedAt') continue;
         allTrue[key] = escopoFields.includes(key) ? 'todos' : true;
