@@ -414,6 +414,13 @@
       "when": 1777230196717,
       "tag": "0058_familiar_wendell_rand",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "5",
+      "when": 1777384078024,
+      "tag": "0059_chunky_justin_hammer",
+      "breakpoints": true
     }
   ]
 }

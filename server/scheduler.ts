@@ -1707,7 +1707,7 @@ export async function processarFilaPendente() {
           .limit(1);
         if (automacaoAtual && !automacaoAtual.ativo) {
           await db.update(historicoEnviosAutomacao)
-            .set({ status: 'falhou', erroDetalhe: 'Automação desativada pelo usuário' })
+            .set({ status: 'cancelado', erroDetalhe: 'Automação desativada pelo usuário' })
             .where(eq(historicoEnviosAutomacao.id, item.id));
           console.log(`[Fila] Envio ${item.id} cancelado — automação ${item.automacaoId} está desativada`);
           continue;

@@ -2051,6 +2051,7 @@ export default function Automacoes() {
                   <option value="enviado">Enviado</option>
                   <option value="falhou">Falhou</option>
                   <option value="pendente">Pendente</option>
+                  <option value="cancelado">Cancelado</option>
                 </select>
                 <button
                   onClick={() => { setHistoricoApenasTestes(v => !v); setHistoricoPage(0); }}
@@ -2145,10 +2146,12 @@ export default function Automacoes() {
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                 row.status === 'enviado' ? 'bg-emerald-100 text-emerald-700' :
+                                row.status === 'cancelado' ? 'bg-gray-100 text-gray-500' :
                                 row.status === 'falhou' ? 'bg-red-100 text-red-700' :
                                 'bg-yellow-100 text-yellow-700'
                               }`}>
                                 {row.status === 'enviado' ? <><Check size={9} />Enviado</> :
+                                 row.status === 'cancelado' ? <><span>✕</span>Cancelado</> :
                                  row.status === 'falhou' ? <><AlertCircle size={9} />Falhou</> :
                                  <><Clock size={9} />Pendente</>}
                               </span>
@@ -2324,15 +2327,18 @@ export default function Automacoes() {
                                     backgroundColor:
                                       item.status === "enviado" ? "#dcfce7" :
                                       item.status === "falhou" ? "#fee2e2" :
+                                      item.status === "cancelado" ? "#f3f4f6" :
                                       item.status === "pendente" ? "#fef9c3" : "#f3f4f6",
                                     color:
                                       item.status === "enviado" ? "#16a34a" :
                                       item.status === "falhou" ? "#dc2626" :
+                                      item.status === "cancelado" ? "#6b7280" :
                                       item.status === "pendente" ? "#ca8a04" : "#6b7280",
                                   }}
                                 >
                                   {item.status === "enviado" ? "Enviado" :
                                    item.status === "falhou" ? "Falhou" :
+                                   item.status === "cancelado" ? "Cancelado" :
                                    item.status === "pendente" ? "Pendente" : item.status}
                                 </span>
                                 {item.status === "falhou" && (

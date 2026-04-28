@@ -1,0 +1,1 @@
+ALTER TABLE `historico_envios_automacao` MODIFY COLUMN `status` enum('enviado','falhou','pendente','agendado','cancelado') NOT NULL DEFAULT 'enviado';
