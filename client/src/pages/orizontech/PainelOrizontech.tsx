@@ -372,8 +372,8 @@ function TabEmpresas() {
       {isLoading ? (
         <div className="text-gray-500 text-sm">Carregando...</div>
       ) : (
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border border-gray-200 overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Empresa</th>
