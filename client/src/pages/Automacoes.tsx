@@ -10,7 +10,7 @@ import {
   AlarmClock, Users, Tag, Check, CheckCircle, Edit2, Eye,
   History, Send, AlertCircle, RefreshCw, ChevronLeft, Phone,
   GitBranch, Loader2, ExternalLink, Activity, Radio, TrendingUp, UserPlus, UserX,
-  Package, MousePointerClick, Info, AlertTriangle, Layers, DollarSign, Star, Maximize2, Minus,
+  Package, MousePointerClick, Info, AlertTriangle, Layers, DollarSign, Star, Maximize2, Minus, WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1685,6 +1685,9 @@ export default function Automacoes() {
     undefined,
     { refetchInterval: 60000 }
   );
+  const { data: waStatus } = trpc.whatsapp.getStatus.useQuery(undefined, { staleTime: 30000, refetchInterval: 60000 });
+  const waDesconectado = waStatus !== undefined && waStatus.status !== "connected" && waStatus.status !== "connecting" && waStatus.status !== "qr_ready";
+
   const reenviarMutation = trpc.automacoes.reenviarMensagem.useMutation({
     onSuccess: () => {
       toast.success("Mensagem reenviada com sucesso!");
@@ -1949,6 +1952,13 @@ export default function Automacoes() {
     return (
       <>
       <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+          {waDesconectado && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <WifiOff size={16} className="flex-shrink-0 text-amber-500" />
+              <span className="flex-1"><strong>WhatsApp desconectado.</strong> As automações estão ativas, mas os envios vão falhar até que você reconecte o WhatsApp.</span>
+              <a href="/whatsapp" className="flex-shrink-0 rounded-lg bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-200 transition-colors">Reconectar</a>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-5 gap-3">
             <div>
               <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Automações</h1>
@@ -2183,6 +2193,18 @@ export default function Automacoes() {
                                 {!row.mensagem && !row.erroDetalhe && (
                                   <p className="text-xs text-gray-400 italic">Nenhum detalhe adicional disponível.</p>
                                 )}
+                                {(row.status === 'falhou' || row.status === 'cancelado') && (
+                                  <div className="mt-2">
+                                    <button
+                                      onClick={() => reenviarMutation.mutate({ envioId: row.id })}
+                                      disabled={reenviarMutation.isPending}
+                                      className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                                    >
+                                      <RefreshCw size={11} />
+                                      Reenviar mensagem
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           )}
@@ -2341,7 +2363,7 @@ export default function Automacoes() {
                                    item.status === "cancelado" ? "Cancelado" :
                                    item.status === "pendente" ? "Pendente" : item.status}
                                 </span>
-                                {item.status === "falhou" && (
+                                {(item.status === "falhou" || item.status === "cancelado") && (
                                   <button
                                     onClick={() => reenviarMutation.mutate({ envioId: item.id })}
                                     disabled={reenviarMutation.isPending}
