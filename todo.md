@@ -2331,3 +2331,6 @@
 - [ ] Mover cartão automaticamente ao mudar status do agendamento
 - [ ] Criar cartão no Pipeline ao criar novo agendamento (se pipeline ativo)
 - [ ] Atualizar manual com documentação da integração
+
+## Controle de Acesso Painel Orizontech
+- [x] Tela de login independente para /orizontech (usuário/senha hardcoded, sessão via sessionStorage)

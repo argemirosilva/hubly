@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -16,8 +16,103 @@ import {
   Building2, Users, TrendingUp, MessageSquare, AlertCircle,
   Search, RefreshCw, Wifi, WifiOff,
   Clock, CheckCircle2, XCircle, BookOpen, Plus, Edit, Trash2,
-  BarChart3, DollarSign, Headphones, Settings2, Package
+  BarChart3, DollarSign, Headphones, Settings2, Package, LogOut, Eye, EyeOff
 } from "lucide-react";
+
+// ─── Controle de acesso independente ─────────────────────────────────────────
+const ORIZON_USER = "contato@orizontech.com.br";
+const ORIZON_PASS = "Remoto!123";
+const ORIZON_SESSION_KEY = "orizon_auth";
+
+function LoginOrizontech({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErro("");
+    setCarregando(true);
+    setTimeout(() => {
+      if (email.trim().toLowerCase() === ORIZON_USER && senha === ORIZON_PASS) {
+        sessionStorage.setItem(ORIZON_SESSION_KEY, "1");
+        onLogin();
+      } else {
+        setErro("E-mail ou senha incorretos.");
+      }
+      setCarregando(false);
+    }, 400);
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-4 shadow-sm">
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-tech-icone_1f25ec5e.png"
+              alt="Orizontech"
+              className="w-10 h-10 object-contain"
+            />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Painel Orizontech</h1>
+          <p className="text-sm text-gray-500 mt-1">Acesso restrito à equipe interna</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="orizon-email" className="text-sm font-medium text-gray-700">E-mail</Label>
+              <Input
+                id="orizon-email"
+                type="email"
+                autoComplete="username"
+                placeholder="contato@orizontech.com.br"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="mt-1"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="orizon-senha" className="text-sm font-medium text-gray-700">Senha</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="orizon-senha"
+                  type={mostrarSenha ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={senha}
+                  onChange={e => setSenha(e.target.value)}
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            {erro && (
+              <p className="text-sm text-red-600 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {erro}
+              </p>
+            )}
+            <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white" disabled={carregando}>
+              {carregando ? "Verificando..." : "Entrar"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Cores de status ──────────────────────────────────────────────────────────
 function badgeStatus(status: string) {
@@ -51,6 +146,17 @@ export default function PainelOrizontech() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [aba, setAba] = useState("dashboard");
+  const [autenticado, setAutenticado] = useState(() => sessionStorage.getItem(ORIZON_SESSION_KEY) === "1");
+
+  useEffect(() => {
+    const check = () => setAutenticado(sessionStorage.getItem(ORIZON_SESSION_KEY) === "1");
+    window.addEventListener("storage", check);
+    return () => window.removeEventListener("storage", check);
+  }, []);
+
+  if (!autenticado) {
+    return <LoginOrizontech onLogin={() => setAutenticado(true)} />;
+  }
 
   if (!user) return <div className="flex items-center justify-center h-screen text-muted-foreground">Carregando...</div>;
 
@@ -71,9 +177,20 @@ export default function PainelOrizontech() {
             <p className="text-xs text-gray-500 mt-0.5">Gestão interna do sistema Hubly</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-900" onClick={() => navigate("/admin")}>
-          Voltar ao app
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-900" onClick={() => navigate("/admin")}>
+            Voltar ao app
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-red-600"
+            title="Sair do painel"
+            onClick={() => { sessionStorage.removeItem(ORIZON_SESSION_KEY); setAutenticado(false); }}
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Nav */}
