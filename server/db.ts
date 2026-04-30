@@ -712,6 +712,16 @@ export async function createAutomacao(data: typeof automacoes.$inferInsert & { f
 export async function deleteAutomacao(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB indisponível");
+  // Cancelar todos os envios pendentes/agendados desta automação antes de excluir
+  await db.update(historicoEnviosAutomacao)
+    .set({ status: 'cancelado', erroDetalhe: 'Automação excluída pelo usuário' })
+    .where(and(
+      eq(historicoEnviosAutomacao.automacaoId, id),
+      or(
+        eq(historicoEnviosAutomacao.status, 'pendente'),
+        eq(historicoEnviosAutomacao.status, 'agendado'),
+      )
+    ));
   await db.delete(automacoes).where(eq(automacoes.id, id));
 }
 

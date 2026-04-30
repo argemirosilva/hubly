@@ -1706,17 +1706,19 @@ export async function processarFilaPendente() {
     console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)/agendado(s)...`);
 
     for (const item of pendentes) {
-      // Verificar se a automação ainda está ativa antes de enviar
+      // Verificar se a automação ainda existe e está ativa antes de enviar
       if (item.automacaoId) {
         const [automacaoAtual] = await db.select({ ativo: automacoes.ativo })
           .from(automacoes)
           .where(eq(automacoes.id, item.automacaoId))
           .limit(1);
-        if (automacaoAtual && !automacaoAtual.ativo) {
+        // Cancelar se automação foi excluída (não encontrada) OU desativada
+        if (!automacaoAtual || !automacaoAtual.ativo) {
+          const motivo = !automacaoAtual ? 'Automação excluída' : 'Automação desativada pelo usuário';
           await db.update(historicoEnviosAutomacao)
-            .set({ status: 'cancelado', erroDetalhe: 'Automação desativada pelo usuário' })
+            .set({ status: 'cancelado', erroDetalhe: motivo })
             .where(eq(historicoEnviosAutomacao.id, item.id));
-          console.log(`[Fila] Envio ${item.id} cancelado — automação ${item.automacaoId} está desativada`);
+          console.log(`[Fila] Envio ${item.id} cancelado — ${motivo} (automacaoId: ${item.automacaoId})`);
           continue;
         }
       }

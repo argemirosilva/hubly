@@ -2371,3 +2371,6 @@
 - [x] Confirmação de pré-agendamento pelo portal público
 - [x] WhatsApp automático com link de confirmação 2h antes do prazo
 - [x] Mostrar data de expiração do pré-agendamento no card do calendário
+
+## Bug Crítico (v7)
+- [x] Bug: automação excluída continuava enviando mensagens — itens pendentes na fila (historico_envios_automacao) não eram cancelados ao excluir a automação. Corrigido em 2 pontos: (1) deleteAutomacao agora cancela todos os pendentes/agendados antes de excluir; (2) scheduler cancela item se automacaoId não existe mais no banco.
