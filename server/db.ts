@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
-import { creditosCliente, agendamentoPessoas } from '../drizzle/schema';
+import { creditosCliente, agendamentoPessoas, automacoesExcluidas } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
 import { createPool } from "mysql2/promise";
@@ -655,6 +655,40 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
 }
 
 /**
+ * Verifica se já existe automação para um evento, independente de estar ativa ou não.
+ * Também verifica o tombstone (automações excluídas intencionalmente).
+ * Usado pelo provisionador de templates para não recriar automações que o usuário desativou ou excluiu.
+ * ATENÇÃO: Esta função não deve ser usada para disparar automações — apenas para verificar existência.
+ */
+export async function existeAutomacaoParaEvento(empresaId: number, evento: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  // Verificar se existe automação ativa ou inativa para este evento
+  const [result] = await db
+    .select({ id: automacoes.id })
+    .from(automacoes)
+    .where(
+      and(
+        eq(automacoes.empresaId, empresaId),
+        eq(automacoes.tipoGatilho, 'evento'),
+        or(
+          eq(automacoes.evento, evento),
+          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+        ),
+      )
+    )
+    .limit(1);
+  if (result) return true;
+  // Verificar tombstone: usuário excluiu intencionalmente
+  const [tombstone] = await db
+    .select({ id: automacoesExcluidas.id })
+    .from(automacoesExcluidas)
+    .where(and(eq(automacoesExcluidas.empresaId, empresaId), eq(automacoesExcluidas.evento, evento)))
+    .limit(1);
+  return !!tombstone;
+}
+
+/**
  * Bug fix 3c: Busca TODAS as automações ativas de uma empresa para um evento específico.
  * Diferente de getAutomacaoByEvento que retorna apenas a primeira.
  */
@@ -722,6 +756,23 @@ export async function deleteAutomacao(id: number) {
         eq(historicoEnviosAutomacao.status, 'agendado'),
       )
     ));
+  // Registrar tombstone: se a automação tem evento, guardar para o provisionador não recriar
+  const [automacao] = await db.select({ empresaId: automacoes.empresaId, evento: automacoes.evento, nome: automacoes.nome })
+    .from(automacoes).where(eq(automacoes.id, id)).limit(1);
+  if (automacao?.evento) {
+    // Verificar se já existe tombstone para este evento nesta empresa
+    const [tombstoneExistente] = await db.select({ id: automacoesExcluidas.id })
+      .from(automacoesExcluidas)
+      .where(and(eq(automacoesExcluidas.empresaId, automacao.empresaId), eq(automacoesExcluidas.evento, automacao.evento)))
+      .limit(1);
+    if (!tombstoneExistente) {
+      await db.insert(automacoesExcluidas).values({
+        empresaId: automacao.empresaId,
+        evento: automacao.evento,
+        automacaoNome: automacao.nome,
+      });
+    }
+  }
   await db.delete(automacoes).where(eq(automacoes.id, id));
 }
 

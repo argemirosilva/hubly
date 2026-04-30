@@ -1207,3 +1207,17 @@ export const agendamentoPessoas = mysqlTable("agendamento_pessoas", {
 });
 export type AgendamentoPessoa = typeof agendamentoPessoas.$inferSelect;
 export type InsertAgendamentoPessoa = typeof agendamentoPessoas.$inferInsert;
+
+// ─── AUTOMAÇÕES EXCLUÍDAS (TOMBSTONE) ─────────────────────────────────────────
+// Registra eventos de automações que o usuário excluiu intencionalmente.
+// O provisionador de templates verifica esta tabela para não recriar automações
+// que o usuário já excluiu de propósito.
+export const automacoesExcluidas = mysqlTable("automacoes_excluidas", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  evento: varchar("evento", { length: 100 }).notNull(),
+  automacaoNome: varchar("automacaoNome", { length: 255 }),
+  excluidoEm: timestamp("excluidoEm").defaultNow().notNull(),
+});
+export type AutomacaoExcluida = typeof automacoesExcluidas.$inferSelect;
+export type InsertAutomacaoExcluida = typeof automacoesExcluidas.$inferInsert;

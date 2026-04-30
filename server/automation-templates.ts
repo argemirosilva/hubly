@@ -6,7 +6,7 @@
  * passa a false e o template original deixa de ser referência.
  */
 
-import { createAutomacao, getAutomacaoByEvento, getPipelinesByEmpresa, createPipeline, createColuna, getColunasByPipeline } from "./db";
+import { createAutomacao, getAutomacaoByEvento, existeAutomacaoParaEvento, getPipelinesByEmpresa, createPipeline, createColuna, getColunasByPipeline } from "./db";
 
 // ─── DEFINIÇÃO DOS TEMPLATES ─────────────────────────────────────────────────
 
@@ -492,8 +492,10 @@ export async function provisionarNovosTemplatesParaEmpresasExistentes(): Promise
     for (const empresa of todasEmpresas) {
       for (const evento of novosEventos) {
         // Verificar se já existe automação para este evento nesta empresa
-        const existente = await getAutomacaoByEvento(empresa.id, evento);
-        if (existente) continue; // já existe, pular
+        // Usa existeAutomacaoParaEvento (não filtra por ativo) para não recriar
+        // automações que o usuário desativou ou excluiu intencionalmente
+        const existente = await existeAutomacaoParaEvento(empresa.id, evento);
+        if (existente) continue; // já existe (ativa ou não), pular
 
         const template = templatesPorEvento.get(evento);
         if (!template) continue;
