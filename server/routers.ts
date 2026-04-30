@@ -5572,7 +5572,10 @@ export const appRouter = router({
           return { resultado: 'expirado' as const };
         }
         await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
-        await db.update(agTbl).set({ status: 'confirmado', confirmadoEm: agora }).where(eq(agTbl.id, tokenRow.agendamentoId));
+        // Se o agendamento é pré-agendado, confirmar = mudar para 'agendado'; senão, 'confirmado'
+        const [agParaConfirmar] = await db.select({ status: agTbl.status }).from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
+        const novoStatus = agParaConfirmar?.status === 'pre_agendado' ? 'agendado' : 'confirmado';
+        await db.update(agTbl).set({ status: novoStatus, confirmadoEm: agora }).where(eq(agTbl.id, tokenRow.agendamentoId));
         // Buscar agendamento atualizado para notificações e automações
         const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
         // Notificação push para admin e profissional

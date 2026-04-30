@@ -1648,6 +1648,13 @@ export async function processarFilaPendente() {
   try {
     const db = await getDb();
     if (!db) return;
+    // Testar conexão antes de processar (evita ECONNRESET silencioso)
+    try { await db.execute('SELECT 1'); } catch (connErr: any) {
+      if (connErr?.code === 'ECONNRESET' || connErr?.errno === -104) {
+        console.warn('[Fila] Conexão caiu (ECONNRESET), aguardando próximo ciclo...');
+        return;
+      }
+    }
 
     const agora = new Date();
     const expiracaoLimite = new Date(agora.getTime() - 4 * 60 * 60 * 1000); // agora - 4h
@@ -1882,12 +1889,13 @@ async function cancelarPreAgendamentosExpirados() {
           )`,
         ));
 
-      // Enviar lembrete interno para pré-agendamentos prestes a expirar
+      // Enviar lembrete interno + WhatsApp para pré-agendamentos prestes a expirar
       for (const ag of paraLembrete) {
         try {
           const expiracaoFormatada = ag.reservaExpiracaoEm
             ? new Date(ag.reservaExpiracaoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
             : 'em breve';
+          // Notificação interna
           await db.insert(notificacoes).values({
             empresaId: empresa.id,
             tipo: 'reserva_expirada',
@@ -1896,6 +1904,26 @@ async function cancelarPreAgendamentosExpirados() {
             agendamentoId: ag.id,
             dadosContexto: { agendamentoId: ag.id, expiracaoEm: ag.reservaExpiracaoEm },
           });
+          // Enviar WhatsApp para o cliente com link de confirmação
+          try {
+            const { clientes: cliTbl2 } = await import('../drizzle/schema');
+            const [agCompleto] = await db.select().from(agendamentos).where(eq(agendamentos.id, ag.id)).limit(1);
+            const [cliente2] = ag.clienteId ? await db.select().from(cliTbl2).where(eq(cliTbl2.id, ag.clienteId)).limit(1) : [null];
+            const telefone = cliente2?.whatsapp || cliente2?.telefone;
+            if (telefone && agCompleto) {
+              const token = await gerarTokenConfirmacao(ag.id, empresa.id);
+              const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+              const linkConfirmacao = `${origin}/confirmar/${token}`;
+              const nomeCliente = cliente2?.nome?.split(' ')[0] ?? 'Cliente';
+              const dataFormatada2 = agCompleto.data ? String(agCompleto.data).split('-').reverse().join('/') : '';
+              const horaFormatada = formatarHora(agCompleto.horaInicio);
+              const mensagemWpp = `Olá, ${nomeCliente}! 👋\n\nSeu pré-agendamento para *${dataFormatada2}* às *${horaFormatada}* expira às *${expiracaoFormatada}*.\n\nPara confirmar sua presença, clique no link abaixo:\n${linkConfirmacao}\n\nSe não puder comparecer, responda esta mensagem ou acesse o link para cancelar.`;
+              await routedSendMessage(empresa.id, telefone, mensagemWpp);
+              console.log(`[Scheduler] WhatsApp de lembrete enviado para cliente ${ag.clienteId} (ag ${ag.id})`);
+            }
+          } catch (wppErr) {
+            console.error(`[Scheduler] Erro ao enviar WhatsApp de lembrete para ag ${ag.id}:`, wppErr);
+          }
           await db.update(agendamentos)
             .set({ reservaLembreteEnviado: true })
             .where(eq(agendamentos.id, ag.id));

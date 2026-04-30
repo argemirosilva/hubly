@@ -61,6 +61,7 @@ export default function ConfirmarAgendamento() {
 
   const empresa = data?.empresa;
   const corPrimaria = empresa?.corPrimaria ?? "#1a3a6b";
+  const isPreAgendado = data?.agendamentoStatus === 'pre_agendado';
 
   // ── Header da empresa ──────────────────────────────────────────────────────
   function Header() {
@@ -83,7 +84,7 @@ export default function ConfirmarAgendamento() {
               <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">
                 {empresa?.nome ?? "Agendamento"}
               </p>
-              <p className="text-[10px] text-blue-100/80">Confirmação de Presença</p>
+              <p className="text-[10px] text-blue-100/80">{isPreAgendado ? 'Confirmação de Pré-agendamento' : 'Confirmação de Presença'}</p>
             </div>
           </div>
           <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
@@ -152,8 +153,10 @@ export default function ConfirmarAgendamento() {
     const configs: Record<string, { icon: React.ReactNode; title: string; description: string; color: string; bgColor: string; borderColor: string }> = {
       confirmado: {
         icon: <CheckCircle className="w-14 h-14 text-green-500" />,
-        title: "Presença Confirmada! ✅",
-        description: "Ótimo! Seu agendamento foi confirmado. Te esperamos na data marcada!",
+        title: isPreAgendado ? 'Pré-agendamento Confirmado! ✅' : 'Presença Confirmada! ✅',
+        description: isPreAgendado
+          ? 'Ótimo! Seu pré-agendamento foi confirmado e está na agenda. Te esperamos na data marcada!'
+          : 'Ótimo! Seu agendamento foi confirmado. Te esperamos na data marcada!',
         color: "text-green-700", bgColor: "bg-green-50", borderColor: "border-green-200",
       },
       cancelado: {
@@ -280,7 +283,7 @@ export default function ConfirmarAgendamento() {
             <div className="p-5 space-y-4">
               {/* Título */}
               <div className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Confirme sua presença</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">{isPreAgendado ? 'Confirme seu pré-agendamento' : 'Confirme sua presença'}</p>
                 <h1 className="text-xl font-bold text-slate-800">
                   {empresa?.nome ?? "Agendamento"}
                 </h1>
@@ -365,7 +368,7 @@ export default function ConfirmarAgendamento() {
             >
               {confirmandoAcao === "confirmar"
                 ? <><Loader2 className="w-5 h-5 animate-spin" /> Confirmando...</>
-                : <><CheckCircle className="w-5 h-5" /> Confirmar Presença</>
+                : <><CheckCircle className="w-5 h-5" /> {isPreAgendado ? 'Confirmar Pré-agendamento' : 'Confirmar Presença'}</>
               }
             </button>
 

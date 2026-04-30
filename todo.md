@@ -2367,3 +2367,6 @@
 - [ ] Scheduler: remover exigência de valorReserva > 0 para cancelamento automático
 - [ ] Frontend: campo de data limite personalizada no NovaAgendaModal
 - [ ] Frontend: ações rápidas nas notificações de prazo de pré-agendamento
+- [x] Corrigir ECONNRESET do scheduler (retry automático)
+- [x] Confirmação de pré-agendamento pelo portal público
+- [x] WhatsApp automático com link de confirmação 2h antes do prazo
