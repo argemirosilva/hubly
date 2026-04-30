@@ -214,6 +214,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   concluidoEm: timestamp("concluidoEm"),
   notificacaoEnviada: boolean("notificacaoEnviada").default(false),
   notificacaoEnviadaEm: timestamp("notificacaoEnviadaEm"),
+  reservaLembreteEnviado: boolean("reservaLembreteEnviado").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -308,6 +309,7 @@ export const notificacoes = mysqlTable("notificacoes", {
   titulo: varchar("titulo", { length: 255 }).notNull(),
   mensagem: text("mensagem").notNull(),
   dadosContexto: json("dadosContexto"),
+  agendamentoId: int("agendamentoId"),
   lida: boolean("lida").default(false),
   lidaEm: timestamp("lidaEm"),
   ocultada: boolean("ocultada").default(false),

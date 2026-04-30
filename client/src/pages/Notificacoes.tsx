@@ -59,6 +59,8 @@ export default function Notificacoes() {
   const podeAprovarBloqueio = isOwner || pode('agendaAprovarBloqueio');
   const [recusaModal, setRecusaModal] = useState<{ bloqueioId: number; notifId: number } | null>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
+  const [prorrogarModal, setProrrogarModal] = useState<{ agendamentoId: number; notifId: number } | null>(null);
+  const [novaDataLimite, setNovaDataLimite] = useState("");
 
   // ── Envio rápido de mensagem ──────────────────────────────────────────
   const [envioRapido, setEnvioRapido] = useState<{ clienteId: number; clienteNome: string; pacoteClienteId: number; notificacaoPacoteId: number } | null>(null);
@@ -90,6 +92,24 @@ export default function Notificacoes() {
     onSuccess: () => utils.notificacoes.list.invalidate(),
     onError: (err: any) => toast.error(err.message),
   });
+  const cancelarPreAgendamentoMutation = trpc.agendamentos.update.useMutation({
+    onSuccess: () => {
+      toast.success("Pré-agendamento cancelado.");
+      utils.notificacoes.list.invalidate();
+      utils.agendamentos.list.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const prorrogarPrazoMutation = trpc.agendamentos.prorrogarPrazo.useMutation({
+    onSuccess: () => {
+      toast.success("Prazo prorrogado com sucesso!");
+      utils.notificacoes.list.invalidate();
+      setProrrogarModal(null);
+      setNovaDataLimite("");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const aprovarBloqueioMutation = trpc.bloqueios.aprovar.useMutation({
     onSuccess: (_, vars) => {
       toast.success("Bloqueio aprovado!");
@@ -264,6 +284,14 @@ export default function Notificacoes() {
                 onRecusarBloqueio={(bloqueioId, notifId) => { setRecusaModal({ bloqueioId, notifId }); setMotivoRecusa(""); }}
                 aprovarPending={aprovarBloqueioMutation.isPending}
                 recusarPending={recusarBloqueioMutation.isPending}
+                onVerAgendamento={agId => setLocation(`/admin/agendamentos?id=${agId}`)}
+                onProrrogarPrazo={(agId, notifId) => { setProrrogarModal({ agendamentoId: agId, notifId }); setNovaDataLimite(""); }}
+                onCancelarPreAgendamento={agId => {
+                  if (confirm("Cancelar este pré-agendamento?")) {
+                    cancelarPreAgendamentoMutation.mutate({ id: agId, status: "cancelado" } as any);
+                  }
+                }}
+                cancelarPrePending={cancelarPreAgendamentoMutation.isPending}
               />
             ))}
           </div>
@@ -425,6 +453,49 @@ export default function Notificacoes() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal de prorrogação de prazo */}
+      <Dialog open={!!prorrogarModal} onOpenChange={open => { if (!open) { setProrrogarModal(null); setNovaDataLimite(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Clock className="w-4 h-4" style={{ color: "oklch(55% 0.18 264)" }} />
+              Prorrogar prazo do pré-agendamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Defina a nova data e hora limite para confirmação:</p>
+            <input
+              type="datetime-local"
+              className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2"
+              style={{ borderColor: "oklch(88% 0.010 250)" }}
+              value={novaDataLimite}
+              onChange={e => setNovaDataLimite(e.target.value)}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              className="px-4 py-2 text-sm rounded-lg border transition-colors"
+              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              onClick={() => { setProrrogarModal(null); setNovaDataLimite(""); }}
+            >
+              Cancelar
+            </button>
+            <button
+              className="px-4 py-2 text-sm rounded-lg font-medium transition-colors"
+              style={{ background: "oklch(55% 0.18 264)", color: "white" }}
+              onClick={() => prorrogarModal && novaDataLimite && prorrogarPrazoMutation.mutate({
+                id: prorrogarModal.agendamentoId,
+                novaDataLimite: new Date(novaDataLimite).toISOString(),
+              })}
+              disabled={prorrogarPrazoMutation.isPending || !novaDataLimite}
+            >
+              {prorrogarPrazoMutation.isPending ? "Salvando..." : "Confirmar"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {envioRapido && (
         <EnvioRapidoModal
           clienteId={envioRapido.clienteId}
@@ -547,6 +618,10 @@ function SwipeableNotifItem({
   onRecusarBloqueio,
   aprovarPending,
   recusarPending,
+  onVerAgendamento,
+  onProrrogarPrazo,
+  onCancelarPreAgendamento,
+  cancelarPrePending,
 }: {
   n: NotifUnificada;
   podeAprovarBloqueio: boolean;
@@ -558,6 +633,10 @@ function SwipeableNotifItem({
   onRecusarBloqueio: (bloqueioId: number, notifId: number) => void;
   aprovarPending: boolean;
   recusarPending: boolean;
+  onVerAgendamento: (agId: number) => void;
+  onProrrogarPrazo: (agId: number, notifId: number) => void;
+  onCancelarPreAgendamento: (agId: number) => void;
+  cancelarPrePending: boolean;
 }) {
   const { icon: NIcon, bg, color } = getNotifIcon(n.tipo);
   const [translateX, setTranslateX] = useState(0);
@@ -662,6 +741,33 @@ function SwipeableNotifItem({
                   Enviar mensagem
                 </button>
               )}
+            </div>
+          )}
+          {/* Ações rápidas para reserva_expirada */}
+          {n.tipo === "reserva_expirada" && n.dadosContexto?.agendamentoId && (
+            <div className="flex gap-2 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                onClick={() => onVerAgendamento(n.dadosContexto!.agendamentoId!)}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Ver agendamento
+              </button>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={{ borderColor: "oklch(70% 0.15 60 / 40%)", color: "oklch(40% 0.14 55)", background: "oklch(70% 0.15 60 / 8%)" }}
+                onClick={() => onProrrogarPrazo(n.dadosContexto!.agendamentoId!, n.id)}
+              >
+                <Clock className="w-3 h-3" /> Prorrogar prazo
+              </button>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
+                style={{ borderColor: "oklch(58% 0.22 25 / 40%)", color: "oklch(40% 0.18 25)", background: "oklch(58% 0.22 25 / 8%)" }}
+                onClick={() => onCancelarPreAgendamento(n.dadosContexto!.agendamentoId!)}
+                disabled={cancelarPrePending}
+              >
+                <XCircle className="w-3 h-3" /> Cancelar
+              </button>
             </div>
           )}
           {/* Ações rápidas para bloqueio_solicitado */}

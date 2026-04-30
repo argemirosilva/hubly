@@ -1051,6 +1051,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
         observacoesInternas: z.string().optional(),
         comReserva: z.boolean().default(false),
+        reservaDataLimitePersonalizada: z.string().optional(), // ISO datetime — data limite manual para pagamento do sinal
         pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote (serviço principal)
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1074,17 +1075,27 @@ export const appRouter = router({
             message: 'Limite de agendamentos do plano atingido. Faça upgrade para continuar agendando.',
           });
         }
-        const { comReserva, servicos: servicosInput, ...rest } = input;
+        const { comReserva, reservaDataLimitePersonalizada, servicos: servicosInput, ...rest } = input;
         let valorReserva: string | undefined;
         let reservaExpiracaoEm: Date | undefined;
         // statusOriginal = status escolhido pelo usuário (pre_agendado, agendado, etc.)
         // Não sobrescrevemos mais para 'aguardando_reserva' — o status original é mantido
         const statusOriginal = rest.status;
         const status = rest.status;
+        // Todo pré-agendamento recebe reservaExpiracaoEm — com ou sem sinal
+        if (status === 'pre_agendado') {
+          if (reservaDataLimitePersonalizada) {
+            // Data limite manual definida pelo usuário (ex: cliente paga sinal em 31/05)
+            reservaExpiracaoEm = new Date(reservaDataLimitePersonalizada);
+          } else {
+            // Prazo padrão da empresa em horas
+            reservaExpiracaoEm = new Date(Date.now() + (empresa.reservaHorasExpiracao ?? 24) * 60 * 60 * 1000);
+          }
+        }
         if (comReserva) {
           const percentual = parseFloat(String(empresa.reservaPercentual)) / 100;
           valorReserva = (parseFloat(rest.valorTotal) * percentual).toFixed(2);
-          reservaExpiracaoEm = new Date(Date.now() + (empresa.reservaHorasExpiracao ?? 24) * 60 * 60 * 1000);
+          // reservaExpiracaoEm já foi definido acima (padrão ou personalizado)
         }
         const id = await createAgendamento({
           ...rest,
@@ -1998,6 +2009,27 @@ export const appRouter = router({
           console.error('[confirmarSinalForaDoPrazo] Erro ao disparar automação:', e);
         }
 
+        return { success: true };
+      }),
+
+    prorrogarPrazo: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        novaDataLimite: z.string(), // ISO datetime string
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error('Empresa não encontrada');
+        const ag = await getAgendamentoById(input.id);
+        if (!ag) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
+        if (ag.status !== 'pre_agendado') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Apenas pré-agendamentos podem ter o prazo prorrogado' });
+        }
+        const novaExpiracao = new Date(input.novaDataLimite);
+        if (isNaN(novaExpiracao.getTime()) || novaExpiracao <= new Date()) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'A nova data limite deve ser no futuro' });
+        }
+        await updateAgendamento(input.id, { reservaExpiracaoEm: novaExpiracao, reservaLembreteEnviado: false });
         return { success: true };
       }),
 

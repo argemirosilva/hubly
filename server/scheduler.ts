@@ -1848,25 +1848,62 @@ async function cancelarPreAgendamentosExpirados() {
     for (const empresa of todasEmpresas) {
       const horasExpiracao = empresa.reservaHorasExpiracao ?? 24;
 
-      // Buscar pré-agendamentos com reserva que passaram do prazo de expiração
-      // CRITÉRIO CORRETO: usa reservaExpiracaoEm (prazo definido no momento da criação)
-      // Isso garante que mudanças posteriores na configuração da empresa não afetam
-      // agendamentos já criados. Fallback para createdAt + horasExpiracao quando
-      // reservaExpiracaoEm não está preenchido (agendamentos antigos).
+      // Buscar pré-agendamentos que passaram do prazo de expiração
+      // CRITÉRIO CORRETO: cancela TODOS os pré-agendamentos expirados, com ou sem sinal
+      // Usa reservaExpiracaoEm (definido na criação) como prazo principal.
+      // Fallback para createdAt + horasExpiracao para agendamentos antigos sem reservaExpiracaoEm.
       const expirados = await db
         .select({ id: agendamentos.id, clienteId: agendamentos.clienteId })
         .from(agendamentos)
         .where(and(
           eq(agendamentos.empresaId, empresa.id),
           eq(agendamentos.status, 'pre_agendado'),
-          sql`${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL`,
-          sql`${agendamentos.valorReserva} IS NOT NULL AND ${agendamentos.valorReserva} > 0`,
+          sql`(${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL)`,
           sql`(
             (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} <= NOW())
             OR
             (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR))
           )`,
         ));
+
+      // Buscar pré-agendamentos que expiram em até 2h e ainda não receberam lembrete
+      const paraLembrete = await db
+        .select({ id: agendamentos.id, clienteId: agendamentos.clienteId, reservaExpiracaoEm: agendamentos.reservaExpiracaoEm })
+        .from(agendamentos)
+        .where(and(
+          eq(agendamentos.empresaId, empresa.id),
+          eq(agendamentos.status, 'pre_agendado'),
+          sql`(${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL)`,
+          sql`${agendamentos.reservaLembreteEnviado} = 0 OR ${agendamentos.reservaLembreteEnviado} IS NULL`,
+          sql`(
+            (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} > NOW() AND ${agendamentos.reservaExpiracaoEm} <= DATE_ADD(NOW(), INTERVAL 2 HOUR))
+            OR
+            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} > DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR) AND ${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao - 2} HOUR))
+          )`,
+        ));
+
+      // Enviar lembrete interno para pré-agendamentos prestes a expirar
+      for (const ag of paraLembrete) {
+        try {
+          const expiracaoFormatada = ag.reservaExpiracaoEm
+            ? new Date(ag.reservaExpiracaoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : 'em breve';
+          await db.insert(notificacoes).values({
+            empresaId: empresa.id,
+            tipo: 'reserva_expirada',
+            titulo: 'Pré-agendamento prestes a expirar',
+            mensagem: `Um pré-agendamento expira às ${expiracaoFormatada}. Confirme o pagamento ou cancele.`,
+            agendamentoId: ag.id,
+            dadosContexto: { agendamentoId: ag.id, expiracaoEm: ag.reservaExpiracaoEm },
+          });
+          await db.update(agendamentos)
+            .set({ reservaLembreteEnviado: true })
+            .where(eq(agendamentos.id, ag.id));
+          console.log(`[Scheduler] Lembrete de expiração enviado para pré-agendamento ${ag.id}`);
+        } catch (e) {
+          console.error(`[Scheduler] Erro ao enviar lembrete para ag ${ag.id}:`, e);
+        }
+      }
 
       for (const ag of expirados) {
         await db.update(agendamentos)

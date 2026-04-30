@@ -51,6 +51,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
     observacoes: "",
     comReserva: true,
     status: "pre_agendado" as "pre_agendado" | "agendado" | "confirmado",
+    usarDataLimitePersonalizada: false,
+    reservaDataLimitePersonalizada: "", // ISO datetime string
   });
 
   // Profissional padrão para pré-preencher o primeiro card
@@ -288,6 +290,9 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
       status: form.status,
       observacoes: form.observacoes || undefined,
       comReserva: form.comReserva,
+      reservaDataLimitePersonalizada: (form.status === 'pre_agendado' && form.usarDataLimitePersonalizada && form.reservaDataLimitePersonalizada)
+        ? new Date(form.reservaDataLimitePersonalizada).toISOString()
+        : undefined,
       pacoteClienteItemId: servicoPrincipal.pacoteClienteItemId,
     });
   };
@@ -772,6 +777,45 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
                     <span className="text-sm font-semibold text-amber-600">
                       R$ {valorSinal.toFixed(2).replace(".", ",")}
                     </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Data limite personalizada para pré-agendamento */}
+            {form.status === 'pre_agendado' && (
+              <div className="col-span-2 space-y-2">
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Data limite personalizada</p>
+                    <p className="text-xs text-muted-foreground">
+                      {form.usarDataLimitePersonalizada
+                        ? 'Defina até quando o cliente tem para confirmar'
+                        : `Prazo padrão: ${empresa?.reservaHorasExpiracao ?? 24}h após a criação`}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.usarDataLimitePersonalizada}
+                    onCheckedChange={v => setForm(f => ({ ...f, usarDataLimitePersonalizada: v, reservaDataLimitePersonalizada: '' }))}
+                  />
+                </div>
+                {form.usarDataLimitePersonalizada && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800/40">
+                    <label className="text-xs font-medium text-amber-800 dark:text-amber-300 block mb-1.5">
+                      Até quando o cliente pode confirmar?
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full text-sm border border-amber-300 dark:border-amber-700 rounded-md px-3 py-2 bg-white dark:bg-amber-950/30 text-foreground focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      value={form.reservaDataLimitePersonalizada}
+                      min={new Date().toISOString().slice(0, 16)}
+                      onChange={e => setForm(f => ({ ...f, reservaDataLimitePersonalizada: e.target.value }))}
+                    />
+                    {form.reservaDataLimitePersonalizada && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                        Expira em: {new Date(form.reservaDataLimitePersonalizada).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

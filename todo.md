@@ -2360,3 +2360,10 @@
 - [ ] Editar comissão já registrada diretamente pelo modal (sem excluir e recriar)
 - [ ] Investigar e corrigir scheduler de cancelamento automático de pré-agendamentos
 - [x] Criar página de Política de Privacidade com acesso público (/politica-de-privacidade)
+- [ ] Migration: adicionar reservaLembreteEnviado em agendamentos e agendamentoId em notificacoes
+- [ ] Backend: aceitar reservaDataLimitePersonalizada no criar agendamento
+- [ ] Backend: pré-agendamentos sem sinal também recebem reservaExpiracaoEm
+- [ ] Scheduler: lembrete 2h antes do vencimento antes de cancelar
+- [ ] Scheduler: remover exigência de valorReserva > 0 para cancelamento automático
+- [ ] Frontend: campo de data limite personalizada no NovaAgendaModal
+- [ ] Frontend: ações rápidas nas notificações de prazo de pré-agendamento
