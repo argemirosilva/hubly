@@ -356,12 +356,25 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   const criarComissaoMutation = trpc.financeiro.criarComissao.useMutation({
     onSuccess: () => {
-      toast.success("Comissão registrada automaticamente!");
+      toast.success("Comissão registrada!");
       utils.financeiro.comissoes.invalidate();
+      utils.financeiro.getComissaoByAgendamento.invalidate({ agendamentoId });
       setComissaoModal(false);
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
+
+  const editarComissaoMutation = trpc.financeiro.editarComissao.useMutation({
+    onSuccess: () => {
+      toast.success("Comissão atualizada!");
+      utils.financeiro.comissoes.invalidate();
+      utils.financeiro.getComissaoByAgendamento.invalidate({ agendamentoId });
+      setComissaoEditando(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const [comissaoEditando, setComissaoEditando] = useState(false);
 
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
   const profissional = profissionais?.find(p => p.id === ag?.profissionalId);
@@ -1048,21 +1061,57 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   <div className="flex items-center gap-2">
                     <Percent className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
                     <span className="text-xs font-semibold">Comissão</span>
-                    {jaRegistrada && (
+                    {jaRegistrada && !comissaoEditando && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                         style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>
                         Registrada
                       </span>
                     )}
+                    {jaRegistrada && comissaoEditando && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                        style={{ background: "oklch(70% 0.18 264 / 14%)", color: "oklch(40% 0.18 264)" }}>
+                        Editando
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground">{profissional?.nome}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{profissional?.nome}</span>
+                    {jaRegistrada && !comissaoEditando && (
+                      <button
+                        onClick={() => setComissaoEditando(true)}
+                        className="text-[10px] px-2 py-0.5 rounded font-medium transition-colors"
+                        style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(40% 0.18 264)", border: "1px solid oklch(55% 0.22 264 / 25%)" }}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {jaRegistrada && comissaoEditando && (
+                      <button
+                        onClick={() => {
+                          setComissaoEditando(false);
+                          // Restaurar valores originais
+                          if (comissaoExistente) {
+                            setComissaoForm({
+                              percentualComissao: String(parseFloat(String(comissaoExistente.percentualComissao))),
+                              tipoPagamento: (comissaoExistente.tipoPagamento as any) ?? "dinheiro",
+                              custoReposicao: comissaoExistente.custoReposicao ? String(parseFloat(String(comissaoExistente.custoReposicao))) : "",
+                            });
+                          }
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded font-medium transition-colors"
+                        style={{ background: "oklch(60% 0.15 25 / 10%)", color: "oklch(45% 0.15 25)", border: "1px solid oklch(60% 0.15 25 / 25%)" }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="px-4 py-3 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-[10px] text-muted-foreground mb-1 block">
                         % Comissão
-                        {pctFixo > 0 && <span className="ml-1 text-primary/60">(fixo)</span>}
+                        {pctFixo > 0 && !comissaoEditando && <span className="ml-1 text-primary/60">(fixo)</span>}
                       </Label>
                       <Input
                         type="number" min="0" max="100" step="0.5"
@@ -1070,12 +1119,16 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                         onChange={e => setComissaoForm(f => ({ ...f, percentualComissao: e.target.value }))}
                         placeholder="Ex: 40"
                         className="h-8 text-sm"
-                        readOnly={pctFixo > 0}
+                        readOnly={pctFixo > 0 && !comissaoEditando || (jaRegistrada && !comissaoEditando)}
                       />
                     </div>
                     <div>
                       <Label className="text-[10px] text-muted-foreground mb-1 block">Tipo de Pagamento</Label>
-                      <Select value={comissaoForm.tipoPagamento} onValueChange={(v: any) => setComissaoForm(f => ({ ...f, tipoPagamento: v }))}>
+                      <Select
+                        value={comissaoForm.tipoPagamento}
+                        onValueChange={(v: any) => setComissaoForm(f => ({ ...f, tipoPagamento: v }))}
+                        disabled={jaRegistrada && !comissaoEditando}
+                      >
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1097,8 +1150,36 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       onChange={e => setComissaoForm(f => ({ ...f, custoReposicao: e.target.value }))}
                       placeholder="0,00"
                       className="h-8 text-sm"
+                      readOnly={jaRegistrada && !comissaoEditando}
                     />
                   </div>
+                  {/* Indicador de taxa de maquininha */}
+                  {comissaoForm.tipoPagamento && comissaoForm.tipoPagamento !== "dinheiro" && comissaoForm.tipoPagamento !== "pix" && comissaoForm.tipoPagamento !== "outro" && (
+                    <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px]"
+                      style={meioSelecionado?.descontarDoAtendente
+                        ? { background: "oklch(65% 0.20 30 / 8%)", border: "1px solid oklch(65% 0.20 30 / 25%)" }
+                        : { background: "oklch(62% 0.18 155 / 8%)", border: "1px solid oklch(62% 0.18 155 / 25%)" }
+                      }>
+                      {meioSelecionado?.descontarDoAtendente ? (
+                        <>
+                          <span style={{ color: "oklch(50% 0.20 30)" }}>⚠</span>
+                          <span style={{ color: "oklch(40% 0.16 30)" }}>
+                            Taxa de maquininha <strong>descontada do atendente</strong>
+                            {meioSelecionado?.taxaFixa && parseFloat(String(meioSelecionado.taxaFixa)) > 0
+                              ? ` (${parseFloat(String(meioSelecionado.taxaFixa)).toFixed(1)}%)`
+                              : ""}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ color: "oklch(40% 0.16 155)" }}>✓</span>
+                          <span style={{ color: "oklch(35% 0.14 155)" }}>
+                            Taxa de maquininha <strong>absorvida pela empresa</strong>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {pctAtual > 0 && (
                     <div className="rounded-lg p-2.5 space-y-1 text-xs"
                       style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 20%)" }}>
@@ -1108,9 +1189,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                         <span className="font-medium">{fmt(valorBase)}</span>
                       </div>
                       {taxaMaq > 0 && (
-                        <div className="flex justify-between text-amber-600">
-                          <span>Taxa maquininha (~3%)</span>
+                        <div className="flex justify-between" style={{ color: "oklch(50% 0.20 30)" }}>
+                          <span>
+                            Taxa maquininha
+                            {meioSelecionado?.taxaFixa && parseFloat(String(meioSelecionado.taxaFixa)) > 0
+                              ? ` (${parseFloat(String(meioSelecionado.taxaFixa)).toFixed(1)}%)`
+                              : ""}
+                          </span>
                           <span>- {fmt(taxaMaq)}</span>
+                        </div>
+                      )}
+                      {taxaMaq === 0 && comissaoForm.tipoPagamento && comissaoForm.tipoPagamento !== "dinheiro" && comissaoForm.tipoPagamento !== "pix" && comissaoForm.tipoPagamento !== "outro" && (
+                        <div className="flex justify-between" style={{ color: "oklch(40% 0.16 155)" }}>
+                          <span>Taxa maquininha (empresa)</span>
+                          <span>R$ 0,00</span>
                         </div>
                       )}
                       {custoAtual > 0 && (
@@ -1125,7 +1217,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       </div>
                     </div>
                   )}
-                  {ag.status !== "concluido" && (
+                  {ag.status !== "concluido" && !jaRegistrada && (
                     <p className="text-[10px] text-muted-foreground">A comissão será registrada automaticamente ao concluir o atendimento.</p>
                   )}
                   {ag.status === "concluido" && !jaRegistrada && comissaoForm.percentualComissao && (
@@ -1136,6 +1228,24 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       disabled={criarComissaoMutation.isPending}
                     >
                       {criarComissaoMutation.isPending ? "Registrando..." : "Registrar Comissão"}
+                    </Button>
+                  )}
+                  {jaRegistrada && comissaoEditando && (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      onClick={() => {
+                        if (!comissaoExistente) return;
+                        editarComissaoMutation.mutate({
+                          id: comissaoExistente.id,
+                          percentualComissao: comissaoForm.percentualComissao || "0",
+                          tipoPagamento: comissaoForm.tipoPagamento,
+                          custoReposicao: comissaoForm.custoReposicao || undefined,
+                        });
+                      }}
+                      disabled={editarComissaoMutation.isPending}
+                    >
+                      {editarComissaoMutation.isPending ? "Salvando..." : "Salvar Alterações"}
                     </Button>
                   )}
                 </div>

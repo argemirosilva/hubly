@@ -2356,3 +2356,7 @@
 - [ ] Corrigir erro de SQL ao salvar campanha de automação (campo confirmacaoAutoAtivo)
 - [x] Corrigir erro de SQL ao salvar nova campanha de automação (campos confirmacaoAutoAtivo/confirmacaoAutoHorasAntes faltando no create)
 - [x] Corrigir cálculo de comissão para respeitar descontarDoAtendente do meio de pagamento (backend automático, backend manual e prévia no frontend)
+- [ ] Indicador visual de taxa de maquininha na prévia de comissão (descontada do atendente vs absorvida pela empresa)
+- [ ] Editar comissão já registrada diretamente pelo modal (sem excluir e recriar)
+- [ ] Investigar e corrigir scheduler de cancelamento automático de pré-agendamentos
+- [x] Criar página de Política de Privacidade com acesso público (/politica-de-privacidade)

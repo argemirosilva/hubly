@@ -2816,6 +2816,55 @@ export const appRouter = router({
         await updateComissao(input.id, { paga: true, pagaEm: new Date() });
         return { success: true };
       }),
+    editarComissao: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        percentualComissao: z.string(),
+        tipoPagamento: z.enum(["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]).optional(),
+        custoReposicao: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        // Verificar que a comissão pertence à empresa
+        const db = await getDb();
+        if (!db) throw new Error("DB não disponível");
+        const { comissoes: comissoesTable } = await import('../drizzle/schema');
+        const rows = await db.select().from(comissoesTable)
+          .where(and(eq(comissoesTable.id, input.id), eq(comissoesTable.empresaId, empresa.id)))
+          .limit(1);
+        if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Comissão não encontrada' });
+        const comissao = rows[0];
+        const valorServico = parseFloat(String(comissao.valorServico ?? 0));
+        const percentualComissao = parseFloat(input.percentualComissao);
+        const custoReposicao = parseFloat(input.custoReposicao ?? "0");
+        // Recalcular taxa de maquininha respeitando descontarDoAtendente
+        let taxaMaquininha = 0;
+        const tipoPag = input.tipoPagamento ?? comissao.tipoPagamento ?? 'outro';
+        if (tipoPag !== "dinheiro" && tipoPag !== "pix" && tipoPag !== "outro") {
+          const meiosConfig = await getMeiosPagamentoComTaxas(empresa.id);
+          const meioConfig = meiosConfig.find(m =>
+            m.tipo.toLowerCase() === tipoPag ||
+            m.nome.toLowerCase() === tipoPag
+          );
+          if (meioConfig && meioConfig.descontarDoAtendente) {
+            taxaMaquininha = valorServico * (parseFloat(String(meioConfig.taxaFixa ?? 0)) / 100);
+          }
+        }
+        const valorLiquido = valorServico - taxaMaquininha - custoReposicao;
+        const valorComissao = valorLiquido * (percentualComissao / 100);
+        const receitaDona = valorLiquido * (parseFloat(String(empresa.percentualDona ?? 0)) / 100);
+        await updateComissao(input.id, {
+          percentualComissao: input.percentualComissao,
+          tipoPagamento: tipoPag as any,
+          custoReposicao: custoReposicao.toFixed(2),
+          taxaMaquininha: taxaMaquininha.toFixed(2),
+          valorLiquido: valorLiquido.toFixed(2),
+          valorComissao: valorComissao.toFixed(2),
+          receitaDona: receitaDona.toFixed(2),
+        });
+        return { success: true };
+      }),
     dashboard: protectedProcedure
       .input(z.object({ profissionalId: z.number().nullable().optional() }).optional())
       .query(async ({ ctx, input }) => {
