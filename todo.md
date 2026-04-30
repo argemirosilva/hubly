@@ -2355,3 +2355,4 @@
 - [x] Adicionar seção de comissão dentro do modal do agendamento (antes de concluir)
 - [ ] Corrigir erro de SQL ao salvar campanha de automação (campo confirmacaoAutoAtivo)
 - [x] Corrigir erro de SQL ao salvar nova campanha de automação (campos confirmacaoAutoAtivo/confirmacaoAutoHorasAntes faltando no create)
+- [x] Corrigir cálculo de comissão para respeitar descontarDoAtendente do meio de pagamento (backend automático, backend manual e prévia no frontend)

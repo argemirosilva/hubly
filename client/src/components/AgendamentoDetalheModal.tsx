@@ -1029,8 +1029,14 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             const valorBase = parseFloat(String(ag.valorTotal ?? 0));
             const pctAtual = parseFloat(comissaoForm.percentualComissao) || 0;
             const custoAtual = parseFloat(comissaoForm.custoReposicao) || 0;
-            const taxaMaq = (comissaoForm.tipoPagamento === "cartao_debito" || comissaoForm.tipoPagamento === "cartao_credito")
-              ? valorBase * 0.03 : 0;
+            // Calcular taxa de maquininha apenas se o meio de pagamento tem descontarDoAtendente=true
+            const meioSelecionado = (meiosPagamento ?? []).find(m =>
+              m.tipo === comissaoForm.tipoPagamento ||
+              m.nome.toLowerCase() === comissaoForm.tipoPagamento
+            );
+            const taxaMaq = meioSelecionado?.descontarDoAtendente
+              ? valorBase * (parseFloat(String(meioSelecionado.taxaFixa ?? 0)) / 100)
+              : 0;
             const valorLiquido = valorBase - taxaMaq - custoAtual;
             const valorComissao = valorLiquido * (pctAtual / 100);
             const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);

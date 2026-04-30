@@ -1431,6 +1431,7 @@ export const appRouter = router({
                   const meiosConfig = await getMeiosPagamentoComTaxas(empresa.id);
 
                   // Determinar taxa de maquininha com base nos pagamentos reais
+                  // Só desconta do atendente se o meio de pagamento tem descontarDoAtendente=true
                   const calcularTaxaPagamento = (valorBruto: number): number => {
                     if (pagamentos.length === 0) return 0;
                     let taxaTotal = 0;
@@ -1443,6 +1444,8 @@ export const appRouter = router({
                         m.tipo.toLowerCase() === meioPag
                       );
                       if (meioConfig) {
+                        // Só desconta do atendente se a flag estiver ativa
+                        if (!meioConfig.descontarDoAtendente) continue;
                         // Usar taxa por parcela se disponível
                         const nParcelas = pag.numeroParcelas ?? 1;
                         const taxaParcela = meioConfig.taxas?.find((t: any) => t.parcela === nParcelas);
@@ -1452,11 +1455,8 @@ export const appRouter = router({
                           // Fallback: usar taxaFixa do meio
                           taxaTotal += pagValor * (parseFloat(String(meioConfig.taxaFixa)) / 100);
                         }
-                      } else if (meioPag.includes('cartao') || meioPag.includes('credito') || meioPag.includes('debito')) {
-                        // Fallback: usar taxa global da empresa para cartões
-                        taxaTotal += pagValor * (parseFloat(String(empresa.taxaMaquininha ?? 0)) / 100);
                       }
-                      // Dinheiro e PIX: taxa = 0
+                      // Sem meioConfig configurado: não desconta (empresa absorve a taxa)
                     }
                     // Proporcionalizar a taxa ao valor bruto do profissional
                     const totalPagamentos = pagamentos.reduce((s, p) => s + parseFloat(String(p.valor ?? 0)), 0);
@@ -2764,8 +2764,19 @@ export const appRouter = router({
         const valorServico = parseFloat(input.valorServico);
         const percentualComissao = parseFloat(input.percentualComissao);
         const custoReposicao = parseFloat(input.custoReposicao ?? "0");
-        const taxaMaquininha = (input.tipoPagamento === "cartao_debito" || input.tipoPagamento === "cartao_credito")
-          ? valorServico * (parseFloat(String(empresa.taxaMaquininha)) / 100) : 0;
+        // Verificar se o meio de pagamento tem descontarDoAtendente=true
+        let taxaMaquininha = 0;
+        if (input.tipoPagamento && input.tipoPagamento !== "dinheiro" && input.tipoPagamento !== "pix" && input.tipoPagamento !== "outro") {
+          const meiosConfig = await getMeiosPagamentoComTaxas(empresa.id);
+          const meioConfig = meiosConfig.find(m =>
+            m.tipo.toLowerCase() === input.tipoPagamento ||
+            m.nome.toLowerCase() === input.tipoPagamento
+          );
+          if (meioConfig && meioConfig.descontarDoAtendente) {
+            taxaMaquininha = valorServico * (parseFloat(String(meioConfig.taxaFixa ?? empresa.taxaMaquininha ?? 0)) / 100);
+          }
+          // Se não encontrou meio configurado, não desconta (empresa absorve)
+        }
         const valorLiquido = valorServico - taxaMaquininha - custoReposicao;
         const valorComissao = valorLiquido * (percentualComissao / 100);
         const receitaDona = valorLiquido * (parseFloat(String(empresa.percentualDona)) / 100);
