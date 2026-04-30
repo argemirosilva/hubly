@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle, Users, Clock } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -12,6 +12,21 @@ import { getLocalDateString } from "@/lib/utils";
 // Backend já aplica filtros via resolveAdminContext, sem necessidade de useAuth aqui
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+// Helper: formata o tempo restante até a expiração do pré-agendamento
+function formatExpiracao(exp: Date | null): { texto: string; urgente: boolean } | null {
+  if (!exp) return null;
+  const agora = Date.now();
+  const expMs = new Date(exp).getTime();
+  const diffMs = expMs - agora;
+  if (diffMs <= 0) return { texto: "Expirado", urgente: true };
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+  if (diffD >= 1) return { texto: `Expira em ${diffD}d`, urgente: diffD <= 1 };
+  if (diffH >= 1) return { texto: `Expira em ${diffH}h`, urgente: diffH <= 4 };
+  return { texto: `Expira em ${diffMin}min`, urgente: true };
+}
 const DIAS_SEMANA_CURTO = ["D", "S", "T", "Q", "Q", "S", "S"];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -85,6 +100,7 @@ export default function Calendario() {
     servicoNome: string;
     isItemBloco: boolean; // true = bloco expandido de item multi-profissional
     pessoasCount: number;
+    reservaExpiracaoEm: Date | null;
   };
 
   // Expandir agendamentos multi-profissional em blocos por item (quando item tem horaInicio próprio)
@@ -107,6 +123,7 @@ export default function Calendario() {
             servicoNome: item.servicoNome ?? (ag as any).servicoNome ?? "",
             isItemBloco: true,
             pessoasCount: (ag as any).pessoasCount ?? 0,
+            reservaExpiracaoEm: ag.reservaExpiracaoEm ?? null,
           });
         });
       } else {
@@ -122,6 +139,7 @@ export default function Calendario() {
           servicoNome: (ag as any).servicoNome ?? "",
           isItemBloco: false,
           pessoasCount: (ag as any).pessoasCount ?? 0,
+          reservaExpiracaoEm: ag.reservaExpiracaoEm ?? null,
         });
       }
     });
@@ -421,6 +439,16 @@ export default function Calendario() {
                             </span>
                           )}
                           {bloco.profissionalId == null && <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />}
+                          {bloco.status === 'pre_agendado' && (() => {
+                            const exp = formatExpiracao(bloco.reservaExpiracaoEm);
+                            if (!exp) return null;
+                            return (
+                              <span className="flex items-center gap-0.5 flex-shrink-0 rounded px-0.5" style={{ background: exp.urgente ? 'oklch(58% 0.22 25 / 30%)' : 'oklch(72% 0.16 80 / 30%)' }}>
+                                <Clock className="w-2 h-2" />
+                                <span className="text-[9px] font-bold">{exp.texto}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -533,11 +561,24 @@ export default function Calendario() {
                             {bloco.servicoNome || "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}
                           </p>
                         </div>
-                        {/* Status */}
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                          style={{ background: cfg.bg, color: cfg.color }}>
-                          {cfg.label}
-                        </span>
+                        {/* Status + indicador de expiração */}
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: cfg.bg, color: cfg.color }}>
+                            {cfg.label}
+                          </span>
+                          {bloco.status === 'pre_agendado' && (() => {
+                            const exp = formatExpiracao(bloco.reservaExpiracaoEm);
+                            if (!exp) return null;
+                            return (
+                              <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                                style={{ background: exp.urgente ? 'oklch(58% 0.22 25 / 15%)' : 'oklch(72% 0.16 80 / 15%)', color: exp.urgente ? 'oklch(38% 0.18 25)' : 'oklch(38% 0.14 75)' }}>
+                                <Clock className="w-2.5 h-2.5" />
+                                {exp.texto}
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
                     );
                   })}

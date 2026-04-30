@@ -2370,3 +2370,4 @@
 - [x] Corrigir ECONNRESET do scheduler (retry automático)
 - [x] Confirmação de pré-agendamento pelo portal público
 - [x] WhatsApp automático com link de confirmação 2h antes do prazo
+- [x] Mostrar data de expiração do pré-agendamento no card do calendário
