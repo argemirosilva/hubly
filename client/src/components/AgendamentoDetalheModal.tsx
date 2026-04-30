@@ -64,6 +64,10 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: meiosPagamento } = trpc.meiosPagamento.list.useQuery();
+  const { data: comissaoExistente } = trpc.financeiro.getComissaoByAgendamento.useQuery(
+    { agendamentoId },
+    { enabled: !!agendamentoId }
+  );
   const { data: saldoCreditoData } = trpc.creditos.getSaldo.useQuery(
     { clienteId: ag?.clienteId ?? 0 },
     { enabled: !!ag?.clienteId }
@@ -309,6 +313,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
     tipoPagamento: "dinheiro" as "dinheiro" | "pix" | "cartao_debito" | "cartao_credito" | "outro",
     custoReposicao: "",
   });
+  const [comissaoInicializada, setComissaoInicializada] = useState(false);
 
   const updateMutation = trpc.agendamentos.update.useMutation({
     onSuccess: async () => {
@@ -361,6 +366,33 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const cliente = clientes?.find(c => c.id === ag?.clienteId);
   const profissional = profissionais?.find(p => p.id === ag?.profissionalId);
   const servico = servicos?.find(s => s.id === ag?.servicoId);
+
+  // Inicializar comissaoForm quando dados carregam (uma vez)
+  useEffect(() => {
+    if (comissaoInicializada) return;
+    if (!ag || !servicos || !profissionais) return;
+    const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
+    const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
+    const pct = pctServico > 0 ? pctServico : pctProfissional;
+    const custoServico = (servico as any)?.custoFixo ? parseFloat(String((servico as any).custoFixo)) : 0;
+    if (comissaoExistente) {
+      setComissaoForm({
+        percentualComissao: String(parseFloat(String(comissaoExistente.percentualComissao))),
+        tipoPagamento: (comissaoExistente.tipoPagamento as any) ?? "dinheiro",
+        custoReposicao: comissaoExistente.custoReposicao ? String(parseFloat(String(comissaoExistente.custoReposicao))) : "",
+      });
+      setComissaoInicializada(true);
+      return;
+    }
+    if (pct > 0 || custoServico > 0) {
+      setComissaoForm(f => ({
+        ...f,
+        percentualComissao: pct > 0 ? String(pct) : "",
+        custoReposicao: custoServico > 0 ? String(custoServico) : "",
+      }));
+    }
+    setComissaoInicializada(true);
+  }, [ag, servicos, profissionais, comissaoExistente, comissaoInicializada, servico, profissional]);
 
   // Serviços do agendamento: usar itens se disponíveis, senão fallback para servicoId
   const servicosDoAgendamento = useMemo(() => {
@@ -425,33 +457,12 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   };
 
   const confirmarConclusao = () => {
-    // Pré-preencher percentual: prioridade serviço > profissional
-    const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
-    const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
-    const pct = pctServico > 0 ? pctServico : pctProfissional;
-    const custoServico = (servico as any)?.custoFixo ? parseFloat(String((servico as any).custoFixo)) : 0;
-    setComissaoForm(f => ({
-      ...f,
-      percentualComissao: pct > 0 ? String(pct) : "",
-      custoReposicao: custoServico > 0 ? String(custoServico) : "",
-    }));
     setResumoConclusaoModal(false);
     updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
       onSuccess: () => {
-        if (!ag?.profissionalId) return;
-        // Não abrir modal se:
-        // 1. A profissional já tem percentual de comissão configurado (o servidor cria automaticamente), E
-        // 2. Já há pagamentos registrados (tipo de pagamento já informado)
-        const temPercentualConfigurado = pct > 0;
-        const temPagamentosRegistrados = (pagamentos ?? []).length > 0;
-        if (temPercentualConfigurado && temPagamentosRegistrados) {
-          // Comissão já foi criada automaticamente pelo servidor
-          toast.success("✅ Comissão registrada automaticamente!");
-          utils.financeiro.comissoes.invalidate();
-          return;
-        }
-        // Abrir modal apenas quando não há percentual configurado OU não há pagamentos
-        setComissaoModal(true);
+        utils.financeiro.comissoes.invalidate();
+        utils.financeiro.getComissaoByAgendamento.invalidate({ agendamentoId });
+        toast.success("✅ Atendimento concluído!");
       }
     });
   };
@@ -840,14 +851,20 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                               <SelectValue placeholder="Selecionar" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                              <SelectItem value="PIX">PIX</SelectItem>
-                              <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
-                              <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
-                              {(meiosPagamento ?? []).filter(m => m.ativo).map(m => (
-                                <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
-                              ))}
-                              <SelectItem value="Outro">Outro</SelectItem>
+                              {(meiosPagamento ?? []).filter(m => m.ativo).length > 0
+                                ? (meiosPagamento ?? []).filter(m => m.ativo).map(m => (
+                                    <SelectItem key={m.id} value={m.nome}>{m.nome}</SelectItem>
+                                  ))
+                                : (
+                                    <>
+                                      <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                                      <SelectItem value="PIX">PIX</SelectItem>
+                                      <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
+                                      <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
+                                      <SelectItem value="Outro">Outro</SelectItem>
+                                    </>
+                                  )
+                              }
                             </SelectContent>
                           </Select>
                         </div>
@@ -999,6 +1016,122 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ─── Seção Comissão (apenas admin, apenas se houver profissional) ─── */}
+          {isAdmin && ag.profissionalId && (() => {
+            const pctServico = (servico as any)?.percentualComissao ? parseFloat(String((servico as any).percentualComissao)) : 0;
+            const pctProfissional = (profissional as any)?.percentualComissao ? parseFloat(String((profissional as any).percentualComissao)) : 0;
+            const pctFixo = pctServico > 0 ? pctServico : pctProfissional;
+            const valorBase = parseFloat(String(ag.valorTotal ?? 0));
+            const pctAtual = parseFloat(comissaoForm.percentualComissao) || 0;
+            const custoAtual = parseFloat(comissaoForm.custoReposicao) || 0;
+            const taxaMaq = (comissaoForm.tipoPagamento === "cartao_debito" || comissaoForm.tipoPagamento === "cartao_credito")
+              ? valorBase * 0.03 : 0;
+            const valorLiquido = valorBase - taxaMaq - custoAtual;
+            const valorComissao = valorLiquido * (pctAtual / 100);
+            const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+            const jaRegistrada = !!comissaoExistente;
+            return (
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+                <div className="flex items-center justify-between px-4 py-2.5"
+                  style={{ background: "oklch(97% 0.006 250)", borderBottom: "1px solid oklch(91% 0.010 250)" }}>
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                    <span className="text-xs font-semibold">Comissão</span>
+                    {jaRegistrada && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                        style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>
+                        Registrada
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">{profissional?.nome}</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-1 block">
+                        % Comissão
+                        {pctFixo > 0 && <span className="ml-1 text-primary/60">(fixo)</span>}
+                      </Label>
+                      <Input
+                        type="number" min="0" max="100" step="0.5"
+                        value={comissaoForm.percentualComissao}
+                        onChange={e => setComissaoForm(f => ({ ...f, percentualComissao: e.target.value }))}
+                        placeholder="Ex: 40"
+                        className="h-8 text-sm"
+                        readOnly={pctFixo > 0}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-1 block">Tipo de Pagamento</Label>
+                      <Select value={comissaoForm.tipoPagamento} onValueChange={(v: any) => setComissaoForm(f => ({ ...f, tipoPagamento: v }))}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="pix">PIX</SelectItem>
+                          <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                          <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                          <SelectItem value="outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground mb-1 block">Custo de Reposição (R$) <span className="text-muted-foreground/50">opcional</span></Label>
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={comissaoForm.custoReposicao}
+                      onChange={e => setComissaoForm(f => ({ ...f, custoReposicao: e.target.value }))}
+                      placeholder="0,00"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  {pctAtual > 0 && (
+                    <div className="rounded-lg p-2.5 space-y-1 text-xs"
+                      style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 20%)" }}>
+                      <p className="font-semibold" style={{ color: "oklch(45% 0.18 264)" }}>Prévia do cálculo</p>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor do serviço</span>
+                        <span className="font-medium">{fmt(valorBase)}</span>
+                      </div>
+                      {taxaMaq > 0 && (
+                        <div className="flex justify-between text-amber-600">
+                          <span>Taxa maquininha (~3%)</span>
+                          <span>- {fmt(taxaMaq)}</span>
+                        </div>
+                      )}
+                      {custoAtual > 0 && (
+                        <div className="flex justify-between text-amber-600">
+                          <span>Custo de reposição</span>
+                          <span>- {fmt(custoAtual)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold pt-1 border-t" style={{ borderColor: "oklch(55% 0.22 264 / 20%)" }}>
+                        <span style={{ color: "oklch(45% 0.18 264)" }}>Comissão ({pctAtual.toFixed(1)}%)</span>
+                        <span style={{ color: "oklch(45% 0.18 264)" }}>{fmt(valorComissao)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {ag.status !== "concluido" && (
+                    <p className="text-[10px] text-muted-foreground">A comissão será registrada automaticamente ao concluir o atendimento.</p>
+                  )}
+                  {ag.status === "concluido" && !jaRegistrada && comissaoForm.percentualComissao && (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      onClick={salvarComissao}
+                      disabled={criarComissaoMutation.isPending}
+                    >
+                      {criarComissaoMutation.isPending ? "Registrando..." : "Registrar Comissão"}
+                    </Button>
+                  )}
                 </div>
               </div>
             );

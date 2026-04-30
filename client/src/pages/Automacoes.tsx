@@ -1861,6 +1861,8 @@ export default function Automacoes() {
         tituloMensagem: actionNode?.data.titulo,
         corpoMensagem: actionNode?.data.mensagem || "Mensagem automática",
         flowJson: flowJsonStr,
+        confirmacaoAutoAtivo: currentFlow.confirmacaoAutoAtivo ?? false,
+        confirmacaoAutoHorasAntes: currentFlow.confirmacaoAutoHorasAntes ?? 2,
       }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
     }
   };

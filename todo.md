@@ -2349,3 +2349,9 @@
 - [x] Botão Reconectar no modal (chama /restart na Z-API da empresa)
 - [x] Botão Atualizar para refetch manual do status
 - [x] Procedures verificarStatusZapi e reconectarZapi no orizontech.ts
+
+## Bugs (v_atual)
+- [x] Corrigir duplicação de meios de pagamento no modal do agendamento (hardcoded + banco)
+- [x] Adicionar seção de comissão dentro do modal do agendamento (antes de concluir)
+- [ ] Corrigir erro de SQL ao salvar campanha de automação (campo confirmacaoAutoAtivo)
+- [x] Corrigir erro de SQL ao salvar nova campanha de automação (campos confirmacaoAutoAtivo/confirmacaoAutoHorasAntes faltando no create)

@@ -2784,6 +2784,19 @@ export const appRouter = router({
         } as any);
         return { id, success: true };
       }),
+    getComissaoByAgendamento: protectedProcedure
+      .input(z.object({ agendamentoId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const { comissoes: comissoesTable } = await import('../drizzle/schema');
+        const rows = await db.select().from(comissoesTable)
+          .where(and(eq(comissoesTable.agendamentoId, input.agendamentoId), eq(comissoesTable.empresaId, empresa.id)))
+          .limit(1);
+        return rows[0] ?? null;
+      }),
     marcarPaga: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -2904,6 +2917,8 @@ export const appRouter = router({
         segmentacaoTipo: z.enum(["todas", "por_profissional", "por_tag"]).default("todas"),
         segmentacaoValor: z.string().optional(),
         flowJson: z.string().optional(),
+        confirmacaoAutoAtivo: z.boolean().optional(),
+        confirmacaoAutoHorasAntes: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
