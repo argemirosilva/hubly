@@ -493,7 +493,7 @@ export default function FilaAutomacoes() {
             className="gap-1.5 text-xs"
           >
             <Clock className="w-3.5 h-3.5" />
-            {autoRefresh ? "Auto ON" : "Auto OFF"}
+            {autoRefresh ? "Atualizar: ON" : "Atualizar: OFF"}
           </Button>
         </div>
       </div>
