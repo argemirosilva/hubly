@@ -1754,7 +1754,12 @@ export async function processarFilaPendente() {
             const isDocument = /\.pdf(\?|$)/.test(urlLower);
             const mimeType = isDocument ? 'application/pdf' : 'image/jpeg';
 
-            if (isImage || isDocument) {
+            if (isDocument && item.mensagem) {
+              // PDF: enviar texto primeiro, depois o documento (Z-API não suporta legenda em PDF)
+              await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
+              await new Promise(r => setTimeout(r, 1000)); // pequena pausa entre mensagens
+              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, undefined, 'application/pdf');
+            } else if (isImage || isDocument) {
               enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, item.mensagem, mimeType);
             } else {
               // Extensão desconhecida: tentar enviar como imagem
