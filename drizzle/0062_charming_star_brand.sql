@@ -1,0 +1,1 @@
+ALTER TABLE `empresas` ADD `automacoesPausadas` boolean DEFAULT false NOT NULL;

@@ -80,6 +80,7 @@ export const empresas = mysqlTable("empresas", {
   pipelineFavoritaId: int("pipelineFavoritaId"),
   timezone: varchar("timezone", { length: 50 }).default("America/Sao_Paulo").notNull(),
   onboardingConcluido: boolean("onboardingConcluido").default(false).notNull(),
+  automacoesPausadas: boolean("automacoesPausadas").default(false).notNull(), // pausa geral: bloqueia todos os envios
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

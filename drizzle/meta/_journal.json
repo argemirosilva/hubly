@@ -435,6 +435,13 @@
       "when": 1777590790094,
       "tag": "0061_bizarre_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "5",
+      "when": 1777608830681,
+      "tag": "0062_charming_star_brand",
+      "breakpoints": true
     }
   ]
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck, Search, X } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck, Search, X, PauseCircle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "agendado" | "todos";
@@ -303,6 +303,21 @@ export default function FilaAutomacoes() {
   const [limparEnviadosOpen, setLimparEnviadosOpen] = useState(false);
   const [limparEnviadosLoading, setLimparEnviadosLoading] = useState(false);
 
+  // Pausa geral de automações
+  const { data: pausadaData, refetch: refetchPausa } = trpc.configuracoes.getAutomacoesPausadas.useQuery();
+  const isPausada = pausadaData ?? false;
+  const togglePausaMutation = trpc.configuracoes.toggleAutomacoesPausadas.useMutation({
+    onSuccess: (res) => {
+      refetchPausa();
+      if (res.pausado) {
+        toast.warning("⚠️ Automações PAUSADAS — nenhuma mensagem será enviada até você religar.");
+      } else {
+        toast.success("✅ Automações REATIVADAS — mensagens voltam a ser enviadas normalmente.");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const { data, isLoading, refetch } = trpc.automacoes.getFilaEnvios.useQuery(
     { status, periodo, ordenacao, automacaoNome: automacaoFiltro === "__todos__" ? undefined : automacaoFiltro, limit: 100 },
     { refetchInterval: autoRefresh ? 15000 : false }
@@ -495,8 +510,40 @@ export default function FilaAutomacoes() {
             <Clock className="w-3.5 h-3.5" />
             {autoRefresh ? "Atualizar: ON" : "Atualizar: OFF"}
           </Button>
+          <Button
+            variant={isPausada ? "destructive" : "outline"}
+            size="sm"
+            onClick={() => togglePausaMutation.mutate({ pausar: !isPausada })}
+            disabled={togglePausaMutation.isPending}
+            className="gap-1.5 text-xs font-semibold"
+            title={isPausada ? "Automações pausadas — clique para reativar" : "Pausar todos os envios automáticos"}
+          >
+            {isPausada ? <PlayCircle className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
+            {isPausada ? "Reativar" : "Pausar"}
+          </Button>
         </div>
       </div>
+
+      {/* Banner de aviso quando pausado */}
+      {isPausada && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3">
+          <PauseCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700">⚠️ Automações pausadas</p>
+            <p className="text-xs text-red-600 mt-0.5">Nenhuma mensagem será enviada enquanto a pausa estiver ativa. Faça seus ajustes e clique em <strong>Reativar</strong> quando terminar.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => togglePausaMutation.mutate({ pausar: false })}
+            disabled={togglePausaMutation.isPending}
+            className="gap-1.5 text-xs border-red-300 text-red-700 hover:bg-red-100"
+          >
+            <PlayCircle className="w-3.5 h-3.5" />
+            Reativar agora
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-4 gap-3">
         <button

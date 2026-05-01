@@ -1706,6 +1706,18 @@ export async function processarFilaPendente() {
     console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)/agendado(s)...`);
 
     for (const item of pendentes) {
+      // Verificar se as automações estão pausadas para esta empresa
+      if (item.empresaId) {
+        const [empresaRow] = await db.select({ automacoesPausadas: empresas.automacoesPausadas })
+          .from(empresas)
+          .where(eq(empresas.id, item.empresaId))
+          .limit(1);
+        if (empresaRow?.automacoesPausadas) {
+          // Não cancela — apenas pula. Quando a pausa for removida, o item será processado normalmente.
+          console.log(`[Fila] Envio ${item.id} pulado — automações pausadas pela empresa ${item.empresaId}`);
+          continue;
+        }
+      }
       // Verificar se a automação ainda existe e está ativa antes de enviar
       if (item.automacaoId) {
         const [automacaoAtual] = await db.select({ ativo: automacoes.ativo })

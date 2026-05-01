@@ -3977,6 +3977,22 @@ export const appRouter = router({
         await upsertCoresStatus(empresa.id, input);
         return { success: true };
       }),
+
+    // Pausa geral de automações: bloqueia todos os envios enquanto ativo
+    getAutomacoesPausadas: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return false;
+      return empresa.automacoesPausadas ?? false;
+    }),
+
+    toggleAutomacoesPausadas: protectedProcedure
+      .input(z.object({ pausar: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateEmpresa(empresa.id, { automacoesPausadas: input.pausar } as any);
+        return { success: true, pausado: input.pausar };
+      }),
   }),
 
   // ─── GRUPOS DE PERMISSÕES ──────────────────────────────────────────────────
