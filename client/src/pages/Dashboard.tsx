@@ -408,37 +408,36 @@ export default function Dashboard() {
     switch (widgetId) {
       case "stats":
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
             {[
-              { label: "Hoje", value: String(agendamentosHoje?.length ?? 0), sub: isProfissional ? "meus atendimentos" : "agendamentos", icon: Calendar, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
-              ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{ label: isProfissional ? "Minha receita" : "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs anterior` : "Mês atual", trend: variacaoReceita, icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)", onClick: () => setReceitaDetalheOpen(true) }] : []),
-              { label: isProfissional ? "Clientes atendidos" : "Clientes", value: String(metrics?.totalClientes ?? 0), sub: isProfissional ? "no mês" : "cadastrados", icon: Users, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
-              { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: isProfissional ? "meus concluídos" : "concluídos / total", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
-              ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "mensagens disparadas", icon: Send, iconBg: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(75% 0.18 55 / 20%)" : "oklch(62% 0.20 200 / 12%)", iconColor: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(45% 0.18 55)" : "oklch(40% 0.16 200)", alert: (metrics?.enviosHoje ?? 0) > 50, onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
-              ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0} de ${metricasPreAg?.total ?? 0} confirmados`, icon: CalendarCheck, iconBg: "oklch(60% 0.20 220 / 12%)", iconColor: "oklch(40% 0.16 220)" }] : []),
+              { label: "Hoje", value: String(agendamentosHoje?.length ?? 0), sub: isProfissional ? "atendimentos" : "agendamentos", icon: Calendar, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
+              ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{ label: isProfissional ? "Minha receita" : "Receita", value: formatCurrency(metrics?.receitaMes ?? 0), sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs ant.` : "mês atual", trend: variacaoReceita, icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)", onClick: () => setReceitaDetalheOpen(true) }] : []),
+              { label: isProfissional ? "Clientes" : "Clientes", value: String(metrics?.totalClientes ?? 0), sub: isProfissional ? "no mês" : "cadastrados", icon: Users, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
+              { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: "concluídos", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
+              ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "disparadas", icon: Send, iconBg: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(75% 0.18 55 / 20%)" : "oklch(62% 0.20 200 / 12%)", iconColor: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(45% 0.18 55)" : "oklch(40% 0.16 200)", alert: (metrics?.enviosHoje ?? 0) > 50, onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
+              ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0}/${metricasPreAg?.total ?? 0} confirm.`, icon: CalendarCheck, iconBg: "oklch(60% 0.20 220 / 12%)", iconColor: "oklch(40% 0.16 220)" }] : []),
             ].map((stat) => {
               const Icon = stat.icon;
               const isClickable = !!(stat as any).onClick;
               const isAlert = !!(stat as any).alert;
               return (
-                <div key={stat.label} className={`stat-card ${isClickable ? "cursor-pointer hover:shadow-md transition-all" : ""} ${isAlert ? "border-amber-400 bg-amber-50/60" : ""}`} onClick={(stat as any).onClick}>
-                  <div className="flex items-start justify-between mb-1.5">
-                    <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-3 h-3" style={{ color: stat.iconColor }} /></div>
+                <div key={stat.label} className={`rounded-xl border bg-card px-3 py-2.5 flex flex-col gap-1 ${isClickable ? "cursor-pointer hover:shadow-sm transition-all" : ""} ${isAlert ? "border-amber-400 bg-amber-50/60" : ""}`} onClick={(stat as any).onClick}>
+                  <div className="flex items-center justify-between">
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-2.5 h-2.5" style={{ color: stat.iconColor }} /></div>
                     {isAlert && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(75% 0.18 55 / 25%)", color: "oklch(40% 0.18 55)" }}>
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                        Alto
+                      <span className="flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.5 rounded-full" style={{ background: "oklch(75% 0.18 55 / 25%)", color: "oklch(40% 0.18 55)" }}>
+                        <AlertTriangle className="w-2 h-2" />Alto
                       </span>
                     )}
                     {!isAlert && (stat as any).trend !== undefined && (
-                      <div className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: (stat as any).trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
-                        {(stat as any).trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                      <span className="flex items-center gap-0.5 text-[8px] font-semibold" style={{ color: (stat as any).trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
+                        {(stat as any).trend >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
                         {Math.abs((stat as any).trend).toFixed(0)}%
-                      </div>
+                      </span>
                     )}
                   </div>
-                  <p className={`text-base font-bold tracking-tight ${isAlert ? "" : "text-foreground"}`} style={isAlert ? { color: "oklch(40% 0.18 55)" } : {}}>{stat.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium text-foreground/70">{stat.label}</span> · {stat.sub}</p>
+                  <p className={`text-sm font-bold leading-none ${isAlert ? "" : "text-foreground"}`} style={isAlert ? { color: "oklch(40% 0.18 55)" } : {}}>{stat.value}</p>
+                  <p className="text-[9px] leading-tight text-muted-foreground"><span className="font-medium text-foreground/60">{stat.label}</span> · {stat.sub}</p>
                 </div>
               );
             })}
