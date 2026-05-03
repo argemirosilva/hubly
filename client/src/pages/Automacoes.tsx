@@ -252,23 +252,35 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onPortMouseDown, isC
   const title = node.data.label || node.data.tipo || "Configurar...";
   const camposIncompletos = getNodeIncompleto(node);
   const incompleto = camposIncompletos.length > 0;
+  // Detectar especificamente mensagem vazia em nó de ação
+  const mensagemVazia = node.type === "action" &&
+    (node.data.tipo === "enviar_whatsapp" || node.data.tipo === "enviar_email") &&
+    !node.data.mensagem?.trim();
 
   return (
     <div
-      className={`rounded-xl border-2 shadow-sm ${s.bg} ${incompleto ? "border-amber-400" : s.border} transition-all ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${isHoverTarget ? "ring-2 ring-emerald-400 ring-offset-2 scale-105" : ""} ${isConnectTarget && !isHoverTarget ? "ring-1 ring-emerald-300 ring-offset-1" : ""}`}
+      className={`rounded-xl border-2 shadow-sm transition-all ${
+        mensagemVazia ? "bg-red-50 border-red-400" : incompleto ? `${s.bg} border-amber-400` : `${s.bg} ${s.border}`
+      } ${selected ? "ring-2 ring-indigo-500 ring-offset-2" : ""} ${isHoverTarget ? "ring-2 ring-emerald-400 ring-offset-2 scale-105" : ""} ${isConnectTarget && !isHoverTarget ? "ring-1 ring-emerald-300 ring-offset-1" : ""}`}
       style={{ width: 220 }}
       onClick={() => onSelect(node.id)}
     >
-      <div className={`flex items-center gap-2 px-3 py-2 border-b ${incompleto ? "border-amber-400" : s.border}`}>
-        <div className={`w-6 h-6 rounded-md ${s.iconBg} flex items-center justify-center`}>{s.icon}</div>
-        <span className={`text-xs font-bold uppercase tracking-wider ${s.labelColor}`}>{s.label}</span>
+      <div className={`flex items-center gap-2 px-3 py-2 border-b ${
+        mensagemVazia ? "border-red-400" : incompleto ? "border-amber-400" : s.border
+      }`}>
+        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+          mensagemVazia ? "bg-red-100" : s.iconBg
+        }`}>{mensagemVazia ? <AlertTriangle size={14} className="text-red-500" /> : s.icon}</div>
+        <span className={`text-xs font-bold uppercase tracking-wider ${
+          mensagemVazia ? "text-red-600" : s.labelColor
+        }`}>{s.label}</span>
         <div className="ml-auto flex items-center gap-1">
           {isHoverTarget && (
             <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
               <Plus size={10} />
             </span>
           )}
-          {incompleto && (
+          {incompleto && !mensagemVazia && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -295,7 +307,10 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onPortMouseDown, isC
       </div>
       <div className="px-3 py-2.5">
         <p className="text-sm font-semibold text-gray-800 truncate">{title}</p>
-        {node.data.mensagem && <p className="text-xs text-gray-500 mt-1 line-clamp-2 italic">"{node.data.mensagem}"</p>}
+        {mensagemVazia && (
+          <p className="text-xs text-red-500 font-medium mt-1">⚠️ Mensagem vazia — preencha antes de salvar</p>
+        )}
+        {!mensagemVazia && node.data.mensagem && <p className="text-xs text-gray-500 mt-1 line-clamp-2 italic">"{node.data.mensagem}"</p>}
         {node.data.quantidade && <p className="text-xs text-gray-500 mt-1">⏱ {node.data.quantidade} {node.data.unidade || "horas"}</p>}
         {node.type === "condition" && (() => {
           const preview = getConditionPreview(node.data);
@@ -3097,21 +3112,29 @@ export default function Automacoes() {
                       </div>
                     )}
                     <button
-                      className={`w-full flex items-center gap-3 p-3.5 rounded-xl border ${meta.bg} text-left transition-all active:scale-[0.98]`}
+                      className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all active:scale-[0.98] ${
+                        node.type === "action" && !node.data.mensagem?.trim()
+                          ? "border-red-300 bg-red-50"
+                          : meta.bg
+                      }`}
                       onClick={() => setMobileNodeSheet(node.id)}
                     >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white border ${meta.bg.split(" ")[1]}`}>
-                        <Icon size={16} className={meta.color} />
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white border ${
+                        node.type === "action" && !node.data.mensagem?.trim() ? "border-red-300" : meta.bg.split(" ")[1]
+                      }`}>
+                        <Icon size={16} className={node.type === "action" && !node.data.mensagem?.trim() ? "text-red-500" : meta.color} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold uppercase tracking-wide ${meta.color}`}>{meta.label}</p>
-                        <p className="text-sm text-gray-800 font-medium truncate mt-0.5">{label}</p>
-                        {node.type === "action" && node.data.mensagem && (
+                        <p className={`text-xs font-semibold uppercase tracking-wide ${node.type === "action" && !node.data.mensagem?.trim() ? "text-red-500" : meta.color}`}>{meta.label}</p>
+                        <p className="text-sm font-medium truncate mt-0.5">{label}</p>
+                        {node.type === "action" && !node.data.mensagem?.trim() ? (
+                          <p className="text-xs text-red-500 font-medium mt-0.5">⚠️ Mensagem vazia — preencha antes de salvar</p>
+                        ) : node.type === "action" && node.data.mensagem && (
                           <p className="text-xs text-gray-400 truncate mt-0.5">{node.data.mensagem.substring(0, 60)}{node.data.mensagem.length > 60 ? "..." : ""}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <ChevronRight size={14} className="text-gray-400" />
+                        <ChevronRight size={14} className={node.type === "action" && !node.data.mensagem?.trim() ? "text-red-400" : "text-gray-400"} />
                       </div>
                     </button>
                   </div>
