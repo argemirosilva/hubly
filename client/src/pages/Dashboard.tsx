@@ -414,23 +414,30 @@ export default function Dashboard() {
               ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{ label: isProfissional ? "Minha receita" : "Receita do mês", value: formatCurrency(metrics?.receitaMes ?? 0), sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs anterior` : "Mês atual", trend: variacaoReceita, icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)", onClick: () => setReceitaDetalheOpen(true) }] : []),
               { label: isProfissional ? "Clientes atendidos" : "Clientes", value: String(metrics?.totalClientes ?? 0), sub: isProfissional ? "no mês" : "cadastrados", icon: Users, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
               { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: isProfissional ? "meus concluídos" : "concluídos / total", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
-              ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "mensagens disparadas", icon: Send, iconBg: "oklch(62% 0.20 200 / 12%)", iconColor: "oklch(40% 0.16 200)", onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
+              ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "mensagens disparadas", icon: Send, iconBg: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(75% 0.18 55 / 20%)" : "oklch(62% 0.20 200 / 12%)", iconColor: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(45% 0.18 55)" : "oklch(40% 0.16 200)", alert: (metrics?.enviosHoje ?? 0) > 50, onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
               ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0} de ${metricasPreAg?.total ?? 0} confirmados`, icon: CalendarCheck, iconBg: "oklch(60% 0.20 220 / 12%)", iconColor: "oklch(40% 0.16 220)" }] : []),
             ].map((stat) => {
               const Icon = stat.icon;
               const isClickable = !!(stat as any).onClick;
+              const isAlert = !!(stat as any).alert;
               return (
-                <div key={stat.label} className={`stat-card ${isClickable ? "cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" : ""}`} onClick={(stat as any).onClick}>
+                <div key={stat.label} className={`stat-card ${isClickable ? "cursor-pointer hover:shadow-md transition-all" : ""} ${isAlert ? "border-amber-400 bg-amber-50/60" : ""}`} onClick={(stat as any).onClick}>
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-3 h-3" style={{ color: stat.iconColor }} /></div>
-                    {(stat as any).trend !== undefined && (
+                    {isAlert && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(75% 0.18 55 / 25%)", color: "oklch(40% 0.18 55)" }}>
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Alto
+                      </span>
+                    )}
+                    {!isAlert && (stat as any).trend !== undefined && (
                       <div className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: (stat as any).trend >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
                         {(stat as any).trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         {Math.abs((stat as any).trend).toFixed(0)}%
                       </div>
                     )}
                   </div>
-                  <p className="text-base font-bold tracking-tight text-foreground">{stat.value}</p>
+                  <p className={`text-base font-bold tracking-tight ${isAlert ? "" : "text-foreground"}`} style={isAlert ? { color: "oklch(40% 0.18 55)" } : {}}>{stat.value}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-medium text-foreground/70">{stat.label}</span> · {stat.sub}</p>
                 </div>
               );
