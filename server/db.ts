@@ -840,13 +840,25 @@ export async function getDashboardMetrics(empresaId: number, profissionalId?: nu
     ? and(eq(comissoes.empresaId, empresaId), eq(comissoes.profissionalId, profissionalId), gte(comissoes.createdAt, new Date(inicioMes)))
     : and(eq(comissoes.empresaId, empresaId), gte(comissoes.createdAt, new Date(inicioMes)));
 
-  const [agendamentosHoje, agendamentosMes, agendamentosMesAnterior, totalClientesEmpresa, comissoesMes] = await Promise.all([
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime();
+  const fimHoje = inicioHoje + 86400000;
+
+  const [agendamentosHoje, agendamentosMes, agendamentosMesAnterior, totalClientesEmpresa, comissoesMes, enviosHoje] = await Promise.all([
     db.select().from(agendamentos).where(filtroHoje),
     db.select().from(agendamentos).where(filtroMes),
     db.select().from(agendamentos).where(filtroMesAnterior),
     // Total de clientes da empresa (para admin); profissional calcula clientes únicos a partir dos agendamentos
     db.select({ count: sql<number>`count(*)` }).from(clientes).where(and(eq(clientes.empresaId, empresaId), eq(clientes.ativo, true))),
     db.select().from(comissoes).where(filtroComissoes),
+    // Envios de automações do dia (status enviado)
+    db.select({ count: sql<number>`count(*)` }).from(historicoEnviosAutomacao).where(
+      and(
+        eq(historicoEnviosAutomacao.empresaId, empresaId),
+        eq(historicoEnviosAutomacao.status, 'enviado'),
+        gte(historicoEnviosAutomacao.criadoEm, new Date(inicioHoje)),
+        sql`${historicoEnviosAutomacao.criadoEm} < ${new Date(fimHoje)}`
+      )
+    ),
   ]);
 
   const receitaMes = agendamentosMes.filter(a => a.status === 'concluido').reduce((sum, a) => sum + parseFloat(String(a.valorTotal)), 0);
@@ -876,6 +888,7 @@ export async function getDashboardMetrics(empresaId: number, profissionalId?: nu
       ? Math.round((agendamentosMes.filter(a => a.status === 'concluido').length / agendamentosMes.length) * 100) : 0,
     // Indica se os dados estão filtrados por profissional
     filtradoPorProfissional: !!profissionalId,
+    enviosHoje: Number(enviosHoje[0]?.count ?? 0),
   };
 }
 
