@@ -3993,6 +3993,32 @@ export const appRouter = router({
         await updateEmpresa(empresa.id, { automacoesPausadas: input.pausar } as any);
         return { success: true, pausado: input.pausar };
       }),
+    updateRateLimit: protectedProcedure
+      .input(z.object({
+        envioDelaySegundos: z.number().min(5).max(300),
+        envioPorCiclo: z.number().min(1).max(50),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateEmpresa(empresa.id, {
+          envioDelaySegundos: input.envioDelaySegundos,
+          envioPorCiclo: input.envioPorCiclo,
+        } as any);
+        return { success: true };
+      }),
+    getRateLimit: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { envioDelaySegundos: 30, envioPorCiclo: 10 };
+      const db = await getDb();
+      if (!db) return { envioDelaySegundos: 30, envioPorCiclo: 10 };
+      const { empresas: empresasTable } = await import('../drizzle/schema.js');
+      const [row] = await db.select({
+        envioDelaySegundos: empresasTable.envioDelaySegundos,
+        envioPorCiclo: empresasTable.envioPorCiclo,
+      }).from(empresasTable).where(eq(empresasTable.id, empresa.id)).limit(1);
+      return { envioDelaySegundos: row?.envioDelaySegundos ?? 30, envioPorCiclo: row?.envioPorCiclo ?? 10 };
+    }),
   }),
 
   // ─── GRUPOS DE PERMISSÕES ──────────────────────────────────────────────────

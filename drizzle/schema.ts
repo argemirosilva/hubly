@@ -81,6 +81,8 @@ export const empresas = mysqlTable("empresas", {
   timezone: varchar("timezone", { length: 50 }).default("America/Sao_Paulo").notNull(),
   onboardingConcluido: boolean("onboardingConcluido").default(false).notNull(),
   automacoesPausadas: boolean("automacoesPausadas").default(false).notNull(), // pausa geral: bloqueia todos os envios
+  envioDelaySegundos: int("envioDelaySegundos").default(30).notNull(), // delay entre cada mensagem enviada (anti-spam)
+  envioPorCiclo: int("envioPorCiclo").default(10).notNull(), // máximo de mensagens por ciclo de 1 minuto
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

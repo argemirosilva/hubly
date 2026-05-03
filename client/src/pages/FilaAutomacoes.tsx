@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck, Search, X, PauseCircle, PlayCircle } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Clock, CheckCircle2, XCircle, RefreshCw, Send, MessageSquare, Filter, ChevronRight, Phone, Bot, CalendarClock, AlertTriangle, RotateCcw, Ban, Trash2, CalendarCheck, Search, X, PauseCircle, PlayCircle, Settings2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 type StatusFila = "pendente" | "enviado" | "falhou" | "agendado" | "todos";
@@ -306,6 +307,16 @@ export default function FilaAutomacoes() {
   // Pausa geral de automações
   const { data: pausadaData, refetch: refetchPausa } = trpc.configuracoes.getAutomacoesPausadas.useQuery();
   const isPausada = pausadaData ?? false;
+  const [showRateConfig, setShowRateConfig] = useState(false);
+  const { data: rateLimitData, refetch: refetchRateLimit } = trpc.configuracoes.getRateLimit.useQuery();
+  const [localDelay, setLocalDelay] = useState<number | null>(null);
+  const [localPorCiclo, setLocalPorCiclo] = useState<number | null>(null);
+  const delayAtual = localDelay ?? rateLimitData?.envioDelaySegundos ?? 30;
+  const porCicloAtual = localPorCiclo ?? rateLimitData?.envioPorCiclo ?? 10;
+  const updateRateLimitMutation = trpc.configuracoes.updateRateLimit.useMutation({
+    onSuccess: () => { toast.success("Política de envios salva!"); refetchRateLimit(); setShowRateConfig(false); setLocalDelay(null); setLocalPorCiclo(null); },
+    onError: (e) => toast.error(e.message),
+  });
   const togglePausaMutation = trpc.configuracoes.toggleAutomacoesPausadas.useMutation({
     onSuccess: (res) => {
       refetchPausa();
@@ -511,6 +522,16 @@ export default function FilaAutomacoes() {
             {autoRefresh ? "Atualizar: ON" : "Atualizar: OFF"}
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRateConfig(!showRateConfig)}
+            className="gap-1.5 text-xs"
+            title="Política de envios anti-spam"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            Política
+          </Button>
+          <Button
             variant={isPausada ? "destructive" : "outline"}
             size="sm"
             onClick={() => togglePausaMutation.mutate({ pausar: !isPausada })}
@@ -523,6 +544,72 @@ export default function FilaAutomacoes() {
           </Button>
         </div>
       </div>
+
+      {/* Painel de política de envios anti-spam */}
+      {showRateConfig && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-800">Política Anti-Spam de Envios</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => { setShowRateConfig(false); setLocalDelay(null); setLocalPorCiclo(null); }} className="h-7 w-7 p-0 text-blue-600">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-blue-700">Configure o ritmo de envio para evitar que o WhatsApp bloqueie o número por disparos em massa. <strong>Recomendado: 30s de intervalo e máx. 10 por minuto.</strong></p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-blue-800">Intervalo entre mensagens</label>
+                <span className="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{delayAtual}s</span>
+              </div>
+              <Slider
+                min={5} max={120} step={5}
+                value={[delayAtual]}
+                onValueChange={([v]) => setLocalDelay(v)}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-blue-500">
+                <span>5s (rápido)</span>
+                <span>30s (seguro)</span>
+                <span>120s (muito lento)</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-blue-800">Máx. mensagens por minuto</label>
+                <span className="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{porCicloAtual}/min</span>
+              </div>
+              <Slider
+                min={1} max={50} step={1}
+                value={[porCicloAtual]}
+                onValueChange={([v]) => setLocalPorCiclo(v)}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-blue-500">
+                <span>1 (muito lento)</span>
+                <span>10 (seguro)</span>
+                <span>50 (arriscado)</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              onClick={() => updateRateLimitMutation.mutate({ envioDelaySegundos: delayAtual, envioPorCiclo: porCicloAtual })}
+              disabled={updateRateLimitMutation.isPending}
+              className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              Salvar política
+            </Button>
+            <span className="text-xs text-blue-600">
+              Com essas configurações, 150 mensagens levarão ~{Math.ceil(150 / porCicloAtual)} minutos para enviar.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Banner de aviso quando pausado */}
       {isPausada && (

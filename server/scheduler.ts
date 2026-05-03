@@ -1699,22 +1699,43 @@ export async function processarFilaPendente() {
         ),
         lte(historicoEnviosAutomacao.enviarEm, agora),
       ))
-      .limit(50); // processar até 50 por ciclo
+      .limit(100); // buscar mais, mas limitar por empresa via rate limit abaixo
 
     if (pendentes.length === 0) return;
 
     console.log(`[Fila] Processando ${pendentes.length} envio(s) pendente(s)/agendado(s)...`);
 
+    // Controle de rate limit por empresa neste ciclo
+    const enviosPorEmpresa = new Map<number, number>(); // empresaId -> qtd enviada neste ciclo
+    const configEmpresaCache = new Map<number, { delaySegundos: number; porCiclo: number }>(); // cache de config
+
     for (const item of pendentes) {
-      // Verificar se as automações estão pausadas para esta empresa
+      // Verificar config da empresa (pausa + rate limit) — com cache por ciclo
       if (item.empresaId) {
-        const [empresaRow] = await db.select({ automacoesPausadas: empresas.automacoesPausadas })
-          .from(empresas)
-          .where(eq(empresas.id, item.empresaId))
-          .limit(1);
-        if (empresaRow?.automacoesPausadas) {
-          // Não cancela — apenas pula. Quando a pausa for removida, o item será processado normalmente.
-          console.log(`[Fila] Envio ${item.id} pulado — automações pausadas pela empresa ${item.empresaId}`);
+        if (!configEmpresaCache.has(item.empresaId)) {
+          const [empresaRow] = await db.select({
+            automacoesPausadas: empresas.automacoesPausadas,
+            envioDelaySegundos: empresas.envioDelaySegundos,
+            envioPorCiclo: empresas.envioPorCiclo,
+          })
+            .from(empresas)
+            .where(eq(empresas.id, item.empresaId))
+            .limit(1);
+          configEmpresaCache.set(item.empresaId, {
+            delaySegundos: empresaRow?.envioDelaySegundos ?? 30,
+            porCiclo: empresaRow?.envioPorCiclo ?? 10,
+          });
+          if (empresaRow?.automacoesPausadas) {
+            console.log(`[Fila] Envio ${item.id} pulado — automações pausadas pela empresa ${item.empresaId}`);
+            continue;
+          }
+        }
+        // Verificar limite de envios por ciclo
+        const config = configEmpresaCache.get(item.empresaId)!;
+        const enviados = enviosPorEmpresa.get(item.empresaId) ?? 0;
+        if (enviados >= config.porCiclo) {
+          // Limite atingido neste ciclo — deixar para o próximo ciclo (1 minuto depois)
+          console.log(`[Fila] Envio ${item.id} adiado — limite de ${config.porCiclo} mensagens/ciclo atingido para empresa ${item.empresaId}`);
           continue;
         }
       }
@@ -1797,7 +1818,14 @@ export async function processarFilaPendente() {
         if (enviado) {
           // Incrementar contador de uso
           try { await (await import('./db-plans')).incrementWhatsappCount(item.empresaId); } catch {}
+          // Incrementar contador de rate limit desta empresa neste ciclo
+          if (item.empresaId) {
+            enviosPorEmpresa.set(item.empresaId, (enviosPorEmpresa.get(item.empresaId) ?? 0) + 1);
+          }
           console.log(`[Fila] ✅ Enviado para ${item.clienteNome ?? item.telefone} (${item.automacaoNome ?? 'manual'})${item.midiaUrl ? ' [com mídia]' : ''}`);
+          // Delay anti-spam entre mensagens
+          const delayMs = ((item.empresaId && configEmpresaCache.get(item.empresaId)?.delaySegundos) ?? 30) * 1000;
+          if (delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
           // Notificação in-app para admins quando item AGENDADO é enviado
           if (item.status === 'agendado') {
             try {
