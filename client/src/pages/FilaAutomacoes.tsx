@@ -611,6 +611,31 @@ export default function FilaAutomacoes() {
         </div>
       )}
 
+      {/* Banner de aviso: fila com muitos pendentes */}
+      {(pendentes + agendados) > 50 && !isPausada && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">
+              ⚠️ {pendentes + agendados} mensagens na fila — risco de bloqueio do WhatsApp
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Muitas mensagens pendentes ao mesmo tempo podem causar bloqueio do número. Use <strong>Pausar</strong> para revisar a fila antes de enviar, ou ajuste a <strong>Política</strong> de envios.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => togglePausaMutation.mutate({ pausar: true })}
+            disabled={togglePausaMutation.isPending}
+            className="gap-1.5 text-xs border-amber-300 text-amber-800 hover:bg-amber-100 flex-shrink-0"
+          >
+            <PauseCircle className="w-3.5 h-3.5" />
+            Pausar agora
+          </Button>
+        </div>
+      )}
+
       {/* Banner de aviso quando pausado */}
       {isPausada && (
         <div className="flex items-center gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3">

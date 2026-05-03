@@ -1803,6 +1803,10 @@ export default function Automacoes() {
       : tipo === "dias_depois_agendamento" ? "dias_depois_agendamento"
       : "horas_apos_agendamento";
     const actionNode = nodesParaSalvar.find(n => n.type === "action");
+    // Validar que o nó de ação tem mensagem preenchida
+    if (!actionNode) { toast.error("Adicione um nó de ação (Enviar WhatsApp ou E-mail) antes de salvar"); return; }
+    const mensagemTexto = (actionNode.data.mensagem ?? "").trim();
+    if (!mensagemTexto) { toast.error("Preencha a mensagem no nó de ação antes de salvar"); return; }
     const flowJsonStr = JSON.stringify(nodesParaSalvar);
     const eventoValue = tipo.startsWith("manual_") ? tipo.replace("manual_", "") : tipo.startsWith("evento_") ? tipo.replace("evento_", "") : undefined;
     // Extrair gatilhos adicionais do triggerNode
