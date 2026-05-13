@@ -418,8 +418,8 @@ export default function ModalAbrirPacote({
           {/* Automação de renovação */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div>
-              <p className="text-sm font-medium text-foreground">Habilitar automação de renovação</p>
-              <p className="text-xs text-muted-foreground">Envia avisos automáticos quando o pacote estiver vencendo ou com sessões acabando</p>
+              <p className="text-sm font-medium text-foreground">Ativar lembrete de renovação</p>
+              <p className="text-xs text-muted-foreground">Ativado: dispara automação de WhatsApp ao vencer ou acabar sessões. Desativado: nenhuma mensagem é enviada à cliente.</p>
             </div>
             <Switch checked={automacaoRenovacao} onCheckedChange={setAutomacaoRenovacao} />
           </div>
