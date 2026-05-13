@@ -1891,26 +1891,8 @@ async function cancelarPreAgendamentosExpirados() {
             agendamentoId: ag.id,
             dadosContexto: { agendamentoId: ag.id, expiracaoEm: ag.reservaExpiracaoEm },
           });
-          // Enviar WhatsApp para o cliente com link de confirmação
-          try {
-            const { clientes: cliTbl2 } = await import('../drizzle/schema');
-            const [agCompleto] = await db.select().from(agendamentos).where(eq(agendamentos.id, ag.id)).limit(1);
-            const [cliente2] = ag.clienteId ? await db.select().from(cliTbl2).where(eq(cliTbl2.id, ag.clienteId)).limit(1) : [null];
-            const telefone = cliente2?.whatsapp || cliente2?.telefone;
-            if (telefone && agCompleto) {
-              const token = await gerarTokenConfirmacao(ag.id, empresa.id);
-              const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
-              const linkConfirmacao = `${origin}/confirmar/${token}`;
-              const nomeCliente = cliente2?.nome?.split(' ')[0] ?? 'Cliente';
-              const dataFormatada2 = agCompleto.data ? String(agCompleto.data).split('-').reverse().join('/') : '';
-              const horaFormatada = formatarHora(agCompleto.horaInicio);
-              const mensagemWpp = `Olá, ${nomeCliente}! 👋\n\nSeu pré-agendamento para *${dataFormatada2}* às *${horaFormatada}* expira às *${expiracaoFormatada}*.\n\nPara confirmar sua presença, clique no link abaixo:\n${linkConfirmacao}\n\nSe não puder comparecer, responda esta mensagem ou acesse o link para cancelar.`;
-              await routedSendMessage(empresa.id, telefone, mensagemWpp);
-              console.log(`[Scheduler] WhatsApp de lembrete enviado para cliente ${ag.clienteId} (ag ${ag.id})`);
-            }
-          } catch (wppErr) {
-            console.error(`[Scheduler] Erro ao enviar WhatsApp de lembrete para ag ${ag.id}:`, wppErr);
-          }
+          // WhatsApp removido: mensagens hardcoded são proibidas.
+          // Para enviar mensagem neste evento, configure uma automação com gatilho 'pre_agendamento_expirando'.
           await db.update(agendamentos)
             .set({ reservaLembreteEnviado: true })
             .where(eq(agendamentos.id, ag.id));
