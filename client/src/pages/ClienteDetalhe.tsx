@@ -28,6 +28,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const statusColor: Record<string, string> = {
   concluido: "bg-emerald-100 text-emerald-700",
@@ -61,10 +62,12 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
     nome: string; valorPago: string; formaPagamento: string;
     numeroParcelas: string; dataVencimento: string; observacoes: string;
+    automacaoRenovacao: boolean; dataValidade: string;
     itens: Array<{ servicoId: number; servicoNome: string; quantidade: number; sessoesUsadas: number }>;
   }>({
     nome: "", valorPago: "", formaPagamento: "",
-    numeroParcelas: "1", dataVencimento: "", observacoes: "", itens: [],
+    numeroParcelas: "1", dataVencimento: "", observacoes: "",
+    automacaoRenovacao: false, dataValidade: "", itens: [],
   });
   const [renovarForm, setRenovarForm] = useState({
     valorPago: "",
@@ -689,6 +692,10 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                       ? new Date(pacote.dataVencimento).toISOString().split("T")[0]
                                       : "",
                                     observacoes: (pacote as any).observacoes ?? "",
+                                    automacaoRenovacao: !!(pacote as any).automacaoRenovacao,
+                                    dataValidade: (pacote as any).dataValidade
+                                      ? String((pacote as any).dataValidade).substring(0, 10)
+                                      : "",
                                     itens: (pacote.itens as any[]).map((item: any) => ({
                                       servicoId: item.servicoId,
                                       servicoNome: item.servicoNome ?? `Serviço #${item.servicoId}`,
@@ -1178,6 +1185,28 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                 onChange={e => setEditarPacoteForm(f => ({ ...f, observacoes: e.target.value }))}
               />
             </div>
+            {/* Lembrete de renovação */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-foreground">Ativar lembrete de renovação</p>
+                <p className="text-xs text-muted-foreground">Ativado: dispara automação de WhatsApp ao vencer ou acabar sessões. Desativado: nenhuma mensagem é enviada à cliente.</p>
+              </div>
+              <Switch
+                checked={editarPacoteForm.automacaoRenovacao}
+                onCheckedChange={v => setEditarPacoteForm(f => ({ ...f, automacaoRenovacao: v }))}
+              />
+            </div>
+            {editarPacoteForm.automacaoRenovacao && (
+              <div className="space-y-1.5">
+                <Label>Data de validade (opcional)</Label>
+                <Input
+                  type="date"
+                  value={editarPacoteForm.dataValidade}
+                  onChange={e => setEditarPacoteForm(f => ({ ...f, dataValidade: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Se não preenchida, o pacote não expira por tempo.</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPacoteEditarId(null)}>Cancelar</Button>
@@ -1194,6 +1223,8 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                   numeroParcelas: Number(editarPacoteForm.numeroParcelas) || 1,
                   dataVencimento: editarPacoteForm.dataVencimento || null,
                   observacoes: editarPacoteForm.observacoes || undefined,
+                  automacaoRenovacao: editarPacoteForm.automacaoRenovacao,
+                  dataValidade: editarPacoteForm.dataValidade || null,
                   itens: editarPacoteForm.itens.map(it => ({
                     servicoId: it.servicoId,
                     quantidade: it.quantidade,
