@@ -28,10 +28,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   dataInicial?: string;
+  horaInicial?: string; // ex: "09:30" — horário do slot selecionado no calendário
   profissionalIdInicial?: number;
 }
 
-export default function NovaAgendaModal({ open, onClose, dataInicial, profissionalIdInicial }: Props) {
+export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicial, profissionalIdInicial }: Props) {
   const utils = trpc.useUtils();
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
@@ -46,7 +47,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, profission
   const [form, setForm] = useState({
     clienteId: "",
     data: dataInicial ?? getLocalDateString(),
-    horaInicio: "09:00",
+    horaInicio: horaInicial ?? "09:00",
     horaFim: "10:00",
     observacoes: "",
     comReserva: true,

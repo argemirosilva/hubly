@@ -2374,3 +2374,6 @@
 
 ## Bug Crítico (v7)
 - [x] Bug: automação excluída continuava enviando mensagens — itens pendentes na fila (historico_envios_automacao) não eram cancelados ao excluir a automação. Corrigido em 2 pontos: (1) deleteAutomacao agora cancela todos os pendentes/agendados antes de excluir; (2) scheduler cancela item se automacaoId não existe mais no banco.
+
+## Bug Horário Agendamento (v8)
+- [x] Bug: horaInicio sempre salvo como "09:00" independente do slot selecionado — NovaAgendaModal não recebia horaInicial como prop. Corrigido: adicionada prop horaInicial opcional ao NovaAgendaModal. Banco corrigido: agendamento da Laís (ID 660001) atualizado de 09:00 para 09:30.

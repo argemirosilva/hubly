@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE agendamentos SET horaInicio = '09:30:00', horaFim = '11:25:00' WHERE id = 660001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute UPDATE agendamentos SET horaInicio = '09:30:00', horaFim = '11:25:00' WHERE id = 660001;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 320
+}
