@@ -1,0 +1,43 @@
+{
+  "query": "SELECT a.id as agendamentoId, a.data, a.horaInicio, a.status, c.nome as cliente, t.id as tokenId, t.token, t.expiresAt, t.usadoEm FROM agendamentos a JOIN clientes c ON c.id = a.clienteId JOIN tokens_confirmacao t ON t.agendamentoId = a.id WHERE a.data >= CURDATE() AND t.usadoEm IS NULL AND t.expiresAt < NOW() AND a.status IN ('agendado', 'confirmado') ORDER BY a.data ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT a.id as agendamentoId, a.data, a.horaInicio, a.status, c.nome as cliente, t.id as tokenId, t.token, t.expiresAt, t.usadoEm FROM agendamentos a JOIN clientes c ON c.id = a.clienteId JOIN tokens_confirmacao t ON t.agendamentoId = a.id WHERE a.data >= CURDATE() AND t.usadoEm IS NULL AND t.expiresAt < NOW() AND a.status IN ('agendado', 'confirmado') ORDER BY a.data ASC;",
+  "rows": [
+    {
+      "agendamentoId": "570001",
+      "data": "2026-05-16",
+      "horaInicio": "13:00:00",
+      "status": "agendado",
+      "cliente": "Maria eduarda Lopes",
+      "tokenId": "180001",
+      "token": "6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac",
+      "expiresAt": "2026-05-11 03:26:52",
+      "usadoEm": "NULL"
+    },
+    {
+      "agendamentoId": "660001",
+      "data": "2026-05-16",
+      "horaInicio": "09:30:00",
+      "status": "confirmado",
+      "cliente": "Laís Bravo ",
+      "tokenId": "180002",
+      "token": "fb8ae59e65f72b5b86df0dd325f1602713a7b9072a051f5de4853cc92e4e0d1f",
+      "expiresAt": "2026-05-11 03:26:55",
+      "usadoEm": "NULL"
+    },
+    {
+      "agendamentoId": "630001",
+      "data": "2026-05-23",
+      "horaInicio": "06:30:00",
+      "status": "agendado",
+      "cliente": "Clarissa Volponi",
+      "tokenId": "120001",
+      "token": "bfee7d5a1066bcc2fe4f56659947384cb99cdaef86c4f7e1d24571a67651c5c0",
+      "expiresAt": "2026-05-08 15:38:31",
+      "usadoEm": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "agendamentoId\tdata\thoraInicio\tstatus\tcliente\ttokenId\ttoken\texpiresAt\tusadoEm\n570001\t2026-05-16\t13:00:00\tagendado\tMaria eduarda Lopes\t180001\t6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac\t2026-05-11 03:26:52\tNULL\n660001\t2026-05-16\t09:30:00\tconfirmado\tLaís Bravo \t180002\tfb8ae59e65f72b5b86df0dd325f1602713a7b9072a051f5de4853cc92e4e0d1f\t2026-05-11 03:26:55\tNULL\n630001\t2026-05-23\t06:30:00\tagendado\tClarissa Volponi\t120001\tbfee7d5a1066bcc2fe4f56659947384cb99cdaef86c4f7e1d24571a67651c5c0\t2026-05-08 15:38:31\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 290
+}

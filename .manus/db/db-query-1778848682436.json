@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE tokens_confirmacao SET usadoEm = NOW() WHERE id IN (180001, 180002, 120001) AND usadoEm IS NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute UPDATE tokens_confirmacao SET usadoEm = NOW() WHERE id IN (180001, 180002, 120001) AND usadoEm IS NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 275
+}

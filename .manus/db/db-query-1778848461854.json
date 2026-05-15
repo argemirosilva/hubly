@@ -1,0 +1,110 @@
+{
+  "query": "SELECT t.id, t.token, t.agendamentoId, t.expiresAt, t.usadoEm, t.createdAt, NOW() as agora, TIMESTAMPDIFF(MINUTE, t.createdAt, t.expiresAt) as validade_minutos FROM tokens_confirmacao t ORDER BY t.id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT t.id, t.token, t.agendamentoId, t.expiresAt, t.usadoEm, t.createdAt, NOW() as agora, TIMESTAMPDIFF(MINUTE, t.createdAt, t.expiresAt) as validade_minutos FROM tokens_confirmacao t ORDER BY t.id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "180002",
+      "token": "fb8ae59e65f72b5b86df0dd325f1602713a7b9072a051f5de4853cc92e4e0d1f",
+      "agendamentoId": "660001",
+      "expiresAt": "2026-05-11 03:26:55",
+      "usadoEm": "NULL",
+      "createdAt": "2026-05-09 03:26:54",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "180001",
+      "token": "6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac",
+      "agendamentoId": "570001",
+      "expiresAt": "2026-05-11 03:26:52",
+      "usadoEm": "NULL",
+      "createdAt": "2026-05-09 03:26:51",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "150001",
+      "token": "d63cc84247d24312f948a2cbbe5b956ddb5b9dd8c222586a292eb4a74c3f2aa5",
+      "agendamentoId": "660001",
+      "expiresAt": "2026-05-09 18:14:02",
+      "usadoEm": "2026-05-09 03:26:54",
+      "createdAt": "2026-05-07 18:14:01",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "120001",
+      "token": "bfee7d5a1066bcc2fe4f56659947384cb99cdaef86c4f7e1d24571a67651c5c0",
+      "agendamentoId": "630001",
+      "expiresAt": "2026-05-08 15:38:31",
+      "usadoEm": "NULL",
+      "createdAt": "2026-05-06 15:38:31",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "90002",
+      "token": "2dd0e368bb683f3b7a3d897e6b9c2c7f345c0d10fbb5ab839ccddb302e718eb3",
+      "agendamentoId": "600002",
+      "expiresAt": "2026-05-06 23:02:31",
+      "usadoEm": "NULL",
+      "createdAt": "2026-05-04 23:02:31",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "90001",
+      "token": "70fe9f849e83146c8e2170e6aa63fcb4668d289a009fbf37ce5b31631ecf1eab",
+      "agendamentoId": "600001",
+      "expiresAt": "2026-05-06 23:02:26",
+      "usadoEm": "NULL",
+      "createdAt": "2026-05-04 23:02:25",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "60016",
+      "token": "1140d8e4caed5755520f6542ff853d8669dc727be06c4aa990bc9bfe96884b5b",
+      "agendamentoId": "450002",
+      "expiresAt": "2026-04-28 00:48:51",
+      "usadoEm": "NULL",
+      "createdAt": "2026-04-26 00:48:50",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "60015",
+      "token": "b15490b9e55a6dd9f9543fa6c8ee78c3b93a0908b71836a50297904dfe15885f",
+      "agendamentoId": "450002",
+      "expiresAt": "2026-04-28 00:34:21",
+      "usadoEm": "2026-04-26 00:35:10",
+      "createdAt": "2026-04-26 00:34:20",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "60014",
+      "token": "58b0b7a6007324bd2bf1798b05873ae5f97710c76a17072f26fb1f2fdec4131d",
+      "agendamentoId": "450002",
+      "expiresAt": "2026-04-28 00:34:18",
+      "usadoEm": "2026-04-26 00:34:21",
+      "createdAt": "2026-04-26 00:34:18",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    },
+    {
+      "id": "60013",
+      "token": "f56314bafc957702edfa00e2d210aac7f003e770ebc8049d6b9cd8fcb6aa3c05",
+      "agendamentoId": "450002",
+      "expiresAt": "2026-04-28 00:34:07",
+      "usadoEm": "2026-04-26 00:34:18",
+      "createdAt": "2026-04-26 00:34:06",
+      "agora": "2026-05-15 12:34:21",
+      "validade_minutos": "2880"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tagendamentoId\texpiresAt\tusadoEm\tcreatedAt\tagora\tvalidade_minutos\n180002\tfb8ae59e65f72b5b86df0dd325f1602713a7b9072a051f5de4853cc92e4e0d1f\t660001\t2026-05-11 03:26:55\tNULL\t2026-05-09 03:26:54\t2026-05-15 12:34:21\t2880\n180001\t6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac\t570001\t2026-05-11 03:26:52\tNULL\t2026-05-09 03:26:51\t2026-05-15 12:34:21\t2880\n150001\td63cc84247d24312f948a2cbbe5b956ddb5b9dd8c222586a292eb4a74c3f2aa5\t660001\t2026-05-09 18:14:02\t2026-05-09 03:26:54\t2026-05-07 18:14:01\t2026-05-15 12:34:21\t2880\n120001\tbfee7d5a1066bcc2fe4f56659947384cb99cdaef86c4f7e1d24571a67651c5c0\t630001\t2026-05-08 15:38:31\tNULL\t2026-05-06 15:38:31\t2026-05-15 12:34:21\t2880\n90002\t2dd0e368bb683f3b7a3d897e6b9c2c7f345c0d10fbb5ab839ccddb302e718eb3\t600002\t2026-05-06 23:02:31\tNULL\t2026-05-04 23:02:31\t2026-05-15 12:34:21\t2880\n90001\t70fe9f849e83146c8e2170e6aa63fcb4668d289a009fbf37ce5b31631ecf1eab\t600001\t2026-05-06 23:02:26\tNULL\t2026-05-04 23:02:25\t2026-05-15 12:34:21\t2880\n60016\t1140d8e4caed5755520f6542ff853d8669dc727be06c4aa990bc9bfe96884b5b\t450002\t2026-04-28 00:48:51\tNULL\t2026-04-26 00:48:50\t2026-05-15 12:34:21\t2880\n60015\tb15490b9e55a6dd9f9543fa6c8ee78c3b93a0908b71836a50297904dfe15885f\t450002\t2026-04-28 00:34:21\t2026-04-26 00:35:10\t2026-04-26 00:34:20\t2026-05-15 12:34:21\t2880\n60014\t58b0b7a6007324bd2bf1798b05873ae5f97710c76a17072f26fb1f2fdec4131d\t450002\t2026-04-28 00:34:18\t2026-04-26 00:34:21\t2026-04-26 00:34:18\t2026-05-15 12:34:21\t2880\n60013\tf56314bafc957702edfa00e2d210aac7f003e770ebc8049d6b9cd8fcb6aa3c05\t450002\t2026-04-28 00:34:07\t2026-04-26 00:34:18\t2026-04-26 00:34:06\t2026-05-15 12:34:21\t2880\n",
+  "stderr": "",
+  "execution_time_ms": 264
+}

@@ -2377,3 +2377,6 @@
 
 ## Bug Horário Agendamento (v8)
 - [x] Bug: horaInicio sempre salvo como "09:00" independente do slot selecionado — NovaAgendaModal não recebia horaInicial como prop. Corrigido: adicionada prop horaInicial opcional ao NovaAgendaModal. Banco corrigido: agendamento da Laís (ID 660001) atualizado de 09:00 para 09:30.
+
+## Bug Link de Confirmação Expirando Prematuramente (v8)
+- [x] Bug: link de confirmação expirava em 48h fixas, mas era gerado com até 7 dias de antecedência pelo preRegistrarEnviosPendentes. Corrigido: gerarTokenConfirmacao agora calcula validade dinâmica (expira às 23:59 do dia seguinte ao agendamento, com mínimo de 48h). Tokens expirados dos 3 agendamentos futuros (Laís 660001, Maria Eduarda 570001, Clarissa 630001) foram regenerados com nova validade.

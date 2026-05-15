@@ -1,0 +1,172 @@
+{
+  "query": "SELECT id, nome, tipoGatilho, evento, diasAntesDepois, horaDisparo, ativo FROM automacoes WHERE ativo = 1 ORDER BY id DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT id, nome, tipoGatilho, evento, diasAntesDepois, horaDisparo, ativo FROM automacoes WHERE ativo = 1 ORDER BY id DESC LIMIT 20;",
+  "rows": [
+    {
+      "id": "240007",
+      "nome": "Agendamento reativado",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_reativado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "240006",
+      "nome": "Agradecimento pós-atendimento",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_concluido",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "240005",
+      "nome": "Cancelamento pelo cliente",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_cancelado_pelo_cliente",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "240004",
+      "nome": "Notificação de crédito",
+      "tipoGatilho": "evento",
+      "evento": "credito_gerado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "180002",
+      "nome": "Agendamento reativado",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_reativado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "150009",
+      "nome": "Agradecimento pós-atendimento",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_concluido",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "150007",
+      "nome": "Cancelamento pelo cliente",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_cancelado_pelo_cliente",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "150005",
+      "nome": "Notificação de crédito",
+      "tipoGatilho": "evento",
+      "evento": "credito_gerado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "150004",
+      "nome": "Reserva paga",
+      "tipoGatilho": "evento",
+      "evento": "reserva_paga",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "120002",
+      "nome": "Renovacao de pacote",
+      "tipoGatilho": "evento",
+      "evento": "sessoes_acabando",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "90002",
+      "nome": "Solicitar reserva",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_pre_agendado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "30003",
+      "nome": "Agen. confirmado (make e cabelo)",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_criado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "30002",
+      "nome": "Cardápio",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_confirmado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "30001",
+      "nome": "Agendado amanhã",
+      "tipoGatilho": "horas_antes_agendamento",
+      "evento": "NULL",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "22:47:00",
+      "ativo": "1"
+    },
+    {
+      "id": "8",
+      "nome": "Solicitar reserva",
+      "tipoGatilho": "evento",
+      "evento": "agendamento_pre_agendado",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "7",
+      "nome": "Natal",
+      "tipoGatilho": "data_fixa",
+      "evento": "NULL",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "09:00:00",
+      "ativo": "1"
+    },
+    {
+      "id": "6",
+      "nome": "Aniversariante do Mês",
+      "tipoGatilho": "aniversario_mes",
+      "evento": "NULL",
+      "diasAntesDepois": "NULL",
+      "horaDisparo": "NULL",
+      "ativo": "1"
+    },
+    {
+      "id": "5",
+      "nome": "Ano novo",
+      "tipoGatilho": "data_fixa",
+      "evento": "NULL",
+      "diasAntesDepois": "1",
+      "horaDisparo": "00:01:00",
+      "ativo": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnome\ttipoGatilho\tevento\tdiasAntesDepois\thoraDisparo\tativo\n240007\tAgendamento reativado\tevento\tagendamento_reativado\tNULL\tNULL\t1\n240006\tAgradecimento pós-atendimento\tevento\tagendamento_concluido\tNULL\tNULL\t1\n240005\tCancelamento pelo cliente\tevento\tagendamento_cancelado_pelo_cliente\tNULL\tNULL\t1\n240004\tNotificação de crédito\tevento\tcredito_gerado\tNULL\tNULL\t1\n180002\tAgendamento reativado\tevento\tagendamento_reativado\tNULL\tNULL\t1\n150009\tAgradecimento pós-atendimento\tevento\tagendamento_concluido\tNULL\tNULL\t1\n150007\tCancelamento pelo cliente\tevento\tagendamento_cancelado_pelo_cliente\tNULL\tNULL\t1\n150005\tNotificação de crédito\tevento\tcredito_gerado\tNULL\tNULL\t1\n150004\tReserva paga\tevento\treserva_paga\tNULL\tNULL\t1\n120002\tRenovacao de pacote\tevento\tsessoes_acabando\tNULL\tNULL\t1\n90002\tSolicitar reserva\tevento\tagendamento_pre_agendado\tNULL\tNULL\t1\n30003\tAgen. confirmado (make e cabelo)\tevento\tagendamento_criado\tNULL\tNULL\t1\n30002\tCardápio\tevento\tagendamento_confirmado\tNULL\tNULL\t1\n30001\tAgendado amanhã\thoras_antes_agendamento\tNULL\tNULL\t22:47:00\t1\n8\tSolicitar reserva\tevento\tagendamento_pre_agendado\tNULL\tNULL\t1\n7\tNatal\tdata_fixa\tNULL\tNULL\t09:00:00\t1\n6\tAniversariante do Mês\taniversario_mes\tNULL\tNULL\tNULL\t1\n5\tAno novo\tdata_fixa\tNULL\t1\t00:01:00\t1\n",
+  "stderr": "",
+  "execution_time_ms": 258
+}

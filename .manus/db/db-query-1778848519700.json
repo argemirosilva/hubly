@@ -1,0 +1,210 @@
+{
+  "query": "DESCRIBE automacoes;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute DESCRIBE automacoes;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "empresaId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "nome",
+      "Type": "varchar(255)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "descricao",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "tipoGatilho",
+      "Type": "enum('evento','data_fixa','aniversario_mes','dias_antes_agendamento','horas_antes_agendamento','horas_apos_agendamento','dias_depois_agendamento','manual')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "evento",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "delayMinutos",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "dataFixaDia",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "dataFixaMes",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "dataFixaHora",
+      "Type": "time",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "diasAntesDepois",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "horaDisparo",
+      "Type": "time",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "canalEnvio",
+      "Type": "enum('whatsapp','email','sms')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "whatsapp",
+      "Extra": ""
+    },
+    {
+      "Field": "tituloMensagem",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "corpoMensagem",
+      "Type": "text",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "segmentacaoTipo",
+      "Type": "enum('todas','por_profissional','por_tag')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "todas",
+      "Extra": ""
+    },
+    {
+      "Field": "segmentacaoValor",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "ativo",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "1",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "flowJson",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "isTemplate",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "confirmacaoAutoAtivo",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "confirmacaoAutoHorasAntes",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "2",
+      "Extra": ""
+    },
+    {
+      "Field": "eventosAdicionais",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nempresaId\tint\tNO\t\tNULL\t\nnome\tvarchar(255)\tNO\t\tNULL\t\ndescricao\ttext\tYES\t\tNULL\t\ntipoGatilho\tenum('evento','data_fixa','aniversario_mes','dias_antes_agendamento','horas_antes_agendamento','horas_apos_agendamento','dias_depois_agendamento','manual')\tNO\t\tNULL\t\nevento\tvarchar(100)\tYES\t\tNULL\t\ndelayMinutos\tint\tYES\t\tNULL\t\ndataFixaDia\tint\tYES\t\tNULL\t\ndataFixaMes\tint\tYES\t\tNULL\t\ndataFixaHora\ttime\tYES\t\tNULL\t\ndiasAntesDepois\tint\tYES\t\tNULL\t\nhoraDisparo\ttime\tYES\t\tNULL\t\ncanalEnvio\tenum('whatsapp','email','sms')\tNO\t\twhatsapp\t\ntituloMensagem\tvarchar(255)\tYES\t\tNULL\t\ncorpoMensagem\ttext\tNO\t\tNULL\t\nsegmentacaoTipo\tenum('todas','por_profissional','por_tag')\tYES\t\ttodas\t\nsegmentacaoValor\tvarchar(255)\tYES\t\tNULL\t\nativo\ttinyint(1)\tYES\t\t1\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nflowJson\ttext\tYES\t\tNULL\t\nisTemplate\ttinyint(1)\tYES\t\t0\t\nconfirmacaoAutoAtivo\ttinyint(1)\tYES\t\t0\t\nconfirmacaoAutoHorasAntes\tint\tYES\t\t2\t\neventosAdicionais\ttext\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 258
+}

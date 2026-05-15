@@ -35,8 +35,29 @@ export async function gerarTokenConfirmacao(agendamentoId: number, empresaId: nu
       isNull(tokensConfirmacao.usadoEm),
     ));
 
+  // Buscar a data do agendamento para calcular a validade do token dinamicamente.
+  // O token deve expirar 1 dia APÓS o agendamento (ou mínimo 48h a partir de agora).
+  // Isso garante que links enviados com antecedência (ex: 7 dias antes) continuem válidos.
+  const [ag] = await db.select({ data: agendamentos.data })
+    .from(agendamentos)
+    .where(eq(agendamentos.id, agendamentoId))
+    .limit(1);
+
+  let expiresAt: Date;
+  if (ag?.data) {
+    // data é varchar(10) no banco, sempre string "YYYY-MM-DD"
+    const dataStr = String(ag.data).slice(0, 10);
+    // Expirar às 23:59 do dia seguinte ao agendamento
+    const [ano, mes, dia] = dataStr.split('-').map(Number);
+    const expiracao = new Date(ano, mes - 1, dia + 1, 23, 59, 59);
+    // Garantir mínimo de 48h a partir de agora
+    const minimo48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    expiresAt = expiracao > minimo48h ? expiracao : minimo48h;
+  } else {
+    expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // fallback: 48 horas
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 horas
 
   await db.insert(tokensConfirmacao).values({
     agendamentoId,

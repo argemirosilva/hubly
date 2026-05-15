@@ -1,0 +1,8 @@
+{
+  "query": "SELECT a.id, a.nome, a.tipo, a.diasAntesDepois, a.horaDisparo, a.ativo FROM automacoes a WHERE a.tipo = 'dias_antes_agendamento' AND a.ativo = 1 ORDER BY a.id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT a.id, a.nome, a.tipo, a.diasAntesDepois, a.horaDisparo, a.ativo FROM automacoes a WHERE a.tipo = 'dias_antes_agendamento' AND a.ativo = 1 ORDER BY a.id DESC LIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'a.tipo' in 'where clause'"
+  ]
+}
