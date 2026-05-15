@@ -1,0 +1,13 @@
+{
+  "query": "SELECT token FROM tokens_confirmacao WHERE agendamentoId = 570001 AND usadoEm IS NULL ORDER BY id DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT token FROM tokens_confirmacao WHERE agendamentoId = 570001 AND usadoEm IS NULL ORDER BY id DESC LIMIT 1;",
+  "rows": [
+    {
+      "token": "7555b7f22ddc4fa919c043f006c6fef8a73204186b28065ece35a63afce2f54f"
+    }
+  ],
+  "messages": [],
+  "stdout": "token\n7555b7f22ddc4fa919c043f006c6fef8a73204186b28065ece35a63afce2f54f\n",
+  "stderr": "",
+  "execution_time_ms": 255
+}

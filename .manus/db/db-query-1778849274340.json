@@ -1,0 +1,27 @@
+{
+  "query": "SELECT h.id, h.automacaoNome, h.clienteNome, h.agendamentoId, h.status, h.enviarEm, h.mensagem FROM historico_envios_automacao h WHERE h.agendamentoId IN (570001, 660001, 630001) AND h.status IN ('pendente', 'agendado') ORDER BY h.enviarEm ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT h.id, h.automacaoNome, h.clienteNome, h.agendamentoId, h.status, h.enviarEm, h.mensagem FROM historico_envios_automacao h WHERE h.agendamentoId IN (570001, 660001, 630001) AND h.status IN ('pendente', 'agendado') ORDER BY h.enviarEm ASC;",
+  "rows": [
+    {
+      "id": "990001",
+      "automacaoNome": "Agendado amanhã",
+      "clienteNome": "Maria eduarda Lopes",
+      "agendamentoId": "570001",
+      "status": "agendado",
+      "enviarEm": "2026-05-15 16:00:00",
+      "mensagem": "Oiie Maria, tudo bem? 🌷"
+    }
+  ],
+  "messages": [
+    "Passando pra lembrar que você tem um horário comigo amanhã (dia *16/05/2026*) às *13:00*!",
+    "*Clique no link abaixo para confirmar sua presença*",
+    "https://hubly.orizontech.com.br/confirmar/6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac",
+    "Para eu manter a agenda sempre organizada e garantir que todas consigam um horário, peço que a confirmação seja feita nas próximas horas. ",
+    "*Caso não seja confirmada, o horário poderá ser liberado para outra cliente e o sinal não poderá ser devolvido.*",
+    "Com carinho,",
+    "*Maria Alves* 🤎"
+  ],
+  "stdout": "id\tautomacaoNome\tclienteNome\tagendamentoId\tstatus\tenviarEm\tmensagem\n990001\tAgendado amanhã\tMaria eduarda Lopes\t570001\tagendado\t2026-05-15 16:00:00\tOiie Maria, tudo bem? 🌷\nPassando pra lembrar que você tem um horário comigo amanhã (dia *16/05/2026*) às *13:00*!\n\n*Clique no link abaixo para confirmar sua presença*\nhttps://hubly.orizontech.com.br/confirmar/6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac\n\nPara eu manter a agenda sempre organizada e garantir que todas consigam um horário, peço que a confirmação seja feita nas próximas horas. \n*Caso não seja confirmada, o horário poderá ser liberado para outra cliente e o sinal não poderá ser devolvido.*\n\nCom carinho,\n*Maria Alves* 🤎\n\n",
+  "stderr": "",
+  "execution_time_ms": 270
+}

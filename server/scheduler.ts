@@ -1513,14 +1513,9 @@ async function preRegistrarEnviosPendentes() {
           const dataFormatadaPre = ag.data
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
-          // Gerar token de confirmação para incluir link na mensagem
-          let _preLinkConfirmacao = '';
-          try {
-            const _preToken = await gerarTokenConfirmacao(ag.id, ag.empresaId);
-            _preLinkConfirmacao = `${_preOrigin}/confirmar/${_preToken}`;
-          } catch (e) {
-            console.error(`[Scheduler] Pré-registro: ERRO ao gerar token para ag. ${ag.id}:`, e);
-          }
+          // NÃO gerar token aqui — usar placeholder que será substituído no momento do envio.
+          // Isso evita tokens expirados quando a mensagem é pré-registrada com dias de antecedência.
+          const _preLinkConfirmacao = '__LINK_CONFIRMACAO__';
           const preTemplateVars: Record<string, string> = {
             nome_cliente: ag.clienteNome || 'Cliente',
             primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
@@ -1702,6 +1697,27 @@ export async function processarFilaPendente() {
         continue;
       }
 
+      // Substituir placeholder __LINK_CONFIRMACAO__ pelo token fresco gerado agora.
+      // O token é gerado apenas no momento do envio para evitar expiração prematura.
+      let mensagemFinal = item.mensagem;
+      if (item.agendamentoId && mensagemFinal.includes('__LINK_CONFIRMACAO__')) {
+        try {
+          const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _freshToken = await gerarTokenConfirmacao(item.agendamentoId, item.empresaId);
+          const _freshLink = `${_origin}/confirmar/${_freshToken}`;
+          mensagemFinal = mensagemFinal.replaceAll('__LINK_CONFIRMACAO__', _freshLink);
+          // Atualizar a mensagem no banco para refletir o link real enviado
+          await db.update(historicoEnviosAutomacao)
+            .set({ mensagem: mensagemFinal })
+            .where(eq(historicoEnviosAutomacao.id, item.id));
+          console.log(`[Fila] Token de confirmação gerado na hora do envio para ag. ${item.agendamentoId}`);
+        } catch (tokenErr) {
+          console.error(`[Fila] ERRO ao gerar token de confirmação para ag. ${item.agendamentoId}:`, tokenErr);
+          // Remover placeholder para não enviar texto feio
+          mensagemFinal = mensagemFinal.replaceAll('__LINK_CONFIRMACAO__', '(link indisponível)');
+        }
+      }
+
       try {
         let enviado = false;
         let erroDetalhe: string | null = null;
@@ -1715,37 +1731,37 @@ export async function processarFilaPendente() {
             const isDocument = /\.pdf(\?|$)/.test(urlLower);
             const mimeType = isDocument ? 'application/pdf' : 'image/jpeg';
 
-            if (isDocument && item.mensagem) {
+            if (isDocument && mensagemFinal) {
               // PDF: enviar texto primeiro, depois o documento (Z-API não suporta legenda em PDF)
-              await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
+              await routedSendMessage(item.empresaId, item.telefone, mensagemFinal);
               await new Promise(r => setTimeout(r, 1000)); // pequena pausa entre mensagens
               enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, undefined, 'application/pdf');
             } else if (isImage || isDocument) {
-              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, item.mensagem, mimeType);
+              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, mensagemFinal, mimeType);
             } else {
               // Extensão desconhecida: tentar enviar como imagem
-              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, item.mensagem);
+              enviado = await routedSendMedia(item.empresaId, item.telefone, item.midiaUrl, mensagemFinal);
             }
 
             if (!enviado) {
               // Mídia falhou: tentar enviar apenas texto como fallback
               console.log(`[Fila] ⚠️ Mídia falhou para ${item.clienteNome ?? item.telefone}, enviando apenas texto`);
               erroDetalhe = 'Envio de mídia falhou, enviado apenas texto';
-              enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
+              enviado = await routedSendMessage(item.empresaId, item.telefone, mensagemFinal);
             }
           } catch (mediaErr) {
             // Mídia falhou com exceção: tentar enviar apenas texto como fallback
             console.warn(`[Fila] ⚠️ Erro ao enviar mídia para ${item.clienteNome ?? item.telefone}:`, mediaErr);
             erroDetalhe = `Mídia falhou (${String(mediaErr)}), enviado apenas texto`;
             try {
-              enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
+              enviado = await routedSendMessage(item.empresaId, item.telefone, mensagemFinal);
             } catch {
               enviado = false;
             }
           }
         } else {
           // Sem mídia: enviar apenas texto
-          enviado = await routedSendMessage(item.empresaId, item.telefone, item.mensagem);
+          enviado = await routedSendMessage(item.empresaId, item.telefone, mensagemFinal);
         }
 
         await db.update(historicoEnviosAutomacao)

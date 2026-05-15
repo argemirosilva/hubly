@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE historico_envios_automacao SET mensagem = REPLACE(mensagem, 'https://hubly.orizontech.com.br/confirmar/6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac', 'https://hubly.orizontech.com.br/confirmar/7555b7f22ddc4fa919c043f006c6fef8a73204186b28065ece35a63afce2f54f') WHERE id = 990001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute UPDATE historico_envios_automacao SET mensagem = REPLACE(mensagem, 'https://hubly.orizontech.com.br/confirmar/6900a2bd96c1eb4424cc2cbeeb22b35dcef5e8599312aa2c038cb64e10dddfac', 'https://hubly.orizontech.com.br/confirmar/7555b7f22ddc4fa919c043f006c6fef8a73204186b28065ece35a63afce2f54f') WHERE id = 990001;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 267
+}
