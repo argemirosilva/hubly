@@ -882,25 +882,33 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           </Select>
                         </div>
                       </div>
-                      {novoPagamento.meioPagamento === "Cartão Crédito" && (
-                        <div>
-                          <Label className="text-[10px] text-muted-foreground mb-1 block">Parcelamento</Label>
-                          <Select
-                            value={String(novoPagamento.numeroParcelas)}
-                            onValueChange={v => setNovoPagamento(p => ({ ...p, numeroParcelas: parseInt(v) }))}
-                          >
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">À vista (1x)</SelectItem>
-                              {[2,3,4,5,6,7,8,9,10,11,12].map(n => (
-                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                      {(() => {
+                        const meioSel = (meiosPagamento ?? []).find(m => m.nome === novoPagamento.meioPagamento);
+                        const isCredito = meioSel
+                          ? (meioSel.tipo === "credito" || meioSel.tipo === "cartao_credito")
+                          : novoPagamento.meioPagamento === "Cartão Crédito";
+                        const maxParcelas = meioSel?.parcelamentoMaximo ?? 12;
+                        if (!isCredito || maxParcelas <= 1) return null;
+                        return (
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground mb-1 block">Parcelamento</Label>
+                            <Select
+                              value={String(novoPagamento.numeroParcelas)}
+                              onValueChange={v => setNovoPagamento(p => ({ ...p, numeroParcelas: parseInt(v) }))}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">À vista (1x)</SelectItem>
+                                {Array.from({ length: maxParcelas - 1 }, (_, i) => i + 2).map(n => (
+                                  <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })()}
                       <div>
                         <Label className="text-[10px] text-muted-foreground mb-1 block">Observação <span className="opacity-60">(opcional)</span></Label>
                         <Input
@@ -921,7 +929,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                               agendamentoId,
                               valor: novoPagamento.valor,
                               meioPagamento: novoPagamento.meioPagamento || undefined,
-                              numeroParcelas: novoPagamento.meioPagamento === "Cartão Crédito" ? novoPagamento.numeroParcelas : undefined,
+                              numeroParcelas: (() => { const ms = (meiosPagamento ?? []).find(m => m.nome === novoPagamento.meioPagamento); const isCred = ms ? (ms.tipo === "credito" || ms.tipo === "cartao_credito") : novoPagamento.meioPagamento === "Cartão Crédito"; return isCred ? novoPagamento.numeroParcelas : undefined; })(),
                               observacao: novoPagamento.observacao || undefined,
                             });
                           }}
