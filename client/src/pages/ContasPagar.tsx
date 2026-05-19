@@ -546,13 +546,21 @@ export default function ContasPagar() {
 
   // Filtro local por busca
   const contasFiltradas = useMemo(() => {
-    if (!busca.trim()) return contas;
-    const q = busca.toLowerCase();
-    return contas.filter(c =>
-      c.descricao.toLowerCase().includes(q) ||
-      (c.fornecedor ?? "").toLowerCase().includes(q) ||
-      (c.categoriaNome ?? "").toLowerCase().includes(q)
-    );
+    const statusOrdem: Record<string, number> = { vencido: 0, pendente: 1, pago: 2, cancelado: 3 };
+    const q = busca.trim().toLowerCase();
+    const filtradas = !q
+      ? contas
+      : contas.filter(c =>
+          c.descricao.toLowerCase().includes(q) ||
+          (c.fornecedor ?? "").toLowerCase().includes(q) ||
+          (c.categoriaNome ?? "").toLowerCase().includes(q)
+        );
+    return [...filtradas].sort((a, b) => {
+      const ordemA = statusOrdem[a.status] ?? 1;
+      const ordemB = statusOrdem[b.status] ?? 1;
+      if (ordemA !== ordemB) return ordemA - ordemB;
+      return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
+    });
   }, [contas, busca]);
 
   const handleEditar = (conta: Conta) => {
