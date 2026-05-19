@@ -467,41 +467,93 @@ export default function Financeiro() {
                   {/* Detalhes expandidos: comissões individuais */}
                   {isOpen && (
                     <div className="divide-y" style={{ background: "oklch(98.5% 0.004 250)", borderColor: "oklch(94% 0.008 250)" }}>
-                      {grupo.comissoes.map(c => (
-                        <div key={c.id} className="flex items-center gap-3 px-4 py-3 pl-14">
-                          {/* Linha colorida */}
-                          <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: cor }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-foreground truncate">
-                              {(c as any).servicoNome ?? "Serviço"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {(c as any).clienteNome ?? "Cliente"} · {c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : "—"}
-                            </p>
+                      {grupo.comissoes.map(c => {
+                        const vServico = parseFloat(String(c.valorServico ?? 0));
+                        const vTaxa = parseFloat(String(c.taxaMaquininha ?? 0));
+                        const vCusto = parseFloat(String(c.custoReposicao ?? 0));
+                        const vLiquido = parseFloat(String(c.valorLiquido ?? 0));
+                        const vComissao = parseFloat(String(c.valorComissao ?? 0));
+                        const vReceitaDona = parseFloat(String((c as any).receitaDona ?? 0));
+                        const pct = parseFloat(String(c.percentualComissao ?? 0));
+                        const temDesconto = vTaxa > 0 || vCusto > 0;
+                        const tipoPgto: Record<string, string> = {
+                          dinheiro: "Dinheiro", pix: "Pix",
+                          cartao_debito: "Débito", cartao_credito: "Crédito", outro: "Outro"
+                        };
+                        return (
+                          <div key={c.id} className="px-4 py-3 pl-14 space-y-2">
+                            {/* Linha principal: serviço + cliente + status */}
+                            <div className="flex items-center gap-3">
+                              <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: cor }} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {(c as any).servicoNome ?? "Serviço"}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {(c as any).clienteNome ?? "Cliente"} · {c.createdAt ? new Date(c.createdAt).toLocaleDateString("pt-BR") : "—"}
+                                  {c.tipoPagamento && <span className="ml-1 opacity-70">· {tipoPgto[c.tipoPagamento] ?? c.tipoPagamento}</span>}
+                                </p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xs font-bold">{formatCurrency(vComissao)}</p>
+                                <p className="text-[10px] text-muted-foreground">{pct.toFixed(0)}% de {formatCurrency(vLiquido)}</p>
+                              </div>
+                              {c.paga ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                                  style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
+                              ) : podeMarcarPaga ? (
+                                <button
+                                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border font-medium flex-shrink-0 transition-colors"
+                                  style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
+                                  onClick={() => pagarMutation.mutate({ id: c.id })}
+                                  disabled={pagarMutation.isPending}
+                                >
+                                  <CheckCircle className="w-2.5 h-2.5" />
+                                  Pagar
+                                </button>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                                  style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>Pendente</span>
+                              )}
+                            </div>
+                            {/* Breakdown de valores */}
+                            <div className="ml-3 rounded-lg px-3 py-2 space-y-1" style={{ background: "oklch(96% 0.006 250)", border: "1px solid oklch(91% 0.01 250)" }}>
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] text-muted-foreground">Valor bruto do serviço</span>
+                                <span className="text-[10px] font-medium text-foreground">{formatCurrency(vServico)}</span>
+                              </div>
+                              {vTaxa > 0 && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] text-muted-foreground">(−) Taxa maquininha</span>
+                                  <span className="text-[10px] font-medium" style={{ color: "oklch(42% 0.18 25)" }}>− {formatCurrency(vTaxa)}</span>
+                                </div>
+                              )}
+                              {vCusto > 0 && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] text-muted-foreground">(−) Custo de reposição</span>
+                                  <span className="text-[10px] font-medium" style={{ color: "oklch(42% 0.18 25)" }}>− {formatCurrency(vCusto)}</span>
+                                </div>
+                              )}
+                              {temDesconto && (
+                                <div className="flex justify-between items-center pt-1" style={{ borderTop: "1px solid oklch(88% 0.01 250)" }}>
+                                  <span className="text-[10px] font-medium text-muted-foreground">Valor líquido</span>
+                                  <span className="text-[10px] font-semibold text-foreground">{formatCurrency(vLiquido)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center pt-1" style={{ borderTop: temDesconto ? undefined : "1px solid oklch(88% 0.01 250)" }}>
+                                <span className="text-[10px] font-medium" style={{ color: cor }}>Comissão ({pct.toFixed(0)}%)</span>
+                                <span className="text-[10px] font-bold" style={{ color: cor }}>{formatCurrency(vComissao)}</span>
+                              </div>
+                              {vReceitaDona > 0 && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] text-muted-foreground">Receita da dona</span>
+                                  <span className="text-[10px] font-medium text-foreground">{formatCurrency(vReceitaDona)}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-xs font-bold">{formatCurrency(parseFloat(String(c.valorComissao)))}</p>
-                            <p className="text-[10px] text-muted-foreground">{parseFloat(String(c.percentualComissao ?? 0)).toFixed(0)}% · {formatCurrency(parseFloat(String(c.valorServico)))}</p>
-                          </div>
-                          {c.paga ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                              style={{ background: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" }}>Paga</span>
-                          ) : podeMarcarPaga ? (
-                            <button
-                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border font-medium flex-shrink-0 transition-colors"
-                              style={{ borderColor: "oklch(62% 0.18 155 / 40%)", color: "oklch(35% 0.14 155)", background: "oklch(62% 0.18 155 / 8%)" }}
-                              onClick={() => pagarMutation.mutate({ id: c.id })}
-                              disabled={pagarMutation.isPending}
-                            >
-                              <CheckCircle className="w-2.5 h-2.5" />
-                              Pagar
-                            </button>
-                          ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                              style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>Pendente</span>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
