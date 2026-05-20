@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, nome, envioDelaySegundos, envioPorCiclo FROM empresas LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT id, nome, envioDelaySegundos, envioPorCiclo FROM empresas LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "nome": "Maria Alves Ateliê",
+      "envioDelaySegundos": "30",
+      "envioPorCiclo": "10"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnome\tenvioDelaySegundos\tenvioPorCiclo\n1\tMaria Alves Ateliê\t30\t10\n",
+  "stderr": "",
+  "execution_time_ms": 263
+}
