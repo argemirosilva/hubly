@@ -66,7 +66,8 @@ import {
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
   createAgendamentoItens, getItensByAgendamento, getItensByAgendamentos, deleteItensByAgendamento,
-  getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento,
+  getPagamentosByAgendamento, addPagamentoAgendamento, removePagamentoAgendamento, updateDescontoAgendamento, updateTaxaAdicionalAgendamento,
+  getTaxasConfigByEmpresa, createTaxaConfig, updateTaxaConfig, deleteTaxaConfig,
   getDashboardConfig, saveDashboardConfig,
   deleteAgendamentoCompleto,
   getSaldoCreditoCliente,
@@ -2264,6 +2265,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await updateDescontoAgendamento(input.agendamentoId, input.desconto);
+        return { success: true };
+      }),
+
+    updateTaxaAdicional: protectedProcedure
+      .input(z.object({
+        agendamentoId: z.number(),
+        taxaAdicional: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await updateTaxaAdicionalAgendamento(input.agendamentoId, input.taxaAdicional);
         return { success: true };
       }),
 
@@ -5918,6 +5931,53 @@ export const appRouter = router({
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
         await requirePermissao(ctx, empresa, 'configuracoesEditar');
         await deleteMeioPagamento(input.id);
+        return { success: true };
+      }),
+  }),
+
+  taxasConfig: router({
+    /** Lista todas as taxas configuradas da empresa */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+      return getTaxasConfigByEmpresa(empresa.id);
+    }),
+    /** Cria uma nova taxa configurada */
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1, 'Nome é obrigatório'),
+        valor: z.string(),
+        tipo: z.enum(['fixo', 'percentual']).default('fixo'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const id = await createTaxaConfig({ ...input, empresaId: empresa.id });
+        return { id };
+      }),
+    /** Atualiza uma taxa configurada */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nome: z.string().min(1).optional(),
+        valor: z.string().optional(),
+        tipo: z.enum(['fixo', 'percentual']).optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        const { id, ...dados } = input;
+        await updateTaxaConfig(id, dados);
+        return { success: true };
+      }),
+    /** Remove uma taxa configurada */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await deleteTaxaConfig(input.id);
         return { success: true };
       }),
   }),

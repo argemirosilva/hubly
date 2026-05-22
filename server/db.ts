@@ -347,8 +347,9 @@ export async function getAgendamentosByEmpresa(empresaId: number, dataInicio?: s
       }
       const totalPago = pagamentosPorAg[ag.id] ?? 0;
       const desconto = parseFloat(String((ag as any).desconto ?? 0));
+      const taxaAdicional = parseFloat(String((ag as any).taxaAdicional ?? 0));
       const valorTotal = parseFloat(String(ag.valorTotal ?? 0));
-      const emAberto = Math.max(0, valorTotal - desconto - totalPago);
+      const emAberto = Math.max(0, valorTotal + taxaAdicional - desconto - totalPago);
       const pessoasCount = pessoasPorAg[ag.id] ?? 0;
       return { ...ag, servicoNome, itens, totalPago, emAberto, pessoasCount };
     });
@@ -2291,6 +2292,38 @@ export async function updateDescontoAgendamento(agendamentoId: number, desconto:
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(agendamentos).set({ desconto }).where(eq(agendamentos.id, agendamentoId));
+}
+
+export async function updateTaxaAdicionalAgendamento(agendamentoId: number, taxaAdicional: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(agendamentos).set({ taxaAdicional }).where(eq(agendamentos.id, agendamentoId));
+}
+
+// ─── TAXAS CONFIG ─────────────────────────────────────────────────────────────
+export async function getTaxasConfigByEmpresa(empresaId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(taxasConfig).where(and(eq(taxasConfig.empresaId, empresaId), eq(taxasConfig.ativo, true)));
+}
+
+export async function createTaxaConfig(data: InsertTaxaConfig) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(taxasConfig).values(data);
+  return (result as any)[0]?.insertId ?? (result as any).insertId;
+}
+
+export async function updateTaxaConfig(id: number, data: Partial<InsertTaxaConfig>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(taxasConfig).set(data).where(eq(taxasConfig.id, id));
+}
+
+export async function deleteTaxaConfig(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(taxasConfig).where(eq(taxasConfig.id, id));
 }
 
 // ─── DASHBOARD CONFIG ─────────────────────────────────────────────────────────

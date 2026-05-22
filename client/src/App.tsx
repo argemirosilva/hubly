@@ -39,6 +39,7 @@ import Assinatura from "./pages/Assinatura";
 import ConfirmarAgendamento from "./pages/ConfirmarAgendamento";
 import Perfil from "./pages/Perfil";
 import MeiosPagamento from "./pages/MeiosPagamento";
+import TaxasConfig from "./pages/TaxasConfig";
 import ComissoesPagar from "./pages/ComissoesPagar";
 import Relatorios from "./pages/Relatorios";
 import FilaAutomacoes from "./pages/FilaAutomacoes";
@@ -111,6 +112,7 @@ function Router() {
       <Route path="/admin/assinatura">{() => <WithAdmin><Assinatura /></WithAdmin>}</Route>
       <Route path="/admin/perfil">{() => <WithAdmin><Perfil /></WithAdmin>}</Route>
       <Route path="/admin/meios-pagamento">{() => <WithAdmin><MeiosPagamento /></WithAdmin>}</Route>
+      <Route path="/admin/taxas">{() => <WithAdmin><TaxasConfig /></WithAdmin>}</Route>
       <Route path="/admin/comissoes-pagar">{() => <WithAdmin><ComissoesPagar /></WithAdmin>}</Route>
       <Route path="/admin/relatorios">{() => <WithAdmin><Relatorios /></WithAdmin>}</Route>
       <Route path="/admin/automacoes/fila">{() => <WithAdmin><FilaAutomacoes /></WithAdmin>}</Route>

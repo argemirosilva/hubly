@@ -211,6 +211,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   reservaExpiracaoEm: timestamp("reservaExpiracaoEm"),
   tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
   desconto: decimal("desconto", { precision: 10, scale: 2 }).default("0"),
+  taxaAdicional: decimal("taxaAdicional", { precision: 10, scale: 2 }).default("0"),
   observacoes: text("observacoes"),
   observacoesInternas: text("observacoesInternas"),
   confirmadoEm: timestamp("confirmadoEm"),
@@ -1224,3 +1225,17 @@ export const automacoesExcluidas = mysqlTable("automacoes_excluidas", {
 });
 export type AutomacaoExcluida = typeof automacoesExcluidas.$inferSelect;
 export type InsertAutomacaoExcluida = typeof automacoesExcluidas.$inferInsert;
+// ─── TAXAS ADICIONAIS CONFIGURÁVEIS ──────────────────────────────────────────
+// Permite que a empresa pré-configure taxas reutilizáveis (ex: taxa de deslocamento)
+export const taxasConfig = mysqlTable("taxas_config", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  tipo: mysqlEnum("tipo", ["fixo", "percentual"]).default("fixo").notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TaxaConfig = typeof taxasConfig.$inferSelect;
+export type InsertTaxaConfig = typeof taxasConfig.$inferInsert;

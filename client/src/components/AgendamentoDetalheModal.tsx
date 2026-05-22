@@ -64,6 +64,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: meiosPagamento } = trpc.meiosPagamento.list.useQuery();
+  const { data: taxasConfigDisponiveis } = trpc.taxasConfig.list.useQuery();
   const { data: comissaoExistente } = trpc.financeiro.getComissaoByAgendamento.useQuery(
     { agendamentoId },
     { enabled: !!agendamentoId }
@@ -174,6 +175,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const [editandoDesconto, setEditandoDesconto] = useState(false);
   const [descontoEdit, setDescontoEdit] = useState("");
 
+  // Estado para taxa adicional
+  const [editandoTaxa, setEditandoTaxa] = useState(false);
+  const [taxaEdit, setTaxaEdit] = useState("");
+  const [showTaxasDropdown, setShowTaxasDropdown] = useState(false);
+
   const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
     onSuccess: () => {
       toast.success("Serviços atualizados!");
@@ -220,10 +226,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       // Detectar pagamento a maior após registrar
       const totalItens = parseFloat(String(ag?.valorTotal ?? 0));
       const desconto = parseFloat(String((ag as any)?.desconto ?? 0));
+      const taxaAdicionalPag = parseFloat(String((ag as any)?.taxaAdicional ?? 0));
       const totalJaPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
       const novoPag = parseFloat(vars.valor);
       const totalComNovo = totalJaPago + novoPag;
-      const excedente = totalComNovo - (totalItens - desconto);
+      const excedente = totalComNovo - (totalItens + taxaAdicionalPag - desconto);
       if (excedente > 0.01 && ag?.clienteId) {
         registrarCreditoMutation.mutate({
           clienteId: ag.clienteId,
@@ -256,6 +263,17 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       utils.agendamentos.getById.invalidate({ id: agendamentoId });
       utils.agendamentos.list.invalidate();
       setEditandoDesconto(false);
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
+  const updateTaxaAdicionalMutation = trpc.agendamentos.updateTaxaAdicional.useMutation({
+    onSuccess: () => {
+      toast.success("Taxa atualizada!");
+      utils.agendamentos.getById.invalidate({ id: agendamentoId });
+      utils.agendamentos.list.invalidate();
+      setEditandoTaxa(false);
+      setShowTaxasDropdown(false);
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -758,8 +776,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           {isAdmin && (() => {
             const totalItens = parseFloat(String(ag.valorTotal ?? 0));
             const desconto = parseFloat(String((ag as any).desconto ?? 0));
+            const taxaAdicional = parseFloat(String((ag as any).taxaAdicional ?? 0));
             const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
-            const emAberto = Math.max(0, totalItens - desconto - totalPago);
+            const emAberto = Math.max(0, totalItens + taxaAdicional - desconto - totalPago);
             const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
             return (
               <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
@@ -1011,6 +1030,69 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           </span>
                           <button
                             onClick={() => { setDescontoEdit(String(desconto || "")); setEditandoDesconto(true); }}
+                            className="text-[10px] text-muted-foreground hover:text-primary"
+                          >
+                            editar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Taxa Adicional */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Plus className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Taxa adicional</span>
+                      </div>
+                      {editandoTaxa ? (
+                        <div className="flex flex-col gap-1 items-end">
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                              <Input
+                                type="number" step="0.01" min="0"
+                                value={taxaEdit}
+                                onChange={e => setTaxaEdit(e.target.value)}
+                                className="pl-7 h-6 text-xs w-24"
+                                autoFocus
+                              />
+                            </div>
+                            <button onClick={() => { setEditandoTaxa(false); setShowTaxasDropdown(false); }} className="text-[10px] text-muted-foreground hover:underline">cancelar</button>
+                            <button
+                              onClick={() => updateTaxaAdicionalMutation.mutate({ agendamentoId, taxaAdicional: taxaEdit || "0" })}
+                              disabled={updateTaxaAdicionalMutation.isPending}
+                              className="text-[10px] text-primary font-semibold hover:underline disabled:opacity-50"
+                            >
+                              {updateTaxaAdicionalMutation.isPending ? "..." : "salvar"}
+                            </button>
+                          </div>
+                          {/* Dropdown de taxas pré-configuradas */}
+                          {taxasConfigDisponiveis && taxasConfigDisponiveis.length > 0 && (
+                            <div className="flex flex-wrap gap-1 justify-end">
+                              {taxasConfigDisponiveis.map(t => {
+                                const valorTaxa = t.tipo === 'percentual'
+                                  ? (totalItens * parseFloat(String(t.valor)) / 100)
+                                  : parseFloat(String(t.valor));
+                                return (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => setTaxaEdit(valorTaxa.toFixed(2))}
+                                    className="text-[9px] bg-muted px-1.5 py-0.5 rounded hover:bg-primary/10 hover:text-primary border border-border"
+                                  >
+                                    {t.nome} ({t.tipo === 'percentual' ? `${t.valor}%` : `R$ ${parseFloat(String(t.valor)).toFixed(2)}`})
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-medium ${taxaAdicional > 0 ? "text-blue-600" : ""}`}>
+                            {taxaAdicional > 0 ? `+ ${fmt(taxaAdicional)}` : fmt(0)}
+                          </span>
+                          <button
+                            onClick={() => { setTaxaEdit(String(taxaAdicional || "")); setEditandoTaxa(true); }}
                             className="text-[10px] text-muted-foreground hover:text-primary"
                           >
                             editar
@@ -1600,8 +1682,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         {isAdmin && (() => {
           const totalItens = parseFloat(String(ag.valorTotal ?? 0));
           const desconto = parseFloat(String((ag as any).desconto ?? 0));
+          const taxaAdicionalRodape = parseFloat(String((ag as any).taxaAdicional ?? 0));
           const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
-          const emAberto = Math.max(0, totalItens - desconto - totalPago);
+          const emAberto = Math.max(0, totalItens + taxaAdicionalRodape - desconto - totalPago);
           const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
           return (
             <div className="border-t px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0"
@@ -1609,6 +1692,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-muted-foreground">Total</span>
                 <span className="font-bold">{fmt(totalItens)}</span>
+                {taxaAdicionalRodape > 0 && <span className="text-blue-600 text-[11px]">+ {fmt(taxaAdicionalRodape)}</span>}
                 {desconto > 0 && <span className="text-amber-600 text-[11px]">- {fmt(desconto)}</span>}
                 {totalPago > 0 && <span className="text-green-600 text-[11px]">pago {fmt(totalPago)}</span>}
               </div>
@@ -1766,8 +1850,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         {ag && (() => {
           const totalItens = parseFloat(String(ag.valorTotal ?? 0));
           const desconto = parseFloat(String((ag as any).desconto ?? 0));
+          const taxaAdicionalConclusao = parseFloat(String((ag as any).taxaAdicional ?? 0));
           const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
-          const emAberto = Math.max(0, totalItens - desconto - totalPago);
+          const emAberto = Math.max(0, totalItens + taxaAdicionalConclusao - desconto - totalPago);
           const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
           const clienteNome = clientes?.find(c => c.id === ag.clienteId)?.nome ?? "Cliente";
           return (
@@ -1789,6 +1874,12 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{fmt(totalItens)}</span>
                 </div>
+                {taxaAdicionalConclusao > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Taxa adicional</span>
+                    <span>+ {fmt(taxaAdicionalConclusao)}</span>
+                  </div>
+                )}
                 {desconto > 0 && (
                   <div className="flex justify-between text-amber-600">
                     <span>Desconto</span>

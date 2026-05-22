@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus, Tag
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -59,6 +59,7 @@ const navGroups: NavGroup[] = [
           { href: "/admin/comissoes-pagar", label: "Comissões a Pagar", icon: DollarSign, permissao: "financeiroVer" },
           { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, permissao: "financeiroVer" },
           { href: "/admin/meios-pagamento", label: "Meios de Pagamento", icon: Wallet, permissao: "configuracoesVer" },
+          { href: "/admin/taxas", label: "Taxas Adicionais", icon: Tag, permissao: "configuracoesVer" },
         ],
       },
       {

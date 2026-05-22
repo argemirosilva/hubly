@@ -449,6 +449,13 @@
       "when": 1777811933620,
       "tag": "0063_ambiguous_dexter_bennett",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "5",
+      "when": 1748000000000,
+      "tag": "0064_taxas_adicionais",
+      "breakpoints": true
     }
   ]
 }
