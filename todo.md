@@ -2381,3 +2381,10 @@
 
 ## Bug Link de Confirmação Expirando Prematuramente (v8)
 - [x] Bug: link de confirmação expirava em 48h fixas, mas era gerado com até 7 dias de antecedência pelo preRegistrarEnviosPendentes. Corrigido: gerarTokenConfirmacao agora calcula validade dinâmica (expira às 23:59 do dia seguinte ao agendamento, com mínimo de 48h). Tokens expirados dos 3 agendamentos futuros (Laís 660001, Maria Eduarda 570001, Clarissa 630001) foram regenerados com nova validade.
+
+## Correções Relatórios e Migration (v9)
+- [x] Migration: coluna nomeTaxaAdicional (VARCHAR 100) adicionada na tabela agendamentos
+- [x] Bug: relatórios apareciam em branco porque filtros de data buscavam apenas passado/mês atual, mas todos os agendamentos são futuros (jun-dez 2026)
+- [x] Relatório Perdas: janela ampliada para N meses passados + N meses futuros (centrada em hoje)
+- [x] Relatório Taxa de Ocupação: janela ampliada para N meses passados + N meses futuros
+- [x] Relatório Previsão: busca próximos 6 meses, usa primeiro mês com dados como referência, exibe mesReferencia no frontend

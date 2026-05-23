@@ -280,12 +280,16 @@ function PainelPrevisao() {
 
   const progresso = Math.min(100, Math.round((data.diasPassados / data.diasNoMes) * 100));
   const progressoReceita = data.projecaoMes > 0 ? Math.min(100, Math.round((data.receitaRealizada / data.projecaoMes) * 100)) : 0;
+  const mesRef = (data as any).mesReferencia as string | undefined;
+  const ehMesFuturo = mesRef ? mesRef > `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` : false;
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="font-semibold text-lg">Previsão de Faturamento</h3>
-        <p className="text-sm text-muted-foreground">Projeção baseada no ritmo atual e histórico de 3 meses</p>
+        <p className="text-sm text-muted-foreground">
+          {mesRef ? <>Referência: <strong>{mesLabel(mesRef)}</strong>{ehMesFuturo ? " (próximo mês com agendamentos)" : ""}</> : "Projeção baseada no ritmo atual e histórico de 3 meses"}
+        </p>
       </div>
 
       {/* Progresso do mês */}

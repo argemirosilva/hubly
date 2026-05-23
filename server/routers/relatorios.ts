@@ -18,9 +18,12 @@ export const relatoriosRouter = router({
       if (!db) throw new Error("DB indisponível");
 
       const hoje = new Date();
+      // Janela centrada em hoje: N meses para trás E N meses para frente
+      // Garante que agendamentos futuros cancelados/faltou também apareçam
       const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - input.meses + 1, 1);
+      const fim = new Date(hoje.getFullYear(), hoje.getMonth() + input.meses, 0);
       const inicioStr = inicio.toISOString().split("T")[0];
-      const fimStr = hoje.toISOString().split("T")[0];
+      const fimStr = fim.toISOString().split("T")[0];
 
       const todos = await db
         .select({
@@ -95,9 +98,11 @@ export const relatoriosRouter = router({
       if (!db) throw new Error("DB indisponível");
 
       const hoje = new Date();
+      // Janela: N meses passados + N meses futuros para capturar agendamentos futuros
       const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - input.meses + 1, 1);
+      const fim = new Date(hoje.getFullYear(), hoje.getMonth() + input.meses, 0);
       const inicioStr = inicio.toISOString().split("T")[0];
-      const fimStr = hoje.toISOString().split("T")[0];
+      const fimStr = fim.toISOString().split("T")[0];
 
       const todos = await db
         .select({
@@ -177,21 +182,37 @@ export const relatoriosRouter = router({
       if (!db) throw new Error("DB indisponível");
 
       const hoje = new Date();
-      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
-      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
 
-      const mesAtual = await db
+      // Buscar os próximos 6 meses a partir do mês atual
+      const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
+      const fimProximos6Meses = new Date(hoje.getFullYear(), hoje.getMonth() + 6, 0).toISOString().split("T")[0];
+
+      // Busca todos os agendamentos do mês atual até 6 meses à frente
+      const proximosMeses = await db
         .select({ status: agendamentos.status, valorTotal: agendamentos.valorTotal, data: agendamentos.data })
         .from(agendamentos)
         .where(and(
           eq(agendamentos.empresaId, empresa.id),
-          sql`${agendamentos.data} >= ${inicioMes}`,
-          sql`${agendamentos.data} <= ${fimMes}`,
+          sql`${agendamentos.data} >= ${inicioMesAtual}`,
+          sql`${agendamentos.data} <= ${fimProximos6Meses}`,
           sql`${agendamentos.status} NOT IN ('cancelado', 'ocupado', 'excluido')`,
         ));
 
-      const inicio3Meses = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1).toISOString().split("T")[0];
-      const fim3Meses = new Date(hoje.getFullYear(), hoje.getMonth(), 0).toISOString().split("T")[0];
+      // Determinar o "mês de referência": o mês atual se tiver dados, senão o próximo mês com dados
+      let mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+      const mesesComDados = new Set(proximosMeses.map(a => a.data?.slice(0, 7)).filter(Boolean) as string[]);
+      if (!mesesComDados.has(mesReferencia) && mesesComDados.size > 0) {
+        const mesesOrdenados = Array.from(mesesComDados).sort();
+        mesReferencia = mesesOrdenados[0]!;
+      }
+
+      // Dados do mês de referência
+      const mesAtual = proximosMeses.filter(a => a.data?.startsWith(mesReferencia));
+
+      // Histórico: buscar até 3 meses anteriores ao mês de referência
+      const [anoRef, mesRefNum] = mesReferencia.split("-").map(Number);
+      const inicio3Meses = new Date(anoRef!, mesRefNum! - 1 - 3, 1).toISOString().split("T")[0];
+      const fim3Meses = new Date(anoRef!, mesRefNum! - 1, 0).toISOString().split("T")[0];
 
       const historico = await db
         .select({ status: agendamentos.status, valorTotal: agendamentos.valorTotal, data: agendamentos.data })
@@ -209,19 +230,41 @@ export const relatoriosRouter = router({
       const receitaHistorico = historico.filter(a => a.status === "concluido").reduce((s, a) => s + parseFloat(String(a.valorTotal ?? 0)), 0);
       const mediaMensal = receitaHistorico / 3;
 
-      const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-      const diasPassados = hoje.getDate();
-      const diasRestantes = diasNoMes - diasPassados;
+      // Calcular dias do mês de referência
+      const [anoR, mesR] = mesReferencia.split("-").map(Number);
+      const diasNoMes = new Date(anoR!, mesR!, 0).getDate();
 
+      // Se o mês de referência é o mês atual, usar dias passados reais; senão, considerar mês inteiro como futuro
+      const mesAtualStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+      const ehMesAtual = mesReferencia === mesAtualStr;
+      const diasPassados = ehMesAtual ? hoje.getDate() : 0;
+      const diasRestantes = ehMesAtual ? diasNoMes - diasPassados : diasNoMes;
+
+      // Projeção: se mês atual, usa ritmo atual; se mês futuro, usa receita prevista (agendado + confirmado)
       const ritmoAtual = diasPassados > 0 ? receitaRealizada / diasPassados : 0;
-      const projecaoMes = receitaRealizada + (ritmoAtual * diasRestantes);
+      const projecaoMes = ehMesAtual
+        ? receitaRealizada + (ritmoAtual * diasRestantes)
+        : receitaPrevista;
 
       const agendamentosFuturos = mesAtual.filter(a => {
         if (!a.data) return false;
-        return a.data > hoje.toISOString().split("T")[0] && ["agendado", "confirmado"].includes(a.status ?? "");
+        return a.data >= hoje.toISOString().split("T")[0] && ["agendado", "confirmado"].includes(a.status ?? "");
       });
 
+      // Resumo por mês (próximos 6 meses) para gráfico
+      const resumoPorMes: Record<string, { realizado: number; previsto: number; total: number }> = {};
+      for (const a of proximosMeses) {
+        if (!a.data) continue;
+        const mes = a.data.slice(0, 7);
+        if (!resumoPorMes[mes]) resumoPorMes[mes] = { realizado: 0, previsto: 0, total: 0 };
+        const valor = parseFloat(String(a.valorTotal ?? 0));
+        resumoPorMes[mes].total++;
+        if (a.status === "concluido") resumoPorMes[mes].realizado += valor;
+        else if (["agendado", "confirmado"].includes(a.status ?? "")) resumoPorMes[mes].previsto += valor;
+      }
+
       return {
+        mesReferencia,
         receitaRealizada,
         receitaPrevista,
         projecaoMes,
@@ -232,6 +275,7 @@ export const relatoriosRouter = router({
         agendamentosFuturos: agendamentosFuturos.length,
         comparacaoMedia: mediaMensal > 0 ? Math.round(((projecaoMes - mediaMensal) / mediaMensal) * 100) : 0,
         totalMesAtual: mesAtual.length,
+        resumoPorMes: Object.entries(resumoPorMes).sort(([a], [b]) => a.localeCompare(b)).map(([mes, v]) => ({ mes, ...v })),
       };
     }),
 });
