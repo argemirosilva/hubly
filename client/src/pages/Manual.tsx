@@ -306,8 +306,10 @@ const SECTIONS: Section[] = [
       {
         title: "Sistema de Crédito do Cliente",
         steps: [
-          "O crédito é gerado automaticamente quando uma cliente paga mais do que o valor total do agendamento.",
-          "Por exemplo: o serviço custa R$80 e a cliente paga R$100 — os R$20 a mais ficam registrados como crédito.",
+          "O crédito pode ser gerado de três formas: automaticamente quando a cliente paga mais do que o total do agendamento, ao cancelar um agendamento com valor já pago, ou manualmente pelo perfil da cliente.",
+          "Exemplo automático: o serviço custa R$80 e a cliente paga R$100 — os R$20 a mais ficam registrados como crédito.",
+          "🔴 Cancelamento com sinal pago: ao cancelar um agendamento que já tem pagamento registrado, o sistema exibe automaticamente um popup perguntando se você deseja converter o valor pago em crédito para a cliente. Clique em 'Sim, deixar como crédito' e o valor é salvo instantaneamente no perfil dela.",
+          "🟢 Adicionar crédito manual: abra o perfil da cliente → aba Créditos → clique no botão verde '+ Adicionar crédito' → informe o valor e o motivo (ex: 'Sinal do agendamento cancelado em 24/05') → clique em Confirmar.",
           "O crédito fica vinculado ao perfil da cliente e pode ser usado em qualquer agendamento futuro.",
           "Ao abrir um agendamento com saldo em aberto, se a cliente tiver crédito disponível, um aviso verde aparece na seção de Pagamento.",
           "Clique em Usar crédito para aplicar automaticamente o saldo disponível como pagamento do agendamento.",
