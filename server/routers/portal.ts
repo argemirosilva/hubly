@@ -108,8 +108,8 @@ function gerarSlots(
   intervaloMinutos: number,
   duracaoMinutos: number,
   ocupados: { horaInicio: string; horaFim: string }[],
-): string[] {
-  const slots: string[] = [];
+): { hora: string; ocupado: boolean }[] {
+  const slots: { hora: string; ocupado: boolean }[] = [];
   const [abH, abM] = horaAbertura.split(":").map(Number);
   const [feH, feM] = horaFechamento.split(":").map(Number);
   const aberturaMin = abH * 60 + abM;
@@ -120,14 +120,13 @@ function gerarSlots(
     const hInicio = `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
     const hFim = `${String(Math.floor(fimMin / 60)).padStart(2, "0")}:${String(fimMin % 60).padStart(2, "0")}`;
 
-    // Verificar conflito com agendamentos existentes
     const conflito = ocupados.some(oc => {
       const ocInicio = oc.horaInicio.substring(0, 5);
       const ocFim = oc.horaFim.substring(0, 5);
       return hInicio < ocFim && hFim > ocInicio;
     });
 
-    if (!conflito) slots.push(hInicio);
+    slots.push({ hora: hInicio, ocupado: conflito });
   }
   return slots;
 }
@@ -367,7 +366,7 @@ export const portalRouter = router({
               .map(b => ({ horaInicio: String(b.horaInicio).substring(0, 5), horaFim: String(b.horaFim).substring(0, 5) })),
           ];
           const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, ocupadosProf);
-          if (slots.length > 0) { temSlot = true; break; }
+          if (slots.some(s => !s.ocupado)) { temSlot = true; break; }
         }
         resultado[dt] = temSlot;
       }

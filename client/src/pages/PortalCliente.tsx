@@ -369,14 +369,29 @@ export default function PortalCliente() {
     if (profissionalId) {
       return slotsData.find(s => s.profissionalId === profissionalId)?.slots ?? [];
     }
-    const all = new Set<string>();
-    slotsData.forEach(s => s.slots.forEach(h => all.add(h)));
-    return Array.from(all).sort();
+    // Sem profissional específico: mescla todos os slots
+    // Um slot é disponível se ao menos um profissional o tiver livre
+    const mapaOcupado = new Map<string, boolean>();
+    slotsData.forEach(s => {
+      s.slots.forEach(slot => {
+        const hora = (slot as any).hora ?? slot as unknown as string;
+        const ocupado = (slot as any).ocupado ?? false;
+        if (!mapaOcupado.has(hora)) {
+          mapaOcupado.set(hora, ocupado);
+        } else if (!ocupado) {
+          // Se qualquer profissional tem o slot livre, marca como livre
+          mapaOcupado.set(hora, false);
+        }
+      });
+    });
+    return Array.from(mapaOcupado.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([hora, ocupado]) => ({ hora, ocupado }));
   }, [slotsData, profissionalId]);
 
   const profissionalParaHora = useMemo(() => {
     if (profissionalId || !hora || !slotsData) return profissionalId;
-    const entry = slotsData.find(s => s.slots.includes(hora));
+    const entry = slotsData.find(s => s.slots.some((sl: any) => (sl.hora ?? sl) === hora));
     return entry?.profissionalId ?? null;
   }, [profissionalId, hora, slotsData]);
 
@@ -881,23 +896,33 @@ export default function PortalCliente() {
                     <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
                       <Loader2 className="w-4 h-4 animate-spin" /> Verificando disponibilidade...
                     </div>
-                  ) : slots.length === 0 ? (
+                  ) : slots.every(s => (s as any).ocupado) ? (
                     <p className="text-sm text-slate-500 py-4 text-center">
-                      Nenhum horário disponível nesta data. Escolha outro dia.
+                      Todos os horários estão ocupados nesta data. Escolha outro dia.
                     </p>
                   ) : (
                     <div className="grid grid-cols-4 gap-2">
-                      {slots.map(h => (
-                        <button key={h} onClick={() => setHora(h)}
-                          className="py-2 rounded-xl text-sm font-semibold border-2 transition-all"
-                          style={{
-                            borderColor: hora === h ? corPrimaria : "#e2e8f0",
-                            background: hora === h ? corPrimaria : "white",
-                            color: hora === h ? "white" : "#475569",
-                          }}>
-                          {h}
-                        </button>
-                      ))}
+                      {(slots as { hora: string; ocupado: boolean }[]).map(s => {
+                        const isSelected = hora === s.hora;
+                        return (
+                          <button
+                            key={s.hora}
+                            onClick={() => !s.ocupado && setHora(s.hora)}
+                            disabled={s.ocupado}
+                            title={s.ocupado ? "Horário ocupado" : undefined}
+                            className="py-2 rounded-xl text-sm font-semibold border-2 transition-all relative"
+                            style={{
+                              borderColor: s.ocupado ? "#e2e8f0" : isSelected ? corPrimaria : "#e2e8f0",
+                              background: s.ocupado ? "#f8fafc" : isSelected ? corPrimaria : "white",
+                              color: s.ocupado ? "#cbd5e1" : isSelected ? "white" : "#475569",
+                              cursor: s.ocupado ? "not-allowed" : "pointer",
+                              textDecoration: s.ocupado ? "line-through" : "none",
+                              opacity: s.ocupado ? 0.6 : 1,
+                            }}>
+                            {s.hora}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
