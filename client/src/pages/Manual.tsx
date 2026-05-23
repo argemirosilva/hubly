@@ -126,9 +126,11 @@ const SECTIONS: Section[] = [
         title: "Como cancelar ou remarcar",
         steps: [
           "Abra o agendamento clicando sobre ele na lista ou no calendário.",
-          "Para cancelar: clique em Cancelar e confirme.",
+          "Para cancelar: clique em Cancelar e confirme. Se a cliente já tiver pago algum valor, o sistema vai perguntar automaticamente se você deseja converter esse valor em crédito para uso futuro.",
           "Para remarcar: clique em Editar, mude a data ou hora e salve.",
+          "Status Remarcado: use o botão roxo Remarcado quando a cliente pediu para remarcar e você já entrou em contato. Assim você sabe que não precisa mais correr atrás dela.",
         ],
+        tip: "O status Remarcado é diferente de Cancelado: ele indica que a situação já foi tratada e um novo agendamento está a caminho. Remarcações contam como penalidade leve no escore da cliente (peso menor que cancelamentos).",
       },
       {
         title: "Registrar se o cliente veio ou faltou",
@@ -138,6 +140,16 @@ const SECTIONS: Section[] = [
           "Ou clique em Faltou se ele não apareceu.",
         ],
         tip: "Esses registros ficam no histórico do cliente e ajudam nas análises do sistema.",
+      },
+      {
+        title: "Registrar atraso da cliente",
+        steps: [
+          "Ao concluir um atendimento, o sistema exibe um seletor de pontualidade no modal de conclusão.",
+          "Selecione a opção que melhor descreve o horário de chegada: Chegou no horário, Atrasou 15 min, Atrasou 30 min, Atrasou 1h ou Atrasou +1h30.",
+          "O atraso é salvo no histórico do agendamento e aparece como um badge laranja (+Xmin) na aba Histórico do perfil da cliente.",
+          "O escore de pontualidade da cliente é atualizado automaticamente: atrasos acima de 15 min reduzem a pontuação.",
+        ],
+        tip: "O contador de atrasos aparece no Score do Cliente no formato X/Y (ex: 2/10), mostrando quantos atendimentos tiveram atraso em relação ao total. Fica em laranja quando há atrasos registrados.",
       },
       {
         title: "Sinal recebido fora do prazo (reativar agendamento cancelado)",
@@ -172,6 +184,18 @@ const SECTIONS: Section[] = [
           "Clique em Hoje para voltar à data atual.",
           "Você pode alternar entre a visão do dia inteiro ou da semana.",
         ],
+      },
+      {
+        title: "Visão diária com grade de horários",
+        steps: [
+          "Na visão mensal, clique em qualquer dia que tenha agendamentos para abrir a visão diária.",
+          "A visão diária exibe uma grade de horários (05:00 até 22:00) com cada atendimento posicionado no seu horário exato.",
+          "Cada agendamento mostra o horário, nome do cliente, serviço e profissional.",
+          "Bloqueios de agenda aparecem em cinza na grade.",
+          "Clique em qualquer agendamento para abrir o modal de detalhes.",
+          "Use o botão + Novo no canto superior direito da visão diária para criar um agendamento direto naquele dia.",
+        ],
+        tip: "A visão diária é ótima para ter uma noção clara de como o dia vai ficar, especialmente em dias movimentados com vários profissionais.",
       },
       {
         title: "Criar agendamento pelo calendário",
@@ -302,6 +326,18 @@ const SECTIONS: Section[] = [
           "Leia o resumo com dicas sobre como tratar esse cliente.",
         ],
         tip: "A análise é gerada automaticamente. Muito útil para saber em quem focar nas ações de fidelização.",
+      },
+      {
+        title: "Score do Cliente",
+        steps: [
+          "O Score do Cliente é uma pontuação de 0 a 100 calculada automaticamente com base no histórico de atendimentos.",
+          "Ele aparece no perfil da cliente como um anel com a pontuação e uma classificação: Excelente, Bom, Regular, Baixo ou Crítico.",
+          "Os fatores avaliados são: Conclusão (taxa de atendimentos concluídos), Frequência (regularidade das visitas), Gasto (valor total investido), Confiabilidade (baixo cancelamento e faltas), Recência (última visita) e Pontualidade (atrasos registrados).",
+          "Cada fator aparece como uma barra de progresso com a pontuação parcial (ex: 8/10).",
+          "Os indicadores no rodapé mostram: Total, Concluídos, Cancelados, Faltas e Atrasos (no formato X/Y, ex: 2/10).",
+          "O contador de Atrasos fica em laranja quando há atrasos registrados, facilitando a identificação rápida.",
+        ],
+        tip: "O Score ajuda a priorizar clientes nas ações de fidelização: clientes com score baixo podem precisar de um contato especial, enquanto clientes com score alto merecem recompensas e atenção diferenciada.",
       },
       {
         title: "Sistema de Crédito do Cliente",
