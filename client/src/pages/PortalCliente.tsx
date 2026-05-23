@@ -611,12 +611,12 @@ export default function PortalCliente() {
               {/* Cliente encontrado: mostrar dados pré-preenchidos e permitir continuar */}
               {clienteEncontrado === true && (
                 <div className="rounded-xl p-3 space-y-1"
-                  style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  style={{ background: corPrimaria + "0d", border: `1px solid ${corPrimaria}30` }}>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <p className="text-sm font-semibold text-green-800">Bem-vinda de volta! 👋</p>
+                    <CheckCircle2 className="w-4 h-4" style={{ color: corPrimaria }} />
+                    <p className="text-sm font-semibold" style={{ color: corPrimaria }}>Bem-vinda de volta!</p>
                   </div>
-                  <p className="text-xs text-green-700 pl-6">{nome}{email ? ` · ${email}` : ""}</p>
+                  <p className="text-xs text-slate-500 pl-6">{nome}{email ? ` · ${email}` : ""}</p>
                 </div>
               )}
 
