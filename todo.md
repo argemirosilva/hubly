@@ -2499,3 +2499,11 @@
 - [x] STEP_ICONS: ícone Calendar (componente) substituído por CalendarDays (ícone lucide)
 - [x] ResumoItem na etapa de confirmação: Calendar substituído por CalendarDays
 - [x] TypeScript: 0 erros
+
+## Editor de Imagem no Upload de Logo (Configurações)
+- [x] Instalar react-easy-crop
+- [x] Criar componente ImageCropEditor (crop, zoom, rotação) em Dialog
+- [x] Integrar no campo de upload de logo das Configurações
+- [x] Ao selecionar arquivo, abrir editor antes de fazer upload
+- [x] Exportar imagem recortada como blob e enviar para S3
+- [x] TypeScript: 0 erros

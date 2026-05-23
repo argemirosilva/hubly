@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { ImageCropEditor } from "@/components/ImageCropEditor";
 
 
 const DIAS_SEMANA = [
@@ -23,6 +24,25 @@ export default function Configuracoes() {
   const utils = trpc.useUtils();
   const { data: empresa } = trpc.empresa.get.useQuery();
   const [copied, setCopied] = useState(false);
+
+  // ─── Editor de imagem (crop/zoom/rotação) ─────────────────────────────────
+  const [cropEditor, setCropEditor] = useState<{
+    imageSrc: string;
+    aspect: number;
+    title: string;
+    onConfirm: (blob: Blob, mimeType: string) => Promise<void>;
+  } | null>(null);
+
+  function abrirEditorImagem(
+    file: File,
+    aspect: number,
+    title: string,
+    onConfirm: (blob: Blob, mimeType: string) => Promise<void>
+  ) {
+    const url = URL.createObjectURL(file);
+    setCropEditor({ imageSrc: url, aspect, title, onConfirm });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const [form, setForm] = useState({
     nome: "", telefone: "", email: "", endereco: "",
@@ -229,6 +249,7 @@ export default function Configuracoes() {
   }
 
   return (
+    <>
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-3xl mx-auto animate-in-up">
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Configurações</h1>
 
@@ -327,17 +348,26 @@ export default function Configuracoes() {
                   type="file"
                   accept="image/png,image/jpeg,image/svg+xml,image/webp"
                   className="hidden"
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const file = e.target.files?.[0];
+                    e.target.value = "";
                     if (!file) return;
                     if (file.size > 10 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 10MB.'); return; }
-                    try {
-                      toast.info('Comprimindo imagem...');
-                      const { base64, mimeType } = await comprimirImagem(file, 800, 800, 0.9);
-                      const result = await uploadLogoMutation.mutateAsync({ imagemBase64: base64, mimeType });
-                      setForm(f => ({ ...f, logoUrl: result.url }));
-                      toast.success('Logo enviado com sucesso!');
-                    } catch { toast.error('Erro ao enviar logo'); }
+                    abrirEditorImagem(file, 1, "Editar logo", async (blob, mimeType) => {
+                      try {
+                        toast.info('Enviando logo...');
+                        const reader = new FileReader();
+                        const base64 = await new Promise<string>((res, rej) => {
+                          reader.onload = ev => res((ev.target?.result as string).split(',')[1]);
+                          reader.onerror = rej;
+                          reader.readAsDataURL(blob);
+                        });
+                        const result = await uploadLogoMutation.mutateAsync({ imagemBase64: base64, mimeType });
+                        setForm(f => ({ ...f, logoUrl: result.url }));
+                        setCropEditor(null);
+                        toast.success('Logo enviado com sucesso!');
+                      } catch { toast.error('Erro ao enviar logo'); }
+                    });
                   }}
                 />
               </label>
@@ -372,17 +402,26 @@ export default function Configuracoes() {
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   className="hidden"
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const file = e.target.files?.[0];
+                    e.target.value = "";
                     if (!file) return;
                     if (file.size > 20 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 20MB.'); return; }
-                    try {
-                      toast.info('Comprimindo imagem...');
-                      const { base64, mimeType } = await comprimirImagem(file, 1200, 400, 0.85);
-                      const result = await uploadCapaMutation.mutateAsync({ imagemBase64: base64, mimeType });
-                      setForm(f => ({ ...f, portalHeaderUrl: result.url }));
-                      toast.success('Imagem de capa enviada!');
-                    } catch { toast.error('Erro ao enviar imagem de capa'); }
+                    abrirEditorImagem(file, 3, "Editar imagem de capa", async (blob, mimeType) => {
+                      try {
+                        toast.info('Enviando imagem de capa...');
+                        const reader = new FileReader();
+                        const base64 = await new Promise<string>((res, rej) => {
+                          reader.onload = ev => res((ev.target?.result as string).split(',')[1]);
+                          reader.onerror = rej;
+                          reader.readAsDataURL(blob);
+                        });
+                        const result = await uploadCapaMutation.mutateAsync({ imagemBase64: base64, mimeType });
+                        setForm(f => ({ ...f, portalHeaderUrl: result.url }));
+                        setCropEditor(null);
+                        toast.success('Imagem de capa enviada!');
+                      } catch { toast.error('Erro ao enviar imagem de capa'); }
+                    });
                   }}
                 />
               </label>
@@ -710,5 +749,20 @@ export default function Configuracoes() {
         {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
       </button>
     </div>
+
+      {/* Editor de imagem (crop/zoom/rotação) */}
+      {cropEditor && (
+        <ImageCropEditor
+          imageSrc={cropEditor.imageSrc}
+          aspect={cropEditor.aspect}
+          title={cropEditor.title}
+          onConfirm={cropEditor.onConfirm}
+          onCancel={() => {
+            URL.revokeObjectURL(cropEditor.imageSrc);
+            setCropEditor(null);
+          }}
+        />
+      )}
+    </>
   );
 }
