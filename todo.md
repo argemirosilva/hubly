@@ -1,5 +1,5 @@
 # Agendei - Sistema de Gestão para Salão de Beleza
-<!-- última sincronização: 2026-05-23 -->
+<!-- última sincronização: 2026-05-23 12:00 -->
 
 ## Sistema de Crédito do Cliente
 - [x] Schema: tabela creditos_cliente (id, empresaId, clienteId, valor, tipo, origem, agendamentoId, createdAt)
