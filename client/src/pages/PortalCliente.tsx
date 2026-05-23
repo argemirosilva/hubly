@@ -720,6 +720,7 @@ export default function PortalCliente() {
         )}
 
         {step === "servico" && (
+          <>
           <StepCard title="Qual serviço?" subtitle={profSelecionado ? `Serviços de ${profSelecionado.nome}` : "Selecione um ou mais serviços"}>
             <div className="space-y-2">
               {servicos?.map(s => {
@@ -752,33 +753,42 @@ export default function PortalCliente() {
               })}
             </div>
 
-            {/* Resumo dos serviços selecionados */}
-            {servicosIds.length > 0 && (
-              <div className="rounded-xl p-3 border-2 mt-1"
-                style={{ borderColor: corPrimaria + "40", background: corSecundaria + "30" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: corPrimaria }}>
-                  {servicosIds.length} serviço{servicosIds.length > 1 ? "s" : ""} selecionado{servicosIds.length > 1 ? "s" : ""}
-                </p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-600 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {duracaoTotalServicos} min no total
-                  </p>
-                  <p className="font-bold text-sm" style={{ color: corPrimaria }}>
-                    {formatCurrency(valorTotalServicos)}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <BtnSecundario onClick={() => setStep("profissional")} cor={corPrimaria}>
-                <ChevronLeft className="w-4 h-4" /> Voltar
-              </BtnSecundario>
-              <BtnPrimary disabled={servicosIds.length === 0} onClick={() => setStep("data")} cor={corPrimaria}>
-                Continuar <ChevronRight className="w-4 h-4" />
-              </BtnPrimary>
-            </div>
+            {/* Espaço para o botão flutuante não sobrepor o último serviço */}
+            <div className="h-24" />
           </StepCard>
+
+          {/* Barra flutuante com resumo + botão Continuar */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-safe"
+            style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+          >
+            <div
+              className="max-w-lg mx-auto rounded-2xl shadow-2xl overflow-hidden"
+              style={{ background: "white", border: `1.5px solid ${corPrimaria}20`, boxShadow: `0 -4px 32px ${corPrimaria}18, 0 4px 24px rgba(0,0,0,0.12)` }}
+            >
+              {/* Resumo compacto (só aparece quando há serviços selecionados) */}
+              {servicosIds.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: corPrimaria + "15" }}>
+                  <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    <span>{servicosIds.length} serviço{servicosIds.length > 1 ? "s" : ""} · {duracaoTotalServicos} min</span>
+                  </p>
+                  <p className="font-bold text-sm" style={{ color: corPrimaria }}>{formatCurrency(valorTotalServicos)}</p>
+                </div>
+              )}
+              {/* Botões */}
+              <div className="flex gap-2 p-3">
+                <BtnSecundario onClick={() => setStep("profissional")} cor={corPrimaria}>
+                  <ChevronLeft className="w-4 h-4" /> Voltar
+                </BtnSecundario>
+                <BtnPrimary disabled={servicosIds.length === 0} onClick={() => setStep("data")} cor={corPrimaria}>
+                  Continuar <ChevronRight className="w-4 h-4" />
+                </BtnPrimary>
+              </div>
+            </div>
+          </div>
+
+          </>
         )}
 
 
