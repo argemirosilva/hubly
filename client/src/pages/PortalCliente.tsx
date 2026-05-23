@@ -464,57 +464,13 @@ export default function PortalCliente() {
                 )}
               </div>
 
-              {/* Cliente encontrado: SEMPRE pedir CPF */}
-              {clienteEncontrado === true && !cpfValidado && (
-                <div className="rounded-xl p-4 space-y-3"
-                  style={{ background: corSecundaria + "40", border: `1px solid ${corPrimaria}30` }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
-                      style={{ background: corPrimaria }}>
-                      <ShieldCheck className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">Bem-vindo de volta!</p>
-                      <p className="text-xs text-slate-500">
-                        {temCpf ? "Digite seu CPF para confirmar sua identidade" : "Cadastre seu CPF para continuar"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <InputField
-                      label={temCpf ? "CPF *" : "Cadastre seu CPF *"}
-                      value={cpf}
-                      onChange={(v) => { setCpf(v); setCpfErro(""); }}
-                      icon={ShieldCheck}
-                      placeholder="000.000.000-00"
-                      corPrimaria={corPrimaria}
-                    />
-                    {cpfErro && (
-                      <p className="text-xs text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" /> {cpfErro}
-                      </p>
-                    )}
-                    <button
-                      onClick={handleValidarCpf}
-                      disabled={!cpf || validandoCpf}
-                      className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all"
-                      style={{ background: !cpf || validandoCpf ? "#cbd5e1" : corPrimaria }}>
-                      {validandoCpf
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando...</>
-                        : <><ShieldCheck className="w-4 h-4" /> {temCpf ? "Confirmar identidade" : "Cadastrar e continuar"}</>
-                      }
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Cliente validado: mostrar dados pré-preenchidos */}
-              {cpfValidado && (
+              {/* Cliente encontrado: mostrar dados pré-preenchidos e permitir continuar */}
+              {clienteEncontrado === true && (
                 <div className="rounded-xl p-3 space-y-1"
                   style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <p className="text-sm font-semibold text-green-800">Identidade confirmada</p>
+                    <p className="text-sm font-semibold text-green-800">Bem-vinda de volta! 👋</p>
                   </div>
                   <p className="text-xs text-green-700 pl-6">{nome}{email ? ` · ${email}` : ""}</p>
                 </div>
@@ -552,7 +508,7 @@ export default function PortalCliente() {
 
               {/* Botão Continuar */}
               <BtnPrimary
-                disabled={!telefone || !nome || (clienteEncontrado === true && temCpf && !cpfValidado)}
+                disabled={!telefone || !nome}
                 onClick={() => { setClienteIdentificado(true); setStep("profissional"); }}
                 cor={corPrimaria}>
                 Continuar <ChevronRight className="w-4 h-4" />

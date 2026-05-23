@@ -85,12 +85,12 @@ export default function Configuracoes() {
     if (prefNotif) setNotifPrefs(prefNotif);
   }, [prefNotif]);
   const salvarPrefsMutation = trpc.push.salvarPreferencias.useMutation({
-    onSuccess: () => toast.success("Preferências de notificações salvas!"),
-    onError: (err: any) => toast.error(err.message),
+    // Toast unificado no botão principal (handleSave)
+    onError: (err: any) => toast.error("Erro ao salvar preferências: " + err.message),
   });
   // ─────────────────────────────────────────────────────────────────────────────
   const updateMutation = trpc.empresa.update.useMutation({
-    onSuccess: () => { toast.success("Configurações salvas!"); utils.empresa.get.invalidate(); },
+    onSuccess: () => { toast.success("Todas as configurações foram salvas!"); utils.empresa.get.invalidate(); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -195,6 +195,8 @@ export default function Configuracoes() {
       toast.error("Este slug já está em uso por outra empresa. Escolha outro.");
       return;
     }
+    // Salvar preferências de notificações junto com as configurações
+    salvarPrefsMutation.mutate(notifPrefs);
     updateMutation.mutate({
       nome: form.nome,
       telefone: form.telefone,
@@ -758,15 +760,7 @@ export default function Configuracoes() {
                   />
                 </div>
               ))}
-              <div className="pt-3">
-                <button
-                  onClick={() => salvarPrefsMutation.mutate(notifPrefs)}
-                  disabled={salvarPrefsMutation.isPending}
-                  className="btn-primary py-2 px-4 text-sm"
-                >
-                  {salvarPrefsMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : <><Bell className="w-4 h-4" /> Salvar preferências</>}
-                </button>
-              </div>
+
             </>
           )}
         </div>
@@ -793,9 +787,9 @@ export default function Configuracoes() {
         </button>
       </div>
 
-      <button onClick={handleSave} disabled={updateMutation.isPending} className="btn-primary">
+      <button onClick={handleSave} disabled={updateMutation.isPending || salvarPrefsMutation.isPending} className="btn-primary">
         <Save className="w-4 h-4" />
-        {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}
+        {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
       </button>
     </div>
   );

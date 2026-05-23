@@ -1,0 +1,31 @@
+{
+  "query": "SELECT a.id, a.data, a.horaInicio, a.status, c.nome as cliente FROM agendamentos a JOIN agendamento_itens ai ON ai.agendamentoId = a.id LEFT JOIN clientes c ON c.id = a.clienteId WHERE ai.servicoId = 60003 ORDER BY a.data;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT a.id, a.data, a.horaInicio, a.status, c.nome as cliente FROM agendamentos a JOIN agendamento_itens ai ON ai.agendamentoId = a.id LEFT JOIN clientes c ON c.id = a.clienteId WHERE ai.servicoId = 60003 ORDER BY a.data;",
+  "rows": [
+    {
+      "id": "150005",
+      "data": "2026-06-06",
+      "horaInicio": "13:30:00",
+      "status": "agendado",
+      "cliente": "Aline Rocamora"
+    },
+    {
+      "id": "150007",
+      "data": "2026-06-06",
+      "horaInicio": "16:00:00",
+      "status": "agendado",
+      "cliente": "Valentina Alves"
+    },
+    {
+      "id": "150006",
+      "data": "2026-06-06",
+      "horaInicio": "12:30:00",
+      "status": "agendado",
+      "cliente": "Jheimy Crispim"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdata\thoraInicio\tstatus\tcliente\n150005\t2026-06-06\t13:30:00\tagendado\tAline Rocamora\n150007\t2026-06-06\t16:00:00\tagendado\tValentina Alves\n150006\t2026-06-06\t12:30:00\tagendado\tJheimy Crispim\n",
+  "stderr": "",
+  "execution_time_ms": 269
+}

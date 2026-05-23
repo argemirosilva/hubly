@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM agendamento_itens WHERE servicoId = 60003;\nDELETE FROM profissionalServicos WHERE servicoId = 60003;\nDELETE FROM servicos WHERE id = 60003;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute DELETE FROM agendamento_itens WHERE servicoId = 60003;\nDELETE FROM profissionalServicos WHERE servicoId = 60003;\nDELETE FROM servicos WHERE id = 60003;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 297
+}

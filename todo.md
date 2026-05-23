@@ -2474,6 +2474,7 @@
 - [x] TypeScript: 0 erros (confirmado pelo LSP)
 
 ## Correções Portal + Configurações + Taxas (23/05/2026)
-- [ ] Portal: pular validação de CPF quando cliente é encontrada por telefone
-- [ ] Taxas de serviço: remover taxas automáticas (deslocamento etc.) — cadastro manual apenas
-- [ ] Configurações: corrigir campos não salvos (cores e outros)
+- [x] Portal: pular validação de CPF quando cliente é encontrada por telefone
+- [x] Serviço "Taxa domicílio" removido do banco (taxa manual adicionada nos 3 agendamentos do dia 06/06)
+- [x] Configurações: botão "Salvar preferências" unificado com "Salvar configurações" — um único botão salva tudo
+- [x] TypeScript: 0 erros

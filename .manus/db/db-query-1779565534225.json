@@ -1,0 +1,19 @@
+{
+  "query": "SHOW TABLES LIKE '%profissional%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SHOW TABLES LIKE '%profissional%';",
+  "rows": [
+    {
+      "Tables_in_BkCt9rpSQdtCMrvdCmsRG4 (%profissional%)": "profissionalServicos"
+    },
+    {
+      "Tables_in_BkCt9rpSQdtCMrvdCmsRG4 (%profissional%)": "profissional_tipos"
+    },
+    {
+      "Tables_in_BkCt9rpSQdtCMrvdCmsRG4 (%profissional%)": "tipos_profissional"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_BkCt9rpSQdtCMrvdCmsRG4 (%profissional%)\nprofissionalServicos\nprofissional_tipos\ntipos_profissional\n",
+  "stderr": "",
+  "execution_time_ms": 259
+}

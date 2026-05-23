@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, empresaId, nome, categoria, valor, ativo FROM servicos WHERE nome LIKE '%domicilio%' OR nome LIKE '%domicílio%' OR nome LIKE '%taxa%' OR nome LIKE '%deslocamento%' ORDER BY empresaId, id LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT id, empresaId, nome, categoria, valor, ativo FROM servicos WHERE nome LIKE '%domicilio%' OR nome LIKE '%domicílio%' OR nome LIKE '%taxa%' OR nome LIKE '%deslocamento%' ORDER BY empresaId, id LIMIT 30;",
+  "rows": [
+    {
+      "id": "60003",
+      "empresaId": "1",
+      "nome": "Taxa domicilio ",
+      "categoria": "Maquiadora",
+      "valor": "60.00",
+      "ativo": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tempresaId\tnome\tcategoria\tvalor\tativo\n60003\t1\tTaxa domicilio \tMaquiadora\t60.00\t1\n",
+  "stderr": "",
+  "execution_time_ms": 260
+}
