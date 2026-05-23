@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT a.id, a.profissionalId, p.nome as profissionalNome, a.data, a.horaInicio, a.horaFim, a.status,\n       s.nome as servicoNome, s.duracaoMinutos,\n       c.nome as clienteNome\nFROM agendamentos a\nLEFT JOIN profissionais p ON p.id = a.profissionalId\nLEFT JOIN servicos s ON s.id = a.servicoId\nLEFT JOIN clientes c ON c.id = a.clienteId\nWHERE a.data = '2026-05-27';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute \nSELECT a.id, a.profissionalId, p.nome as profissionalNome, a.data, a.horaInicio, a.horaFim, a.status,\n       s.nome as servicoNome, s.duracaoMinutos,\n       c.nome as clienteNome\nFROM agendamentos a\nLEFT JOIN profissionais p ON p.id = a.profissionalId\nLEFT JOIN servicos s ON s.id = a.servicoId\nLEFT JOIN clientes c ON c.id = a.clienteId\nWHERE a.data = '2026-05-27';\n",
+  "rows": [
+    {
+      "id": "780008",
+      "profissionalId": "1",
+      "profissionalNome": "Maria Isabella",
+      "data": "2026-05-27",
+      "horaInicio": "14:00:00",
+      "horaFim": "15:20:00",
+      "status": "agendado",
+      "servicoNome": "Brow Lamination",
+      "duracaoMinutos": "80",
+      "clienteNome": "Vitor  Zuchieri"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprofissionalId\tprofissionalNome\tdata\thoraInicio\thoraFim\tstatus\tservicoNome\tduracaoMinutos\tclienteNome\n780008\t1\tMaria Isabella\t2026-05-27\t14:00:00\t15:20:00\tagendado\tBrow Lamination\t80\tVitor  Zuchieri\n",
+  "stderr": "",
+  "execution_time_ms": 281
+}

@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT a.id, a.profissionalId, a.data, a.horaInicio, a.horaFim, a.status, a.clienteId,\n       ai.profissionalId as itemProfissionalId, ai.horaInicio as itemHoraInicio, ai.horaFim as itemHoraFim\nFROM agendamentos a\nLEFT JOIN agendamento_itens ai ON ai.agendamentoId = a.id\nWHERE a.data = '2026-05-27'\nORDER BY a.horaInicio;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute \nSELECT a.id, a.profissionalId, a.data, a.horaInicio, a.horaFim, a.status, a.clienteId,\n       ai.profissionalId as itemProfissionalId, ai.horaInicio as itemHoraInicio, ai.horaFim as itemHoraFim\nFROM agendamentos a\nLEFT JOIN agendamento_itens ai ON ai.agendamentoId = a.id\nWHERE a.data = '2026-05-27'\nORDER BY a.horaInicio;\n",
+  "rows": [
+    {
+      "id": "780008",
+      "profissionalId": "1",
+      "data": "2026-05-27",
+      "horaInicio": "14:00:00",
+      "horaFim": "15:20:00",
+      "status": "agendado",
+      "clienteId": "30001",
+      "itemProfissionalId": "1",
+      "itemHoraInicio": "14:00",
+      "itemHoraFim": "15:20"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprofissionalId\tdata\thoraInicio\thoraFim\tstatus\tclienteId\titemProfissionalId\titemHoraInicio\titemHoraFim\n780008\t1\t2026-05-27\t14:00:00\t15:20:00\tagendado\t30001\t1\t14:00\t15:20\n",
+  "stderr": "",
+  "execution_time_ms": 325
+}

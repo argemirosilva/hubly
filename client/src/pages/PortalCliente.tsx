@@ -142,9 +142,14 @@ export default function PortalCliente() {
       const res = await utils.portal.buscarClientePorTelefone.fetch({ empresaId, telefone });
       setClienteEncontrado(res.encontrado);
       setTemCpf(res.temCpf);
-      if (!res.encontrado) {
+      if (res.encontrado) {
+        // Cliente encontrado: pré-preencher nome se disponível
+        if (res.nome) setNome(res.nome);
+        if (res.email) setEmail(res.email);
+      } else {
         // Novo cliente: limpar campos de CPF
         setCpf(""); setCpfErro(""); setCpfValidado(false);
+        setNome("");
       }
     } catch {
       setClienteEncontrado(false);

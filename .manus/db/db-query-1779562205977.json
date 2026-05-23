@@ -1,0 +1,52 @@
+{
+  "query": "SELECT id, nome, telefone, email, createdAt FROM clientes WHERE nome = 'pessoa' OR nome LIKE '%pessoa%' ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT id, nome, telefone, email, createdAt FROM clientes WHERE nome = 'pessoa' OR nome LIKE '%pessoa%' ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "450002",
+      "nome": "Pessoa (14)99811-2700",
+      "telefone": "14998112700",
+      "email": "NULL",
+      "createdAt": "2026-05-23 17:49:15"
+    },
+    {
+      "id": "83",
+      "nome": "Pessoa (14)98215-0702",
+      "telefone": "5514982150702",
+      "email": "NULL",
+      "createdAt": "2026-04-01 18:25:54"
+    },
+    {
+      "id": "104",
+      "nome": "Pessoa (14)99678-1540",
+      "telefone": "5514996781540",
+      "email": "NULL",
+      "createdAt": "2026-04-01 18:25:54"
+    },
+    {
+      "id": "96",
+      "nome": "Pessoa (14)99905-4831",
+      "telefone": "5514999054831",
+      "email": "NULL",
+      "createdAt": "2026-04-01 18:25:54"
+    },
+    {
+      "id": "50",
+      "nome": "Pessoa (14)99811-2700",
+      "telefone": "5514998112700",
+      "email": "NULL",
+      "createdAt": "2026-04-01 18:25:53"
+    },
+    {
+      "id": "21",
+      "nome": "Pessoa (14)99711-2700",
+      "telefone": "5514997112700",
+      "email": "NULL",
+      "createdAt": "2026-04-01 18:25:53"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tnome\ttelefone\temail\tcreatedAt\n450002\tPessoa (14)99811-2700\t14998112700\tNULL\t2026-05-23 17:49:15\n83\tPessoa (14)98215-0702\t5514982150702\tNULL\t2026-04-01 18:25:54\n104\tPessoa (14)99678-1540\t5514996781540\tNULL\t2026-04-01 18:25:54\n96\tPessoa (14)99905-4831\t5514999054831\tNULL\t2026-04-01 18:25:54\n50\tPessoa (14)99811-2700\t5514998112700\tNULL\t2026-04-01 18:25:53\n21\tPessoa (14)99711-2700\t5514997112700\tNULL\t2026-04-01 18:25:53\n",
+  "stderr": "",
+  "execution_time_ms": 291
+}

@@ -219,7 +219,7 @@ export const portalRouter = router({
           .where(and(
             eq(agendamentos.empresaId, input.empresaId),
             eq(agendamentos.profissionalId, input.profissionalId),
-            sql`${agendamentos.data} = ${input.data}`,
+            sql`DATE(${agendamentos.data}) = ${input.data}`,
             sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
           ));
 
@@ -228,12 +228,13 @@ export const portalRouter = router({
           .from(bloqueiosAgenda)
           .where(and(
             eq(bloqueiosAgenda.profissionalId, input.profissionalId),
-            sql`${bloqueiosAgenda.dataInicio} <= ${input.data}`,
-            sql`${bloqueiosAgenda.dataFim} >= ${input.data}`,
+            sql`DATE(${bloqueiosAgenda.dataInicio}) <= ${input.data}`,
+            sql`DATE(${bloqueiosAgenda.dataFim}) >= ${input.data}`,
             sql`${bloqueiosAgenda.status} = 'aprovado'`,
           ));
 
         const todosOcupados = [...ocupados, ...bloqueios];
+        console.log(`[Portal Slots] profissional=${input.profissionalId} data=${input.data} ocupados=${JSON.stringify(todosOcupados)} slots=${JSON.stringify(gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, todosOcupados))}`);
         const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, todosOcupados);
         return [{ profissionalId: input.profissionalId, slots }];
       } else {
@@ -248,17 +249,17 @@ export const portalRouter = router({
             .where(and(
               eq(agendamentos.empresaId, input.empresaId),
               eq(agendamentos.profissionalId, prof.id),
-              sql`${agendamentos.data} = ${input.data}`,
+              sql`DATE(${agendamentos.data}) = ${input.data}`,
               sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
             ));
 
-          // Verificar bloqueios também no modo "qualquer profissional"
+          // Verificar bloqueios
           const bloqueios = await db.select({ horaInicio: bloqueiosAgenda.horaInicio, horaFim: bloqueiosAgenda.horaFim })
             .from(bloqueiosAgenda)
             .where(and(
               eq(bloqueiosAgenda.profissionalId, prof.id),
-              sql`${bloqueiosAgenda.dataInicio} <= ${input.data}`,
-              sql`${bloqueiosAgenda.dataFim} >= ${input.data}`,
+              sql`DATE(${bloqueiosAgenda.dataInicio}) <= ${input.data}`,
+              sql`DATE(${bloqueiosAgenda.dataFim}) >= ${input.data}`,
               sql`${bloqueiosAgenda.status} = 'aprovado'`,
             ));
 
@@ -359,11 +360,11 @@ export const portalRouter = router({
         for (const profId of profsIds) {
           const ocupadosProf = [
             ...todosAgendamentos
-              .filter(a => a.profissionalId === profId && String(a.data).substring(0, 10) === dt)
-              .map(a => ({ horaInicio: a.horaInicio, horaFim: a.horaFim })),
+              .filter(a => Number(a.profissionalId) === profId && String(a.data).substring(0, 10) === dt)
+              .map(a => ({ horaInicio: String(a.horaInicio).substring(0, 5), horaFim: String(a.horaFim).substring(0, 5) })),
             ...todosBloqueios
-              .filter(b => b.profissionalId === profId && String(b.dataInicio).substring(0, 10) <= dt && String(b.dataFim).substring(0, 10) >= dt)
-              .map(b => ({ horaInicio: b.horaInicio, horaFim: b.horaFim })),
+              .filter(b => Number(b.profissionalId) === profId && String(b.dataInicio).substring(0, 10) <= dt && String(b.dataFim).substring(0, 10) >= dt)
+              .map(b => ({ horaInicio: String(b.horaInicio).substring(0, 5), horaFim: String(b.horaFim).substring(0, 5) })),
           ];
           const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, ocupadosProf);
           if (slots.length > 0) { temSlot = true; break; }
@@ -597,6 +598,8 @@ export const portalRouter = router({
       const telSuffix = telNorm.slice(-8); // últimos 8 dígitos
       const result = await db.select({
         id: clientes.id,
+        nome: clientes.nome,
+        email: clientes.email,
         temCpf: sql<number>`CASE WHEN ${clientes.cpf} IS NOT NULL AND ${clientes.cpf} != '' THEN 1 ELSE 0 END`,
       })
         .from(clientes)
@@ -604,8 +607,13 @@ export const portalRouter = router({
           eq(clientes.empresaId, input.empresaId),
           sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
         )).limit(1);
-      if (!result.length) return { encontrado: false, temCpf: false };
-      return { encontrado: true, temCpf: result[0].temCpf === 1 };
+      if (!result.length) return { encontrado: false, temCpf: false, nome: "", email: "" };
+      return {
+        encontrado: true,
+        temCpf: result[0].temCpf === 1,
+        nome: result[0].nome ?? "",
+        email: result[0].email ?? "",
+      };
     }),
 
   /** Valida CPF e retorna dados do cliente se correto */

@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT horaInicio, horaFim, status\nFROM agendamentos\nWHERE empresaId = 1\n  AND profissionalId = 1\n  AND data = '2026-05-27'\n  AND status NOT IN ('cancelado', 'faltou');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute \nSELECT horaInicio, horaFim, status\nFROM agendamentos\nWHERE empresaId = 1\n  AND profissionalId = 1\n  AND data = '2026-05-27'\n  AND status NOT IN ('cancelado', 'faltou');\n",
+  "rows": [
+    {
+      "horaInicio": "14:00:00",
+      "horaFim": "15:20:00",
+      "status": "agendado"
+    }
+  ],
+  "messages": [],
+  "stdout": "horaInicio\thoraFim\tstatus\n14:00:00\t15:20:00\tagendado\n",
+  "stderr": "",
+  "execution_time_ms": 269
+}

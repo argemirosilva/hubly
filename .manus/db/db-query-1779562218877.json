@@ -1,0 +1,9 @@
+{
+  "query": "SELECT a.id, a.data, a.horaInicio, a.status, s.nome as servicoNome, p.nome as profNome\nFROM agendamentos a\nLEFT JOIN servicos s ON s.id = a.servicoId\nLEFT JOIN profissionais p ON p.id = a.profissionalId\nWHERE a.clienteId = 450002;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT a.id, a.data, a.horaInicio, a.status, s.nome as servicoNome, p.nome as profNome\nFROM agendamentos a\nLEFT JOIN servicos s ON s.id = a.servicoId\nLEFT JOIN profissionais p ON p.id = a.profissionalId\nWHERE a.clienteId = 450002;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 264
+}

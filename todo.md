@@ -2463,3 +2463,17 @@
 - [x] Overlay da imagem de capa com cor hardcoded azul ignorando corPrimaria
 - [x] Implementar funções hexToRgb e darkenHex para gerar gradiente dinâmico a partir de corPrimaria
 - [x] TypeScript: 0 erros
+
+## Correções de Disponibilidade + Nome do Cliente no Portal (23/05/2026)
+- [x] Bug: comparação de data usando DATE() para evitar problemas com DATETIME no MySQL
+- [x] Bug: profissionalId comparado com Number() para evitar mismatch de tipo string/number
+- [x] Bug: horaInicio/horaFim normalizados com .substring(0,5) no getDatasDisponiveis
+- [x] Bug: getHorariosDisponiveis (todos os profissionais) também usa DATE() na comparação
+- [x] Backend: buscarClientePorTelefone agora retorna nome e email do cliente encontrado
+- [x] Frontend: handleTelefoneBlur pré-preenche nome e email quando cliente é encontrada por telefone
+- [x] TypeScript: 0 erros (confirmado pelo LSP)
+
+## Correções Portal + Configurações + Taxas (23/05/2026)
+- [ ] Portal: pular validação de CPF quando cliente é encontrada por telefone
+- [ ] Taxas de serviço: remover taxas automáticas (deslocamento etc.) — cadastro manual apenas
+- [ ] Configurações: corrigir campos não salvos (cores e outros)
