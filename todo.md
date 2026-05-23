@@ -2445,3 +2445,15 @@
 - [x] Estado inicial e carregamento do form atualizados em Configuracoes.tsx
 - [x] PortalCliente.tsx: aviso de sinal só exibido quando portalCobraSinal !== false
 - [x] TypeScript: 0 erros
+
+## Disponibilidade Real no Portal de Agendamento (23/05/2026)
+- [x] Backend: procedure getDatasDisponiveis retorna mapa data→boolean (tem slot ou não) para os próximos 45 dias úteis
+- [x] Otimização: busca todos os agendamentos e bloqueios de uma vez (1 query por tabela, não N queries)
+- [x] Considera status cancelado, faltou e remarcado como "não ocupados"
+- [x] Frontend: query getDatasDisponiveis chamada ao entrar na etapa de data (habilitada quando servicoId está selecionado)
+- [x] Calendário: datas lotadas aparecem com opacidade reduzida, cursor not-allowed e label "lotado"
+- [x] Calendário: datas lotadas não são clicáveis (disabled + onClick bloqueado)
+- [x] Calendário: enquanto carrega, exibe "Verificando agenda..." ao lado do label "Data"
+- [x] Calendário: aviso especial quando todas as datas estão lotadas
+- [x] Horários: já eram filtrados corretamente pelo backend (getHorariosDisponiveis)
+- [x] TypeScript: 0 erros

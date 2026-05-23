@@ -197,6 +197,12 @@ export default function PortalCliente() {
     { enabled: !!data && !!servicoId },
   );
 
+  // Disponibilidade por data (para desabilitar datas lotadas no calendário)
+  const { data: disponibilidadePorData, isLoading: loadingDisponibilidade } = trpc.portal.getDatasDisponiveis.useQuery(
+    { empresaId, servicoId: servicoId!, profissionalId: profissionalId ?? undefined },
+    { enabled: !!servicoId, staleTime: 60_000 },
+  );
+
   const agendarMutation = trpc.portal.criarAgendamento.useMutation({
     onSuccess: () => setStep("sucesso"),
     onError: (err) => toast.error(err.message),
@@ -676,18 +682,30 @@ export default function PortalCliente() {
           <StepCard title="Quando?" subtitle="Escolha a data e horário">
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Data</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                  Data
+                  {loadingDisponibilidade && <span className="ml-2 text-slate-400 font-normal normal-case tracking-normal">Verificando agenda...</span>}
+                </p>
                 <div className="grid grid-cols-3 gap-2">
                   {datasDisponiveis.slice(0, 12).map(d => {
                     const [ano, mes, dia] = d.split("-").map(Number);
                     const dt = new Date(ano, mes - 1, dia);
+                    // Se ainda carregando, não bloqueia (otimista); se carregou, verifica disponibilidade
+                    const lotado = disponibilidadePorData ? disponibilidadePorData[d] === false : false;
+                    const selecionada = data === d;
                     return (
-                      <button key={d} onClick={() => { setData(d); setHora(""); }}
-                        className="flex flex-col items-center p-2.5 rounded-xl border-2 transition-all text-sm"
+                      <button
+                        key={d}
+                        onClick={() => { if (!lotado) { setData(d); setHora(""); } }}
+                        disabled={lotado}
+                        title={lotado ? "Sem horários disponíveis nesta data" : undefined}
+                        className="flex flex-col items-center p-2.5 rounded-xl border-2 transition-all text-sm relative"
                         style={{
-                          borderColor: data === d ? corPrimaria : "#e2e8f0",
-                          background: data === d ? corSecundaria + "50" : "white",
-                          color: data === d ? corPrimaria : "#475569",
+                          borderColor: selecionada ? corPrimaria : lotado ? "#e2e8f0" : "#e2e8f0",
+                          background: selecionada ? corSecundaria + "50" : lotado ? "#f8fafc" : "white",
+                          color: selecionada ? corPrimaria : lotado ? "#cbd5e1" : "#475569",
+                          cursor: lotado ? "not-allowed" : "pointer",
+                          opacity: lotado ? 0.55 : 1,
                         }}>
                         <span className="text-[10px] font-medium uppercase">
                           {dt.toLocaleDateString("pt-BR", { weekday: "short" })}
@@ -696,10 +714,18 @@ export default function PortalCliente() {
                         <span className="text-[10px]">
                           {dt.toLocaleDateString("pt-BR", { month: "short" })}
                         </span>
+                        {lotado && (
+                          <span className="text-[9px] font-semibold text-slate-400 mt-0.5 leading-none">lotado</span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
+                {disponibilidadePorData && Object.values(disponibilidadePorData).every(v => !v) && (
+                  <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200 mt-2">
+                    Nenhuma data com horário disponível nos próximos dias. Entre em contato com o estabelecimento.
+                  </p>
+                )}
               </div>
 
               {data && (

@@ -270,6 +270,110 @@ export const portalRouter = router({
       }
     }),
 
+  /**
+   * Retorna, para cada data nos próximos 60 dias, se há pelo menos um slot disponível.
+   * Usado para desabilitar datas sem disponibilidade no calendário do portal.
+   */
+  getDatasDisponiveis: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      profissionalId: z.number().optional(),
+      servicoId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return {};
+
+      const empresa = await getEmpresaPublicaById(input.empresaId);
+      if (!empresa) return {};
+
+      const diasFuncionamento = (empresa.diasFuncionamento as number[]) ?? [1, 2, 3, 4, 5];
+      const horaAbertura = empresa.horaAbertura ?? "08:00";
+      const horaFechamento = empresa.horaFechamento ?? "18:00";
+      const intervalo = empresa.intervaloMinutos ?? 30;
+
+      // Buscar duração do serviço
+      const servicoResult = await db.select({ duracaoMinutos: servicos.duracaoMinutos })
+        .from(servicos).where(eq(servicos.id, input.servicoId)).limit(1);
+      const duracaoMinutos = servicoResult[0]?.duracaoMinutos ?? 60;
+
+      // Gerar lista de datas dos próximos 60 dias que são dias de funcionamento
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const datas: string[] = [];
+      for (let i = 0; i < 60 && datas.length < 45; i++) {
+        const d = new Date(hoje);
+        d.setDate(hoje.getDate() + i);
+        if (diasFuncionamento.includes(d.getDay())) {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          datas.push(`${y}-${m}-${day}`);
+        }
+      }
+
+      // Para cada data, verificar se há pelo menos 1 slot disponível
+      const resultado: Record<string, boolean> = {};
+
+      // Buscar profissionais relevantes
+      const profsIds: number[] = [];
+      if (input.profissionalId) {
+        profsIds.push(input.profissionalId);
+      } else {
+        const profs = await db.select({ id: profissionais.id })
+          .from(profissionais)
+          .where(and(eq(profissionais.empresaId, input.empresaId), eq(profissionais.ativo, true)));
+        profs.forEach(p => profsIds.push(p.id));
+      }
+
+      // Buscar todos os agendamentos e bloqueios de uma vez (otimização)
+      const primeiraDt = datas[0];
+      const ultimaDt = datas[datas.length - 1];
+
+      const todosAgendamentos = profsIds.length > 0 ? await db.select({
+        profissionalId: agendamentos.profissionalId,
+        data: agendamentos.data,
+        horaInicio: agendamentos.horaInicio,
+        horaFim: agendamentos.horaFim,
+      }).from(agendamentos).where(and(
+        eq(agendamentos.empresaId, input.empresaId),
+        sql`${agendamentos.data} >= ${primeiraDt}`,
+        sql`${agendamentos.data} <= ${ultimaDt}`,
+        sql`${agendamentos.status} NOT IN ('cancelado', 'faltou', 'remarcado')`,
+      )) : [];
+
+      const todosBloqueios = profsIds.length > 0 ? await db.select({
+        profissionalId: bloqueiosAgenda.profissionalId,
+        dataInicio: bloqueiosAgenda.dataInicio,
+        dataFim: bloqueiosAgenda.dataFim,
+        horaInicio: bloqueiosAgenda.horaInicio,
+        horaFim: bloqueiosAgenda.horaFim,
+      }).from(bloqueiosAgenda).where(and(
+        sql`${bloqueiosAgenda.dataInicio} <= ${ultimaDt}`,
+        sql`${bloqueiosAgenda.dataFim} >= ${primeiraDt}`,
+        sql`${bloqueiosAgenda.status} = 'aprovado'`,
+      )) : [];
+
+      for (const dt of datas) {
+        let temSlot = false;
+        for (const profId of profsIds) {
+          const ocupadosProf = [
+            ...todosAgendamentos
+              .filter(a => a.profissionalId === profId && String(a.data).substring(0, 10) === dt)
+              .map(a => ({ horaInicio: a.horaInicio, horaFim: a.horaFim })),
+            ...todosBloqueios
+              .filter(b => b.profissionalId === profId && String(b.dataInicio).substring(0, 10) <= dt && String(b.dataFim).substring(0, 10) >= dt)
+              .map(b => ({ horaInicio: b.horaInicio, horaFim: b.horaFim })),
+          ];
+          const slots = gerarSlots(horaAbertura, horaFechamento, intervalo, duracaoMinutos, ocupadosProf);
+          if (slots.length > 0) { temSlot = true; break; }
+        }
+        resultado[dt] = temSlot;
+      }
+
+      return resultado;
+    }),
+
   /** Criar agendamento público (sem autenticação) */
   criarAgendamento: publicProcedure
     .input(z.object({
