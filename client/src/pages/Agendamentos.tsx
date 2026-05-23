@@ -1,7 +1,11 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Clock, SlidersHorizontal, X, CheckSquare, Square, ChevronDown, Loader2, Trash2 } from "lucide-react";
+import { Plus, Search, Clock, SlidersHorizontal, X, CheckSquare, Square, ChevronDown, Loader2, Trash2, CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -327,21 +331,43 @@ export default function Agendamentos() {
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 self-center">
           <span>De</span>
         </div>
-        <Input
-          type="date"
-          value={dataInicio}
-          onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }}
-          className="w-auto h-9 text-sm"
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1.5 h-9 px-3 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors">
+              <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>{dataInicio ? format(parseISO(dataInicio), "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataInicio ? parseISO(dataInicio) : undefined}
+              onSelect={(date) => { if (date) { setDataInicio(format(date, "yyyy-MM-dd")); setPeriodoAtivo("custom"); } }}
+              locale={ptBR}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 self-center">
           <span>até</span>
         </div>
-        <Input
-          type="date"
-          value={dataFim}
-          onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }}
-          className="w-auto h-9 text-sm"
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1.5 h-9 px-3 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors">
+              <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>{dataFim ? format(parseISO(dataFim), "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataFim ? parseISO(dataFim) : undefined}
+              onSelect={(date) => { if (date) { setDataFim(format(date, "yyyy-MM-dd")); setPeriodoAtivo("custom"); } }}
+              locale={ptBR}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
         <Select value={filtroStatus} onValueChange={setFiltroStatus}>
           <SelectTrigger className="w-auto min-w-[140px] h-9 text-sm">
             <SelectValue placeholder="Status" />

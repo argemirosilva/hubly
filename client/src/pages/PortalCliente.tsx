@@ -2,10 +2,14 @@ import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { useRoute } from "wouter";
 import {
-  Calendar, Clock, CheckCircle2, ChevronRight, ChevronLeft,
+  Calendar as CalendarIcon2, Clock, CheckCircle2, ChevronRight, ChevronLeft,
   User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
-  AlertCircle, Loader2, ShieldCheck, Share2,
+  AlertCircle, Loader2, ShieldCheck, Share2, CalendarDays,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO, isBefore, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 function formatCurrency(v: number | string) {
@@ -647,11 +651,12 @@ export default function PortalCliente() {
                   Data
                   {loadingDisponibilidade && <span className="ml-2 text-slate-400 font-normal normal-case tracking-normal">Verificando agenda...</span>}
                 </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {datasDisponiveis.slice(0, 12).map(d => {
+
+                {/* Atalhos rápidos: próximas datas disponíveis */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {datasDisponiveis.slice(0, 6).map(d => {
                     const [ano, mes, dia] = d.split("-").map(Number);
                     const dt = new Date(ano, mes - 1, dia);
-                    // Se ainda carregando, não bloqueia (otimista); se carregou, verifica disponibilidade
                     const lotado = disponibilidadePorData ? disponibilidadePorData[d] === false : false;
                     const selecionada = data === d;
                     return (
@@ -682,6 +687,52 @@ export default function PortalCliente() {
                     );
                   })}
                 </div>
+
+                {/* Botão para abrir calendário completo */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-medium transition-all"
+                      style={{
+                        borderColor: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#cbd5e1",
+                        background: data && !datasDisponiveis.slice(0, 6).includes(data) ? corSecundaria + "30" : "transparent",
+                        color: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#64748b",
+                      }}
+                    >
+                      <CalendarDays className="w-4 h-4" />
+                      {data && !datasDisponiveis.slice(0, 6).includes(data)
+                        ? format(parseISO(data), "dd 'de' MMMM", { locale: ptBR })
+                        : "Escolher outra data"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <Calendar
+                      mode="single"
+                      selected={data ? parseISO(data) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          const d = format(date, "yyyy-MM-dd");
+                          const lotado = disponibilidadePorData ? disponibilidadePorData[d] === false : false;
+                          if (!lotado) { setData(d); setHora(""); }
+                          else toast.error("Esta data não tem horários disponíveis");
+                        }
+                      }}
+                      disabled={(date) => {
+                        // Desabilita dias anteriores a hoje
+                        if (isBefore(date, startOfDay(new Date()))) return true;
+                        // Desabilita dias que não são dias de funcionamento
+                        if (!diasFuncionamento.includes(date.getDay())) return true;
+                        // Desabilita datas lotadas (se já carregou disponibilidade)
+                        const d = format(date, "yyyy-MM-dd");
+                        if (disponibilidadePorData && disponibilidadePorData[d] === false) return true;
+                        return false;
+                      }}
+                      locale={ptBR}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
                 {disponibilidadePorData && Object.values(disponibilidadePorData).every(v => !v) && (
                   <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200 mt-2">
                     Nenhuma data com horário disponível nos próximos dias. Entre em contato com o estabelecimento.

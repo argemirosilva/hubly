@@ -2478,3 +2478,9 @@
 - [x] Serviço "Taxa domicílio" removido do banco (taxa manual adicionada nos 3 agendamentos do dia 06/06)
 - [x] Configurações: botão "Salvar preferências" unificado com "Salvar configurações" — um único botão salva tudo
 - [x] TypeScript: 0 erros
+
+## Date Picker — Filtros e Portal (23/05/2026)
+- [x] /admin/agendamentos: filtros "De" e "até" substituídos por Popover+Calendar (shadcn/ui) com locale pt-BR
+- [x] Portal público: 6 atalhos rápidos de datas + botão "Escolher outra data" abre calendário completo
+- [x] Portal: calendário desabilita dias anteriores a hoje, dias sem funcionamento e datas lotadas
+- [x] TypeScript: 0 erros
