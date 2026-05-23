@@ -1054,6 +1054,8 @@ export const appRouter = router({
         comReserva: z.boolean().default(false),
         reservaDataLimitePersonalizada: z.string().optional(), // ISO datetime — data limite manual para pagamento do sinal
         pacoteClienteItemId: z.number().optional(), // vincular sessão de pacote (serviço principal)
+        taxaAdicional: z.string().optional(),
+        nomeTaxaAdicional: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

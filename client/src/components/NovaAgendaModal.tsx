@@ -54,6 +54,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
     status: "pre_agendado" as "pre_agendado" | "agendado" | "confirmado",
     usarDataLimitePersonalizada: false,
     reservaDataLimitePersonalizada: "", // ISO datetime string
+    taxaAdicional: "",
+    nomeTaxaAdicional: "",
   });
 
   // Profissional padrão para pré-preencher o primeiro card
@@ -295,6 +297,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
         ? new Date(form.reservaDataLimitePersonalizada).toISOString()
         : undefined,
       pacoteClienteItemId: servicoPrincipal.pacoteClienteItemId,
+      taxaAdicional: form.taxaAdicional || undefined,
+      nomeTaxaAdicional: form.nomeTaxaAdicional || undefined,
     });
   };
 
@@ -780,6 +784,28 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                     </span>
                   </div>
                 )}
+                {/* Taxa adicional */}
+                <div className="mt-2 pt-2 border-t border-border/40">
+                  <p className="text-xs text-muted-foreground mb-1.5 font-medium">Taxa adicional (opcional)</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nome (ex: Deslocamento)"
+                      className="flex-1 text-sm border border-border rounded-md px-2.5 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      value={form.nomeTaxaAdicional}
+                      onChange={e => setForm(f => ({ ...f, nomeTaxaAdicional: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      placeholder="R$ 0,00"
+                      min="0"
+                      step="0.01"
+                      className="w-28 text-sm border border-border rounded-md px-2.5 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      value={form.taxaAdicional}
+                      onChange={e => setForm(f => ({ ...f, taxaAdicional: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
