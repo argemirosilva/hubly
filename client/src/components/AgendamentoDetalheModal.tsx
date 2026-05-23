@@ -2,9 +2,9 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, ScanLine, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -114,63 +114,6 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Estado para pagamentos parciais
   const [showAddPagamento, setShowAddPagamento] = useState(false);
   const [novoPagamento, setNovoPagamento] = useState({ valor: "", meioPagamento: "", numeroParcelas: 1, observacao: "" });
-  // Estado para leitura de comprovante
-  const comprovanteInputRef = useRef<HTMLInputElement>(null);
-  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const lerComprovanteMutation = trpc.agendamentos.lerComprovante.useMutation({
-    onSuccess: (result) => {
-      if (!result.sucesso) {
-        toast.error('Imagem não reconhecida como comprovante válido. Tente outra imagem.');
-        return;
-      }
-      const { dados } = result;
-      // Pré-preencher o formulário de pagamento com os dados extraídos
-      setNovoPagamento({
-        valor: String(dados.valor),
-        meioPagamento: dados.tipo || 'PIX',
-        numeroParcelas: 1,
-        observacao: `Comprovante ${dados.banco ?? ''} - ${dados.data ?? ''}`.trim(),
-      });
-      setShowAddPagamento(true);
-      toast.success(`Comprovante lido! Valor: R$ ${dados.valor} — confirme e registre.`);
-    },
-    onError: () => toast.error('Erro ao ler comprovante. Tente novamente.'),
-  });
-
-  const handleComprovanteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (file.type === 'application/pdf') {
-        setPdfPreview(dataUrl);
-        setShowPdfPreview(true);
-      } else {
-        lerComprovanteMutation.mutate({ agendamentoId, imageUrl: dataUrl });
-      }
-    };
-    reader.onerror = () => {
-      toast.error('Erro ao ler arquivo. Tente novamente.');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleConfirmPdfPreview = () => {
-    if (pdfPreview) {
-      lerComprovanteMutation.mutate({ agendamentoId, imageUrl: pdfPreview });
-      setShowPdfPreview(false);
-      setPdfPreview(null);
-    }
-  };
-
-  const handleCancelPdfPreview = () => {
-    setShowPdfPreview(false);
-    setPdfPreview(null);
-  };
-
   // Estado para desconto
   const [editandoDesconto, setEditandoDesconto] = useState(false);
   const [descontoEdit, setDescontoEdit] = useState("");
@@ -1000,24 +943,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                         <Plus className="w-3.5 h-3.5" />
                         Adicionar pagamento
                       </button>
-                      <button
-                        onClick={() => comprovanteInputRef.current?.click()}
-                        disabled={lerComprovanteMutation.isPending}
-                        className="flex items-center gap-1.5 text-xs text-violet-600 hover:underline font-medium disabled:opacity-50"
-                      >
-                        {lerComprovanteMutation.isPending ? (
-                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lendo comprovante...</>
-                        ) : (
-                          <><ScanLine className="w-3.5 h-3.5" /> Ler comprovante (IA)</>
-                        )}
-                      </button>
-                      <input
-                        ref={comprovanteInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        className="hidden"
-                        onChange={handleComprovanteUpload}
-                      />
+
                     </div>
                   )}
 
@@ -2131,30 +2057,6 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       </DialogContent>
     </Dialog>
 
-    <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Preview do Comprovante (PDF)</DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted rounded-lg">
-          {pdfPreview && (
-            <iframe
-              src={pdfPreview}
-              className="w-full h-full min-h-[400px]"
-              title="PDF Preview"
-            />
-          )}
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleCancelPdfPreview}>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirmPdfPreview} disabled={lerComprovanteMutation.isPending}>
-            {lerComprovanteMutation.isPending ? "Processando..." : "Confirmar e Processar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
     </>
   );
 }
