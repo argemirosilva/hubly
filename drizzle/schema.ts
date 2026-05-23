@@ -221,6 +221,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   notificacaoEnviada: boolean("notificacaoEnviada").default(false),
   notificacaoEnviadaEm: timestamp("notificacaoEnviadaEm"),
   reservaLembreteEnviado: boolean("reservaLembreteEnviado").default(false),
+  minutosAtraso: int("minutosAtraso").default(0), // minutos de atraso da cliente (0 = pontual)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

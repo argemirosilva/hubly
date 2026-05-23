@@ -88,7 +88,14 @@ async function calcularMetricasClientes(empresaId: number): Promise<{
 
     // Remarcados contam como cancelamento leve (metade do peso) para o escore
     const totalNaoCanc = agdsCliente.filter(a => a.status !== "cancelado" && a.status !== "remarcado").length;
-    const pctPontualidade = totalNaoCanc > 0 ? 1 - ((faltou.length + remarcados.length * 0.5) / (totalNaoCanc + remarcados.length)) : 1;
+    const basePontualidade = totalNaoCanc > 0 ? 1 - ((faltou.length + remarcados.length * 0.5) / (totalNaoCanc + remarcados.length)) : 1;
+    // Penalidade por atrasos reais: >15min = -0.05, >30min = -0.10 por ocorrência
+    const atrasosSignificativos = agdsCliente.filter(a => (a.minutosAtraso ?? 0) > 15);
+    const penalAtraso = atrasosSignificativos.reduce((acc, a) => {
+      const min = a.minutosAtraso ?? 0;
+      return acc + (min > 30 ? 0.10 : 0.05);
+    }, 0);
+    const pctPontualidade = Math.max(0, basePontualidade - (agdsCliente.length > 0 ? penalAtraso / agdsCliente.length : 0));
 
     return {
       clienteId: cliente.id,

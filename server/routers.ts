@@ -1316,6 +1316,7 @@ export const appRouter = router({
         observacoes: z.string().optional(),
         observacoesInternas: z.string().optional(),
         reservaPaga: z.boolean().optional(),
+        minutosAtraso: z.number().min(0).max(300).optional(), // atraso da cliente em minutos (0 = pontual)
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

@@ -2417,3 +2417,10 @@
 - [x] Botão "Remarcado" adicionado no modal de detalhe do agendamento
 - [x] Status "Remarcado" com cor roxa em todos os mapas de status (modal, agendamentos, perfil cliente)
 - [x] Escore do cliente: remarcados contam como cancelamento leve (peso 0.5)
+
+## Controle de Atraso por Agendamento
+- [x] Coluna minutosAtraso na tabela agendamentos (schema + migration)
+- [x] Backend: salvar minutosAtraso na procedure de update do agendamento
+- [x] Backend: escore de pontualidade calculado com base nos atrasos reais
+- [x] Frontend: campo de atraso no modal do agendamento (ao concluir atendimento)
+- [x] Frontend: exibição do histórico de atrasos no perfil do cliente (badge +Xmin)

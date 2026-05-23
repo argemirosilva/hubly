@@ -249,6 +249,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Modal de crédito ao cancelar agendamento com valor pago
   const [cancelarComCreditoModal, setCancelarComCreditoModal] = useState(false);
   const [totalPagoCancelamento, setTotalPagoCancelamento] = useState(0);
+  // Controle de atraso (registrado ao concluir o atendimento)
+  const [minutosAtraso, setMinutosAtraso] = useState<number>(0);
   const confirmarSinalForaDoPrazoMutation = trpc.agendamentos.confirmarSinalForaDoPrazo.useMutation({
     onSuccess: async () => {
       toast.success("✅ Sinal confirmado! Agendamento reativado para Agendado.");
@@ -466,7 +468,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
   const confirmarConclusao = () => {
     setResumoConclusaoModal(false);
-    updateMutation.mutate({ id: agendamentoId, status: "concluido" } as any, {
+    updateMutation.mutate({ id: agendamentoId, status: "concluido", minutosAtraso: minutosAtraso > 0 ? minutosAtraso : undefined } as any, {
       onSuccess: () => {
         utils.financeiro.comissoes.invalidate();
         utils.financeiro.getComissaoByAgendamento.invalidate({ agendamentoId });
@@ -1898,6 +1900,29 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   <p className="text-xs text-amber-700">Ainda há {fmt(emAberto)} em aberto. Você pode registrar o pagamento antes ou após concluir.</p>
                 </div>
               )}
+              {/* Campo de atraso */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pontualidade da Cliente</p>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                    value={minutosAtraso}
+                    onChange={e => setMinutosAtraso(Number(e.target.value))}
+                  >
+                    <option value={0}>Chegou no horário ✅</option>
+                    <option value={10}>Atrasou ~10 min</option>
+                    <option value={15}>Atrasou ~15 min</option>
+                    <option value={20}>Atrasou ~20 min</option>
+                    <option value={30}>Atrasou ~30 min</option>
+                    <option value={45}>Atrasou ~45 min</option>
+                    <option value={60}>Atrasou ~1 hora</option>
+                    <option value={90}>Atrasou +1h30</option>
+                  </select>
+                </div>
+                {minutosAtraso > 0 && (
+                  <p className="text-xs text-amber-600">⚠️ Atraso registrado e impactará o escore de pontualidade da cliente.</p>
+                )}
+              </div>
             </div>
           );
         })()}

@@ -1,0 +1,1 @@
+ALTER TABLE `agendamentos` ADD `minutosAtraso` int DEFAULT 0;

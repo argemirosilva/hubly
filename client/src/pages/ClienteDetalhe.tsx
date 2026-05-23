@@ -553,6 +553,11 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                               </p>
                             </div>
                             <div className="flex items-center gap-3">
+                              {(ag as any).minutosAtraso > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium whitespace-nowrap">
+                                  +{(ag as any).minutosAtraso}min
+                                </span>
+                              )}
                               <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
                                 {ag.status}
                               </span>
