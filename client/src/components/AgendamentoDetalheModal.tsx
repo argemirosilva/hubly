@@ -302,6 +302,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const [sinalForaDoPrazoModal, setSinalForaDoPrazoModal] = useState(false);
   const [sinalValor, setSinalValor] = useState("");
   const [sinalObs, setSinalObs] = useState("");
+  // Modal de crédito ao cancelar agendamento com valor pago
+  const [cancelarComCreditoModal, setCancelarComCreditoModal] = useState(false);
+  const [totalPagoCancelamento, setTotalPagoCancelamento] = useState(0);
   const confirmarSinalForaDoPrazoMutation = trpc.agendamentos.confirmarSinalForaDoPrazo.useMutation({
     onSuccess: async () => {
       toast.success("✅ Sinal confirmado! Agendamento reativado para Agendado.");
@@ -485,7 +488,36 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       setResumoConclusaoModal(true);
       return;
     }
+    if (status === "cancelado") {
+      // Verificar se há pagamentos registrados para oferecer conversão em crédito
+      const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
+      if (totalPago > 0 && ag?.clienteId) {
+        setTotalPagoCancelamento(totalPago);
+        setCancelarComCreditoModal(true);
+        return;
+      }
+    }
     updateMutation.mutate({ id: agendamentoId, status: status as Parameters<typeof updateMutation.mutate>[0]["status"] } as Parameters<typeof updateMutation.mutate>[0]);
+  };
+
+  const confirmarCancelamentoComCredito = async () => {
+    // 1. Registrar crédito para o cliente
+    if (ag?.clienteId && totalPagoCancelamento > 0) {
+      await registrarCreditoMutation.mutateAsync({
+        clienteId: ag.clienteId,
+        valor: totalPagoCancelamento,
+        origem: `Sinal do agendamento cancelado em ${ag.data ? ag.data.split('-').reverse().join('/') : ''}`,
+        agendamentoId,
+      });
+    }
+    // 2. Cancelar o agendamento
+    updateMutation.mutate({ id: agendamentoId, status: "cancelado" } as any);
+    setCancelarComCreditoModal(false);
+  };
+
+  const confirmarCancelamentoSemCredito = () => {
+    updateMutation.mutate({ id: agendamentoId, status: "cancelado" } as any);
+    setCancelarComCreditoModal(false);
   };
 
   const confirmarConclusao = () => {
@@ -2047,6 +2079,54 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             {reenviarMensagemMut.isPending ? 'Enviando...' : 'Confirmar Reenvio'}
           </Button>
           <Button variant="outline" className="w-full" onClick={() => { setPreviewMensagem(null); setPreviewEnvioId(null); }}>Cancelar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Crédito ao Cancelar Agendamento */}
+    <Dialog open={cancelarComCreditoModal} onOpenChange={(open) => { if (!open) setCancelarComCreditoModal(false); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-amber-500" />
+            Cancelar Agendamento
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-2 space-y-3">
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-3.5 flex items-start gap-3">
+            <DollarSign className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                {cliente?.nome ?? 'A cliente'} pagou <span className="text-amber-700">R$ {totalPagoCancelamento.toFixed(2).replace('.', ',')}</span> neste agendamento.
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Deseja converter esse valor em crédito para uso em um próximo atendimento?
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            O crédito ficará disponível na aba <strong>Créditos</strong> do perfil da cliente e poderá ser usado como forma de pagamento em qualquer agendamento futuro.
+          </p>
+        </div>
+        <DialogFooter className="flex flex-col gap-2">
+          <Button
+            onClick={confirmarCancelamentoComCredito}
+            disabled={registrarCreditoMutation.isPending || updateMutation.isPending}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            {registrarCreditoMutation.isPending ? "Registrando crédito..." : `✅ Sim, deixar R$ ${totalPagoCancelamento.toFixed(2).replace('.', ',')} como crédito`}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={confirmarCancelamentoSemCredito}
+            disabled={updateMutation.isPending}
+            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+          >
+            {updateMutation.isPending ? "Cancelando..." : "Não, apenas cancelar"}
+          </Button>
+          <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setCancelarComCreditoModal(false)}>
+            Voltar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

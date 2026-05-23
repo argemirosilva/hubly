@@ -2388,3 +2388,17 @@
 - [x] Relatório Perdas: janela ampliada para N meses passados + N meses futuros (centrada em hoje)
 - [x] Relatório Taxa de Ocupação: janela ampliada para N meses passados + N meses futuros
 - [x] Relatório Previsão: busca próximos 6 meses, usa primeiro mês com dados como referência, exibe mesReferencia no frontend
+
+## Crédito ao Cancelar Agendamento com Sinal Pago
+- [ ] Popup automático ao cancelar agendamento com valor pago: "Deseja converter R$ X em crédito para uso futuro?"
+- [ ] Backend: procedure cancelarComCredito (cancela agendamento + registra crédito automaticamente)
+- [ ] Botão "+ Adicionar Crédito" manual na aba Créditos do perfil do cliente
+- [ ] Backend: procedure adicionarCreditoManual (valor + motivo)
+- [ ] Frontend: exibir motivo do crédito no histórico de movimentações
+
+## Crédito ao Cancelar — Concluído (23/05/2026)
+
+- [x] Popup automático ao cancelar agendamento com sinal/pagamento pago
+- [x] Botão "+ Adicionar crédito" manual na aba Créditos do perfil do cliente
+- [x] Modal de adicionar crédito manual com campo de valor e motivo
+- [x] TypeScript compilado com 0 erros

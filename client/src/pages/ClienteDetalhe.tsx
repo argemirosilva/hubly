@@ -19,7 +19,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, DollarSign, Scissors, Brain,
   Package, Clock, CheckCircle2, XCircle, AlertCircle, Zap,
   Pencil, Save, X, Trash2, MapPin, CreditCard, History, RefreshCw, ChevronDown, ChevronUp,
-  TrendingUp, TrendingDown, Activity, Star, Ban, Wallet, ArrowDownLeft, ArrowUpRight, MessageCircle,
+  TrendingUp, TrendingDown, Activity, Star, Ban, Wallet, ArrowDownLeft, ArrowUpRight, MessageCircle, Plus,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -57,6 +57,9 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
   const [editarCreditoModal, setEditarCreditoModal] = useState(false);
   const [editarCreditoItem, setEditarCreditoItem] = useState<{ id: number; valor: string; origem: string } | null>(null);
   const [removerCreditoId, setRemoverCreditoId] = useState<number | null>(null);
+  // Estado para adicionar crédito manual
+  const [adicionarCreditoModal, setAdicionarCreditoModal] = useState(false);
+  const [adicionarCreditoForm, setAdicionarCreditoForm] = useState({ valor: "", motivo: "" });
   const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
@@ -141,6 +144,18 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
       utils.creditos.listSaldos.invalidate();
       setEditarCreditoModal(false);
       setEditarCreditoItem(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const adicionarCreditoMutation = trpc.creditos.registrar.useMutation({
+    onSuccess: (data) => {
+      toast.success(`✅ Crédito de ${formatCurrency(data.novoSaldo)} registrado com sucesso!`);
+      utils.creditos.getSaldo.invalidate({ clienteId: id });
+      utils.creditos.getHistorico.invalidate({ clienteId: id });
+      utils.creditos.listSaldos.invalidate();
+      setAdicionarCreditoModal(false);
+      setAdicionarCreditoForm({ valor: "", motivo: "" });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -780,6 +795,15 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         <span className={`text-sm font-bold ${saldoCredito > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
                           Saldo: {formatCurrency(saldoCredito)}
                         </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
+                          onClick={() => setAdicionarCreditoModal(true)}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Adicionar crédito
+                        </Button>
                         {saldoCredito > 0 && (
                           <Button
                             size="sm"
@@ -862,6 +886,59 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           </div>
         </div>
       </div>
+
+      {/* ── Modal de adicionar crédito manual ── */}
+      <Dialog open={adicionarCreditoModal} onOpenChange={(open) => { setAdicionarCreditoModal(open); if (!open) setAdicionarCreditoForm({ valor: "", motivo: "" }); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-4 h-4 text-green-600" />
+              Adicionar Crédito Manual
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              O crédito será adicionado ao saldo de <strong>{(cliente as any)?.nome ?? 'cliente'}</strong> e poderá ser usado como pagamento em qualquer agendamento futuro.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="Ex: 60,00"
+                value={adicionarCreditoForm.valor}
+                onChange={e => setAdicionarCreditoForm(f => ({ ...f, valor: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Motivo <span className="text-muted-foreground">(opcional)</span></Label>
+              <Input
+                placeholder="Ex: Sinal do agendamento cancelado em 24/05"
+                value={adicionarCreditoForm.motivo}
+                onChange={e => setAdicionarCreditoForm(f => ({ ...f, motivo: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdicionarCreditoModal(false)}>Cancelar</Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={!adicionarCreditoForm.valor || Number(adicionarCreditoForm.valor) <= 0 || adicionarCreditoMutation.isPending}
+              onClick={() => {
+                adicionarCreditoMutation.mutate({
+                  clienteId: id,
+                  valor: Number(adicionarCreditoForm.valor),
+                  origem: adicionarCreditoForm.motivo || 'Crédito adicionado manualmente',
+                });
+              }}
+            >
+              {adicionarCreditoMutation.isPending ? "Registrando..." : "Confirmar crédito"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Modal de devolução de crédito ── */}
       <Dialog open={devolverCreditoModal} onOpenChange={setDevolverCreditoModal}>
