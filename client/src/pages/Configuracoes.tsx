@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import JSZip from "jszip";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, Download, AlertCircle } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
@@ -104,70 +103,10 @@ export default function Configuracoes() {
     onError: (err: any) => toast.error(err.message),
   });
   
-  const [exportandoObsidian, setExportandoObsidian] = useState(false);
-  const exportQuery = trpc.documentacao.exportarParaObsidian.useQuery(undefined, { enabled: false });
+
   
 
   
-  const handleExportarObsidian = useCallback(async () => {
-    setExportandoObsidian(true);
-    try {
-      const { data: result } = await exportQuery.refetch();
-      if (result) {
-        // Criar ZIP com todos os arquivos
-        const zip = new JSZip();
-        const docs = result as Record<string, string>;
-        
-        Object.entries(docs).forEach(([filename, content]) => {
-          zip.file(`${filename}.md`, content);
-        });
-        
-        // Gerar blob do ZIP
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        
-        // Tentar usar File System Access API (Chrome, Edge)
-        if ("showSaveFilePicker" in window) {
-          try {
-            const handle = await (window as any).showSaveFilePicker({
-              suggestedName: "agendei-documentacao.zip",
-              types: [{ description: "ZIP Files", accept: { "application/zip": [".zip"] } }],
-            });
-            
-            const writable = await handle.createWritable();
-            await writable.write(zipBlob);
-            await writable.close();
-            
-            toast.success("Documentacao exportada com sucesso!");
-            return;
-          } catch (err: any) {
-            // Se o usuário cancelar, cair para o método padrão
-            if (err.name !== "AbortError") {
-              console.error("Erro ao salvar:", err);
-            }
-          }
-        }
-        
-        // Fallback: download direto (sem diálogo de localização)
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(zipBlob);
-        link.download = "agendei-documentacao.zip";
-        link.style.display = "none";
-        
-        document.body.appendChild(link);
-        setTimeout(() => {
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(link.href);
-        }, 500);
-        
-        toast.success("Documentacao exportada com sucesso!");
-      }
-    } catch (err: any) {
-      toast.error("Erro ao exportar: " + err.message);
-    } finally {
-      setExportandoObsidian(false);
-    }
-  }, [exportQuery]);
 
   // Validação de slug em tempo real
   const [slugParaVerificar, setSlugParaVerificar] = useState("");
@@ -764,27 +703,6 @@ export default function Configuracoes() {
             </>
           )}
         </div>
-      </div>
-
-      <div className="border-t pt-6 mt-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Download className="w-5 h-5" />
-          Exportar Documentação
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Exporte a documentação completa do projeto para importar no Obsidian e manter o conhecimento centralizado.
-        </p>
-        <button
-          onClick={handleExportarObsidian}
-          disabled={exportandoObsidian}
-          className="btn-primary py-2 px-4 text-sm"
-        >
-          {exportandoObsidian ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Exportando...</>
-          ) : (
-            <><Download className="w-4 h-4" /> Exportar para Obsidian</>
-          )}
-        </button>
       </div>
 
       <button onClick={handleSave} disabled={updateMutation.isPending || salvarPrefsMutation.isPending} className="btn-primary">
