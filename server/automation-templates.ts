@@ -205,6 +205,7 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     tipoGatilho: "evento",
     evento: "credito_gerado",
     canalEnvio: "whatsapp",
+    ativo: false,
     corpoMensagem:
       "💰 *Crédito Disponível!*\n\n" +
       "Olá, *{{nome_cliente}}*! Um crédito foi adicionado à sua conta.\n\n" +
