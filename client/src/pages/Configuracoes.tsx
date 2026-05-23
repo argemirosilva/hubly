@@ -32,6 +32,7 @@ export default function Configuracoes() {
     // Portal
     portalAtivo: false,
     autoConfirmarPortal: false,
+    portalCobraSinal: true,
     portalHeaderUrl: "",
     portalMensagemBemVindo: "",
     portalSlug: "",
@@ -57,6 +58,7 @@ export default function Configuracoes() {
         logoUrl: empresa.logoUrl ?? "",
         portalAtivo: empresa.portalAtivo ?? false,
         autoConfirmarPortal: empresa.autoConfirmarPortal ?? false,
+        portalCobraSinal: (empresa as any).portalCobraSinal !== false,
         portalHeaderUrl: (empresa as any).portalHeaderUrl ?? "",
         portalMensagemBemVindo: (empresa as any).portalMensagemBemVindo ?? "",
         portalSlug: (empresa as any).portalSlug ?? "",
@@ -206,6 +208,7 @@ export default function Configuracoes() {
       logoUrl: form.logoUrl || undefined,
       portalAtivo: form.portalAtivo,
       autoConfirmarPortal: form.autoConfirmarPortal,
+      portalCobraSinal: form.portalCobraSinal,
       portalHeaderUrl: form.portalHeaderUrl || undefined,
       portalMensagemBemVindo: form.portalMensagemBemVindo || undefined,
       portalSlug: form.portalSlug || undefined,
@@ -567,6 +570,26 @@ export default function Configuracoes() {
               style={{ background: form.autoConfirmarPortal ? "oklch(55% 0.22 264)" : "oklch(80% 0.012 250)" }}>
               <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
                 style={{ left: form.autoConfirmarPortal ? "22px" : "2px" }} />
+            </button>
+          </div>
+
+          {/* Cobrar sinal no portal */}
+          <div className="flex items-center justify-between p-4 rounded-xl border"
+            style={{ background: "oklch(96% 0.008 250)", borderColor: "oklch(90% 0.012 250)" }}>
+            <div>
+              <p className="font-semibold text-sm">Cobrar sinal no portal</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {form.portalCobraSinal
+                  ? `Sinal de ${form.reservaPercentual ?? 30}% será exibido e cobrado nos agendamentos pelo portal`
+                  : "Agendamentos pelo portal não exigirão pagamento de sinal"}
+              </p>
+            </div>
+            <button
+              onClick={() => setForm(f => ({ ...f, portalCobraSinal: !f.portalCobraSinal }))}
+              className="relative w-11 h-6 rounded-full transition-all flex-shrink-0"
+              style={{ background: form.portalCobraSinal ? "oklch(55% 0.22 264)" : "oklch(80% 0.012 250)" }}>
+              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                style={{ left: form.portalCobraSinal ? "22px" : "2px" }} />
             </button>
           </div>
 

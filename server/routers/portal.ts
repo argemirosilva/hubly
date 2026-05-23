@@ -65,6 +65,7 @@ async function getEmpresaPublicaById(id: number) {
     reservaPercentual: empresas.reservaPercentual,
     reservaHorasExpiracao: empresas.reservaHorasExpiracao,
     portalPoliticaCancelamento: empresas.portalPoliticaCancelamento,
+    portalCobraSinal: empresas.portalCobraSinal,
   }).from(empresas).where(eq(empresas.id, id)).limit(1);
   return result[0] ?? null;
 }
@@ -95,6 +96,7 @@ async function getEmpresaPublicaBySlug(slug: string) {
     reservaPercentual: empresas.reservaPercentual,
     reservaHorasExpiracao: empresas.reservaHorasExpiracao,
     portalPoliticaCancelamento: empresas.portalPoliticaCancelamento,
+    portalCobraSinal: empresas.portalCobraSinal,
   }).from(empresas).where(eq(empresas.portalSlug, slug)).limit(1);
   return result[0] ?? null;
 }

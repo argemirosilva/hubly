@@ -797,7 +797,7 @@ export default function PortalCliente() {
                 />
               </div>
 
-              {Number(empresa.reservaPercentual ?? 0) > 0 && (
+              {empresa.portalCobraSinal !== false && Number(empresa.reservaPercentual ?? 0) > 0 && (
                 <div className="rounded-lg px-3 py-2.5 border flex items-start gap-2"
                   style={{ background: corPrimaria + "12", borderColor: corPrimaria + "40" }}>
                   <span className="text-base mt-0.5">💰</span>

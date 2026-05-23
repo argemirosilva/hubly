@@ -477,6 +477,13 @@
       "when": 1779559667271,
       "tag": "0067_gifted_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "5",
+      "when": 1779560405120,
+      "tag": "0068_round_zombie",
+      "breakpoints": true
     }
   ]
 }

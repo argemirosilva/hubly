@@ -72,6 +72,7 @@ export const empresas = mysqlTable("empresas", {
   portalHeaderUrl: text("portalHeaderUrl"),
   portalMensagemBemVindo: text("portalMensagemBemVindo"),
   portalPoliticaCancelamento: text("portalPoliticaCancelamento"),
+  portalCobraSinal: boolean("portalCobraSinal").default(true).notNull(), // se true, exibe aviso de sinal no portal e cria pré-agendamento com reserva
   // Horário de funcionamento
   horaAbertura: varchar("horaAbertura", { length: 5 }).default("08:00"),
   horaFechamento: varchar("horaFechamento", { length: 5 }).default("18:00"),

@@ -1,0 +1,1 @@
+ALTER TABLE `empresas` ADD `portalCobraSinal` boolean DEFAULT true NOT NULL;

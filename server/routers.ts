@@ -562,6 +562,7 @@ export const appRouter = router({
         portalHeaderUrl: z.string().optional(),
         portalMensagemBemVindo: z.string().optional(),
         portalPoliticaCancelamento: z.string().optional(),
+        portalCobraSinal: z.boolean().optional(),
         horaAbertura: z.string().optional(),
         horaFechamento: z.string().optional(),
         diasFuncionamento: z.array(z.number()).optional(),

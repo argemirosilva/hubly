@@ -2435,3 +2435,13 @@
 - [x] Campo portalPoliticaCancelamento no retorno do portal.ts
 - [x] Campo portalPoliticaCancelamento no input da procedure empresa.update (routers.ts)
 - [x] Campo de política de cancelamento adicionado nas Configurações do portal (UI)
+
+## Toggle "Cobrar sinal no portal" nas Configurações (23/05/2026)
+- [x] Campo portalCobraSinal (boolean, default true) adicionado no schema da empresa
+- [x] Migration 0068 aplicada no banco
+- [x] Campo retornado nas queries do portal.ts (getEmpresaById e getEmpresaBySlug)
+- [x] Campo adicionado no input da procedure empresa.update (routers.ts)
+- [x] Toggle "Cobrar sinal no portal" adicionado nas Configurações do portal (UI)
+- [x] Estado inicial e carregamento do form atualizados em Configuracoes.tsx
+- [x] PortalCliente.tsx: aviso de sinal só exibido quando portalCobraSinal !== false
+- [x] TypeScript: 0 erros
