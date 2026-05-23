@@ -48,7 +48,7 @@ function gerarDatasDisponiveis(diasFuncionamento: number[]): string[] {
 type Step = "identificacao" | "profissional" | "servico" | "data" | "confirmacao" | "sucesso";
 const STEPS: Step[] = ["identificacao", "profissional", "servico", "data", "confirmacao"];
 const STEP_LABELS = ["Identificação", "Profissional", "Serviço", "Data & Hora", "Confirmar"];
-const STEP_ICONS = [User, User, Scissors, Calendar, CheckCircle2];
+const STEP_ICONS = [User, User, Scissors, CalendarDays, CheckCircle2];
 
 export default function PortalCliente() {
   const [matchSlug, paramsSlug] = useRoute("/agendar/:slug");
