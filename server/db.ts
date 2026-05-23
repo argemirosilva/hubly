@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
-import { creditosCliente, agendamentoPessoas, automacoesExcluidas } from '../drizzle/schema';
+import { creditosCliente, agendamentoPessoas, automacoesExcluidas, taxasConfig, InsertTaxaConfig } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
 import { createPool } from "mysql2/promise";
