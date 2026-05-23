@@ -20,6 +20,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
   concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
   cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+  remarcado:          { label: "Remarcado",       bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
 };
 
 interface Props {
@@ -1589,6 +1590,18 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   color="oklch(42% 0.14 75)"
                   border="oklch(72% 0.16 80 / 25%)"
                   onClick={() => handleStatus("faltou")}
+                  loading={updateMutation.isPending}
+                />
+              )}
+              {/* Remarcar: não mostrar se já está remarcado */}
+              {ag.status !== "remarcado" && (
+                <ActionBtn
+                  label="Remarcado"
+                  icon={Calendar}
+                  bg="oklch(68% 0.18 290 / 10%)"
+                  color="oklch(40% 0.16 290)"
+                  border="oklch(68% 0.18 290 / 25%)"
+                  onClick={() => handleStatus("remarcado")}
                   loading={updateMutation.isPending}
                 />
               )}

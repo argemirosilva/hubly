@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle, Users, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, CheckCircle2, AlertTriangle, Users, Clock, X, Calendar } from "lucide-react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
@@ -38,6 +38,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
   concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
   cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+  remarcado:          { label: "Remarcado",       bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
 };
 
 export default function Calendario() {
@@ -50,6 +51,7 @@ export default function Calendario() {
   const [profissionalFiltro, setProfissionalFiltro] = useState<string>("all");
   const [menuAberto, setMenuAberto] = useState<{ x: number; y: number; data: string } | null>(null);
   const [agendamentosDodia, setAgendamentosDodia] = useState<number>(0);
+  const [diaAberto, setDiaAberto] = useState<string | null>(null); // visão diária
 
   const { isOwner, pode } = usePermissoes();
   const isAdmin = isOwner || pode('agendamentosVerTodos');
@@ -366,9 +368,7 @@ export default function Calendario() {
                   e.stopPropagation();
                   const agsDodia = ags.length;
                   if (agsDodia > 0) {
-                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setMenuAberto({ x: rect.left, y: rect.top + rect.height, data: date });
-                    setAgendamentosDodia(agsDodia);
+                    setDiaAberto(date);
                   } else {
                     setNovaAgendaData(date);
                     setNovaAgendaOpen(true);
@@ -617,6 +617,123 @@ export default function Calendario() {
           );
         })}
       </div>
+
+      {/* Visão Diária — modal com grade de horários */}
+      {diaAberto && (() => {
+        const agsNoDia = (agendamentosPorDia[diaAberto] ?? []).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+        const bloqueiosNoDia = (bloqueios ?? []).filter(b => b.dataInicio.split('T')[0] === diaAberto && b.status === 'aprovado');
+        const [diaY, diaM, diaD] = diaAberto.split("-").map(Number);
+        const dataFormatada = `${String(diaD).padStart(2,"0")}/${String(diaM).padStart(2,"0")}/${diaY}`;
+        const diaSemana = DIAS_SEMANA[new Date(diaAberto + "T12:00:00").getDay()];
+        // Calcular faixa de horas a exibir
+        const toMins = (h: string) => { const [hh, mm] = h.split(":").map(Number); return hh * 60 + (mm ?? 0); };
+        const allStarts = agsNoDia.map(a => toMins(a.horaInicio));
+        const allEnds = agsNoDia.map(a => toMins(a.horaFim));
+        const minHour = allStarts.length ? Math.max(0, Math.floor(Math.min(...allStarts) / 60) - 1) : 7;
+        const maxHour = allEnds.length ? Math.min(23, Math.ceil(Math.max(...allEnds) / 60) + 1) : 20;
+        const hours = Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i);
+        const SLOT_H = 64; // px por hora
+        const totalH = hours.length * SLOT_H;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDiaAberto(null)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden"
+              style={{ maxHeight: "90vh" }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">{diaSemana}</p>
+                  <h2 className="text-lg font-bold">{dataFormatada}</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">{agsNoDia.length} agendamento{agsNoDia.length !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setNovaAgendaData(diaAberto); setNovaAgendaOpen(true); setDiaAberto(null); }}
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Novo
+                  </button>
+                  <button onClick={() => setDiaAberto(null)} className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+              </div>
+              {/* Grade de horários */}
+              <div className="overflow-y-auto flex-1">
+                <div className="relative" style={{ height: totalH }}>
+                  {/* Linhas de hora */}
+                  {hours.map(h => (
+                    <div key={h} className="absolute w-full flex" style={{ top: (h - minHour) * SLOT_H }}>
+                      <div className="w-12 flex-shrink-0 text-right pr-2 pt-0.5">
+                        <span className="text-[11px] text-muted-foreground tabular-nums">{String(h).padStart(2,"0")}:00</span>
+                      </div>
+                      <div className="flex-1 border-t border-dashed border-border/50" />
+                    </div>
+                  ))}
+                  {/* Bloqueios */}
+                  {bloqueiosNoDia.map(bl => {
+                    const top = (toMins(bl.horaInicio) - minHour * 60) / 60 * SLOT_H;
+                    const height = Math.max(24, (toMins(bl.horaFim) - toMins(bl.horaInicio)) / 60 * SLOT_H);
+                    const cor = bl.profissionalId != null ? (profMap[bl.profissionalId]?.cor ?? "oklch(50% 0.06 68)") : "oklch(50% 0.06 68)";
+                    return (
+                      <div key={`bl-${bl.id}`} className="absolute rounded-md px-2 py-1 overflow-hidden"
+                        style={{ top: top + 1, left: 52, right: 8, height: height - 2, backgroundColor: `${cor}22`, borderLeft: `3px solid ${cor}`, opacity: 0.7 }}>
+                        <p className="text-[10px] font-medium truncate" style={{ color: cor }}>🔒 {bl.horaInicio.slice(0,5)}–{bl.horaFim.slice(0,5)} Bloqueio</p>
+                      </div>
+                    );
+                  })}
+                  {/* Agendamentos */}
+                  {agsNoDia.map((ag, idx) => {
+                    const top = (toMins(ag.horaInicio) - minHour * 60) / 60 * SLOT_H;
+                    const height = Math.max(32, (toMins(ag.horaFim) - toMins(ag.horaInicio)) / 60 * SLOT_H);
+                    const cor = ag.profissionalId != null ? (profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)") : "oklch(50% 0.06 68)";
+                    const { icon: SvcIcon } = getServiceIcon(ag.servicoNome);
+                    const cfg = statusConfig[ag.status];
+                    const isInativo = ag.status === "cancelado" || ag.status === "faltou" || ag.status === "remarcado";
+                    return (
+                      <div key={`ag-${ag.id}-${idx}`}
+                        className="absolute rounded-lg px-2 py-1 cursor-pointer hover:brightness-95 transition-all overflow-hidden"
+                        style={{
+                          top: top + 1,
+                          left: 52,
+                          right: 8,
+                          height: height - 2,
+                          backgroundColor: cor,
+                          opacity: isInativo ? 0.5 : 1,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                        }}
+                        onClick={() => { setAgendamentoSelecionado(ag.id); setDiaAberto(null); }}
+                      >
+                        <div className="flex items-center gap-1">
+                          <SvcIcon className="w-3 h-3 flex-shrink-0 text-white/90" />
+                          <span className="text-[11px] font-semibold text-white truncate">
+                            {ag.horaInicio.slice(0,5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
+                          </span>
+                          {cfg && (
+                            <span className="ml-auto text-[9px] font-medium px-1 py-0.5 rounded flex-shrink-0"
+                              style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white" }}>
+                              {cfg.label}
+                            </span>
+                          )}
+                        </div>
+                        {height > 44 && (
+                          <p className="text-[10px] text-white/80 truncate mt-0.5">{ag.servicoNome}</p>
+                        )}
+                        {height > 60 && ag.profissionalId != null && profMap[ag.profissionalId] && (
+                          <p className="text-[10px] text-white/70 truncate">{profMap[ag.profissionalId]?.nome?.split(" ")[0]}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Menu de ações ao clicar em dia */}
       {menuAberto && (

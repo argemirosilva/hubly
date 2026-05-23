@@ -35,6 +35,7 @@ const statusLabel: Record<string, string> = {
   concluido: "Concluído",
   cancelado: "Cancelado",
   faltou: "Faltou",
+  remarcado: "Remarcado",
 };
 
 const statusStyle: Record<string, { bg: string; color: string }> = {
@@ -45,6 +46,7 @@ const statusStyle: Record<string, { bg: string; color: string }> = {
   concluido:          { bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
   cancelado:          { bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
+  remarcado:          { bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
 };
 
 function formatCurrency(v: number) {

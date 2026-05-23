@@ -2402,3 +2402,18 @@
 - [x] Botão "+ Adicionar crédito" manual na aba Créditos do perfil do cliente
 - [x] Modal de adicionar crédito manual com campo de valor e motivo
 - [x] TypeScript compilado com 0 erros
+
+## Calendário Visão Diária e Status Remarcado
+- [ ] Visão diária com grade de horários ao clicar num dia no calendário
+- [ ] Status "remarcado" no agendamento (schema + backend + frontend)
+- [ ] Escore da cliente contabiliza "remarcado" negativamente
+
+## Calendário Visão Diária + Status Remarcado (23/05/2026)
+- [x] Visão diária no calendário: clicar num dia com agendamentos abre grade de horários
+- [x] Grade mostra agendamentos posicionados no tempo (hora a hora)
+- [x] Bloqueios também aparecem na grade diária
+- [x] Botão "Novo" na visão diária para criar agendamento no dia
+- [x] Status "Remarcado" adicionado ao enum do banco (migration aplicada)
+- [x] Botão "Remarcado" adicionado no modal de detalhe do agendamento
+- [x] Status "Remarcado" com cor roxa em todos os mapas de status (modal, agendamentos, perfil cliente)
+- [x] Escore do cliente: remarcados contam como cancelamento leve (peso 0.5)

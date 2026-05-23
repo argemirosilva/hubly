@@ -70,6 +70,7 @@ async function calcularMetricasClientes(empresaId: number): Promise<{
     const concluidos = agdsCliente.filter(a => a.status === "concluido");
     const faltou = agdsCliente.filter(a => a.status === "faltou");
     const cancelados = agdsCliente.filter(a => a.status === "cancelado");
+    const remarcados = agdsCliente.filter(a => a.status === "remarcado");
 
     const totalReceita = concluidos.reduce((acc, a) => acc + parseFloat(String(a.valorTotal ?? "0")), 0);
 
@@ -85,8 +86,9 @@ async function calcularMetricasClientes(empresaId: number): Promise<{
       .filter(a => a.data >= inicioMesAnterior.toISOString().split("T")[0] && a.data <= fimMesAnterior.toISOString().split("T")[0] && a.status === "concluido")
       .reduce((acc, a) => acc + parseFloat(String(a.valorTotal ?? "0")), 0);
 
-    const totalNaoCanc = agdsCliente.filter(a => a.status !== "cancelado").length;
-    const pctPontualidade = totalNaoCanc > 0 ? 1 - (faltou.length / totalNaoCanc) : 1;
+    // Remarcados contam como cancelamento leve (metade do peso) para o escore
+    const totalNaoCanc = agdsCliente.filter(a => a.status !== "cancelado" && a.status !== "remarcado").length;
+    const pctPontualidade = totalNaoCanc > 0 ? 1 - ((faltou.length + remarcados.length * 0.5) / (totalNaoCanc + remarcados.length)) : 1;
 
     return {
       clienteId: cliente.id,

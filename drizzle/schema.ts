@@ -203,6 +203,7 @@ export const agendamentos = mysqlTable("agendamentos", {
     "concluido",
     "cancelado",
     "faltou",
+    "remarcado",
   ]).default("agendado").notNull(),
   valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull(),
   valorReserva: decimal("valorReserva", { precision: 10, scale: 2 }),

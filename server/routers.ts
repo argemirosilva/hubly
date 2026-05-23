@@ -1307,7 +1307,7 @@ export const appRouter = router({
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
-        status: z.enum(["pre_agendado", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]).optional(),
+        status: z.enum(["pre_agendado", "agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou", "remarcado"]).optional(),
         clienteId: z.number().optional(),
         data: z.string().optional(),
         horaInicio: z.string().optional(),
@@ -2287,7 +2287,7 @@ export const appRouter = router({
     bulkUpdateStatus: protectedProcedure
       .input(z.object({
         ids: z.array(z.number()).min(1).max(100),
-        status: z.enum(["agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou"]),
+        status: z.enum(["agendado", "confirmado", "em_andamento", "concluido", "cancelado", "faltou", "remarcado"]),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

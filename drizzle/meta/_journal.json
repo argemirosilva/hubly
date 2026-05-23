@@ -456,6 +456,13 @@
       "when": 1748000000000,
       "tag": "0064_taxas_adicionais",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "5",
+      "when": 1779544600123,
+      "tag": "0065_absurd_argent",
+      "breakpoints": true
     }
   ]
 }
