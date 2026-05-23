@@ -1350,11 +1350,12 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
 
 function calcularScore(agendamentos: any[], cliente: any) {
   const total = agendamentos.length;
-  if (total === 0) return { score: 0, label: "Sem dados", color: "#94a3b8", icon: Activity, fatores: [], stats: { total: 0, concluidos: 0, cancelados: 0, faltas: 0 } };
+  if (total === 0) return { score: 0, label: "Sem dados", color: "#94a3b8", icon: Activity, fatores: [], stats: { total: 0, concluidos: 0, cancelados: 0, faltas: 0, atrasos: 0 } };
 
   const concluidos = agendamentos.filter(a => a.status === "concluido").length;
   const cancelados = agendamentos.filter(a => a.status === "cancelado").length;
   const faltas = agendamentos.filter(a => a.status === "faltou").length;
+  const atrasos = agendamentos.filter(a => (a.minutosAtraso ?? 0) > 0).length;
 
   // Fator 1: Taxa de conclusão (0-30 pts)
   const taxaConclusao = total > 0 ? concluidos / total : 0;
@@ -1428,7 +1429,14 @@ function calcularScore(agendamentos: any[], cliente: any) {
   else if (score >= 20) { label = "Baixo"; color = "oklch(55% 0.18 30)"; icon = TrendingDown; }
   else { label = "Crítico"; color = "oklch(50% 0.22 25)"; icon = Ban; }
 
-  return { score, label, color, icon, fatores, stats: { total, concluidos, cancelados, faltas } };
+  // Fator extra: Pontualidade (informativo, não altera score diretamente)
+  const ptsAtraso = atrasos === 0 ? 10 : Math.max(0, 10 - Math.round((atrasos / Math.max(total, 1)) * 10));
+  const fatoresComAtraso = [
+    ...fatores,
+    { nome: "Pontualidade", pts: ptsAtraso, max: 10, detalhe: atrasos === 0 ? "Sem atrasos" : `${atrasos} atraso${atrasos > 1 ? 's' : ''} registrado${atrasos > 1 ? 's' : ''}` },
+  ];
+
+  return { score, label, color, icon, fatores: fatoresComAtraso, stats: { total, concluidos, cancelados, faltas, atrasos } };
 }
 
 function ScoreRing({ score, color, size = 80 }: { score: number; color: string; size?: number }) {
@@ -1488,16 +1496,17 @@ function ClienteScoreCard({ agendamentos, cliente }: { agendamentos: any[]; clie
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-border">
+        <div className="grid grid-cols-5 gap-1.5 mt-3 pt-3 border-t border-border">
           {[
-            { label: "Total", value: stats.total, color: "text-foreground" },
-            { label: "Concluídos", value: stats.concluidos, color: "text-emerald-600" },
-            { label: "Cancelados", value: stats.cancelados, color: "text-red-500" },
-            { label: "Faltas", value: stats.faltas, color: "text-amber-500" },
+            { label: "Total", value: String(stats.total), color: "text-foreground" },
+            { label: "Concluídos", value: String(stats.concluidos), color: "text-emerald-600" },
+            { label: "Cancelados", value: String(stats.cancelados), color: "text-red-500" },
+            { label: "Faltas", value: String(stats.faltas), color: "text-amber-500" },
+            { label: "Atrasos", value: `${stats.atrasos}/${stats.total}`, color: stats.atrasos > 0 ? "text-orange-500" : "text-muted-foreground" },
           ].map(s => (
             <div key={s.label} className="text-center">
-              <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+              <p className={`text-xs font-bold ${s.color} tabular-nums`}>{s.value}</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">{s.label}</p>
             </div>
           ))}
         </div>

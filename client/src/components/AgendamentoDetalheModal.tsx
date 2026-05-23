@@ -2072,7 +2072,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             O crédito ficará disponível na aba <strong>Créditos</strong> do perfil da cliente e poderá ser usado como forma de pagamento em qualquer agendamento futuro.
           </p>
         </div>
-        <DialogFooter className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pt-2">
           <Button
             onClick={confirmarCancelamentoComCredito}
             disabled={registrarCreditoMutation.isPending || updateMutation.isPending}
@@ -2091,7 +2091,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setCancelarComCreditoModal(false)}>
             Voltar
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
 
