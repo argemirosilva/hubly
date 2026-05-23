@@ -2484,3 +2484,18 @@
 - [x] Portal público: 6 atalhos rápidos de datas + botão "Escolher outra data" abre calendário completo
 - [x] Portal: calendário desabilita dias anteriores a hoje, dias sem funcionamento e datas lotadas
 - [x] TypeScript: 0 erros
+
+## CalendarioCustom — Calendário Customizado no Portal (23/05/2026)
+- [x] Componente CalendarioCustom criado em PortalCliente.tsx (substitui shadcn Calendar)
+- [x] Header do calendário usa corPrimaria como fundo
+- [x] Dias disponíveis clicáveis com hover em corSecundaria
+- [x] Dias lotados em vermelho com label "lotado"
+- [x] Dias passados/fechados em cinza e desabilitados
+- [x] Navegação prev/next mês com setas
+- [x] Indicador de ponto (dot) para o dia de hoje
+- [x] Legenda: Disponível / Lotado / Indisponível
+- [x] Calendário inline (sem Popover/overlay)
+- [x] Import do shadcn Calendar removido de PortalCliente.tsx
+- [x] STEP_ICONS: ícone Calendar (componente) substituído por CalendarDays (ícone lucide)
+- [x] ResumoItem na etapa de confirmação: Calendar substituído por CalendarDays
+- [x] TypeScript: 0 erros

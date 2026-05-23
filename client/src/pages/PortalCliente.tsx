@@ -6,8 +6,7 @@ import {
   User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
   AlertCircle, Loader2, ShieldCheck, Share2, CalendarDays,
 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { format, parseISO, isBefore, startOfDay } from "date-fns";
+import { format, parseISO, isBefore, startOfDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -26,6 +25,142 @@ function formatarData(data: string) {
 function diasDaSemanaStr(diasFuncionamento: number[]) {
   const nomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return diasFuncionamento.map(d => nomes[d]).join(", ");
+}
+
+// ── Calendário Customizado ────────────────────────────────────────────────
+interface CalendarioCustomProps {
+  corPrimaria: string;
+  corSecundaria: string;
+  datasDisponiveis: string[];
+  disponibilidadePorData: Record<string, boolean>;
+  diasFuncionamento: number[];
+  dataSelecionada: string;
+  onSelect: (d: string) => void;
+}
+
+function CalendarioCustom({ corPrimaria, corSecundaria, datasDisponiveis, disponibilidadePorData, diasFuncionamento, dataSelecionada, onSelect }: CalendarioCustomProps) {
+  const [mesAtual, setMesAtual] = useState(() => {
+    if (dataSelecionada) return startOfMonth(parseISO(dataSelecionada));
+    return startOfMonth(new Date());
+  });
+
+  const hoje = startOfDay(new Date());
+  const primeiroDia = startOfMonth(mesAtual);
+  const ultimoDia = endOfMonth(mesAtual);
+  const diasDoMes = eachDayOfInterval({ start: primeiroDia, end: ultimoDia });
+
+  // Preencher com dias vazios antes do primeiro dia (domingo = 0)
+  const offsetInicio = getDay(primeiroDia); // 0=dom, 1=seg...
+  const diasVazios = Array(offsetInicio).fill(null);
+
+  const nomesAbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  const getEstadoDia = (date: Date) => {
+    if (isBefore(date, hoje)) return "passado";
+    if (!diasFuncionamento.includes(date.getDay())) return "fechado";
+    const d = format(date, "yyyy-MM-dd");
+    if (disponibilidadePorData[d] === false) return "lotado";
+    if (datasDisponiveis.includes(d)) return "disponivel";
+    return "disponivel"; // padrão se não há info ainda
+  };
+
+  const mesAnteriorDisponivel = !isBefore(subMonths(mesAtual, 1), startOfMonth(hoje));
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${corPrimaria}22`, background: "white", boxShadow: `0 4px 24px ${corPrimaria}18` }}>
+      {/* Header do mês */}
+      <div className="flex items-center justify-between px-4 py-3" style={{ background: corPrimaria }}>
+        <button
+          onClick={() => mesAnteriorDisponivel && setMesAtual(m => subMonths(m, 1))}
+          disabled={!mesAnteriorDisponivel}
+          className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+          style={{ background: mesAnteriorDisponivel ? "rgba(255,255,255,0.2)" : "transparent", color: mesAnteriorDisponivel ? "white" : "rgba(255,255,255,0.3)", cursor: mesAnteriorDisponivel ? "pointer" : "default" }}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-white font-semibold text-sm capitalize">
+          {format(mesAtual, "MMMM yyyy", { locale: ptBR })}
+        </span>
+        <button
+          onClick={() => setMesAtual(m => addMonths(m, 1))}
+          className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+          style={{ background: "rgba(255,255,255,0.2)", color: "white" }}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Dias da semana */}
+      <div className="grid grid-cols-7 border-b" style={{ borderColor: `${corPrimaria}15` }}>
+        {nomesAbrev.map(n => (
+          <div key={n} className="text-center py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: corPrimaria + "99" }}>{n}</div>
+        ))}
+      </div>
+
+      {/* Grid de dias */}
+      <div className="grid grid-cols-7 p-2 gap-0.5">
+        {diasVazios.map((_, i) => <div key={`v${i}`} />)}
+        {diasDoMes.map(date => {
+          const estado = getEstadoDia(date);
+          const d = format(date, "yyyy-MM-dd");
+          const selecionado = dataSelecionada === d;
+          const isHoje = isSameDay(date, hoje);
+          const clicavel = estado === "disponivel";
+
+          let bg = "transparent";
+          let cor = "#475569";
+          let borda = "transparent";
+          let opacidade = 1;
+
+          if (selecionado) {
+            bg = corPrimaria;
+            cor = "white";
+          } else if (isHoje && !selecionado) {
+            borda = corPrimaria;
+            cor = corPrimaria;
+          } else if (estado === "passado" || estado === "fechado") {
+            cor = "#cbd5e1";
+            opacidade = 0.5;
+          } else if (estado === "lotado") {
+            cor = "#f87171";
+            opacidade = 0.7;
+          }
+
+          return (
+            <button
+              key={d}
+              onClick={() => clicavel && onSelect(d)}
+              disabled={!clicavel}
+              className="relative flex flex-col items-center justify-center rounded-xl transition-all duration-150 aspect-square text-xs font-semibold"
+              style={{
+                background: bg,
+                color: cor,
+                border: `1.5px solid ${borda}`,
+                opacity: opacidade,
+                cursor: clicavel ? "pointer" : "default",
+                ...(clicavel && !selecionado ? { "--hover-bg": corSecundaria + "60" } as React.CSSProperties : {}),
+              }}
+              onMouseEnter={e => { if (clicavel && !selecionado) (e.currentTarget as HTMLButtonElement).style.background = corSecundaria + "60"; }}
+              onMouseLeave={e => { if (clicavel && !selecionado) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+            >
+              <span>{date.getDate()}</span>
+              {estado === "lotado" && <span className="text-[7px] font-bold leading-none mt-0.5" style={{ color: "#f87171" }}>lotado</span>}
+              {isHoje && !selecionado && (
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: corPrimaria }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Legenda */}
+      <div className="flex items-center justify-center gap-4 px-4 py-2.5 border-t text-[10px] font-medium" style={{ borderColor: `${corPrimaria}15`, color: "#94a3b8" }}>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: corPrimaria }} /> Disponível</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-300" /> Lotado</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-200" /> Indisponível</span>
+      </div>
+    </div>
+  );
 }
 
 function gerarDatasDisponiveis(diasFuncionamento: number[]): string[] {
@@ -704,31 +839,17 @@ export default function PortalCliente() {
                     : calendarioAberto ? "Fechar calendário" : "Escolher outra data"}
                 </button>
 
-                {/* Calendário inline — aparece abaixo do botão, sem sobreposicao */}
+                {/* Calendário customizado inline */}
                 {calendarioAberto && (
-                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <Calendar
-                      mode="single"
-                      selected={data ? parseISO(data) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const d = format(date, "yyyy-MM-dd");
-                          const lotado = disponibilidadePorData ? disponibilidadePorData[d] === false : false;
-                          if (!lotado) { setData(d); setHora(""); setCalendarioAberto(false); }
-                          else toast.error("Esta data não tem horários disponíveis");
-                        }
-                      }}
-                      disabled={(date) => {
-                        if (isBefore(date, startOfDay(new Date()))) return true;
-                        if (!diasFuncionamento.includes(date.getDay())) return true;
-                        const d = format(date, "yyyy-MM-dd");
-                        if (disponibilidadePorData && disponibilidadePorData[d] === false) return true;
-                        return false;
-                      }}
-                      locale={ptBR}
-                      className="mx-auto"
-                    />
-                  </div>
+                  <CalendarioCustom
+                    corPrimaria={corPrimaria}
+                    corSecundaria={corSecundaria}
+                    datasDisponiveis={datasDisponiveis}
+                    disponibilidadePorData={disponibilidadePorData ?? {}}
+                    diasFuncionamento={diasFuncionamento}
+                    dataSelecionada={data}
+                    onSelect={(d) => { setData(d); setHora(""); setCalendarioAberto(false); }}
+                  />
                 )}
 
                 {disponibilidadePorData && Object.values(disponibilidadePorData).every(v => !v) && (
@@ -805,7 +926,7 @@ export default function PortalCliente() {
                 )}
                 <ResumoItem icon={User} label="Profissional"
                   value={profSelecionado?.nome ?? (profissionalId ? "—" : "Qualquer disponível")} cor={corPrimaria} />
-                <ResumoItem icon={Calendar} label="Data" value={formatarData(data)} cor={corPrimaria} />
+                <ResumoItem icon={CalendarDays} label="Data" value={formatarData(data)} cor={corPrimaria} />
                 <ResumoItem icon={Clock} label="Horário"
                   value={`${hora} · ${duracaoTotalServicos} min`} cor={corPrimaria} />
                 <ResumoItem icon={User} label="Cliente" value={`${nome} · ${telefone}`} cor={corPrimaria} />
