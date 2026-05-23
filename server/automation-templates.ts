@@ -23,6 +23,7 @@ interface AutomacaoTemplate {
   canalEnvio: "whatsapp" | "email";
   corpoMensagem: string;
   flowJson: string;
+  ativo?: boolean; // padrão true; use false para criar desativado
 }
 
 function buildFlowJson(trigger: { id: string; tipo: string; label: string; [k: string]: any }, action: { id: string; label: string; tipo: string; mensagem: string }): string {
@@ -278,6 +279,25 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
+  // 14. Agendamento remarcado (criado desativado por padrão)
+  {
+    nome: "Agendamento remarcado",
+    descricao: "Avisa a cliente quando o agendamento é marcado como remarcado",
+    tipoGatilho: "evento",
+    evento: "agendamento_remarcado",
+    canalEnvio: "whatsapp",
+    ativo: false,
+    corpoMensagem:
+      "🔄 *Agendamento Remarcado*\n\n" +
+      "Olá, *{{nome_cliente}}*! Seu agendamento foi remarcado.\n\n" +
+      "Quando quiser agendar novamente, é só entrar em contato! 😊\n\n" +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_agendamento_remarcado", label: "Agendamento remarcado" },
+      { id: "a1", label: "Aviso de remarcação", tipo: "enviar_whatsapp", mensagem: "🔄 *Agendamento Remarcado*\n\nOlá, *{{nome_cliente}}*! Seu agendamento foi remarcado.\n\nQuando quiser agendar novamente, é só entrar em contato! 😊\n\n_{{empresa}}_" },
+    ),
+  },
+
   // 13. Aniversariante do mês
   {
     nome: "Aniversariante do mês",
@@ -381,6 +401,43 @@ export async function sincronizarPipelineParaEmpresa(empresaId: number): Promise
   }
 }
 
+/**
+ * Provisiona o template "Agendamento remarcado" (desativado) para empresas que já existem.
+ * Idempotente: só cria se ainda não existir automação para o evento agendamento_remarcado.
+ */
+export async function provisionarTemplateRemarcadoExistentes(): Promise<void> {
+  try {
+    const db = await (await import('./db')).getDb();
+    if (!db) return;
+    const { empresas } = await import('../drizzle/schema');
+    const todasEmpresas = await db.select({ id: empresas.id }).from(empresas);
+    const template = AUTOMATION_TEMPLATES.find(t => t.evento === 'agendamento_remarcado');
+    if (!template) return;
+    let count = 0;
+    for (const emp of todasEmpresas) {
+      const jaExiste = await existeAutomacaoParaEvento(emp.id, 'agendamento_remarcado');
+      if (!jaExiste) {
+        await createAutomacao({
+          empresaId: emp.id,
+          nome: template.nome,
+          descricao: template.descricao,
+          tipoGatilho: template.tipoGatilho,
+          evento: template.evento,
+          canalEnvio: template.canalEnvio,
+          corpoMensagem: template.corpoMensagem,
+          flowJson: template.flowJson,
+          ativo: false,
+          isTemplate: true,
+        });
+        count++;
+      }
+    }
+    console.log(`[Templates] Template 'agendamento_remarcado' provisionado para ${count} empresa(s) existente(s)`);
+  } catch (err) {
+    console.error('[Templates] Erro ao provisionar template remarcado:', err);
+  }
+}
+
 export async function provisionarAutomacoesDefault(empresaId: number): Promise<void> {
   try {
     const automacaoIds: { id: number; nome: string; tipoGatilho: string; evento?: string }[] = [];
@@ -400,7 +457,7 @@ export async function provisionarAutomacoesDefault(empresaId: number): Promise<v
         canalEnvio: template.canalEnvio,
         corpoMensagem: template.corpoMensagem,
         flowJson: template.flowJson,
-        ativo: true,
+        ativo: template.ativo !== false, // respeita flag ativo do template (padrão true)
         isTemplate: true,
       });
 

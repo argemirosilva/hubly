@@ -1574,8 +1574,8 @@ export const appRouter = router({
           }
         }
 
-          // ── Enfileirar automação para confirmado, cancelado ou concluido ───────────
-        if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido') {
+          // ── Enfileirar automação para confirmado, cancelado, concluido ou remarcado ───────────
+        if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido' || data.status === 'remarcado') {
           try {
             const agendamento = await getAgendamentoById(id);
             if (agendamento) {
@@ -1621,6 +1621,7 @@ export const appRouter = router({
                 // Determinar evento e mensagem padrão por status
                 const eventoStatus = data.status === 'confirmado' ? 'agendamento_confirmado'
                   : data.status === 'cancelado' ? 'agendamento_cancelado'
+                  : data.status === 'remarcado' ? 'agendamento_remarcado'
                   : 'agendamento_concluido';
 
                 // Bug fix 3d: Buscar TODAS as automações ativas para este evento
@@ -1649,6 +1650,7 @@ export const appRouter = router({
 
                 const nomeEventoLabel = data.status === 'confirmado' ? 'Confirmação de Agendamento'
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
+                  : data.status === 'remarcado' ? 'Agendamento Remarcado'
                   : 'Atendimento Concluído';
 
                 // Montar extras para filtros avançados de condição (ponto 2: mudança de status)

@@ -10,6 +10,7 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
+import { provisionarTemplateRemarcadoExistentes } from "./automation-templates";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
 import {
   pacotesClientes,
@@ -2298,4 +2299,11 @@ export function initScheduler() {
   }, 150_000); // aguarda 2.5min para o DB estar pronto
   console.log("[Scheduler] Geração automática de recorrências inicializada (diário às 6h).");
   console.log("[Scheduler] Confirmação automática por proximidade inicializada (a cada 15min).");
+
+  // Backfill: provisionar template 'agendamento_remarcado' para empresas existentes (1x na inicialização)
+  setTimeout(() => {
+    provisionarTemplateRemarcadoExistentes().catch(err =>
+      console.error('[Scheduler] Erro no backfill do template remarcado:', err)
+    );
+  }, 20_000); // aguarda 20s para o DB estar pronto
 }
