@@ -2294,10 +2294,10 @@ export async function updateDescontoAgendamento(agendamentoId: number, desconto:
   await db.update(agendamentos).set({ desconto }).where(eq(agendamentos.id, agendamentoId));
 }
 
-export async function updateTaxaAdicionalAgendamento(agendamentoId: number, taxaAdicional: string) {
+export async function updateTaxaAdicionalAgendamento(agendamentoId: number, taxaAdicional: string, nomeTaxaAdicional?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.update(agendamentos).set({ taxaAdicional }).where(eq(agendamentos.id, agendamentoId));
+  await db.update(agendamentos).set({ taxaAdicional, nomeTaxaAdicional: nomeTaxaAdicional ?? null }).where(eq(agendamentos.id, agendamentoId));
 }
 
 // ─── TAXAS CONFIG ─────────────────────────────────────────────────────────────

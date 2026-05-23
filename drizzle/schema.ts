@@ -212,6 +212,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
   desconto: decimal("desconto", { precision: 10, scale: 2 }).default("0"),
   taxaAdicional: decimal("taxaAdicional", { precision: 10, scale: 2 }).default("0"),
+  nomeTaxaAdicional: varchar("nomeTaxaAdicional", { length: 100 }),
   observacoes: text("observacoes"),
   observacoesInternas: text("observacoesInternas"),
   confirmadoEm: timestamp("confirmadoEm"),

@@ -64,7 +64,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
   const { data: meiosPagamento } = trpc.meiosPagamento.list.useQuery();
-  const { data: taxasConfigDisponiveis } = trpc.taxasConfig.list.useQuery();
+  // taxasConfigDisponiveis removido — taxa agora é inserida diretamente no agendamento
   const { data: comissaoExistente } = trpc.financeiro.getComissaoByAgendamento.useQuery(
     { agendamentoId },
     { enabled: !!agendamentoId }
@@ -178,6 +178,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
   // Estado para taxa adicional
   const [editandoTaxa, setEditandoTaxa] = useState(false);
   const [taxaEdit, setTaxaEdit] = useState("");
+  const [nomeTaxaEdit, setNomeTaxaEdit] = useState("");
   const [showTaxasDropdown, setShowTaxasDropdown] = useState(false);
 
   const updateServicosMutation = trpc.agendamentos.updateServicos.useMutation({
@@ -777,6 +778,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             const totalItens = parseFloat(String(ag.valorTotal ?? 0));
             const desconto = parseFloat(String((ag as any).desconto ?? 0));
             const taxaAdicional = parseFloat(String((ag as any).taxaAdicional ?? 0));
+            const nomeTaxaAdicionalAtual = (ag as any).nomeTaxaAdicional as string | null | undefined;
             const totalPago = (pagamentos ?? []).reduce((acc, p) => acc + parseFloat(String(p.valor)), 0);
             const emAberto = Math.max(0, totalItens + taxaAdicional - desconto - totalPago);
             const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -1047,11 +1049,22 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                         </div>
                         {!editandoTaxa && (
                           <div className="flex items-center gap-1.5">
-                            <span className={`font-semibold ${taxaAdicional > 0 ? "text-blue-600" : "text-muted-foreground text-xs"}`}>
-                              {taxaAdicional > 0 ? `+ ${fmt(taxaAdicional)}` : "Nenhuma"}
-                            </span>
+                            {taxaAdicional > 0 ? (
+                              <div className="flex items-center gap-1">
+                                {nomeTaxaAdicionalAtual && (
+                                  <span className="text-[10px] text-muted-foreground">{nomeTaxaAdicionalAtual}</span>
+                                )}
+                                <span className="font-semibold text-blue-600">+ {fmt(taxaAdicional)}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Nenhuma</span>
+                            )}
                             <button
-                              onClick={() => { setTaxaEdit(taxaAdicional > 0 ? String(taxaAdicional) : ""); setEditandoTaxa(true); }}
+                              onClick={() => {
+                                setTaxaEdit(taxaAdicional > 0 ? String(taxaAdicional) : "");
+                                setNomeTaxaEdit(nomeTaxaAdicionalAtual ?? "");
+                                setEditandoTaxa(true);
+                              }}
                               className="text-[10px] bg-muted hover:bg-primary/10 hover:text-primary px-2 py-0.5 rounded border border-border transition-colors"
                             >
                               {taxaAdicional > 0 ? "alterar" : "+ adicionar"}
@@ -1061,39 +1074,21 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       </div>
                       {editandoTaxa && (
                         <div className="flex flex-col gap-2 bg-muted/40 rounded-lg p-2.5 border border-border/60">
-                          {/* Taxas pré-configuradas como botões de seleção */}
-                          {taxasConfigDisponiveis && taxasConfigDisponiveis.length > 0 && (
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Selecionar taxa cadastrada</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {taxasConfigDisponiveis.map(t => {
-                                  const valorTaxa = t.tipo === 'percentual'
-                                    ? (totalItens * parseFloat(String(t.valor)) / 100)
-                                    : parseFloat(String(t.valor));
-                                  const isSelected = taxaEdit === valorTaxa.toFixed(2);
-                                  return (
-                                    <button
-                                      key={t.id}
-                                      onClick={() => setTaxaEdit(valorTaxa.toFixed(2))}
-                                      className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
-                                        isSelected
-                                          ? "bg-primary text-primary-foreground border-primary font-medium"
-                                          : "bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/40 border-border"
-                                      }`}
-                                    >
-                                      {t.nome} — R$ {valorTaxa.toFixed(2)}
-                                      {t.tipo === 'percentual' && <span className="opacity-60 ml-1">({t.valor}%)</span>}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          {/* Campo de valor manual */}
+                          {/* Nome da taxa */}
                           <div className="flex flex-col gap-1">
-                            {taxasConfigDisponiveis && taxasConfigDisponiveis.length > 0 && (
-                              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Ou digitar valor</span>
-                            )}
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Nome da taxa</span>
+                            <Input
+                              type="text"
+                              value={nomeTaxaEdit}
+                              onChange={e => setNomeTaxaEdit(e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder="Ex: Deslocamento, Domícilio, Estacionamento..."
+                              autoFocus
+                            />
+                          </div>
+                          {/* Valor da taxa */}
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Valor</span>
                             <div className="flex items-center gap-2">
                               <div className="relative flex-1">
                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
@@ -1103,7 +1098,6 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                                   onChange={e => setTaxaEdit(e.target.value)}
                                   className="pl-8 h-8 text-sm"
                                   placeholder="0,00"
-                                  autoFocus={!taxasConfigDisponiveis?.length}
                                 />
                               </div>
                               <button
@@ -1113,7 +1107,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                                 Cancelar
                               </button>
                               <button
-                                onClick={() => updateTaxaAdicionalMutation.mutate({ agendamentoId, taxaAdicional: taxaEdit || "0" })}
+                                onClick={() => updateTaxaAdicionalMutation.mutate({
+                                  agendamentoId,
+                                  taxaAdicional: taxaEdit || "0",
+                                  nomeTaxaAdicional: nomeTaxaEdit.trim() || undefined,
+                                })}
                                 disabled={updateTaxaAdicionalMutation.isPending}
                                 className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
                               >

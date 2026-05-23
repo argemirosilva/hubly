@@ -2272,11 +2272,12 @@ export const appRouter = router({
       .input(z.object({
         agendamentoId: z.number(),
         taxaAdicional: z.string(),
+        nomeTaxaAdicional: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-        await updateTaxaAdicionalAgendamento(input.agendamentoId, input.taxaAdicional);
+        await updateTaxaAdicionalAgendamento(input.agendamentoId, input.taxaAdicional, input.nomeTaxaAdicional);
         return { success: true };
       }),
 

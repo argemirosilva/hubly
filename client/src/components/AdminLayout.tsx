@@ -59,7 +59,6 @@ const navGroups: NavGroup[] = [
           { href: "/admin/comissoes-pagar", label: "Comissões a Pagar", icon: DollarSign, permissao: "financeiroVer" },
           { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, permissao: "financeiroVer" },
           { href: "/admin/meios-pagamento", label: "Meios de Pagamento", icon: Wallet, permissao: "configuracoesVer" },
-          { href: "/admin/taxas", label: "Taxas Adicionais", icon: Tag, permissao: "configuracoesVer" },
         ],
       },
       {
