@@ -6,7 +6,6 @@ import {
   User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
   AlertCircle, Loader2, ShieldCheck, Share2, CalendarDays,
 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -108,6 +107,7 @@ export default function PortalCliente() {
   const [profissionalId, setProfissionalId] = useState<number | null>(null);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [observacoes, setObservacoes] = useState("");
 
   // Toggle serviço na seleção múltipla
@@ -688,24 +688,25 @@ export default function PortalCliente() {
                   })}
                 </div>
 
-                {/* Botão para abrir calendário completo */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-medium transition-all"
-                      style={{
-                        borderColor: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#cbd5e1",
-                        background: data && !datasDisponiveis.slice(0, 6).includes(data) ? corSecundaria + "30" : "transparent",
-                        color: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#64748b",
-                      }}
-                    >
-                      <CalendarDays className="w-4 h-4" />
-                      {data && !datasDisponiveis.slice(0, 6).includes(data)
-                        ? format(parseISO(data), "dd 'de' MMMM", { locale: ptBR })
-                        : "Escolher outra data"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="center">
+                {/* Botão toggle para exibir calendário inline */}
+                <button
+                  onClick={() => setCalendarioAberto(v => !v)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-medium transition-all"
+                  style={{
+                    borderColor: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#cbd5e1",
+                    background: data && !datasDisponiveis.slice(0, 6).includes(data) ? corSecundaria + "30" : "transparent",
+                    color: data && !datasDisponiveis.slice(0, 6).includes(data) ? corPrimaria : "#64748b",
+                  }}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  {data && !datasDisponiveis.slice(0, 6).includes(data)
+                    ? format(parseISO(data), "dd 'de' MMMM", { locale: ptBR })
+                    : calendarioAberto ? "Fechar calendário" : "Escolher outra data"}
+                </button>
+
+                {/* Calendário inline — aparece abaixo do botão, sem sobreposicao */}
+                {calendarioAberto && (
+                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <Calendar
                       mode="single"
                       selected={data ? parseISO(data) : undefined}
@@ -713,25 +714,22 @@ export default function PortalCliente() {
                         if (date) {
                           const d = format(date, "yyyy-MM-dd");
                           const lotado = disponibilidadePorData ? disponibilidadePorData[d] === false : false;
-                          if (!lotado) { setData(d); setHora(""); }
+                          if (!lotado) { setData(d); setHora(""); setCalendarioAberto(false); }
                           else toast.error("Esta data não tem horários disponíveis");
                         }
                       }}
                       disabled={(date) => {
-                        // Desabilita dias anteriores a hoje
                         if (isBefore(date, startOfDay(new Date()))) return true;
-                        // Desabilita dias que não são dias de funcionamento
                         if (!diasFuncionamento.includes(date.getDay())) return true;
-                        // Desabilita datas lotadas (se já carregou disponibilidade)
                         const d = format(date, "yyyy-MM-dd");
                         if (disponibilidadePorData && disponibilidadePorData[d] === false) return true;
                         return false;
                       }}
                       locale={ptBR}
-                      initialFocus
+                      className="mx-auto"
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                )}
 
                 {disponibilidadePorData && Object.values(disponibilidadePorData).every(v => !v) && (
                   <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200 mt-2">
