@@ -1502,7 +1502,7 @@ function ClienteScoreCard({ agendamentos, cliente }: { agendamentos: any[]; clie
             { label: "Concluídos", value: String(stats.concluidos), color: "text-emerald-600" },
             { label: "Cancelados", value: String(stats.cancelados), color: "text-red-500" },
             { label: "Faltas", value: String(stats.faltas), color: "text-amber-500" },
-            { label: "Atrasos", value: `${stats.atrasos}/${stats.total}`, color: stats.atrasos > 0 ? "text-orange-500" : "text-muted-foreground" },
+            { label: "Atrasos", value: String(stats.atrasos), color: stats.atrasos > 0 ? "text-orange-500" : "text-muted-foreground" },
           ].map(s => (
             <div key={s.label} className="text-center">
               <p className={`text-xs font-bold ${s.color} tabular-nums`}>{s.value}</p>
