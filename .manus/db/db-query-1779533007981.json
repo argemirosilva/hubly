@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, clienteId, data, horaInicio, horaFim, status, profissionalId, servicoId FROM agendamentos WHERE empresaId = 1 AND data = '2026-05-23';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT id, clienteId, data, horaInicio, horaFim, status, profissionalId, servicoId FROM agendamentos WHERE empresaId = 1 AND data = '2026-05-23';",
+  "rows": [
+    {
+      "id": "630001",
+      "clienteId": "360001",
+      "data": "2026-05-23",
+      "horaInicio": "06:30:00",
+      "horaFim": "08:25:00",
+      "status": "confirmado",
+      "profissionalId": "1",
+      "servicoId": "3"
+    },
+    {
+      "id": "750001",
+      "clienteId": "240003",
+      "data": "2026-05-23",
+      "horaInicio": "10:30:00",
+      "horaFim": "11:45:00",
+      "status": "cancelado",
+      "profissionalId": "1",
+      "servicoId": "19"
+    },
+    {
+      "id": "750002",
+      "clienteId": "94",
+      "data": "2026-05-23",
+      "horaInicio": "10:00:00",
+      "horaFim": "11:00:00",
+      "status": "agendado",
+      "profissionalId": "120001",
+      "servicoId": "15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tclienteId\tdata\thoraInicio\thoraFim\tstatus\tprofissionalId\tservicoId\n630001\t360001\t2026-05-23\t06:30:00\t08:25:00\tconfirmado\t1\t3\n750001\t240003\t2026-05-23\t10:30:00\t11:45:00\tcancelado\t1\t19\n750002\t94\t2026-05-23\t10:00:00\t11:00:00\tagendado\t120001\t15\n",
+  "stderr": "",
+  "execution_time_ms": 278
+}

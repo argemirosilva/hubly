@@ -1,0 +1,46 @@
+{
+  "query": "SELECT COUNT(*) as total FROM agendamentos WHERE empresaId = 1;\nSELECT id, clienteId, data, horaInicio, status, profissionalId FROM agendamentos WHERE empresaId = 1 ORDER BY data DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user GGRnjJR18tuCoSZ.76b1f0ca9b9f --database BkCt9rpSQdtCMrvdCmsRG4 --execute SELECT COUNT(*) as total FROM agendamentos WHERE empresaId = 1;\nSELECT id, clienteId, data, horaInicio, status, profissionalId FROM agendamentos WHERE empresaId = 1 ORDER BY data DESC LIMIT 10;",
+  "rows": [
+    {
+      "total": "39"
+    },
+    {
+      "total": "id\tclienteId\tdata\thoraInicio\tstatus\tprofissionalId"
+    },
+    {
+      "total": "600001\t330002\t2026-12-19\t16:30:00\tpre_agendado\t1"
+    },
+    {
+      "total": "600002\t330002\t2026-12-18\t16:00:00\tpre_agendado\tNULL"
+    },
+    {
+      "total": "720001\t420001\t2026-11-21\t14:00:00\tagendado\t1"
+    },
+    {
+      "total": "690001\t60001\t2026-11-13\t09:00:00\tagendado\t1"
+    },
+    {
+      "total": "510003\t240004\t2026-08-08\t14:00:00\tagendado\t1"
+    },
+    {
+      "total": "240004\t150002\t2026-07-30\t09:00:00\tagendado\t1"
+    },
+    {
+      "total": "450018\t2\t2026-06-06\t08:30:00\tcancelado\t1"
+    },
+    {
+      "total": "150006\t68\t2026-06-06\t12:30:00\tagendado\t1"
+    },
+    {
+      "total": "150005\t22\t2026-06-06\t13:30:00\tagendado\t1"
+    },
+    {
+      "total": "150007\t41\t2026-06-06\t16:00:00\tagendado\t1"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n39\nid\tclienteId\tdata\thoraInicio\tstatus\tprofissionalId\n600001\t330002\t2026-12-19\t16:30:00\tpre_agendado\t1\n600002\t330002\t2026-12-18\t16:00:00\tpre_agendado\tNULL\n720001\t420001\t2026-11-21\t14:00:00\tagendado\t1\n690001\t60001\t2026-11-13\t09:00:00\tagendado\t1\n510003\t240004\t2026-08-08\t14:00:00\tagendado\t1\n240004\t150002\t2026-07-30\t09:00:00\tagendado\t1\n450018\t2\t2026-06-06\t08:30:00\tcancelado\t1\n150006\t68\t2026-06-06\t12:30:00\tagendado\t1\n150005\t22\t2026-06-06\t13:30:00\tagendado\t1\n150007\t41\t2026-06-06\t16:00:00\tagendado\t1\n",
+  "stderr": "",
+  "execution_time_ms": 323
+}
