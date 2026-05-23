@@ -374,7 +374,7 @@ export default function PortalCliente() {
           <img src={empresa.portalHeaderUrl} alt="Capa" className="w-full h-full object-cover" />
           {/* Overlay gradiente Hubly */}
           <div className="absolute inset-0" style={{
-            background: "linear-gradient(to bottom, rgba(26,58,107,0.55) 0%, rgba(26,58,107,0.15) 50%, rgba(26,58,107,0.7) 100%)"
+            background: (() => { const { r, g, b } = hexToRgb(corPrimaria); return `linear-gradient(to bottom, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0.15) 50%, rgba(${r},${g},${b},0.7) 100%)`; })()
           }} />
           {empresa.portalMensagemBemVindo && (
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 max-w-lg mx-auto">
@@ -909,6 +909,20 @@ function HublyFooter() {
   );
 }
 
+function hexToRgb(hex: string) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+    : { r: 26, g: 58, b: 107 };
+}
+
+function darkenHex(hex: string, amount = 30): string {
+  const { r, g, b } = hexToRgb(hex);
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const toHex = (v: number) => clamp(v).toString(16).padStart(2, '0');
+  return `#${toHex(r - amount)}${toHex(g - amount)}${toHex(b - amount)}`;
+}
+
 function PortalHeader({ empresa, corPrimaria }: {
   empresa: { nome: string; logoUrl?: string | null };
   corPrimaria: string;
@@ -935,7 +949,7 @@ function PortalHeader({ empresa, corPrimaria }: {
 
   return (
     <header className="sticky top-0 z-20 shadow-md" style={{
-      background: `linear-gradient(135deg, #1a3a6b 0%, #1e6fa8 60%, #29abe2 100%)`,
+      background: `linear-gradient(135deg, ${darkenHex(corPrimaria, 20)} 0%, ${corPrimaria} 60%, ${darkenHex(corPrimaria, -20)} 100%)`,
     }}>
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -950,7 +964,7 @@ function PortalHeader({ empresa, corPrimaria }: {
           )}
           <div>
             <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">{empresa.nome}</p>
-            <p className="text-[10px] text-blue-100/80">Agendamento Online</p>
+            <p className="text-[10px] text-white/70">Agendamento Online</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -2457,3 +2457,9 @@
 - [x] Calendário: aviso especial quando todas as datas estão lotadas
 - [x] Horários: já eram filtrados corretamente pelo backend (getHorariosDisponiveis)
 - [x] TypeScript: 0 erros
+
+## Correção de Cores no Portal Público (23/05/2026)
+- [x] Header do portal com gradiente hardcoded azul (#1a3a6b) ignorando corPrimaria configurada
+- [x] Overlay da imagem de capa com cor hardcoded azul ignorando corPrimaria
+- [x] Implementar funções hexToRgb e darkenHex para gerar gradiente dinâmico a partir de corPrimaria
+- [x] TypeScript: 0 erros
