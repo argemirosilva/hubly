@@ -273,12 +273,12 @@ export default function PortalCliente() {
   const utils = trpc.useUtils();
 
   // Busca cliente ao digitar telefone (debounced via blur)
-  async function handleTelefoneBlur() {
-    const tel = telefone.replace(/\D/g, "");
-    if (tel.length < 8) return;
+  async function executarBuscaTelefone(telFormatado: string) {
+    const tel = telFormatado.replace(/\D/g, "");
+    if (tel.length < 10) return;
     setBuscandoTelefone(true);
     try {
-      const res = await utils.portal.buscarClientePorTelefone.fetch({ empresaId, telefone });
+      const res = await utils.portal.buscarClientePorTelefone.fetch({ empresaId, telefone: telFormatado });
       setClienteEncontrado(res.encontrado);
       setTemCpf(res.temCpf);
       if (res.encontrado) {
@@ -593,8 +593,13 @@ export default function PortalCliente() {
                     setClienteEncontrado(null);
                     setCpf(""); setCpfErro(""); setCpfValidado(false);
                     setNome(""); setEmail("");
+                    // Busca automática ao atingir tamanho completo (10 ou 11 dígitos)
+                    const digits = v.replace(/\D/g, "");
+                    if (digits.length >= 10) {
+                      executarBuscaTelefone(v);
+                    }
                   }}
-                  onBlur={handleTelefoneBlur}
+                  onBlur={() => executarBuscaTelefone(telefone)}
                   icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} />
                 {buscandoTelefone && (
                   <div className="absolute right-3 top-8 flex items-center gap-1 text-xs text-slate-400">
