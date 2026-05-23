@@ -583,6 +583,20 @@ export default function Configuracoes() {
             />
           </div>
 
+          {/* Política de cancelamento */}
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Política de cancelamento (opcional)</Label>
+            <textarea
+              value={(form as any).portalPoliticaCancelamento ?? ""}
+              onChange={e => setForm(f => ({ ...f, portalPoliticaCancelamento: e.target.value }))}
+              placeholder="Ex: Cancelamentos com menos de 24h de antecedência não serão reembolsados."
+              rows={2}
+              className="w-full px-3 py-2.5 rounded-xl text-sm resize-none border outline-none transition-all bg-background text-foreground"
+              style={{ borderColor: "oklch(90% 0.012 250)" }}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Exibida para o cliente na etapa de confirmação do agendamento.</p>
+          </div>
+
 
         </div>
       </div>

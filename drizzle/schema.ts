@@ -71,6 +71,7 @@ export const empresas = mysqlTable("empresas", {
   autoConfirmarPortal: boolean("autoConfirmarPortal").default(false),
   portalHeaderUrl: text("portalHeaderUrl"),
   portalMensagemBemVindo: text("portalMensagemBemVindo"),
+  portalPoliticaCancelamento: text("portalPoliticaCancelamento"),
   // Horário de funcionamento
   horaAbertura: varchar("horaAbertura", { length: 5 }).default("08:00"),
   horaFechamento: varchar("horaFechamento", { length: 5 }).default("18:00"),

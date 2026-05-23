@@ -2424,3 +2424,14 @@
 - [x] Backend: escore de pontualidade calculado com base nos atrasos reais
 - [x] Frontend: campo de atraso no modal do agendamento (ao concluir atendimento)
 - [x] Frontend: exibição do histórico de atrasos no perfil do cliente (badge +Xmin)
+
+## Portal Público — Melhorias (23/05/2026)
+- [x] Status "remarcado" no StatusBadge do portal
+- [x] Aviso de sinal obrigatório na etapa de confirmação
+- [x] Info de pessoas adicionais na etapa de serviço
+- [x] Descrição completa do serviço (sem truncate)
+- [x] Política de cancelamento na etapa de confirmação
+- [x] Campo portalPoliticaCancelamento no schema + migration 0067 aplicada
+- [x] Campo portalPoliticaCancelamento no retorno do portal.ts
+- [x] Campo portalPoliticaCancelamento no input da procedure empresa.update (routers.ts)
+- [x] Campo de política de cancelamento adicionado nas Configurações do portal (UI)

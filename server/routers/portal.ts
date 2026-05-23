@@ -62,6 +62,9 @@ async function getEmpresaPublicaById(id: number) {
     diasFuncionamento: empresas.diasFuncionamento,
     intervaloMinutos: empresas.intervaloMinutos,
     autoConfirmarPortal: empresas.autoConfirmarPortal,
+    reservaPercentual: empresas.reservaPercentual,
+    reservaHorasExpiracao: empresas.reservaHorasExpiracao,
+    portalPoliticaCancelamento: empresas.portalPoliticaCancelamento,
   }).from(empresas).where(eq(empresas.id, id)).limit(1);
   return result[0] ?? null;
 }
@@ -89,6 +92,9 @@ async function getEmpresaPublicaBySlug(slug: string) {
     diasFuncionamento: empresas.diasFuncionamento,
     intervaloMinutos: empresas.intervaloMinutos,
     autoConfirmarPortal: empresas.autoConfirmarPortal,
+    reservaPercentual: empresas.reservaPercentual,
+    reservaHorasExpiracao: empresas.reservaHorasExpiracao,
+    portalPoliticaCancelamento: empresas.portalPoliticaCancelamento,
   }).from(empresas).where(eq(empresas.portalSlug, slug)).limit(1);
   return result[0] ?? null;
 }

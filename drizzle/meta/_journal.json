@@ -470,6 +470,13 @@
       "when": 1779555603460,
       "tag": "0066_tearful_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "5",
+      "when": 1779559667271,
+      "tag": "0067_gifted_hobgoblin",
+      "breakpoints": true
     }
   ]
 }

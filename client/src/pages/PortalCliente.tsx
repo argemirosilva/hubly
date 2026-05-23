@@ -628,7 +628,7 @@ export default function PortalCliente() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-slate-800">{s.nome}</p>
-                      {s.descricao && <p className="text-xs text-slate-500 truncate">{s.descricao}</p>}
+                      {s.descricao && <p className="text-xs text-slate-500 leading-relaxed">{s.descricao}</p>}
                       <p className="text-xs text-slate-500 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {s.duracaoMinutos} min
                       </p>
@@ -796,6 +796,28 @@ export default function PortalCliente() {
                   onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
                 />
               </div>
+
+              {Number(empresa.reservaPercentual ?? 0) > 0 && (
+                <div className="rounded-lg px-3 py-2.5 border flex items-start gap-2"
+                  style={{ background: corPrimaria + "12", borderColor: corPrimaria + "40" }}>
+                  <span className="text-base mt-0.5">💰</span>
+                  <p className="text-xs" style={{ color: corPrimaria }}>
+                    <strong>Sinal necessário:</strong> Este estabelecimento solicita um sinal de{" "}
+                    <strong>{empresa.reservaPercentual}%</strong> do valor total ({formatCurrency(valorTotalServicos * Number(empresa.reservaPercentual ?? 0) / 100)}).
+                    O link de pagamento será enviado após a confirmação do agendamento.
+                  </p>
+                </div>
+              )}
+
+              {empresa.portalPoliticaCancelamento && (
+                <div className="rounded-lg px-3 py-2.5 border flex items-start gap-2 bg-slate-50 border-slate-200">
+                  <span className="text-base mt-0.5">⚠️</span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-700 mb-0.5">Política de cancelamento</p>
+                    <p className="text-xs text-slate-500">{empresa.portalPoliticaCancelamento}</p>
+                  </div>
+                </div>
+              )}
 
               {!empresa.autoConfirmarPortal && (
                 <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
@@ -1010,6 +1032,9 @@ function StatusBadge({ status, corPrimaria }: { status: string; corPrimaria: str
     agendado: { label: "Agendado", color: corPrimaria },
     confirmado: { label: "Confirmado", color: "#10b981" },
     concluido: { label: "Concluído", color: "#6b7280" },
+    cancelado: { label: "Cancelado", color: "#ef4444" },
+    remarcado: { label: "Remarcado", color: "#8b5cf6" },
+    faltou: { label: "Faltou", color: "#f97316" },
   };
   const info = map[status] ?? { label: status, color: "#6b7280" };
   return (
