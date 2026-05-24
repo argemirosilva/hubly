@@ -290,11 +290,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Pull-to-refresh: escutar evento e invalidar todas as queries ativas
   const utils = trpc.useUtils();
   useEffect(() => {
-    const handler = () => {
-      utils.agendamentos.list.invalidate();
-      utils.agendamentos.contarPreAgendamentosPendentes.invalidate();
-      utils.agendamentos.listPreAgendamentosPendentes.invalidate();
-      utils.invalidate();
+    const handler = async () => {
+      try {
+        await utils.invalidate();
+      } catch {}
     };
     window.addEventListener('pull-to-refresh', handler);
     return () => window.removeEventListener('pull-to-refresh', handler);
@@ -965,13 +964,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (pullStartY.current !== null) {
               if (pullDistance >= 56 && !isRefreshing) {
                 setIsRefreshing(true);
-                setPullDistance(0);
+                setPullDistance(56);
                 pullStartY.current = null;
                 // Recarregar todas as queries ativas
+                window.dispatchEvent(new CustomEvent('pull-to-refresh'));
+                // Vibrar se disponível
+                if (navigator.vibrate) navigator.vibrate(10);
                 setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('pull-to-refresh'));
                   setIsRefreshing(false);
-                }, 1000);
+                  setPullDistance(0);
+                }, 1200);
               } else {
                 setPullDistance(0);
                 pullStartY.current = null;

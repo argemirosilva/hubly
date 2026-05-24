@@ -2535,3 +2535,12 @@
 - [x] Skeleton para Dashboard (cards, agenda, ações rápidas)
 - [x] Skeleton para Calendário (grid de dias)
 - [x] Skeleton para Clientes (lista/tabela)
+
+## Pull-to-Refresh (Mobile Admin)
+- [x] Criar hook usePullToRefresh com gesto touch e animação (já existia no AdminLayout, melhorado)
+- [x] Integrar no Dashboard, Calendário e Clientes (via invalidate global)
+- [x] Indicador visual (spinner) durante refresh + vibração háptica
+
+## Skeleton Loading no Portal Público
+- [x] Skeleton para carregamento inicial da empresa/serviços (header + stepper + cards)
+- [x] Skeleton para etapa de data/horário enquanto carrega slots (grid de períodos)

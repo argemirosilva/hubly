@@ -400,10 +400,40 @@ export default function PortalCliente() {
 
   if (loadingEmpresa) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: corPrimaria }} />
-          <p className="text-sm text-slate-500">Carregando portal...</p>
+      <div className="min-h-screen bg-slate-50">
+        {/* Header skeleton */}
+        <div className="w-full h-36 bg-gradient-to-br from-slate-200 to-slate-100 animate-pulse relative">
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-white shadow-md border-2 border-white" />
+        </div>
+        <div className="max-w-lg mx-auto px-4 pt-12 pb-8 space-y-6">
+          {/* Nome da empresa */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-5 w-40 bg-slate-200 animate-pulse rounded" />
+            <div className="h-3 w-56 bg-slate-200 animate-pulse rounded" />
+          </div>
+          {/* Stepper skeleton */}
+          <div className="flex items-center justify-center gap-2">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-slate-200 animate-pulse" />
+                {i < 4 && <div className="w-6 h-0.5 bg-slate-200 animate-pulse" />}
+              </div>
+            ))}
+          </div>
+          {/* Serviços skeleton */}
+          <div className="space-y-3">
+            <div className="h-4 w-32 bg-slate-200 animate-pulse rounded" />
+            {[1,2,3,4].map(i => (
+              <div key={i} className="flex items-center gap-3 p-4 rounded-xl border bg-white">
+                <div className="w-10 h-10 rounded-lg bg-slate-200 animate-pulse" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-28 bg-slate-200 animate-pulse rounded" />
+                  <div className="h-3 w-20 bg-slate-200 animate-pulse rounded" />
+                </div>
+                <div className="h-4 w-14 bg-slate-200 animate-pulse rounded" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -893,8 +923,30 @@ export default function PortalCliente() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Horário</p>
                   {loadingSlots ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Verificando disponibilidade...
+                    <div className="space-y-4 py-2">
+                      {/* Skeleton de horários */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-4 w-4 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-16 bg-slate-200 animate-pulse rounded" />
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[1,2,3,4,5,6,7,8].map(i => (
+                            <div key={i} className="h-10 bg-slate-200 animate-pulse rounded-lg" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-4 w-4 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-14 bg-slate-200 animate-pulse rounded" />
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[1,2,3,4].map(i => (
+                            <div key={i} className="h-10 bg-slate-200 animate-pulse rounded-lg" />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ) : slots.every(s => (s as any).ocupado) ? (
                     <p className="text-sm text-slate-500 py-4 text-center">
