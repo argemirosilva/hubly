@@ -901,28 +901,50 @@ export default function PortalCliente() {
                       Todos os horários estão ocupados nesta data. Escolha outro dia.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-4 gap-2">
-                      {(slots as { hora: string; ocupado: boolean }[]).map(s => {
-                        const isSelected = hora === s.hora;
-                        return (
-                          <button
-                            key={s.hora}
-                            onClick={() => !s.ocupado && setHora(s.hora)}
-                            disabled={s.ocupado}
-                            title={s.ocupado ? "Horário ocupado" : undefined}
-                            className="py-2 rounded-xl text-sm font-semibold border-2 transition-all relative"
-                            style={{
-                              borderColor: s.ocupado ? "#e2e8f0" : isSelected ? corPrimaria : "#e2e8f0",
-                              background: s.ocupado ? "#f8fafc" : isSelected ? corPrimaria : "white",
-                              color: s.ocupado ? "#cbd5e1" : isSelected ? "white" : "#475569",
-                              cursor: s.ocupado ? "not-allowed" : "pointer",
-                              textDecoration: s.ocupado ? "line-through" : "none",
-                              opacity: s.ocupado ? 0.6 : 1,
-                            }}>
-                            {s.hora}
-                          </button>
-                        );
-                      })}
+                    <div className="space-y-4">
+                      {(() => {
+                        const allSlots = slots as { hora: string; ocupado: boolean }[];
+                        const manha = allSlots.filter(s => { const h = parseInt(s.hora.split(':')[0]); return h < 12; });
+                        const tarde = allSlots.filter(s => { const h = parseInt(s.hora.split(':')[0]); return h >= 12 && h < 18; });
+                        const noite = allSlots.filter(s => { const h = parseInt(s.hora.split(':')[0]); return h >= 18; });
+                        const periodos = [
+                          { label: 'Manhã', icon: '\u2600\uFE0F', slots: manha },
+                          { label: 'Tarde', icon: '\u26C5', slots: tarde },
+                          { label: 'Noite', icon: '\uD83C\uDF19', slots: noite },
+                        ].filter(p => p.slots.length > 0);
+                        return periodos.map(periodo => (
+                          <div key={periodo.label}>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <span className="text-sm">{periodo.icon}</span>
+                              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{periodo.label}</span>
+                              <span className="text-[10px] text-slate-400 ml-1">({periodo.slots.filter(s => !s.ocupado).length} disponíve{periodo.slots.filter(s => !s.ocupado).length === 1 ? 'l' : 'is'})</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              {periodo.slots.map(s => {
+                                const isSelected = hora === s.hora;
+                                return (
+                                  <button
+                                    key={s.hora}
+                                    onClick={() => !s.ocupado && setHora(s.hora)}
+                                    disabled={s.ocupado}
+                                    title={s.ocupado ? "Horário ocupado" : undefined}
+                                    className="py-2 rounded-xl text-sm font-semibold border-2 transition-all relative"
+                                    style={{
+                                      borderColor: s.ocupado ? "#e2e8f0" : isSelected ? corPrimaria : "#e2e8f0",
+                                      background: s.ocupado ? "#f8fafc" : isSelected ? corPrimaria : "white",
+                                      color: s.ocupado ? "#cbd5e1" : isSelected ? "white" : "#475569",
+                                      cursor: s.ocupado ? "not-allowed" : "pointer",
+                                      textDecoration: s.ocupado ? "line-through" : "none",
+                                      opacity: s.ocupado ? 0.6 : 1,
+                                    }}>
+                                    {s.hora}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   )}
                 </div>

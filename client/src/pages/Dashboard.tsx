@@ -766,10 +766,62 @@ export default function Dashboard() {
   // Mostrar loading enquanto carrega a empresa
   if (empresaLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-8">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-muted border-t-primary animate-spin mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+      <div className="p-4 lg:p-7 max-w-7xl mx-auto space-y-5">
+        {/* Header skeleton */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <div className="h-3 w-28 bg-muted animate-pulse rounded" />
+            <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-9 w-36 bg-muted animate-pulse rounded-lg" />
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="rounded-xl border bg-card px-3 py-3 space-y-2">
+              <div className="h-5 w-5 bg-muted animate-pulse rounded-md" />
+              <div className="h-5 w-16 bg-muted animate-pulse rounded" />
+              <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Contas a pagar skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[1,2,3].map(i => (
+            <div key={i} className="rounded-xl border bg-card px-4 py-3 space-y-2">
+              <div className="flex justify-between">
+                <div className="h-5 w-5 bg-muted animate-pulse rounded-md" />
+                <div className="h-4 w-14 bg-muted animate-pulse rounded-full" />
+              </div>
+              <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+              <div className="h-3 w-28 bg-muted animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Agenda skeleton */}
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="px-5 py-4 border-b space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-muted animate-pulse rounded-lg" />
+              <div className="space-y-1">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+              </div>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                <div className="h-10 w-1 bg-muted animate-pulse rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="h-5 w-14 bg-muted animate-pulse rounded-full" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

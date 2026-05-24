@@ -2524,3 +2524,14 @@
 - [x] P3: Transições de página (fade/slide via CSS)
 - [x] P3: SW notificação de nova versão disponível
 - [x] P3: Notificações push com agrupamento por tag
+
+## Agrupamento de Horários por Período
+- [x] Agrupar slots em Manhã (até 12h), Tarde (12h-18h), Noite (após 18h) no portal público
+- [x] Exibir labels de período com ícones (sol, nuvem, lua)
+- [x] Manter layout responsivo e touch-friendly
+
+## Skeleton Loading nas Páginas Admin
+- [x] Criar componente Skeleton reutilizável (usando bg-muted animate-pulse inline)
+- [x] Skeleton para Dashboard (cards, agenda, ações rápidas)
+- [x] Skeleton para Calendário (grid de dias)
+- [x] Skeleton para Clientes (lista/tabela)

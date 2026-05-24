@@ -65,7 +65,7 @@ export default function Calendario() {
   const dataInicio = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const dataFim = `${year}-${String(month + 1).padStart(2, "0")}-${new Date(year, month + 1, 0).getDate()}`;
 
-  const { data: agendamentos } = trpc.agendamentos.list.useQuery({
+  const { data: agendamentos, isLoading: agendamentosLoading } = trpc.agendamentos.list.useQuery({
     dataInicio,
     dataFim,
     profissionalId: profissionalFiltro && profissionalFiltro !== "all" ? parseInt(profissionalFiltro) : undefined,
@@ -225,6 +225,49 @@ export default function Calendario() {
   const contagemMes = useMemo(() => {
     return (agendamentos ?? []).length;
   }, [agendamentos]);
+
+  if (agendamentosLoading && !agendamentos) {
+    return (
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="space-y-1">
+              <div className="h-3 w-16 bg-muted animate-pulse rounded hidden sm:block" />
+              <div className="h-7 w-36 bg-muted animate-pulse rounded" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-7 h-7 bg-muted animate-pulse rounded-lg" />
+              <div className="w-7 h-7 bg-muted animate-pulse rounded-lg" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-8 w-20 bg-muted animate-pulse rounded-lg" />
+            <div className="h-8 w-28 bg-muted animate-pulse rounded-lg" />
+          </div>
+        </div>
+        {/* Grid skeleton */}
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="grid grid-cols-7 border-b">
+            {['D','S','T','Q','Q','S','S'].map((d,i) => (
+              <div key={i} className="p-2 text-center">
+                <div className="h-3 w-6 bg-muted animate-pulse rounded mx-auto" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {Array.from({length: 35}).map((_,i) => (
+              <div key={i} className="border-b border-r p-2 min-h-[60px] lg:min-h-[80px]">
+                <div className="h-4 w-4 bg-muted animate-pulse rounded mb-1" />
+                {i % 3 === 0 && <div className="h-3 w-full bg-muted animate-pulse rounded mt-1" />}
+                {i % 5 === 0 && <div className="h-3 w-3/4 bg-muted animate-pulse rounded mt-1" />}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-4 lg:space-y-6 animate-in-up">
