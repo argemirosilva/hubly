@@ -821,4 +821,63 @@ export const portalRouter = router({
       }
       return vinculados;
     }),
+
+  /** Cancelar agendamento pelo cliente (portal público) */
+  cancelarAgendamento: publicProcedure
+    .input(z.object({
+      agendamentoId: z.number(),
+      empresaId: z.number(),
+      telefone: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB indisponível");
+
+      // Verificar que o agendamento pertence ao cliente
+      const telNorm = input.telefone.replace(/[^0-9]/g, "");
+      const telSuffix = telNorm.slice(-8);
+      const clienteResult = await db.select({ id: clientes.id })
+        .from(clientes)
+        .where(and(
+          eq(clientes.empresaId, input.empresaId),
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+        )).limit(1);
+      if (!clienteResult.length) throw new Error("Cliente não encontrado");
+
+      const clienteId = clienteResult[0].id;
+
+      // Verificar que o agendamento existe, pertence ao cliente e está em status cancelável
+      const agResult = await db.select({
+        id: agendamentos.id,
+        status: agendamentos.status,
+        data: agendamentos.data,
+      }).from(agendamentos)
+        .where(and(
+          eq(agendamentos.id, input.agendamentoId),
+          eq(agendamentos.empresaId, input.empresaId),
+          eq(agendamentos.clienteId, clienteId),
+        )).limit(1);
+
+      if (!agResult.length) throw new Error("Agendamento não encontrado");
+      const ag = agResult[0];
+
+      // Só pode cancelar se está em status cancelável
+      const statusCancelaveis = ['agendado', 'pre_agendado', 'confirmado'];
+      if (!statusCancelaveis.includes(ag.status)) {
+        throw new Error("Este agendamento não pode ser cancelado");
+      }
+
+      // Só pode cancelar agendamentos futuros
+      const hoje = new Date().toISOString().split('T')[0];
+      if (ag.data < hoje) {
+        throw new Error("Não é possível cancelar agendamentos passados");
+      }
+
+      // Cancelar
+      await db.update(agendamentos)
+        .set({ status: 'cancelado' })
+        .where(eq(agendamentos.id, input.agendamentoId));
+
+      return { success: true };
+    }),
 });

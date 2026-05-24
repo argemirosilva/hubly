@@ -9,7 +9,21 @@ import { getLoginUrl } from "./const";
 import { NotificationProvider } from "./components/NotificationStack";
 import "./index.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutos — dados ficam "frescos" sem refetch
+      gcTime: 1000 * 60 * 30, // 30 minutos — cache mantido em memória
+      refetchOnWindowFocus: true, // Atualiza ao voltar ao app
+      refetchOnReconnect: true, // Atualiza ao reconectar internet
+      retry: (failureCount, error) => {
+        // Não retentar se offline
+        if (!navigator.onLine) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   // Não redirecionar automaticamente - o AdminLayout gerencia o estado de login

@@ -49,6 +49,7 @@ import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
 import Suporte from "./pages/Suporte";
 import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
 import { SupportChat } from "./components/SupportChat";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
@@ -150,6 +151,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-right" />
+          <OfflineIndicator />
           <MobileAppInit />
           <PWAInstallBanner />
           <Router />

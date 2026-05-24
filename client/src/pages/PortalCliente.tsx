@@ -9,6 +9,7 @@ import {
 import { format, parseISO, isBefore, startOfDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { SwipeToCancel } from "@/components/SwipeToCancel";
 
 function formatCurrency(v: number | string) {
   const num = typeof v === "string" ? parseFloat(v) : v;
@@ -352,6 +353,14 @@ export default function PortalCliente() {
     onError: (err) => toast.error(err.message),
   });
 
+  const cancelarMutation = trpc.portal.cancelarAgendamento.useMutation({
+    onSuccess: () => {
+      toast.success("Agendamento cancelado com sucesso");
+      utils.portal.getMeusAgendamentos.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const servicoSelecionado = servicos?.find(s => s.id === servicoId);
   const servicosSelecionados = servicos?.filter(s => servicosIds.includes(s.id)) ?? [];
   const valorTotalServicos = servicosSelecionados.reduce((acc, s) => acc + parseFloat(String(s.valor ?? 0)), 0);
@@ -679,18 +688,45 @@ export default function PortalCliente() {
               {clienteIdentificado && meusAgendamentos && meusAgendamentos.length > 0 && (
                 <div className="rounded-xl p-4 space-y-2"
                   style={{ background: corSecundaria + "50", border: `1px solid ${corPrimaria}25` }}>
-                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: corPrimaria }}>
-                    Seus agendamentos recentes
-                  </p>
-                  {meusAgendamentos.slice(0, 3).map(ag => {
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: corPrimaria }}>
+                      Seus agendamentos recentes
+                    </p>
+                    <p className="text-[10px] text-slate-400 lg:hidden">Deslize para cancelar ←</p>
+                  </div>
+                  {meusAgendamentos.slice(0, 5).map(ag => {
                     const serv = servicos?.find(s => s.id === ag.servicoId);
-                    return (
-                      <div key={ag.id} className="flex items-center justify-between text-xs text-slate-600">
-                        <span>{serv?.nome ?? "Serviço"}</span>
-                        <span>{String(ag.data).substring(0, 10)} às {ag.horaInicio.substring(0, 5)}</span>
+                    const dataAg = String(ag.data).substring(0, 10);
+                    const hoje = new Date().toISOString().split('T')[0];
+                    const isFuturo = dataAg >= hoje;
+                    const isCancelavel = isFuturo && ['agendado', 'pre_agendado', 'confirmado'].includes(ag.status);
+                    const content = (
+                      <div className="flex items-center justify-between text-xs text-slate-600 p-2 bg-white rounded-lg">
+                        <span className="font-medium truncate max-w-[100px]">{serv?.nome ?? "Serviço"}</span>
+                        <span className="text-slate-400">{dataAg.split('-').reverse().join('/')} {ag.horaInicio.substring(0, 5)}</span>
                         <StatusBadge status={ag.status} corPrimaria={corPrimaria} />
                       </div>
                     );
+                    if (isCancelavel) {
+                      return (
+                        <SwipeToCancel
+                          key={ag.id}
+                          disabled={cancelarMutation.isPending}
+                          onCancel={() => {
+                            if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+                              cancelarMutation.mutate({
+                                agendamentoId: ag.id,
+                                empresaId,
+                                telefone,
+                              });
+                            }
+                          }}
+                        >
+                          {content}
+                        </SwipeToCancel>
+                      );
+                    }
+                    return <div key={ag.id}>{content}</div>;
                   })}
                 </div>
               )}

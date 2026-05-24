@@ -2544,3 +2544,17 @@
 ## Skeleton Loading no Portal Público
 - [x] Skeleton para carregamento inicial da empresa/serviços (header + stepper + cards)
 - [x] Skeleton para etapa de data/horário enquanto carrega slots (grid de períodos)
+
+## Swipe para Cancelar Agendamento (Mobile)
+- [x] Criar componente SwipeToCancel com gesto horizontal
+- [x] Integrar na lista de "Meus Agendamentos" do portal público
+- [x] Exibir botão vermelho "Cancelar" ao deslizar para esquerda
+- [x] Confirmar cancelamento com confirm() antes de executar
+- [x] Criar procedure cancelarAgendamento no portal router
+
+## Cache Offline (staleWhileRevalidate)
+- [x] Configurar QueryClient com staleTime 2min e gcTime 30min
+- [x] Aplicar refetchOnReconnect e retry inteligente (não retenta offline)
+- [x] Exibir indicador "offline" quando sem conexão (OfflineIndicator)
+- [x] Indicador verde "Conexão restabelecida" ao reconectar
+- [x] Dados em cache exibidos mesmo offline, atualizam em background
