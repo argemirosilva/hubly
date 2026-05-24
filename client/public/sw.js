@@ -1,64 +1,110 @@
-const CACHE_NAME = 'hubly-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'hubly-v2';
+const APP_SHELL = [
+  '/',
   '/manifest.json',
+  '/offline.html',
 ];
 
-// Instalar e cachear apenas assets estáticos mínimos
+// Instalar: cachear app shell para funcionamento offline
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
   self.skipWaiting();
 });
 
-// Limpar caches antigos
+// Ativar: limpar caches antigos e notificar clientes sobre nova versão
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => {
+      // Notificar todas as janelas abertas sobre a nova versão
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
+        });
+      });
+    })
   );
   self.clients.claim();
 });
 
-// Estratégia: Network first para tudo (sem cache de JS/CSS para evitar problemas de versão)
+// Estratégia de fetch
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Ignorar requisições de API e tRPC
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/api/trpc')) {
+  if (url.pathname.startsWith('/api/')) {
     return;
   }
 
-  // Ignorar assets do Vite (JS, CSS, chunks) - sempre buscar da rede
+  // Ignorar assets do Vite em desenvolvimento
   if (url.pathname.startsWith('/@') || url.pathname.startsWith('/src/') ||
       url.pathname.includes('node_modules') || url.pathname.includes('.vite') ||
-      url.pathname.endsWith('.js') || url.pathname.endsWith('.css') ||
       url.pathname.endsWith('.ts') || url.pathname.endsWith('.tsx')) {
     return;
   }
 
-  // Para navegação (HTML), sempre tentar rede primeiro
+  // Para navegação (HTML): Network first, fallback para offline page
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
+      fetch(request)
+        .then((response) => {
+          // Cachear a resposta de navegação para uso offline futuro
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/', clone));
+          return response;
+        })
+        .catch(() => {
+          // Offline: tentar servir do cache, senão mostrar página offline
+          return caches.match('/').then((cached) => {
+            if (cached) return cached;
+            return caches.match('/offline.html');
+          });
+        })
     );
     return;
   }
 
-  // Para outros assets estáticos (imagens, fontes): cache first
+  // Para JS/CSS em produção (assets com hash): Cache first (imutáveis)
+  if ((url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) && url.pathname.includes('/assets/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Para fontes e imagens: Cache first com fallback de rede
+  if (url.pathname.match(/\.(woff2?|ttf|otf|png|jpg|jpeg|webp|svg|ico|gif)$/)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => new Response('', { status: 408 }));
+      })
+    );
+    return;
+  }
+
+  // Demais: Network first
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      });
-    })
+    fetch(request).catch(() => caches.match(request))
   );
 });
 
@@ -77,20 +123,23 @@ self.addEventListener('push', (event) => {
   const {
     title = 'Hubly',
     body = '',
-    icon = '/icon-192.png',
-    tag = 'hubly-notification',
+    icon = '/android-icons/icon-192x192.png',
+    tag,
     sound = false,
     data = {},
     url = '/',
   } = payload;
 
+  // Agrupamento por tipo: usar tag para agrupar notificações similares
+  const notificationTag = tag || `hubly-${data.type || 'geral'}`;
+
   const notificationOptions = {
     body,
     icon,
-    tag,
+    tag: notificationTag,
     renotify: true,
     requireInteraction: false,
-    silent: !sound, // Se sound=true, o navegador usa o som padrão do sistema
+    silent: !sound,
     data: { ...data, url },
     actions: [
       { action: 'open', title: 'Abrir' },
@@ -113,14 +162,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Se já tem uma janela aberta, focar nela
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(url);
           return client.focus();
         }
       }
-      // Caso contrário, abrir nova janela
       if (clients.openWindow) {
         return clients.openWindow(url);
       }
@@ -130,5 +177,5 @@ self.addEventListener('notificationclick', (event) => {
 
 // Ao fechar a notificação
 self.addEventListener('notificationclose', () => {
-  // Pode ser usado para analytics
+  // Analytics
 });

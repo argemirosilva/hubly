@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Hubly - Sem Conexão</title>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+    p {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 320px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+    .icon-offline {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 12px;
+      background: oklch(62% 0.16 225);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px oklch(62% 0.16 225 / 40%);
+    }
+    .btn-retry:active {
+      transform: scale(0.96);
+    }
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="icon-offline pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+    <path d="M10.71 5.05A16 16 0 0 1 22.56 9"></path>
+    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+    <line x1="12" y1="20" x2="12.01" y2="20"></line>
+  </svg>
+  <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logomarca_6ccd1def.png" alt="Hubly" class="logo" />
+  <h1>Sem conexão com a internet</h1>
+  <p>Verifique sua conexão Wi-Fi ou dados móveis e tente novamente. O Hubly precisa de internet para carregar seus dados.</p>
+  <button class="btn-retry" onclick="window.location.reload()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+    </svg>
+    Tentar novamente
+  </button>
+</body>
+</html>

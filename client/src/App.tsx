@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { PWAInstallBanner } from "./components/PWAInstallBanner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -127,6 +128,22 @@ function Router() {
 function App() {
   useEffect(() => {
     document.title = "Hubly - Gestão de Agendamentos e Clientes";
+  }, []);
+
+  // Listener para atualização do Service Worker
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'SW_UPDATED') {
+        toast.info('Nova versão disponível', {
+          description: 'Atualize para a versão mais recente do Hubly.',
+          action: { label: 'Atualizar', onClick: () => window.location.reload() },
+          duration: 15000,
+        });
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
   return (
     <ErrorBoundary>

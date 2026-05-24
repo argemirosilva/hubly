@@ -55,7 +55,16 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Splash inline: exibido até o React montar -->
+      <div id="app-splash" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:#0f172a;gap:16px;">
+        <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logomarca_6ccd1def.png" alt="Hubly" style="width:64px;height:64px;border-radius:16px;animation:pulse-splash 1.5s ease-in-out infinite;" />
+        <p style="color:rgba(255,255,255,0.7);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;">Carregando...</p>
+      </div>
+      <style>
+        @keyframes pulse-splash { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
 
     <!-- Bloquear zoom (pinch-to-zoom e double-tap) em todos os navegadores incluindo iOS Safari -->

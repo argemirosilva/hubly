@@ -2507,3 +2507,20 @@
 - [x] Ao selecionar arquivo, abrir editor antes de fazer upload
 - [x] Exportar imagem recortada como blob e enviar para S3
 - [x] TypeScript: 0 erros
+
+## UX Mobile e PWA — Melhorias
+- [x] P1: inputMode="tel" no campo de telefone do portal
+- [x] P1: inputMode="email" no campo de e-mail do portal
+- [x] P1: Bottom nav usar startsWith para subpáginas (já estava OK)
+- [x] P1: Remover share_target do manifest
+- [x] P1: Adicionar loading="lazy" em imagens do portal
+- [x] P1: Loading inline no index.html (splash antes do React)
+- [x] P1: Tratamento offline — app shell caching + página offline
+- [x] P1: Calendário mobile — default lista em telas pequenas
+- [x] P2: Feedback háptico em ações críticas (CSS active:scale)
+- [x] P2: Touch targets mínimo 36px nos filtros do Dashboard
+- [x] P2: Back button handler em standalone mode
+- [x] P2: Texto mínimo 10px no Dashboard mobile (era 8-9px)
+- [x] P3: Transições de página (fade/slide via CSS)
+- [x] P3: SW notificação de nova versão disponível
+- [x] P3: Notificações push com agrupamento por tag

@@ -47,7 +47,9 @@ export default function Calendario() {
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [novaAgendaData, setNovaAgendaData] = useState<string | undefined>();
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "lista">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "lista">(
+    () => window.innerWidth < 1024 ? "lista" : "grid"
+  );
   const [profissionalFiltro, setProfissionalFiltro] = useState<string>("all");
   const [menuAberto, setMenuAberto] = useState<{ x: number; y: number; data: string } | null>(null);
   const [agendamentosDodia, setAgendamentosDodia] = useState<number>(0);

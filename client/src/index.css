@@ -350,3 +350,50 @@
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* ─── Indicador de Scroll Horizontal (tabelas em mobile) ───────────────────── */
+.scroll-hint {
+  position: relative;
+}
+.scroll-hint::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, oklch(98% 0.005 240 / 90%));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.scroll-hint.scrolled-end::after {
+  opacity: 0;
+}
+
+/* ─── Feedback Háptico Visual (active state) ───────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active, a:active, [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* ─── Mínimo de 44px para touch targets em mobile ─────────────────────────── */
+@media (max-width: 768px) {
+  button, a, [role="button"], input, select, textarea {
+    min-height: 36px;
+  }
+}
+
+/* ─── Transição suave entre páginas ────────────────────────────────────────── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: pageEnter 0.2s ease both;
+}

@@ -271,6 +271,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => { setSidebarOpen(false); }, [location]);
 
+  // Back button handler para standalone mode (PWA)
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    if (!isStandalone) return;
+    const handler = (e: PopStateEvent) => {
+      // Se não há histórico para voltar, navegar para o Dashboard
+      if (window.history.length <= 1) {
+        e.preventDefault();
+        navigate('/admin');
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [navigate]);
+
   // Pull-to-refresh: escutar evento e invalidar todas as queries ativas
   const utils = trpc.useUtils();
   useEffect(() => {

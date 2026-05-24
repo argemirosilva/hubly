@@ -530,7 +530,7 @@ export default function PortalCliente() {
 
       {empresa.portalHeaderUrl && step === "identificacao" && (
         <div className="relative w-full h-44 sm:h-60 overflow-hidden">
-          <img src={empresa.portalHeaderUrl} alt="Capa" className="w-full h-full object-cover" />
+          <img src={empresa.portalHeaderUrl} alt="Capa" className="w-full h-full object-cover" loading="lazy" />
           {/* Overlay gradiente Hubly */}
           <div className="absolute inset-0" style={{
             background: (() => { const { r, g, b } = hexToRgb(corPrimaria); return `linear-gradient(to bottom, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0.15) 50%, rgba(${r},${g},${b},0.7) 100%)`; })()
@@ -615,7 +615,7 @@ export default function PortalCliente() {
                     }
                   }}
                   onBlur={() => executarBuscaTelefone(telefone)}
-                  icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} />
+                  icon={Phone} placeholder="(11) 99999-9999" corPrimaria={corPrimaria} inputMode="tel" type="tel" />
                 {buscandoTelefone && (
                   <div className="absolute right-3 top-8 flex items-center gap-1 text-xs text-slate-400">
                     <Loader2 className="w-3 h-3 animate-spin" /> Buscando...
@@ -641,7 +641,7 @@ export default function PortalCliente() {
                   <InputField label="Nome completo *" value={nome} onChange={setNome}
                     icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
                   <InputField label="E-mail (opcional)" value={email} onChange={setEmail}
-                    icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} />
+                    icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} inputMode="email" type="email" />
                 </>
               )}
 
@@ -717,7 +717,7 @@ export default function PortalCliente() {
                   <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm overflow-hidden"
                     style={{ background: corPrimaria }}>
                     {p.avatarUrl
-                      ? <img src={p.avatarUrl} alt={p.nome} className="w-full h-full object-cover" />
+                      ? <img src={p.avatarUrl} alt={p.nome} className="w-full h-full object-cover" loading="lazy" />
                       : p.nome.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
@@ -1172,10 +1172,12 @@ function StepCard({ title, subtitle, children }: {
   );
 }
 
-function InputField({ label, value, onChange, onBlur, icon: Icon, placeholder, corPrimaria }: {
+function InputField({ label, value, onChange, onBlur, icon: Icon, placeholder, corPrimaria, inputMode, type }: {
   label: string; value: string; onChange: (v: string) => void;
   onBlur?: () => void;
   icon: React.ElementType; placeholder: string; corPrimaria: string;
+  inputMode?: "text" | "tel" | "email" | "numeric";
+  type?: string;
 }) {
   return (
     <div>
@@ -1184,8 +1186,9 @@ function InputField({ label, value, onChange, onBlur, icon: Icon, placeholder, c
       </label>
       <div className="relative">
         <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input type="text" value={value} onChange={e => onChange(e.target.value)}
+        <input type={type || "text"} inputMode={inputMode} value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
+          autoComplete={inputMode === "tel" ? "tel" : inputMode === "email" ? "email" : undefined}
           className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm border-2 outline-none transition-all bg-white text-slate-800"
           style={{ borderColor: "#e2e8f0" }}
           onFocus={e => { e.currentTarget.style.borderColor = corPrimaria; }}
