@@ -349,12 +349,16 @@ export default function PortalCliente() {
   );
 
   const agendarMutation = trpc.portal.criarAgendamento.useMutation({
-    onSuccess: () => setStep("sucesso"),
+    onSuccess: () => {
+      if (navigator.vibrate) navigator.vibrate([10, 50, 10]); // vibração de sucesso
+      setStep("sucesso");
+    },
     onError: (err) => toast.error(err.message),
   });
 
   const cancelarMutation = trpc.portal.cancelarAgendamento.useMutation({
     onSuccess: () => {
+      if (navigator.vibrate) navigator.vibrate(15); // vibração curta
       toast.success("Agendamento cancelado com sucesso");
       utils.portal.getMeusAgendamentos.invalidate();
     },

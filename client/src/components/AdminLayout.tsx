@@ -10,6 +10,7 @@ import { Link, useLocation } from "wouter";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
+import { useBadge } from "@/hooks/useBadge";
 
 type NavItem = {
   href: string;
@@ -113,6 +114,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
   const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout, register: systemRegister } = useSystemAuth();
   const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj } = usePermissoes();
+  useBadge(); // Atualiza badge do ícone do app com pendentes
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);

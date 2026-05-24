@@ -70,6 +70,7 @@ export default function Agendamentos() {
 
   const bulkDeleteMutation = trpc.agendamentos.bulkDelete.useMutation({
     onSuccess: (result) => {
+      if (navigator.vibrate) navigator.vibrate(15);
       utils.agendamentos.list.invalidate();
       setSelecionados(new Set());
       setModoSelecao(false);
@@ -85,6 +86,7 @@ export default function Agendamentos() {
 
   const bulkUpdateMutation = trpc.agendamentos.bulkUpdateStatus.useMutation({
     onSuccess: (result) => {
+      if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
       utils.agendamentos.list.invalidate();
       setSelecionados(new Set());
       setModoSelecao(false);

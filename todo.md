@@ -2571,3 +2571,12 @@
 ## Animação de Slide-Out no SwipeToCancel
 - [x] Ao confirmar cancelamento, animar slide-out + fade antes de remover da lista
 - [x] Feedback visual claro de que o item foi removido (height collapse + opacity)
+
+## Haptic Feedback Nativo (Vibration API)
+- [x] Adicionar navigator.vibrate() ao cancelar, agendar, bulk update/delete e pull-to-refresh
+
+## Shortcuts no Manifest (Atalho Home Screen)
+- [x] Adicionar shortcuts no manifest.json para "Novo Agendamento" e "Agenda do Dia"
+
+## Badge API (Contador no Ícone)
+- [x] Mostrar badge com número de agendamentos pendentes de confirmação (useBadge hook)

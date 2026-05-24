@@ -33,6 +33,22 @@
       "purpose": "any maskable"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Novo Agendamento",
+      "short_name": "Agendar",
+      "description": "Criar um novo agendamento rapidamente",
+      "url": "/admin/agendamentos?novo=1",
+      "icons": [{ "src": "/android-icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Agenda do Dia",
+      "short_name": "Agenda",
+      "description": "Ver a agenda de hoje",
+      "url": "/admin/calendario",
+      "icons": [{ "src": "/android-icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "categories": ["business", "productivity"],
   "lang": "pt-BR",
   "permissions": ["notifications"],
