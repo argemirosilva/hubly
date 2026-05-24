@@ -2558,3 +2558,16 @@
 - [x] Exibir indicador "offline" quando sem conexão (OfflineIndicator)
 - [x] Indicador verde "Conexão restabelecida" ao reconectar
 - [x] Dados em cache exibidos mesmo offline, atualizam em background
+
+## Persistência do Cache (IndexedDB)
+- [x] Instalar @tanstack/query-persist-client-core e idb-keyval
+- [x] Configurar persister com IndexedDB no main.tsx
+- [x] Cache sobrevive ao fechar/reabrir o app (cold start instantâneo)
+
+## Notificação Push ao Cancelar Agendamento
+- [x] Ao cancelar pelo portal, notificar admin e profissional via push
+- [x] Incluir nome do cliente, serviço e data/hora no corpo da notificação
+
+## Animação de Slide-Out no SwipeToCancel
+- [x] Ao confirmar cancelamento, animar slide-out + fade antes de remover da lista
+- [x] Feedback visual claro de que o item foi removido (height collapse + opacity)

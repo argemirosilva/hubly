@@ -1,6 +1,8 @@
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClientSave, persistQueryClientRestore } from "@tanstack/query-persist-client-core";
+import { get, set, del } from "idb-keyval";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
@@ -25,6 +27,70 @@ const queryClient = new QueryClient({
   },
 });
 
+// ── Persistência do cache via IndexedDB ──────────────────────────────────────
+const IDB_CACHE_KEY = "hubly-query-cache";
+const MAX_AGE = 1000 * 60 * 60 * 24; // 24 horas
+
+const idbPersister = {
+  persistClient: async (client: any) => {
+    try {
+      await set(IDB_CACHE_KEY, client);
+    } catch {}
+  },
+  restoreClient: async () => {
+    try {
+      return await get(IDB_CACHE_KEY);
+    } catch {
+      return undefined;
+    }
+  },
+  removeClient: async () => {
+    try {
+      await del(IDB_CACHE_KEY);
+    } catch {}
+  },
+};
+
+// Restaurar cache do IndexedDB ao iniciar (cold start instantâneo)
+(async () => {
+  try {
+    const persisted = await idbPersister.restoreClient();
+    if (persisted) {
+      await persistQueryClientRestore({
+        queryClient,
+        persister: {
+          restoreClient: async () => persisted,
+          persistClient: async () => {},
+          removeClient: async () => {},
+        },
+        maxAge: MAX_AGE,
+      });
+    }
+  } catch {}
+})();
+
+// Salvar cache no IndexedDB periodicamente e ao sair
+const saveCache = () => {
+  persistQueryClientSave({
+    queryClient,
+    persister: idbPersister,
+    dehydrateOptions: {
+      shouldDehydrateQuery: (query) => {
+        // Só persistir queries com sucesso
+        return query.state.status === "success";
+      },
+    },
+  });
+};
+
+// Salvar a cada 30 segundos e ao sair
+setInterval(saveCache, 30_000);
+window.addEventListener("beforeunload", saveCache);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") saveCache();
+});
+
+// ── Error handling ───────────────────────────────────────────────────────────
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   // Não redirecionar automaticamente - o AdminLayout gerencia o estado de login
   if (!(error instanceof TRPCClientError)) return;

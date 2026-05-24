@@ -878,6 +878,55 @@ export const portalRouter = router({
         .set({ status: 'cancelado' })
         .where(eq(agendamentos.id, input.agendamentoId));
 
+      // ── Notificar admin e profissional via push ──────────────────────────────
+      try {
+        const { sendPushToUser, sendPushToEmpresa } = await import("../pushNotifications");
+
+        // Buscar dados para a notificação
+        const clienteInfo = await db.select({ nome: clientes.nome })
+          .from(clientes).where(eq(clientes.id, clienteId)).limit(1);
+        const agInfo = await db.select({
+          data: agendamentos.data,
+          horaInicio: agendamentos.horaInicio,
+          profissionalId: agendamentos.profissionalId,
+          servicoId: agendamentos.servicoId,
+        }).from(agendamentos).where(eq(agendamentos.id, input.agendamentoId)).limit(1);
+
+        const nomeCliente = clienteInfo[0]?.nome ?? "Cliente";
+        const dataFormatada = agInfo[0]?.data ? String(agInfo[0].data).substring(0, 10).split('-').reverse().join('/') : "";
+        const hora = agInfo[0]?.horaInicio?.substring(0, 5) ?? "";
+
+        // Buscar nome do serviço
+        let nomeServico = "Serviço";
+        if (agInfo[0]?.servicoId) {
+          const servInfo = await db.select({ nome: servicos.nome })
+            .from(servicos).where(eq(servicos.id, agInfo[0].servicoId)).limit(1);
+          nomeServico = servInfo[0]?.nome ?? "Serviço";
+        }
+
+        const pushPayload = {
+          title: "❌ Agendamento cancelado",
+          body: `${nomeCliente} cancelou ${nomeServico} de ${dataFormatada} às ${hora}`,
+          tag: `cancelamento-${input.agendamentoId}`,
+          sound: true,
+          url: "/admin/agendamentos",
+        };
+
+        // Notificar todos os usuários da empresa (admin)
+        await sendPushToEmpresa(input.empresaId, pushPayload).catch(() => {});
+
+        // Notificar profissional específico se tiver userId
+        if (agInfo[0]?.profissionalId) {
+          const profInfo = await db.select({ userId: profissionais.userId })
+            .from(profissionais).where(eq(profissionais.id, agInfo[0].profissionalId)).limit(1);
+          if (profInfo[0]?.userId) {
+            await sendPushToUser(profInfo[0].userId, pushPayload).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error("[Portal] Erro ao enviar push de cancelamento:", e);
+      }
+
       return { success: true };
     }),
 });
