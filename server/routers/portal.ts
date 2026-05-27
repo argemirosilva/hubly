@@ -556,16 +556,11 @@ export const portalRouter = router({
           const telefone = cliente?.whatsapp || cliente?.telefone;
           if (!telefone || !cliente) return;
 
-          // Selecionar evento correto: pre_agendado → tenta agendamento_pre_agendado, fallback agendamento_criado
-          let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
-          if (status === 'pre_agendado') {
-            automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_pre_agendado');
-            if (!automacaoAtiva) {
-              automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_criado');
-            }
-          } else {
-            automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_criado');
-          }
+          // Selecionar evento correto por status:
+          // - pre_agendado (tem taxa de reserva) → dispara APENAS agendamento_pre_agendado
+          // - agendado/confirmado (sem taxa de reserva) → dispara APENAS agendamento_criado
+          const eventoAutomacao = status === 'pre_agendado' ? 'agendamento_pre_agendado' : 'agendamento_criado';
+          const automacaoAtiva = await getAutomacaoByEvento(input.empresaId, eventoAutomacao);
 
           if (!automacaoAtiva?.corpoMensagem) return;
 
