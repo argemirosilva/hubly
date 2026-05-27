@@ -43,62 +43,62 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Paleta: Hubly (Azul Escuro #1a3a6b, Azul Médio #29abe2, Verde #4caf50) ─── */
+/* ─── Paleta: Hubly Warm (Marrom #6d412a, Bege #c1a37f, Creme #f5f5dc, Dourado #dec480) ─── */
 :root {
   --radius: 0.5rem;
 
-  /* Backgrounds */
-  --background:         oklch(98% 0.005 240);
-  --foreground:         oklch(18% 0.025 240);
+  /* Backgrounds — creme quente */
+  --background:         oklch(97% 0.012 85);
+  --foreground:         oklch(22% 0.040 50);
 
-  /* Cards */
-  --card:               oklch(100% 0 0);
-  --card-foreground:    oklch(18% 0.025 240);
+  /* Cards — branco levemente quente */
+  --card:               oklch(99% 0.006 85);
+  --card-foreground:    oklch(22% 0.040 50);
 
-  --popover:            oklch(100% 0 0);
-  --popover-foreground: oklch(18% 0.025 240);
+  --popover:            oklch(99% 0.006 85);
+  --popover-foreground: oklch(22% 0.040 50);
 
-  /* Primary — Azul Escuro Hubly (#1a3a6b) */
-  --primary:            oklch(32% 0.12 255);
+  /* Primary — Marrom escuro (#6d412a) */
+  --primary:            oklch(36% 0.085 50);
   --primary-foreground: oklch(100% 0 0);
 
-  /* Secondary — Azul Médio Hubly (#29abe2) */
-  --secondary:          oklch(62% 0.16 225);
-  --secondary-foreground: oklch(100% 0 0);
+  /* Secondary — Bege (#c1a37f) */
+  --secondary:          oklch(72% 0.065 65);
+  --secondary-foreground: oklch(22% 0.040 50);
 
-  /* Muted */
-  --muted:              oklch(96% 0.006 240);
-  --muted-foreground:   oklch(52% 0.016 240);
+  /* Muted — creme suave */
+  --muted:              oklch(94% 0.016 80);
+  --muted-foreground:   oklch(52% 0.030 60);
 
-  /* Accent — Verde Hubly (#4caf50) */
-  --accent:             oklch(62% 0.18 145);
-  --accent-foreground:  oklch(100% 0 0);
+  /* Accent — Dourado (#dec480) */
+  --accent:             oklch(82% 0.090 80);
+  --accent-foreground:  oklch(22% 0.040 50);
 
   /* Destructive */
-  --destructive:        oklch(58% 0.22 25);
+  --destructive:        oklch(55% 0.22 25);
   --destructive-foreground: oklch(100% 0 0);
 
   /* Borders & inputs */
-  --border:             oklch(90% 0.010 240);
-  --input:              oklch(90% 0.010 240);
-  --ring:               oklch(62% 0.16 225 / 35%);
+  --border:             oklch(88% 0.022 75);
+  --input:              oklch(88% 0.022 75);
+  --ring:               oklch(36% 0.085 50 / 35%);
 
   /* Charts */
-  --chart-1:            oklch(32% 0.12 255);
-  --chart-2:            oklch(62% 0.16 225);
-  --chart-3:            oklch(62% 0.18 145);
-  --chart-4:            oklch(70% 0.14 200);
-  --chart-5:            oklch(50% 0.18 255);
+  --chart-1:            oklch(36% 0.085 50);
+  --chart-2:            oklch(72% 0.065 65);
+  --chart-3:            oklch(82% 0.090 80);
+  --chart-4:            oklch(58% 0.055 55);
+  --chart-5:            oklch(48% 0.070 45);
 
-  /* Sidebar — Azul Escuro Hubly */
-  --sidebar:                      oklch(22% 0.10 255);
-  --sidebar-foreground:           oklch(92% 0.008 240);
-  --sidebar-primary:              oklch(62% 0.16 225);
-  --sidebar-primary-foreground:   oklch(100% 0 0);
-  --sidebar-accent:               oklch(62% 0.18 145);
-  --sidebar-accent-foreground:    oklch(100% 0 0);
-  --sidebar-border:               oklch(30% 0.08 255);
-  --sidebar-ring:                 oklch(62% 0.16 225);
+  /* Sidebar — Marrom escuro */
+  --sidebar:                      oklch(28% 0.075 48);
+  --sidebar-foreground:           oklch(94% 0.016 80);
+  --sidebar-primary:              oklch(82% 0.090 80);
+  --sidebar-primary-foreground:   oklch(22% 0.040 50);
+  --sidebar-accent:               oklch(72% 0.065 65);
+  --sidebar-accent-foreground:    oklch(22% 0.040 50);
+  --sidebar-border:               oklch(34% 0.060 48);
+  --sidebar-ring:                 oklch(82% 0.090 80);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
@@ -124,7 +124,7 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    color: oklch(13% 0.020 260);
+    color: oklch(22% 0.040 50);
   }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
@@ -132,8 +132,8 @@
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: oklch(82% 0.010 250); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(68% 0.016 260); }
+  ::-webkit-scrollbar-thumb { background: oklch(72% 0.040 65); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(58% 0.055 55); }
 
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -254,18 +254,18 @@
     border-radius: var(--radius-md);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: oklch(60% 0.012 260);
+    color: oklch(75% 0.030 70);
     transition: background 0.15s ease, color 0.15s ease;
     cursor: pointer;
     text-decoration: none;
   }
   .sidebar-item:hover {
-    background: oklch(20% 0.020 260);
-    color: oklch(92% 0.010 250);
+    background: oklch(36% 0.065 48);
+    color: oklch(94% 0.016 80);
   }
   .sidebar-item.active {
-    background: oklch(55% 0.22 264 / 20%);
-    color: oklch(75% 0.18 264);
+    background: oklch(82% 0.090 80 / 20%);
+    color: oklch(88% 0.070 78);
   }
 
   /* ── Animações */
@@ -285,9 +285,9 @@
     animation: fadeIn 0.2s ease both;
   }
 
-  /* ── Gradient accent — Verde para Coral (Nudos) */
+  /* ── Gradient accent — Marrom para Dourado */
   .gradient-primary {
-    background: linear-gradient(135deg, oklch(45% 0.15 160), oklch(60% 0.20 30));
+    background: linear-gradient(135deg, oklch(36% 0.085 50), oklch(82% 0.090 80));
   }
   /* ── WhatsApp status pulse — animação lenta e discreta */
   /* ── Menu pop-in — fade-in + scale para menu de contexto */
@@ -362,7 +362,7 @@
   right: 0;
   bottom: 0;
   width: 32px;
-  background: linear-gradient(to right, transparent, oklch(98% 0.005 240 / 90%));
+  background: linear-gradient(to right, transparent, oklch(97% 0.012 85 / 90%));
   pointer-events: none;
   opacity: 1;
   transition: opacity 0.3s;
