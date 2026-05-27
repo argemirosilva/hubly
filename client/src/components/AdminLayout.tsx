@@ -550,7 +550,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(58% 0.048 68)", borderRight: "1px solid oklch(52% 0.042 68)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ background: "oklch(96% 0.012 80)", borderRight: "1px solid oklch(88% 0.022 75)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
@@ -589,7 +589,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return (
             <div key={group.label}>
               <p className="px-2 mb-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase"
-                style={{ color: "oklch(40% 0.050 50)" }}>
+                style={{ color: "oklch(36% 0.085 50)" }}>
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -608,15 +608,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <div
                           className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden"
                           style={{
-                            background: isParentActive ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                            color: isParentActive ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                            background: isParentActive ? "oklch(82% 0.090 80 / 25%)" : "transparent",
+                            color: isParentActive ? "oklch(36% 0.085 50)" : "oklch(36% 0.085 50)",
                             boxShadow: isParentActive ? "inset 3px 0 0 oklch(36% 0.085 50)" : "inset 3px 0 0 transparent",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
                             if (!isParentActive) {
                               const el = e.currentTarget as HTMLElement;
-                              el.style.background = "oklch(62% 0.050 65)";
+                              el.style.background = "oklch(82% 0.090 80 / 30%)";
                               el.style.color = "oklch(36% 0.085 50)";
                               el.style.boxShadow = "inset 3px 0 0 oklch(36% 0.085 50 / 60%)";
                               el.style.transform = "translateX(2px)";
@@ -652,14 +652,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                   <div
                                     className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200"
                                     style={{
-                                      background: childActive ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                                      color: childActive ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                                      background: childActive ? "oklch(82% 0.090 80 / 25%)" : "transparent",
+                                      color: childActive ? "oklch(36% 0.085 50)" : "oklch(36% 0.085 50)",
                                       boxShadow: childActive ? "inset 2px 0 0 oklch(36% 0.085 50)" : "inset 2px 0 0 transparent",
                                     }}
                                     onMouseEnter={e => {
                                       if (!childActive) {
                                         const el = e.currentTarget as HTMLElement;
-                                        el.style.background = "oklch(62% 0.050 65)";
+                                        el.style.background = "oklch(82% 0.090 80 / 30%)";
                                         el.style.color = "oklch(36% 0.085 50)";
                                         el.style.boxShadow = "inset 2px 0 0 oklch(36% 0.085 50 / 60%)";
                                         el.style.transform = "translateX(2px)";
@@ -669,7 +669,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                       if (!childActive) {
                                         const el = e.currentTarget as HTMLElement;
                                         el.style.background = "transparent";
-                                        el.style.color = "oklch(28% 0.060 45)";
+                                        el.style.color = "oklch(36% 0.085 50)";
                                         el.style.boxShadow = "inset 2px 0 0 transparent";
                                         el.style.transform = "translateX(0)";
                                       }
@@ -694,14 +694,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <div
                         className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative"
                         style={{
-                          background: active ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                          color: active ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                          background: active ? "oklch(82% 0.090 80 / 25%)" : "transparent",
+                          color: active ? "oklch(36% 0.085 50)" : "oklch(36% 0.085 50)",
                           boxShadow: active ? "inset 3px 0 0 oklch(36% 0.085 50)" : "inset 3px 0 0 transparent",
                         }}
                         onMouseEnter={e => {
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
-                            el.style.background = "oklch(62% 0.050 65)";
+                            el.style.background = "oklch(82% 0.090 80 / 30%)";
                             el.style.color = "oklch(36% 0.085 50)";
                             el.style.boxShadow = "inset 3px 0 0 oklch(36% 0.085 50 / 60%)";
                             el.style.transform = "translateX(2px)";
@@ -711,7 +711,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
                             el.style.background = "transparent";
-                            el.style.color = "oklch(28% 0.060 45)";
+                            el.style.color = "oklch(36% 0.085 50)";
                             el.style.boxShadow = "inset 3px 0 0 transparent";
                             el.style.transform = "translateX(0)";
                           }
@@ -854,7 +854,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar desktop — sininho + plano */}
         <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
-          style={{ background: "oklch(55% 0.045 65)", borderBottom: "1px solid oklch(50% 0.040 65)" }}>
+          style={{ background: "oklch(100% 0 0)", borderBottom: "1px solid oklch(88% 0.022 75)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
@@ -883,7 +883,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "oklch(55% 0.045 65)", borderBottom: "1px solid oklch(50% 0.040 65)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
+          style={{ background: "oklch(100% 0 0)", borderBottom: "1px solid oklch(88% 0.022 75)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(28% 0.060 45)" }}>

@@ -90,15 +90,15 @@
   --chart-4:            oklch(58% 0.055 55);
   --chart-5:            oklch(48% 0.070 45);
 
-  /* Sidebar — Bege camel (#BFA882) */
-  --sidebar:                      oklch(72% 0.055 70);
-  --sidebar-foreground:           oklch(28% 0.060 45);
-  --sidebar-primary:              oklch(36% 0.085 50);
-  --sidebar-primary-foreground:   oklch(100% 0 0);
-  --sidebar-accent:               oklch(65% 0.060 65);
-  --sidebar-accent-foreground:    oklch(22% 0.040 50);
-  --sidebar-border:               oklch(62% 0.050 65);
-  --sidebar-ring:                 oklch(36% 0.085 50);
+  /* Sidebar — Creme muito claro (#F5F1E8) */
+  --sidebar:                      oklch(96% 0.012 80);
+  --sidebar-foreground:           oklch(36% 0.085 50);
+  --sidebar-primary:              oklch(82% 0.090 80);
+  --sidebar-primary-foreground:   oklch(28% 0.060 45);
+  --sidebar-accent:               oklch(82% 0.090 80);
+  --sidebar-accent-foreground:    oklch(28% 0.060 45);
+  --sidebar-border:               oklch(88% 0.022 75);
+  --sidebar-ring:                 oklch(82% 0.090 80);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
