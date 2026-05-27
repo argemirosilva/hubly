@@ -4,8 +4,8 @@
   "description": "Hubly - Hub de Serviços Inteligentes. Gerencie agendamentos, clientes, financeiro e automações em um único lugar.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#bfa882",
+  "theme_color": "#bfa882",
   "orientation": "portrait-primary",
   "icons": [
     {

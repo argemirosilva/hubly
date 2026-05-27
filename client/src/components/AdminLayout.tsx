@@ -303,12 +303,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center animate-pulse">
-            <Calendar className="w-5 h-5 text-white" />
-          </div>
-          <p className="text-xs text-muted-foreground font-medium">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(72% 0.055 70)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+            alt="Hubly"
+            className="h-12 w-auto object-contain animate-pulse"
+            style={{ filter: "brightness(0) saturate(1.2) hue-rotate(20deg)" }}
+          />
+          <p className="text-sm font-medium" style={{ color: "oklch(28% 0.060 45)" }}>Carregando...</p>
         </div>
       </div>
     );
