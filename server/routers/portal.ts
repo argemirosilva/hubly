@@ -389,7 +389,7 @@ export const portalRouter = router({
       // Dados do cliente
       clienteNome: z.string().min(2),
       clienteTelefone: z.string().min(8),
-      clienteEmail: z.string().email().optional(),
+      clienteDataNascimento: z.string().optional(), // formato YYYY-MM-DD ou DD/MM/AAAA
       observacoes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -474,7 +474,7 @@ export const portalRouter = router({
             .set({
               ativo: true,
               nome: input.clienteNome,
-              ...(input.clienteEmail ? { email: input.clienteEmail } : {}),
+              ...(input.clienteDataNascimento ? { dataNascimento: input.clienteDataNascimento } : {}),
             })
             .where(eq(clientes.id, clienteId));
         }
@@ -483,7 +483,7 @@ export const portalRouter = router({
           empresaId: input.empresaId,
           nome: input.clienteNome,
           telefone: input.clienteTelefone,
-          email: input.clienteEmail ?? null,
+          dataNascimento: input.clienteDataNascimento ?? null,
           ativo: true,
         });
         clienteId = (novoCliente as any)[0]?.insertId ?? (novoCliente as any).insertId;
@@ -547,6 +547,77 @@ export const portalRouter = router({
       } catch {
         // Não bloquear o agendamento por falha no contador
       }
+      // ── Disparar automações de WhatsApp (mesma lógica do admin) ─────────────
+      ;(async () => {
+        try {
+          const { getAutomacaoByEvento, registrarEnvioAutomacao, getClienteById, getProfissionalById } = await import('../db');
+          const cliente = await getClienteById(clienteId);
+          const profissional = input.profissionalId ? await getProfissionalById(input.profissionalId) : null;
+          const telefone = cliente?.whatsapp || cliente?.telefone;
+          if (!telefone || !cliente) return;
+
+          // Selecionar evento correto: pre_agendado → tenta agendamento_pre_agendado, fallback agendamento_criado
+          let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
+          if (status === 'pre_agendado') {
+            automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_pre_agendado');
+            if (!automacaoAtiva) {
+              automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_criado');
+            }
+          } else {
+            automacaoAtiva = await getAutomacaoByEvento(input.empresaId, 'agendamento_criado');
+          }
+
+          if (!automacaoAtiva?.corpoMensagem) return;
+
+          // Processar variáveis do template
+          const dataFormatada = new Date(input.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+          const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+          const valorReserva = (valorTotal * percentualReserva).toFixed(2);
+          const nomeServico = servico.nome ?? 'Serviço';
+
+          // Extrair midiaUrl do flowJson
+          let midiaUrl: string | null = null;
+          if (automacaoAtiva.flowJson) {
+            try {
+              const flow = JSON.parse(automacaoAtiva.flowJson);
+              if (Array.isArray(flow)) {
+                for (const node of flow) { if (node?.data?.midiaUrl) { midiaUrl = node.data.midiaUrl; break; } }
+              } else if (flow?.midiaUrl) { midiaUrl = flow.midiaUrl; }
+            } catch { /* ignorar */ }
+          }
+
+          const mensagem = automacaoAtiva.corpoMensagem
+            .replace(/\{\{nome_cliente\}\}/g, cliente.nome ?? '')
+            .replace(/\{\{primeiro_nome\}\}/g, (cliente.nome ?? '').split(' ')[0])
+            .replace(/\{\{servico\}\}/g, nomeServico)
+            .replace(/\{\{data\}\}/g, dataFormatada)
+            .replace(/\{\{hora\}\}/g, input.horaInicio)
+            .replace(/\{\{profissional\}\}/g, profissional?.nome ?? '')
+            .replace(/\{\{empresa\}\}/g, empresa.nome ?? '')
+            .replace(/\{\{valor\}\}/g, `R$ ${valorTotal.toFixed(2)}`)
+            .replace(/\{\{valor_reserva\}\}/g, `R$ ${valorReserva}`)
+            .replace(/\{\{observacoes\}\}/g, input.observacoes ?? '');
+
+          await registrarEnvioAutomacao({
+            empresaId: input.empresaId,
+            automacaoId: automacaoAtiva.id,
+            automacaoNome: automacaoAtiva.nome ?? 'Confirmação de Agendamento',
+            clienteId: cliente.id,
+            clienteNome: cliente.nome,
+            agendamentoId,
+            telefone,
+            canal: 'whatsapp',
+            mensagem,
+            status: 'pendente',
+            enviarEm: new Date(),
+            midiaUrl: midiaUrl ?? undefined,
+            servicoNome: nomeServico,
+          });
+        } catch (err) {
+          console.error('[Portal] Erro ao disparar automação:', err);
+        }
+      })();
+
       // ── Notificação push ao dono quando status = pre_agendado ───────────────
       if (status === 'pre_agendado') {
         ;(async () => {

@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useRoute } from "wouter";
 import {
   Calendar as CalendarIcon2, Clock, CheckCircle2, ChevronRight, ChevronLeft,
-  User, Phone, Mail, Sparkles, ArrowRight, Scissors, Star,
+  User, Phone, Cake, Sparkles, ArrowRight, Scissors, Star,
   AlertCircle, Loader2, ShieldCheck, Share2, CalendarDays,
 } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth } from "date-fns";
@@ -225,7 +225,7 @@ export default function PortalCliente() {
 
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
+  const [dataNascimento, setDataNascimento] = useState(""); // data de nascimento (opcional)
   const [clienteIdentificado, setClienteIdentificado] = useState(false);
 
   // Fluxo de validação por CPF
@@ -285,7 +285,7 @@ export default function PortalCliente() {
       if (res.encontrado) {
         // Cliente encontrado: pré-preencher nome se disponível
         if (res.nome) setNome(res.nome);
-        if (res.email) setEmail(res.email);
+        // dataNascimento não é exposto na busca por telefone (privacidade)
       } else {
         // Novo cliente: limpar campos de CPF
         setCpf(""); setCpfErro(""); setCpfValidado(false);
@@ -311,7 +311,7 @@ export default function PortalCliente() {
         if (res.valido) {
           setCpfValidado(true);
           setNome(res.nome);
-          setEmail(res.email ?? "");
+          // dataNascimento não é retornado na validação de CPF
         } else {
           setCpfErro("CPF incorreto. Tente novamente.");
           setCpfValidado(false);
@@ -322,7 +322,7 @@ export default function PortalCliente() {
         if (res.ok) {
           setCpfValidado(true);
           setNome(res.nome);
-          setEmail(res.email ?? "");
+          // dataNascimento não é retornado no cadastro de CPF
           setTemCpf(true);
         } else {
           setCpfErro("Não foi possível cadastrar o CPF. Tente novamente.");
@@ -650,7 +650,7 @@ export default function PortalCliente() {
                     // Reset ao mudar telefone
                     setClienteEncontrado(null);
                     setCpf(""); setCpfErro(""); setCpfValidado(false);
-                    setNome(""); setEmail("");
+                    setNome(""); setDataNascimento("");
                     // Busca automática ao atingir tamanho completo (10 ou 11 dígitos)
                     const digits = v.replace(/\D/g, "");
                     if (digits.length >= 10) {
@@ -674,17 +674,17 @@ export default function PortalCliente() {
                     <CheckCircle2 className="w-4 h-4" style={{ color: corPrimaria }} />
                     <p className="text-sm font-semibold" style={{ color: corPrimaria }}>Bem-vinda de volta!</p>
                   </div>
-                  <p className="text-xs text-slate-500 pl-6">{nome}{email ? ` · ${email}` : ""}</p>
+                  <p className="text-xs text-slate-500 pl-6">{nome}{dataNascimento ? ` · Nasc. ${dataNascimento}` : ""}</p>
                 </div>
               )}
 
-              {/* Novo cliente: mostrar campos de nome e email */}
+              {/* Novo cliente: mostrar campos de nome e data de nascimento */}
               {clienteEncontrado === false && (
                 <>
                   <InputField label="Nome completo *" value={nome} onChange={setNome}
                     icon={User} placeholder="Seu nome" corPrimaria={corPrimaria} />
-                  <InputField label="E-mail (opcional)" value={email} onChange={setEmail}
-                    icon={Mail} placeholder="seu@email.com" corPrimaria={corPrimaria} inputMode="email" type="email" />
+                  <InputField label="Data de nascimento (opcional)" value={dataNascimento} onChange={setDataNascimento}
+                    icon={Cake} placeholder="" corPrimaria={corPrimaria} type="date" />
                 </>
               )}
 
@@ -1156,7 +1156,7 @@ export default function PortalCliente() {
                       horaInicio: hora,
                       clienteNome: nome,
                       clienteTelefone: telefone,
-                      clienteEmail: email || undefined,
+                      clienteDataNascimento: dataNascimento || undefined,
                       observacoes: observacoes || undefined,
                     });
                   }}

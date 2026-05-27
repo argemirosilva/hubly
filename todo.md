@@ -2590,3 +2590,9 @@
 - [x] Busca por telefone: filtrar apenas clientes com ativo=true (buscarClientePorTelefone, validarCpfCliente, cadastrarCpfCliente)
 - [x] criarAgendamento: se telefone existe mas inativo → reativar cadastro com nome/email atuais (não duplicar)
 - [x] TypeScript: 0 erros
+
+## Portal Público — Data de Nascimento e Automações pre_agendado
+- [x] Substituir campo e-mail por data de nascimento (opcional) no portal público
+- [x] Salvar dataNascimento no cliente ao criar agendamento pelo portal
+- [x] Corrigir disparo de automações para status pre_agendado no portal (portal.ts agora dispara automações)
+- [x] TypeScript: 0 erros
