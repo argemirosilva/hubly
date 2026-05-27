@@ -851,7 +851,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar desktop — sininho + plano */}
         <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
-          style={{ background: "oklch(99% 0.006 85)", borderBottom: "1px solid oklch(88% 0.022 75)" }}>
+          style={{ background: "oklch(28% 0.075 48)", borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
@@ -867,10 +867,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
           <Link href="/admin/notificacoes">
             <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-              <Bell className="w-5 h-5 text-foreground" />
+              <Bell className="w-5 h-5" style={{ color: "oklch(94% 0.016 80)" }} />
               {naoLidas > 0 && (
-                <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                  style={{ background: "oklch(36% 0.085 50)" }}>
+                <span className="absolute top-1 right-1 text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                  style={{ background: "oklch(82% 0.090 80)", color: "oklch(22% 0.040 50)" }}>
                   {naoLidas > 9 ? "9+" : naoLidas}
                 </span>
               )}
@@ -880,20 +880,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "oklch(99% 0.006 85)", borderBottom: "1px solid oklch(88% 0.022 75)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
+          style={{ background: "oklch(28% 0.075 48)", borderBottom: "1px solid oklch(34% 0.060 48)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl hover:bg-muted transition-colors -ml-1">
-              <Menu className="w-5 h-5 text-foreground" />
+              className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(94% 0.016 80)" }}>
+              <Menu className="w-5 h-5" />
             </button>
             <div className="flex flex-col justify-center">
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
+                style={{ filter: "brightness(0) invert(1)" }}
               />
               {empresaData?.nome && (
-                <span className="text-[10px] text-muted-foreground leading-none mt-0.5 max-w-[130px] truncate">
+                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(72% 0.030 70)" }}>
                   {empresaData.nome}
                 </span>
               )}
@@ -901,11 +902,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div className="flex items-center gap-1">
             <Link href="/admin/notificacoes">
-              <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                <Bell className="w-5 h-5 text-foreground" />
+              <div className="relative p-2 rounded-xl transition-colors cursor-pointer">
+                <Bell className="w-5 h-5" style={{ color: "oklch(94% 0.016 80)" }} />
                 {naoLidas > 0 && (
-                  <span className="absolute top-1 right-1 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
-                    style={{ background: "oklch(62% 0.16 225)" }}>
+                  <span className="absolute top-1 right-1 text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+                    style={{ background: "oklch(82% 0.090 80)", color: "oklch(22% 0.040 50)" }}>
                     {naoLidas > 9 ? "9+" : naoLidas}
                   </span>
                 )}
@@ -914,7 +915,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {/* Avatar do usuário logado */}
             <Link href="/admin/perfil">
               <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity -mr-1"
-                style={{ background: avatarUrl ? 'transparent' : 'oklch(62% 0.16 225)' }}>
+                style={{ background: avatarUrl ? 'transparent' : 'oklch(72% 0.065 65)' }}>
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
