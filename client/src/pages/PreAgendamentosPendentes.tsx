@@ -186,11 +186,11 @@ export default function PreAgendamentosPendentes() {
               <span className="text-sm font-semibold text-foreground">
                 {formatCurrency(ag.valorTotal)}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-[11px] h-7 px-2 text-muted-foreground hover:text-foreground"
                   onClick={() => setDetalheId(ag.id)}
                 >
                   Ver detalhes
@@ -198,20 +198,20 @@ export default function PreAgendamentosPendentes() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  className="text-[11px] h-7 px-2.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                   onClick={() => handleAction(ag.id, "cancelar")}
                   disabled={updateMutation.isPending}
                 >
-                  <XCircle className="w-3.5 h-3.5 mr-1" />
+                  <XCircle className="w-3 h-3 mr-0.5" />
                   Cancelar
                 </Button>
                 <Button
                   size="sm"
-                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                  className="text-[11px] h-7 px-2.5 bg-primary hover:bg-primary/90 text-white"
                   onClick={() => handleAction(ag.id, "confirmar")}
                   disabled={updateMutation.isPending}
                 >
-                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                  <CheckCircle className="w-3 h-3 mr-0.5" />
                   Confirmar
                 </Button>
               </div>
