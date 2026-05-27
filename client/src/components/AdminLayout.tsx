@@ -854,7 +854,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar desktop — sininho + plano */}
         <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
-          style={{ background: "oklch(72% 0.055 70)", borderBottom: "1px solid oklch(62% 0.050 65)" }}>
+          style={{ background: "oklch(62% 0.050 65)", borderBottom: "1px solid oklch(55% 0.045 65)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
@@ -883,7 +883,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "oklch(72% 0.055 70)", borderBottom: "1px solid oklch(62% 0.050 65)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
+          style={{ background: "oklch(62% 0.050 65)", borderBottom: "1px solid oklch(55% 0.045 65)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(28% 0.060 45)" }}>
