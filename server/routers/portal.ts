@@ -457,9 +457,9 @@ export const portalRouter = router({
         if (conflito.length > 0) throw new Error("Horário não disponível. Por favor, escolha outro.");
       }
 
-      // Buscar ou criar cliente pelo telefone
+      // Buscar cliente pelo telefone (ativo ou inativo)
       let clienteId: number;
-      const clienteExistente = await db.select({ id: clientes.id })
+      const clienteExistente = await db.select({ id: clientes.id, ativo: clientes.ativo })
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
@@ -468,6 +468,16 @@ export const portalRouter = router({
 
       if (clienteExistente.length > 0) {
         clienteId = clienteExistente[0].id;
+        // Se cliente estava inativo (excluído), reativar com os dados atuais
+        if (!clienteExistente[0].ativo) {
+          await db.update(clientes)
+            .set({
+              ativo: true,
+              nome: input.clienteNome,
+              ...(input.clienteEmail ? { email: input.clienteEmail } : {}),
+            })
+            .where(eq(clientes.id, clienteId));
+        }
       } else {
         const novoCliente = await db.insert(clientes).values({
           empresaId: input.empresaId,
@@ -479,8 +489,16 @@ export const portalRouter = router({
         clienteId = (novoCliente as any)[0]?.insertId ?? (novoCliente as any).insertId;
       }
 
-      // Status: confirmado automaticamente ou pré-agendado
-      const status = empresa.autoConfirmarPortal ? "confirmado" : "pre_agendado";
+      // Status:
+      // - Se empresa cobra taxa de reserva (reservaPercentual > 0) → pre_agendado (aguarda pagamento do sinal)
+      // - Se autoConfirmarPortal → confirmado
+      // - Caso contrário → agendado
+      const temTaxaReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) > 0;
+      const status = temTaxaReserva
+        ? "pre_agendado"
+        : empresa.autoConfirmarPortal
+          ? "confirmado"
+          : "agendado";
 
       // Criar agendamento
       const novoAg = await db.insert(agendamentos).values({
@@ -604,6 +622,7 @@ export const portalRouter = router({
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
+          eq(clientes.ativo, true), // Ignorar clientes inativos (excluídos)
           sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { encontrado: false, temCpf: false, nome: "", email: "" };
@@ -642,6 +661,7 @@ export const portalRouter = router({
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
+          eq(clientes.ativo, true), // Ignorar clientes inativos
           sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { valido: false, nome: "", email: "" };
@@ -670,7 +690,7 @@ export const portalRouter = router({
       const cpfNorm = input.cpf.replace(/[^0-9]/g, "");
       const telNorm = input.telefone.replace(/[^0-9]/g, "");
       const telSuffix = telNorm.slice(-8);
-      // Buscar cliente pelo telefone
+      // Buscar cliente pelo telefone (apenas ativos)
       const result = await db.select({
         id: clientes.id,
         nome: clientes.nome,
@@ -680,6 +700,7 @@ export const portalRouter = router({
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
+          eq(clientes.ativo, true), // Ignorar clientes inativos
           sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { ok: false, nome: "", email: "" };

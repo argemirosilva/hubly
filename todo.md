@@ -2580,3 +2580,13 @@
 
 ## Badge API (Contador no Ícone)
 - [x] Mostrar badge com número de agendamentos pendentes de confirmação (useBadge hook)
+
+## Portal Público — Status baseado em Taxa de Reserva
+- [x] Verificar onde taxa de reserva é configurada na empresa (campo reservaPercentual na tabela empresas)
+- [x] No procedure criarAgendamento do portal: reservaPercentual > 0 → pre_agendado; autoConfirmar → confirmado; senão → agendado
+- [x] TypeScript: 0 erros
+
+## Portal Público — Cliente Inativo
+- [x] Busca por telefone: filtrar apenas clientes com ativo=true (buscarClientePorTelefone, validarCpfCliente, cadastrarCpfCliente)
+- [x] criarAgendamento: se telefone existe mas inativo → reativar cadastro com nome/email atuais (não duplicar)
+- [x] TypeScript: 0 erros
