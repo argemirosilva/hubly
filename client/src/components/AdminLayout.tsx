@@ -550,7 +550,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(22% 0.070 40)", borderRight: "1px solid oklch(32% 0.060 40)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ background: "oklch(24% 0.060 50)", borderRight: "1px solid oklch(34% 0.050 50)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
@@ -608,17 +608,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <div
                           className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden"
                           style={{
-                            background: isParentActive ? "oklch(58% 0.120 60 / 20%)" : "transparent",
-                            color: isParentActive ? "oklch(82% 0.090 80)" : "oklch(82% 0.090 80)",
-                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(58% 0.120 60)" : "inset 3px 0 0 transparent",
+                            background: isParentActive ? "oklch(60% 0.100 55 / 20%)" : "transparent",
+                            color: isParentActive ? "oklch(82% 0.090 70)" : "oklch(82% 0.090 70)",
+                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(60% 0.100 55)" : "inset 3px 0 0 transparent",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
                             if (!isParentActive) {
                               const el = e.currentTarget as HTMLElement;
-                              el.style.background = "oklch(58% 0.120 60 / 25%)";
-                              el.style.color = "oklch(82% 0.090 80)";
-                              el.style.boxShadow = "inset 3px 0 0 oklch(58% 0.120 60 / 60%)";
+                              el.style.background = "oklch(60% 0.100 55 / 25%)";
+                              el.style.color = "oklch(82% 0.090 70)";
+                              el.style.boxShadow = "inset 3px 0 0 oklch(60% 0.100 55 / 60%)";
                               el.style.transform = "translateX(2px)";
                             }
                           }}
@@ -652,16 +652,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                   <div
                                     className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200"
                                     style={{
-                                      background: childActive ? "oklch(58% 0.120 60 / 20%)" : "transparent",
-                                      color: childActive ? "oklch(82% 0.090 80)" : "oklch(82% 0.090 80)",
-                                      boxShadow: childActive ? "inset 2px 0 0 oklch(58% 0.120 60)" : "inset 2px 0 0 transparent",
+                                      background: childActive ? "oklch(60% 0.100 55 / 20%)" : "transparent",
+                                      color: childActive ? "oklch(82% 0.090 70)" : "oklch(82% 0.090 70)",
+                                      boxShadow: childActive ? "inset 2px 0 0 oklch(60% 0.100 55)" : "inset 2px 0 0 transparent",
                                     }}
                                     onMouseEnter={e => {
                                       if (!childActive) {
                                         const el = e.currentTarget as HTMLElement;
-                                        el.style.background = "oklch(58% 0.120 60 / 25%)";
-                                        el.style.color = "oklch(82% 0.090 80)";
-                                        el.style.boxShadow = "inset 2px 0 0 oklch(58% 0.120 60 / 60%)";
+                                        el.style.background = "oklch(60% 0.100 55 / 25%)";
+                                        el.style.color = "oklch(82% 0.090 70)";
+                                        el.style.boxShadow = "inset 2px 0 0 oklch(60% 0.100 55 / 60%)";
                                         el.style.transform = "translateX(2px)";
                                       }
                                     }}
@@ -694,16 +694,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <div
                         className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative"
                         style={{
-                          background: active ? "oklch(58% 0.120 60 / 20%)" : "transparent",
-                          color: active ? "oklch(82% 0.090 80)" : "oklch(82% 0.090 80)",
-                          boxShadow: active ? "inset 3px 0 0 oklch(58% 0.120 60)" : "inset 3px 0 0 transparent",
+                          background: active ? "oklch(60% 0.100 55 / 20%)" : "transparent",
+                          color: active ? "oklch(82% 0.090 70)" : "oklch(82% 0.090 70)",
+                          boxShadow: active ? "inset 3px 0 0 oklch(60% 0.100 55)" : "inset 3px 0 0 transparent",
                         }}
                         onMouseEnter={e => {
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
-                            el.style.background = "oklch(58% 0.120 60 / 25%)";
-                            el.style.color = "oklch(82% 0.090 80)";
-                            el.style.boxShadow = "inset 3px 0 0 oklch(58% 0.120 60 / 60%)";
+                            el.style.background = "oklch(60% 0.100 55 / 25%)";
+                            el.style.color = "oklch(82% 0.090 70)";
+                            el.style.boxShadow = "inset 3px 0 0 oklch(60% 0.100 55 / 60%)";
                             el.style.transform = "translateX(2px)";
                           }
                         }}
@@ -711,7 +711,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
                             el.style.background = "transparent";
-                            el.style.color = "oklch(82% 0.090 80)";
+                            el.style.color = "oklch(82% 0.090 70)";
                             el.style.boxShadow = "inset 3px 0 0 transparent";
                             el.style.transform = "translateX(0)";
                           }

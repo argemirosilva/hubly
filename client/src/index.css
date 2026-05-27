@@ -91,14 +91,14 @@
   --chart-5:            oklch(48% 0.070 45);
 
   /* Sidebar — Marrom escuro (#3D2817) */
-  --sidebar:                      oklch(22% 0.070 40);
-  --sidebar-foreground:           oklch(82% 0.090 80);
-  --sidebar-primary:              oklch(58% 0.120 60);
-  --sidebar-primary-foreground:   oklch(22% 0.070 40);
-  --sidebar-accent:               oklch(58% 0.120 60);
-  --sidebar-accent-foreground:    oklch(22% 0.070 40);
-  --sidebar-border:               oklch(32% 0.060 40);
-  --sidebar-ring:                 oklch(58% 0.120 60);
+  --sidebar:                      oklch(24% 0.060 50);
+  --sidebar-foreground:           oklch(82% 0.090 70);
+  --sidebar-primary:              oklch(60% 0.100 55);
+  --sidebar-primary-foreground:   oklch(24% 0.060 50);
+  --sidebar-accent:               oklch(60% 0.100 55);
+  --sidebar-accent-foreground:    oklch(24% 0.060 50);
+  --sidebar-border:               oklch(34% 0.050 50);
+  --sidebar-ring:                 oklch(60% 0.100 55);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
