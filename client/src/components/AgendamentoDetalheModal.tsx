@@ -472,6 +472,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       onSuccess: () => {
         utils.financeiro.comissoes.invalidate();
         utils.financeiro.getComissaoByAgendamento.invalidate({ agendamentoId });
+        utils.contasReceber.list.invalidate();
+        utils.contasReceber.metricas.invalidate();
         toast.success("✅ Atendimento concluído!");
       }
     });

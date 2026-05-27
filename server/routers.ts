@@ -1395,33 +1395,60 @@ export const appRouter = router({
               const db = await getDb();
               if (db) {
                 const { contasReceber: crTable } = await import("../drizzle/schema");
-                const jaExiste = await db.select({ id: crTable.id })
+                const hoje = new Date().toISOString().split('T')[0];
+                // Buscar pagamentos para determinar meio de pagamento predominante
+                const pagamentosAg = await getPagamentosByAgendamento(id);
+                const meioPagPredominante = pagamentosAg.length > 0
+                  ? (pagamentosAg[0].meioPagamento ?? agendamento.tipoPagamento ?? undefined)
+                  : (agendamento.tipoPagamento ?? undefined);
+                // Calcular valor real: valorTotal + taxaAdicional - desconto
+                const valorBruto = parseFloat(String(agendamento.valorTotal ?? 0));
+                const desconto = parseFloat(String((agendamento as any).desconto ?? 0));
+                const taxaAdicional = parseFloat(String((agendamento as any).taxaAdicional ?? 0));
+                const valorReal = Math.max(0, valorBruto + taxaAdicional - desconto);
+                const jaExiste = await db.select({ id: crTable.id, status: crTable.status })
                   .from(crTable)
                   .where(and(eq(crTable.origemId, id), eq(crTable.origem, "agendamento")))
                   .limit(1);
                 if (jaExiste.length === 0) {
+                  // Criar conta já como recebido (agendamento foi concluído com pagamento)
+                  const itensAg = await getItensByAgendamento(id);
                   const todosServicos = await getServicosByEmpresa(empresa.id);
-                  const servico = todosServicos.find(s => s.id === agendamento.servicoId);
-                  const valorServico = parseFloat(String(servico?.valor ?? 0));
-                  const hoje = new Date().toISOString().split('T')[0];
+                  let descricao: string;
+                  if (itensAg.length > 1) {
+                    const nomes = itensAg.map(i => todosServicos.find(s => s.id === i.servicoId)?.nome ?? 'Serviço').join(', ');
+                    descricao = `Atendimento: ${nomes} - ${agendamento.data}`;
+                  } else {
+                    const servico = todosServicos.find(s => s.id === agendamento.servicoId);
+                    descricao = `Atendimento: ${servico?.nome ?? 'Serviço'} - ${agendamento.data}`;
+                  }
                   await createContaReceber({
                     empresaId: empresa.id,
-                    descricao: `Atendimento: ${servico?.nome ?? 'Serviço'} - ${agendamento.data}`,
-                    valor: String(valorServico.toFixed(2)),
-                    dataVencimento: hoje,
+                    descricao,
+                    valor: String(valorReal.toFixed(2)),
+                    dataVencimento: agendamento.data,
                     dataRecebimento: hoje,
-                    status: "pendente",
+                    status: "recebido",
                     origem: "agendamento",
                     origemId: id,
                     clienteId: agendamento.clienteId,
                     profissionalId: agendamento.profissionalId,
+                    tipoPagamento: meioPagPredominante as any,
                   });
-                  console.log(`[ContasReceber] Lançamento criado para agendamento ${id}`);
+                  console.log(`[ContasReceber] Lançamento criado como recebido para agendamento ${id}`);
+                } else if (jaExiste[0].status !== "recebido") {
+                  // Conta já existe mas ainda não foi baixada — baixar agora
+                  await updateContaReceber(jaExiste[0].id, {
+                    status: "recebido",
+                    dataRecebimento: hoje,
+                    ...(meioPagPredominante ? { tipoPagamento: meioPagPredominante as any } : {}),
+                  });
+                  console.log(`[ContasReceber] Conta ${jaExiste[0].id} baixada automaticamente ao concluir agendamento ${id}`);
                 }
               }
             }
           } catch (e) {
-            console.error("[ContasReceber] Erro ao criar lançamento:", e);
+            console.error("[ContasReceber] Erro ao criar/baixar lançamento:", e);
           }
         }
 
@@ -2314,7 +2341,50 @@ export const appRouter = router({
             if (ag && ag.empresaId === empresa.id) {
               await db.update(agendamentosTable).set(updates).where(eq(agendamentosTable.id, id));
               sucesso++;
-              
+
+              // ── Baixa automática de Contas a Receber ao concluir em lote ──────
+              if (input.status === 'concluido') {
+                try {
+                  const { contasReceber: crTable } = await import('../drizzle/schema.js');
+                  const hoje = new Date().toISOString().split('T')[0];
+                  const pagamentosAg = await getPagamentosByAgendamento(id);
+                  const meioPag = pagamentosAg.length > 0
+                    ? (pagamentosAg[0].meioPagamento ?? ag.tipoPagamento ?? undefined)
+                    : (ag.tipoPagamento ?? undefined);
+                  const jaExisteCR = await db.select({ id: crTable.id, status: crTable.status })
+                    .from(crTable)
+                    .where(and(eq(crTable.origemId, id), eq(crTable.origem, 'agendamento')))
+                    .limit(1);
+                  if (jaExisteCR.length === 0) {
+                    const valorBruto = parseFloat(String(ag.valorTotal ?? 0));
+                    const descontoAg = parseFloat(String((ag as any).desconto ?? 0));
+                    const taxaAdicionalAg = parseFloat(String((ag as any).taxaAdicional ?? 0));
+                    const valorReal = Math.max(0, valorBruto + taxaAdicionalAg - descontoAg);
+                    await createContaReceber({
+                      empresaId: empresa.id,
+                      descricao: `Atendimento - ${ag.data}`,
+                      valor: String(valorReal.toFixed(2)),
+                      dataVencimento: ag.data,
+                      dataRecebimento: hoje,
+                      status: 'recebido',
+                      origem: 'agendamento',
+                      origemId: id,
+                      clienteId: ag.clienteId,
+                      profissionalId: ag.profissionalId,
+                      tipoPagamento: meioPag as any,
+                    });
+                  } else if (jaExisteCR[0].status !== 'recebido') {
+                    await updateContaReceber(jaExisteCR[0].id, {
+                      status: 'recebido',
+                      dataRecebimento: hoje,
+                      ...(meioPag ? { tipoPagamento: meioPag as any } : {}),
+                    });
+                  }
+                } catch (e) {
+                  console.error('[ContasReceber] Erro ao baixar em lote:', e);
+                }
+              }
+
               // Enviar notificações quando agendamento é confirmado
               if (input.status === 'confirmado') {
                 const { notifyOwner } = await import('./_core/notification.js');

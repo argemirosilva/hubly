@@ -85,9 +85,13 @@ export default function Agendamentos() {
   });
 
   const bulkUpdateMutation = trpc.agendamentos.bulkUpdateStatus.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
       utils.agendamentos.list.invalidate();
+      if (variables.status === 'concluido') {
+        utils.contasReceber.list.invalidate();
+        utils.contasReceber.metricas.invalidate();
+      }
       setSelecionados(new Set());
       setModoSelecao(false);
       setConfirmLote(null);

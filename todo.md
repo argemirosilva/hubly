@@ -2596,3 +2596,9 @@
 - [x] Salvar dataNascimento no cliente ao criar agendamento pelo portal
 - [x] Corrigir disparo de automações para status pre_agendado no portal (portal.ts agora dispara automações)
 - [x] TypeScript: 0 erros
+
+## Bug — Contas a Receber não baixam automaticamente ao concluir agendamento
+
+- [x] Ao registrar pagamento e concluir agendamento, baixar automaticamente as contas a receber vinculadas
+- [x] Contas com "Recebido" não devem aparecer na aba "Vencidas"
+- [x] TypeScript: 0 erros (verificado)
