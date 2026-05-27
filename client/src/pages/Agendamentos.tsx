@@ -206,7 +206,13 @@ export default function Agendamentos() {
   }), [countHoje, countSemana, countMes]);
 
   // Backend já aplica o filtro correto via resolveAdminContext
-  const { data: agendamentos } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
+  // Quando há busca por nome, ignora filtro de datas para mostrar todos os agendamentos do cliente
+  const { data: agendamentosFiltrados } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
+  const { data: agendamentosBusca } = trpc.agendamentos.list.useQuery(
+    {},
+    { enabled: busca.trim().length >= 2 }
+  );
+  const agendamentos = busca.trim().length >= 2 ? agendamentosBusca : agendamentosFiltrados;
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
