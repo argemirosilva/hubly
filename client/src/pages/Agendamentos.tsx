@@ -206,13 +206,24 @@ export default function Agendamentos() {
   }), [countHoje, countSemana, countMes]);
 
   // Backend já aplica o filtro correto via resolveAdminContext
-  // Quando há busca por nome, ignora filtro de datas para mostrar todos os agendamentos do cliente
+  // Quando há busca por nome:
+  //   - período automático (hoje/semana/mês) → busca a partir de hoje (hoje + futuros)
+  //   - período manual (custom) → respeita as datas selecionadas
+  const buscaAtiva = busca.trim().length >= 2;
   const { data: agendamentosFiltrados } = trpc.agendamentos.list.useQuery({ dataInicio, dataFim });
   const { data: agendamentosBusca } = trpc.agendamentos.list.useQuery(
-    {},
-    { enabled: busca.trim().length >= 2 }
+    { dataInicio: today }, // a partir de hoje
+    { enabled: buscaAtiva && periodoAtivo !== "custom" }
   );
-  const agendamentos = busca.trim().length >= 2 ? agendamentosBusca : agendamentosFiltrados;
+  const { data: agendamentosBuscaCustom } = trpc.agendamentos.list.useQuery(
+    { dataInicio, dataFim },
+    { enabled: buscaAtiva && periodoAtivo === "custom" }
+  );
+  const agendamentos = !buscaAtiva
+    ? agendamentosFiltrados
+    : periodoAtivo === "custom"
+      ? agendamentosBuscaCustom
+      : agendamentosBusca;
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: profissionais } = trpc.profissionais.listParaAgendamento.useQuery();
   const { data: servicos } = trpc.servicos.list.useQuery();
