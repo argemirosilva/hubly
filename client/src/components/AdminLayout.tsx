@@ -325,7 +325,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex bg-background">
         {/* Painel esquerdo */}
         <div className="hidden lg:flex w-1/2 flex-col justify-between p-14 relative overflow-hidden"
-          style={{ background: "oklch(28% 0.075 48)" }}>
+          style={{ background: "oklch(72% 0.055 70)" }}>
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-15"
             style={{ background: "oklch(82% 0.090 80)" }} />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-10"
@@ -336,20 +336,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)" }}
+                style={{ filter: "brightness(0) saturate(1.2) hue-rotate(20deg)" }}
               />
             </div>
             <div className="space-y-5">
               <p className="text-xs font-semibold tracking-[0.18em] uppercase"
-                style={{ color: "oklch(82% 0.090 80)" }}>
+                style={{ color: "oklch(36% 0.085 50)" }}>
                 Hub de Serviços Inteligentes
               </p>
               <h2 className="font-bold leading-tight"
-                style={{ fontSize: "2.2rem", color: "oklch(96% 0.012 80)", letterSpacing: "-0.03em" }}>
+                style={{ fontSize: "2.2rem", color: "oklch(28% 0.060 45)", letterSpacing: "-0.03em" }}>
                 Gerencie seu negócio de forma inteligente
               </h2>
               <p className="text-sm leading-relaxed max-w-xs"
-                style={{ color: "oklch(72% 0.030 70)" }}>
+                style={{ color: "oklch(40% 0.050 50)" }}>
                 Agendamentos, clientes, profissionais e financeiro em um único lugar.
               </p>
             </div>
@@ -357,8 +357,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative flex gap-6">
             {[["500+", "Negócios"], ["98%", "Satisfação"], ["24/7", "Disponível"]].map(([val, label]) => (
               <div key={label}>
-                <p className="font-bold text-xl tracking-tight" style={{ color: "oklch(96% 0.012 80)" }}>{val}</p>
-                <p className="text-xs" style={{ color: "oklch(72% 0.030 70)" }}>{label}</p>
+                <p className="font-bold text-xl tracking-tight" style={{ color: "oklch(28% 0.060 45)" }}>{val}</p>
+                <p className="text-xs" style={{ color: "oklch(40% 0.050 50)" }}>{label}</p>
               </div>
             ))}
           </div>
@@ -547,7 +547,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(28% 0.075 48)", borderRight: "1px solid oklch(34% 0.060 48)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ background: "oklch(72% 0.055 70)", borderRight: "1px solid oklch(62% 0.050 65)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
@@ -851,7 +851,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar desktop — sininho + plano */}
         <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
-          style={{ background: "oklch(28% 0.075 48)", borderBottom: "1px solid oklch(34% 0.060 48)" }}>
+          style={{ background: "oklch(72% 0.055 70)", borderBottom: "1px solid oklch(62% 0.050 65)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
@@ -880,10 +880,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "oklch(28% 0.075 48)", borderBottom: "1px solid oklch(34% 0.060 48)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
+          style={{ background: "oklch(72% 0.055 70)", borderBottom: "1px solid oklch(62% 0.050 65)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(94% 0.016 80)" }}>
+              className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(28% 0.060 45)" }}>
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex flex-col justify-center">
@@ -891,10 +891,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)" }}
+                style={{ filter: "brightness(0) saturate(1.2) hue-rotate(20deg)" }}
               />
               {empresaData?.nome && (
-                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(72% 0.030 70)" }}>
+                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(28% 0.060 45)" }}>
                   {empresaData.nome}
                 </span>
               )}
@@ -903,7 +903,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-1">
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl transition-colors cursor-pointer">
-                <Bell className="w-5 h-5" style={{ color: "oklch(94% 0.016 80)" }} />
+                <Bell className="w-5 h-5" style={{ color: "oklch(28% 0.060 45)" }} />
                 {naoLidas > 0 && (
                   <span className="absolute top-1 right-1 text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
                     style={{ background: "oklch(82% 0.090 80)", color: "oklch(22% 0.040 50)" }}>
@@ -919,7 +919,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-[11px] font-bold text-white select-none">
+                  <span className="text-[11px] font-bold select-none" style={{ color: "oklch(28% 0.060 45)" }}>
                     {(user?.name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                   </span>
                 )}
