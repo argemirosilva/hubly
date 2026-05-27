@@ -586,7 +586,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return (
             <div key={group.label}>
               <p className="px-2 mb-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase"
-                style={{ color: "oklch(60% 0.025 65)" }}>
+                style={{ color: "oklch(40% 0.050 50)" }}>
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -606,16 +606,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden"
                           style={{
                             background: isParentActive ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                            color: isParentActive ? "oklch(94% 0.016 80)" : "oklch(72% 0.030 70)",
-                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(82% 0.090 80)" : "inset 3px 0 0 transparent",
+                            color: isParentActive ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(36% 0.085 50)" : "inset 3px 0 0 transparent",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
                             if (!isParentActive) {
                               const el = e.currentTarget as HTMLElement;
-                              el.style.background = "oklch(36% 0.065 48)";
-                              el.style.color = "oklch(94% 0.016 80)";
-                              el.style.boxShadow = "inset 3px 0 0 oklch(82% 0.090 80 / 60%)";
+                              el.style.background = "oklch(62% 0.050 65)";
+                              el.style.color = "oklch(36% 0.085 50)";
+                              el.style.boxShadow = "inset 3px 0 0 oklch(36% 0.085 50 / 60%)";
                               el.style.transform = "translateX(2px)";
                             }
                           }}
@@ -623,7 +623,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             if (!isParentActive) {
                               const el = e.currentTarget as HTMLElement;
                               el.style.background = "transparent";
-                              el.style.color = "oklch(72% 0.030 70)";
+                              el.style.color = "oklch(28% 0.060 45)";
                               el.style.boxShadow = "inset 3px 0 0 transparent";
                               el.style.transform = "translateX(0)";
                             }
@@ -650,15 +650,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-200"
                                     style={{
                                       background: childActive ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                                      color: childActive ? "oklch(94% 0.016 80)" : "oklch(68% 0.028 68)",
-                                      boxShadow: childActive ? "inset 2px 0 0 oklch(82% 0.090 80)" : "inset 2px 0 0 transparent",
+                                      color: childActive ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                                      boxShadow: childActive ? "inset 2px 0 0 oklch(36% 0.085 50)" : "inset 2px 0 0 transparent",
                                     }}
                                     onMouseEnter={e => {
                                       if (!childActive) {
                                         const el = e.currentTarget as HTMLElement;
-                                        el.style.background = "oklch(36% 0.065 48)";
-                                        el.style.color = "oklch(94% 0.016 80)";
-                                        el.style.boxShadow = "inset 2px 0 0 oklch(82% 0.090 80 / 60%)";
+                                        el.style.background = "oklch(62% 0.050 65)";
+                                        el.style.color = "oklch(36% 0.085 50)";
+                                        el.style.boxShadow = "inset 2px 0 0 oklch(36% 0.085 50 / 60%)";
                                         el.style.transform = "translateX(2px)";
                                       }
                                     }}
@@ -666,7 +666,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                       if (!childActive) {
                                         const el = e.currentTarget as HTMLElement;
                                         el.style.background = "transparent";
-                                        el.style.color = "oklch(68% 0.028 68)";
+                                        el.style.color = "oklch(28% 0.060 45)";
                                         el.style.boxShadow = "inset 2px 0 0 transparent";
                                         el.style.transform = "translateX(0)";
                                       }
@@ -692,15 +692,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative"
                         style={{
                           background: active ? "oklch(82% 0.090 80 / 15%)" : "transparent",
-                          color: active ? "oklch(94% 0.016 80)" : "oklch(72% 0.030 70)",
-                          boxShadow: active ? "inset 3px 0 0 oklch(82% 0.090 80)" : "inset 3px 0 0 transparent",
+                          color: active ? "oklch(36% 0.085 50)" : "oklch(28% 0.060 45)",
+                          boxShadow: active ? "inset 3px 0 0 oklch(36% 0.085 50)" : "inset 3px 0 0 transparent",
                         }}
                         onMouseEnter={e => {
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
-                            el.style.background = "oklch(36% 0.065 48)";
-                            el.style.color = "oklch(94% 0.016 80)";
-                            el.style.boxShadow = "inset 3px 0 0 oklch(82% 0.090 80 / 60%)";
+                            el.style.background = "oklch(62% 0.050 65)";
+                            el.style.color = "oklch(36% 0.085 50)";
+                            el.style.boxShadow = "inset 3px 0 0 oklch(36% 0.085 50 / 60%)";
                             el.style.transform = "translateX(2px)";
                           }
                         }}
@@ -708,7 +708,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           if (!active) {
                             const el = e.currentTarget as HTMLElement;
                             el.style.background = "transparent";
-                            el.style.color = "oklch(72% 0.030 70)";
+                            el.style.color = "oklch(28% 0.060 45)";
                             el.style.boxShadow = "inset 3px 0 0 transparent";
                             el.style.transform = "translateX(0)";
                           }
