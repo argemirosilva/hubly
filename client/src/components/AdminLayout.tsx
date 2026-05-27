@@ -1065,7 +1065,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           );
         })}
 
-        {/* Botão central destacado (+) */
+        {/* Botão central destacado (+) */}
         <div className="flex-1 flex flex-col items-center pb-2.5" style={{ marginTop: "-14px" }}>
           <button
             onClick={() => {
