@@ -356,14 +356,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </p>
             </div>
           </div>
-          <div className="relative flex gap-6">
-            {[["500+", "Negócios"], ["98%", "Satisfação"], ["24/7", "Disponível"]].map(([val, label]) => (
-              <div key={label}>
-                <p className="font-bold text-xl tracking-tight" style={{ color: "oklch(28% 0.060 45)" }}>{val}</p>
-                <p className="text-xs" style={{ color: "oklch(40% 0.050 50)" }}>{label}</p>
-              </div>
-            ))}
-          </div>
+
         </div>
 
         {/* Painel direito — formulário de login */}
