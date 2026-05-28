@@ -1299,7 +1299,7 @@ function PortalHeader({ empresa, corPrimaria }: {
                 className="h-9 w-auto object-contain rounded-lg"
                 style={{ 
                   filter: shouldInvert 
-                    ? "brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.3))" 
+                    ? "invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.3))" 
                     : "drop-shadow(0 1px 3px rgba(0,0,0,0.3))"
                 }} />
             ) : (
