@@ -417,7 +417,7 @@ export default function Relatorios() {
       </div>
 
       <Tabs defaultValue="perdas">
-        <TabsList className="grid grid-cols-3 w-full">
+        <TabsList className="grid grid-cols-3 w-full" style={{backgroundColor: '#f2eadc'}}>
           <TabsTrigger value="perdas" className="flex items-center gap-1.5 text-xs">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Perdas</span>
