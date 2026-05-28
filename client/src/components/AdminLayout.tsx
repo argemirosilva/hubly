@@ -309,7 +309,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
             alt="Hubly"
             className="h-12 w-auto object-contain animate-pulse"
-            style={{}}
+            style={{ filter: "brightness(0) invert(1)" }}
           />
           <p className="text-sm font-medium" style={{ color: "oklch(28% 0.060 45)" }}>Carregando...</p>
         </div>
