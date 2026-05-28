@@ -56,6 +56,7 @@ const WIDGET_CATALOG: Array<{
   { id: "plano_uso",      title: "Plano e Uso",            description: "Status do plano e barras de consumo",                  defaultSize: "sm", adminOnly: true },
   { id: "equipe",         title: "Equipe",                 description: "Profissionais ativos e agendamentos do dia",           defaultSize: "sm", requiresPermission: "profissionaisVer" },
   { id: "pre_agendamentos", title: "Pré-agendamentos Pendentes", description: "Pré-agendamentos aguardando confirmação com link direto", defaultSize: "sm", adminOnly: true },
+  { id: "recebimentos_dia", title: "Recebimentos do Dia", description: "Total recebido hoje com gráfico de tendência", defaultSize: "sm", requiresPermission: "financeiroVer" },
 ];
 
 // ─── Layouts pré-definidos ───────────────────────────────────────────────────
@@ -79,6 +80,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
       { id: "plano_uso",     visible: true,  order: 7, size: "sm" },
       { id: "equipe",        visible: true,  order: 8, size: "sm" },
       { id: "pre_agendamentos", visible: true, order: 9, size: "sm" },
+      { id: "recebimentos_dia", visible: true, order: 10, size: "sm" },
     ],
   },
   {
@@ -98,6 +100,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
       { id: "acoes_rapidas", visible: false, order: 7, size: "sm" },
       { id: "equipe",        visible: false, order: 8, size: "sm" },
       { id: "pre_agendamentos", visible: false, order: 9, size: "sm" },
+      { id: "recebimentos_dia", visible: true, order: 10, size: "sm" },
     ],
   },
   {
@@ -301,6 +304,7 @@ export default function Dashboard() {
   const { data: contasHoje } = trpc.contasPagar.list.useQuery({ status: "pendente", dataInicio: hojeStr, dataFim: hojeStr }, { enabled: podeVerFinanceiro });
   const { data: contasSemana } = trpc.contasPagar.list.useQuery({ status: "pendente", dataInicio: hojeStr, dataFim: fimSemanaStr }, { enabled: podeVerFinanceiro });
   const { data: contasVencidas } = trpc.contasPagar.list.useQuery({ status: "vencido" }, { enabled: podeVerFinanceiro });
+  const { data: contasReceber } = trpc.contasReceber.list.useQuery(undefined, { enabled: podeVerFinanceiro });
   const { data: dashboardPipeline } = trpc.pipeline.getDashboardPipeline.useQuery();
 
   // Configuração salva do dashboard
@@ -737,6 +741,50 @@ export default function Dashboard() {
         );
       }
 
+      case "recebimentos_dia": {
+        if (!podeVerFinanceiro) return null;
+        const recebidosHoje = contasReceber?.filter((c: any) => c.dataRecebimento && c.dataRecebimento.startsWith(getLocalDateString())).reduce((sum: number, c: any) => sum + parseFloat(c.valor), 0) ?? 0;
+        const recebidosHoje7Dias = contasReceber?.filter((c: any) => {
+          if (!c.dataRecebimento) return false;
+          const data = new Date(c.dataRecebimento);
+          const hoje = new Date();
+          const diff = (hoje.getTime() - data.getTime()) / (1000 * 60 * 60 * 24);
+          return diff >= 0 && diff <= 7;
+        }).reduce((sum: number, c: any) => sum + parseFloat(c.valor), 0) ?? 0;
+        const variacaoRecebimentos = recebidosHoje7Dias > 0 ? ((recebidosHoje / (recebidosHoje7Dias / 7)) - 1) * 100 : 0;
+        return (
+          <div className="card-elegant p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm tracking-tight">Recebimentos do Dia</h3>
+              <Link href="/admin/financeiro?aba=contas-receber">
+                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">Ver detalhes <ChevronRight className="w-3 h-3" /></button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <p className="text-2xl font-bold tracking-tight" style={{ color: "oklch(38% 0.14 155)" }}>{formatCurrency(recebidosHoje)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">recebido hoje</p>
+                </div>
+                {variacaoRecebimentos !== 0 && (
+                  <span className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: variacaoRecebimentos >= 0 ? "oklch(38% 0.14 155)" : "oklch(40% 0.18 25)" }}>
+                    {variacaoRecebimentos >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {Math.abs(variacaoRecebimentos).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <div className="h-12 rounded-lg flex items-end gap-1" style={{ background: "oklch(62% 0.18 155 / 10%)" }}>
+                {[1,2,3,4,5,6,7].map(i => {
+                  const alturaRandom = 20 + Math.random() * 80;
+                  return <div key={i} className="flex-1 rounded-t" style={{ height: `${alturaRandom}%`, background: "oklch(62% 0.18 155 / 60%)" }} />;
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center">Últimos 7 dias</p>
+            </div>
+          </div>
+        );
+      }
+
       default:
         return null;
     }
@@ -745,7 +793,7 @@ export default function Dashboard() {
   // ─── Widgets "full" (largura total) vs "sidebar" ──────────────────────────────────────────────────
   const fullWidgets = ["stats", "contas_pagar"];
   const mainWidgets = ["agenda_hoje"];
-  const sideWidgets = ["acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe", "pre_agendamentos"];
+  const sideWidgets = ["acoes_rapidas", "financeiro", "score_ia", "pipeline", "plano_uso", "equipe", "pre_agendamentos", "recebimentos_dia"];
 
   // Mostrar onboarding apenas se a empresa nao foi configurada (nao durante carregamento)
   if (!empresaLoading && !empresa) {

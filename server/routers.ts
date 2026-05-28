@@ -5312,6 +5312,31 @@ export const appRouter = router({
       await requirePermissao(ctx, empresa, 'financeiroVer');
       return getMetricasContasReceber(empresa.id);
     }),
+    alertasVencimento: protectedProcedure.query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { proximas: [], vencidas: [] };
+      // Apenas quem tem financeiroVer pode ver alertas
+      await requirePermissao(ctx, empresa, 'financeiroVer');
+      const contas = await getContasReceberByEmpresa(empresa.id);
+      const hoje = new Date();
+      const proximas7Dias: any[] = [];
+      const vencidas: any[] = [];
+      contas.forEach((conta: any) => {
+        if (conta.status === 'recebido' || conta.status === 'cancelado') return;
+        if (!conta.dataVencimento) return;
+        const dataVencimento = new Date(conta.dataVencimento);
+        const diasAte = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+        if (diasAte < 0) {
+          vencidas.push(conta);
+        } else if (diasAte <= 7) {
+          proximas7Dias.push(conta);
+        }
+      });
+      return {
+        proximas: proximas7Dias.sort((a: any, b: any) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime()),
+        vencidas: vencidas.sort((a: any, b: any) => new Date(b.dataVencimento).getTime() - new Date(a.dataVencimento).getTime()),
+      };
+    }),
     criar: protectedProcedure
       .input(z.object({
         descricao: z.string().min(1),
