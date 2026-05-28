@@ -1535,7 +1535,7 @@ export default function Equipe() {
           </button>
         )}
         <Tabs value={filtroAba} onValueChange={(v) => { setFiltroAba(v as FiltroAba); setBusca(""); }}>
-          <TabsList>
+          <TabsList style={{backgroundColor: '#f2eadc'}}>
             <TabsTrigger value="todos" className="gap-1.5">
               <Users className="w-3.5 h-3.5" />
               Todos
