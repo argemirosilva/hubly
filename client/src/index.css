@@ -90,14 +90,14 @@
   --chart-4:            oklch(58% 0.055 55);
   --chart-5:            oklch(48% 0.070 45);
 
-  /* Sidebar — Marrom escuro (#3D2817) */
-  --sidebar:                      oklch(18% 0.070 45);
+  /* Sidebar — Café Espresso (#231B10) */
+  --sidebar:                      oklch(22.8% 0.029 84);
   --sidebar-foreground:           oklch(82% 0.090 70);
   --sidebar-primary:              oklch(60% 0.100 55);
-  --sidebar-primary-foreground:   oklch(18% 0.070 45);
+  --sidebar-primary-foreground:   oklch(22.8% 0.029 84);
   --sidebar-accent:               oklch(60% 0.100 55);
-  --sidebar-accent-foreground:    oklch(18% 0.070 45);
-  --sidebar-border:               oklch(28% 0.060 45);
+  --sidebar-accent-foreground:    oklch(22.8% 0.029 84);
+  --sidebar-border:               oklch(32% 0.040 50);
   --sidebar-ring:                 oklch(60% 0.100 55);
 }
 

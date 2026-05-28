@@ -550,7 +550,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(18% 0.070 45)", borderRight: "1px solid oklch(28% 0.060 45)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ background: "oklch(22.8% 0.029 84)", borderRight: "1px solid oklch(32% 0.040 50)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
