@@ -12,6 +12,26 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import { useBadge } from "@/hooks/useBadge";
 
+// Logo SVG inline — sem artefatos de fundo transparente
+function HublyLogoSVG({ variant = 'white', height = 40 }: { variant?: 'white' | 'dark'; height?: number }) {
+  const textColor = variant === 'dark' ? 'oklch(28% 0.060 45)' : '#ffffff';
+  const iconSize = height;
+  const textSize = Math.round(height * 0.45);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="50" y1="18" x2="22" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <line x1="50" y1="18" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <line x1="22" y1="72" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <circle cx="50" cy="18" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+        <circle cx="22" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+        <circle cx="78" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+      </svg>
+      <span style={{ color: textColor, fontWeight: 600, fontSize: textSize, letterSpacing: '0.02em' }}>hubly</span>
+    </div>
+  );
+}
+
 type NavItem = {
   href: string;
   label: string;
@@ -305,12 +325,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(22% 0.030 55)" }}>
         <div className="flex flex-col items-center gap-4">
-          <img
-            src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
-            alt="Hubly"
-            className="h-48 w-auto object-contain animate-pulse"
-            style={{}}
-          />
+          <div className="animate-pulse">
+            <HublyLogoSVG variant="white" height={64} />
+          </div>
         </div>
       </div>
     );
@@ -556,12 +573,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between px-4 py-4"
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
-            <img
-              src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
-              alt="Hubly"
-              className="h-16 w-auto object-contain"
-              style={{}}
-            />
+            <HublyLogoSVG variant="white" height={40} />
           </div>
           <button onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-lg transition-colors"
@@ -818,7 +830,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             </Link>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold truncate" style={{ color: "oklch(28% 0.060 45)" }}>
+              <p className="text-[13px] font-semibold truncate" style={{ color: '#f1eaea' }}>
                 {user?.name?.split(" ")[0] ?? "Usuário"}
               </p>
               <p className="text-[11px] truncate" style={{ color: "oklch(62% 0.028 65)" }}>
