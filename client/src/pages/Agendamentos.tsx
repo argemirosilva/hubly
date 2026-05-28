@@ -28,6 +28,7 @@ import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePlanGuard } from "@/hooks/usePlanGuard";
 import { getLocalDateString } from "@/lib/utils";
 import { useSearch } from "wouter";
 
@@ -58,6 +59,7 @@ function formatCurrency(v: number) {
 }
 
 export default function Agendamentos() {
+  const { guard } = usePlanGuard();
   const { pode, isAdmin } = usePermissoes();
   const utils = trpc.useUtils();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
@@ -289,7 +291,7 @@ export default function Agendamentos() {
               <span className="hidden sm:inline">{modoSelecao ? "Cancelar" : "Selecionar"}</span>
             </button>
           )}
-          <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary py-2 px-3 text-xs">
+          <button onClick={() => guard("agendamento", () => setNovaAgendaOpen(true))} className="btn-primary py-2 px-3 text-xs">
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Novo Agendamento</span>
             <span className="sm:hidden">Novo</span>

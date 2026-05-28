@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePlanGuard } from "@/hooks/usePlanGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,6 +108,7 @@ function ServicosTab({ profissionalId }: { profissionalId: number }) {
 }
 
 export default function Profissionais() {
+  const { guard } = usePlanGuard();
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
@@ -156,7 +158,7 @@ export default function Profissionais() {
           <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Profissionais</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{profissionais?.length ?? 0} cadastrados</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-3 text-xs">
+        <button onClick={() => guard("profissional", () => setModalOpen(true))} className="btn-primary py-2 px-3 text-xs">
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Novo Profissional</span>
           <span className="sm:hidden">Novo</span>

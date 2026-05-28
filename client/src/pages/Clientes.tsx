@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePlanGuard } from "@/hooks/usePlanGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -46,6 +47,7 @@ function MiniBarChart({ data, color }: { data: number[]; color: string }) {
 }
 
 export default function Clientes() {
+  const { guard } = usePlanGuard();
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
 
@@ -224,7 +226,7 @@ export default function Clientes() {
             )}
           </p>
         </div>
-        <button onClick={() => { setForm(FORM_VAZIO); setModalCriar(true); }} className="btn-primary py-2 px-3 text-xs">
+        <button onClick={() => guard("cliente", () => { setForm(FORM_VAZIO); setModalCriar(true); })} className="btn-primary py-2 px-3 text-xs">
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Novo Cliente</span>
           <span className="sm:hidden">Novo</span>
@@ -309,7 +311,7 @@ export default function Clientes() {
               {busca ? "Tente outro termo de busca" : "Cadastre o primeiro cliente para começar"}
             </p>
             {!busca && (
-              <button className="btn-primary text-xs py-1.5" onClick={() => { setForm(FORM_VAZIO); setModalCriar(true); }}>
+              <button className="btn-primary text-xs py-1.5" onClick={() => guard("cliente", () => { setForm(FORM_VAZIO); setModalCriar(true); })}>
                 <Plus className="w-3.5 h-3.5" /> Cadastrar cliente
               </button>
             )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePlanGuard } from "@/hooks/usePlanGuard";
 import { toast } from "sonner";
 import { getLocalDateString } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -459,6 +460,7 @@ function ModalMarcarRecebido({
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function ContasReceber() {
+  const { guard } = usePlanGuard();
   const { pode } = usePermissoes();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -550,7 +552,7 @@ export default function ContasReceber() {
             <RefreshCw className={`w-4 h-4 mr-2 ${importarMutation.isPending ? "animate-spin" : ""}`} />
             Importar Agendamentos
           </Button>
-          <Button onClick={() => setModalAberto(true)}>
+          <Button onClick={() => guard("conta_receber", () => setModalAberto(true))}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Conta
           </Button>
@@ -567,7 +569,7 @@ export default function ContasReceber() {
             <RefreshCw className={`w-4 h-4 mr-1.5 ${importarMutation.isPending ? "animate-spin" : ""}`} />
             Importar
           </Button>
-          <Button className="flex-1" onClick={() => setModalAberto(true)}>
+          <Button className="flex-1" onClick={() => guard("conta_receber", () => setModalAberto(true))}>
             <Plus className="w-4 h-4 mr-1.5" />
             Nova Conta
           </Button>
@@ -659,7 +661,7 @@ export default function ContasReceber() {
           <p className="text-sm text-muted-foreground mt-1">
             Crie uma conta manualmente ou importe os agendamentos concluídos.
           </p>
-          <Button className="mt-4" onClick={() => setModalAberto(true)}>
+          <Button className="mt-4" onClick={() => guard("conta_receber", () => setModalAberto(true))}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Conta
           </Button>

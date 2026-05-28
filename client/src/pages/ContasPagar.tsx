@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePlanGuard } from "@/hooks/usePlanGuard";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,6 +474,7 @@ function CardConta({ conta, onEditar, onMarcarPago, onDeletar }: {
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function ContasPagar() {
+  const { guard } = usePlanGuard();
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
   const search = useSearch();
@@ -608,7 +610,7 @@ export default function ContasPagar() {
           <Button
             size="sm"
             className="gap-1.5 font-semibold shadow-sm"
-            onClick={() => { setContaEditando(null); setModalConta(true); }}
+            onClick={() => guard("conta_pagar", () => { setContaEditando(null); setModalConta(true); })}
           >
             <Plus className="w-4 h-4" />
             <span>Nova Conta</span>

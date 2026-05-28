@@ -10,6 +10,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -90,6 +98,7 @@ function getPlanColor(plan: string | null | undefined) {
 export default function Assinatura() {
   const { isAdmin } = usePermissoes();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const { data: planStatus, isLoading: loadingPlan } = trpc.planos.getStatus.useQuery();
   const { data: subDetails, isLoading: loadingSub } = trpc.stripe.getSubscriptionDetails.useQuery();
@@ -109,6 +118,11 @@ export default function Assinatura() {
   const handlePortal = () => {
     setLoadingPortal(true);
     portalMutation.mutate();
+  };
+
+  const handleCancelConfirm = () => {
+    setShowCancelDialog(false);
+    handlePortal();
   };
 
   const plan = planStatus?.plan ?? "FREE";
@@ -443,17 +457,29 @@ export default function Assinatura() {
                   )}
                   {loadingPortal ? "Aguarde..." : "Gerenciar no Stripe"}
                 </Button>
-                {!planStatus?.cancelAtPeriodEnd && (
+                {!planStatus?.cancelAtPeriodEnd && plan !== "FREE" && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handlePortal}
+                    onClick={() => setShowCancelDialog(true)}
                     disabled={loadingPortal}
                     className="gap-2 text-sm text-red-600 border-red-200 hover:bg-red-50"
                   >
-                    {loadingPortal && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {loadingPortal ? "Aguarde..." : "Cancelar assinatura"}
+                    <XCircle className="w-3.5 h-3.5" />
+                    Cancelar assinatura
                   </Button>
+                )}
+                {plan !== "FREE" && !planStatus?.cancelAtPeriodEnd && (
+                  <Link href="/admin/planos">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-sm text-violet-600 border-violet-200 hover:bg-violet-50"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      Fazer upgrade
+                    </Button>
+                  </Link>
                 )}
               </div>
             </div>
@@ -542,6 +568,58 @@ export default function Assinatura() {
           </div>
         </>
       )}
+
+      {/* ── Diálogo de confirmação de cancelamento ── */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Cancelar assinatura
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 text-sm text-slate-600 mt-2">
+                <p>
+                  Ao cancelar, sua assinatura <strong>{planLabel}</strong> permanece ativa até o fim do período atual. Após isso:
+                </p>
+                <ul className="space-y-2 pl-1">
+                  {[
+                    "Não será possível criar novos agendamentos",
+                    "Não será possível cadastrar novos clientes",
+                    "Não será possível adicionar profissionais",
+                    "Não será possível lançar contas a pagar ou receber",
+                    "Os dados existentes serão mantidos",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                        i === 4 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                      }`}>{i === 4 ? "✓" : "✕"}</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-slate-400">
+                  Você será redirecionado ao portal do Stripe para confirmar o cancelamento.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 flex-col sm:flex-row">
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)} className="flex-1">
+              Manter assinatura
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelConfirm}
+              disabled={loadingPortal}
+              className="flex-1 gap-2"
+            >
+              {loadingPortal && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {loadingPortal ? "Aguarde..." : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
