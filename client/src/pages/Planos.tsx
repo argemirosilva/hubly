@@ -32,6 +32,7 @@ const PLANOS = [
       { icon: Package, text: "Pacotes de serviços" },
       { icon: BarChart3, text: "Relatórios avançados" },
       { icon: MessageCircle, text: "100 notificações WhatsApp/mês" },
+      { icon: MessageCircle, text: "Conexão WhatsApp via QR Code" },
     ],
     naoInclui: ["IA Financeira", "IA Clientes", "Múltiplos caixas"],
   },
@@ -56,6 +57,7 @@ const PLANOS = [
       { icon: BarChart3, text: "Relatórios avançados" },
       { icon: Brain, text: "IA Financeira" },
       { icon: MessageCircle, text: "400 notificações WhatsApp/mês" },
+      { icon: MessageCircle, text: "Conexão WhatsApp via QR Code" },
     ],
     naoInclui: ["IA Clientes"],
   },
@@ -80,6 +82,7 @@ const PLANOS = [
       { icon: BarChart3, text: "Relatórios avançados" },
       { icon: Brain, text: "IA Financeira + IA Clientes" },
       { icon: MessageCircle, text: "1.000 notificações WhatsApp/mês" },
+      { icon: MessageCircle, text: "WhatsApp via API dedicada e robusta" },
     ],
     naoInclui: [],
   },
@@ -283,12 +286,16 @@ export default function Planos() {
                   <ul className="space-y-2.5">
                     {plano.features.map((f, i) => {
                       const FIcon = f.icon;
+                      const isDestaque = plano.key === "PRO" && f.text.includes("API dedicada");
                       return (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
-                            <Check className="w-2.5 h-2.5 text-green-600" />
+                        <li key={i} className={`flex items-start gap-2 text-sm ${isDestaque ? "rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5 -mx-2" : ""}`}>
+                          <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${isDestaque ? "bg-amber-200" : "bg-green-100"}`}>
+                            <Check className={`w-2.5 h-2.5 ${isDestaque ? "text-amber-700" : "text-green-600"}`} />
                           </div>
-                          <span className="text-foreground">{f.text}</span>
+                          <span className={isDestaque ? "text-amber-800 font-medium" : "text-foreground"}>{f.text}</span>
+                          {isDestaque && (
+                            <span className="ml-auto text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full shrink-0">PRO</span>
+                          )}
                         </li>
                       );
                     })}
