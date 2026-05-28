@@ -1118,7 +1118,7 @@ function FormDados({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium flex items-center gap-2">
-              <Lock className="w-4 h-4 text-blue-500" />
+              <Lock className="w-4 h-4 text-amber-600" />
               Acesso ao sistema
             </p>
             <p className="text-xs text-muted-foreground">Pode fazer login no painel</p>
@@ -1327,7 +1327,7 @@ function CardMembro({
             </Badge>
           )}
           {membro.temAcesso && (
-            <Badge className="text-[10px] px-1.5 py-0 gap-1 bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700">
+            <Badge className="text-[10px] px-1.5 py-0 gap-1 bg-amber-100 text-blue-700 border-blue-200 dark:bg-stone-900/30 dark:text-blue-300 dark:border-blue-700">
               <Shield className="w-2.5 h-2.5" />
               {membro.grupoNome ?? "Acesso"}
             </Badge>
@@ -1504,7 +1504,7 @@ export default function Equipe() {
           <p className="text-xs text-muted-foreground mt-0.5">Profissionais</p>
         </div>
         <div className="rounded-xl border bg-card p-3 text-center">
-          <p className="text-2xl font-bold text-blue-600">{totalComAcesso}</p>
+          <p className="text-2xl font-bold text-amber-700">{totalComAcesso}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Com acesso</p>
         </div>
       </div>

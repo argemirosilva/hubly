@@ -274,8 +274,8 @@ const VariableEditor = forwardRef<VariableEditorRef, VariableEditorProps>(
             focus-visible:ring-ring focus-visible:ring-offset-2
             overflow-y-auto whitespace-pre-wrap break-words
             [&_.var-chip]:inline-flex [&_.var-chip]:items-center
-            [&_.var-chip]:bg-indigo-100 [&_.var-chip]:text-indigo-700
-            [&_.var-chip]:border [&_.var-chip]:border-indigo-300
+            [&_.var-chip]:bg-amber-100 [&_.var-chip]:text-amber-700
+            [&_.var-chip]:border [&_.var-chip]:border-amber-300
             [&_.var-chip]:rounded-full [&_.var-chip]:px-2 [&_.var-chip]:py-0.5
             [&_.var-chip]:text-xs [&_.var-chip]:font-medium
             [&_.var-chip]:mx-0.5 [&_.var-chip]:cursor-default

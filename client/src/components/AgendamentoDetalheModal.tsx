@@ -1007,7 +1007,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
-                          <Plus className="w-3 h-3 text-blue-500" />
+                          <Plus className="w-3 h-3 text-amber-600" />
                           <span className="font-medium text-foreground">Taxa adicional</span>
                         </div>
                         {!editandoTaxa && (
@@ -1017,7 +1017,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                                 {nomeTaxaAdicionalAtual && (
                                   <span className="text-[10px] text-muted-foreground">{nomeTaxaAdicionalAtual}</span>
                                 )}
-                                <span className="font-semibold text-blue-600">+ {fmt(taxaAdicional)}</span>
+                                <span className="font-semibold text-amber-700">+ {fmt(taxaAdicional)}</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground text-xs">Nenhuma</span>
@@ -1689,7 +1689,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-muted-foreground">Total</span>
                 <span className="font-bold">{fmt(totalItens)}</span>
-                {taxaAdicionalRodape > 0 && <span className="text-blue-600 text-[11px]">+ {fmt(taxaAdicionalRodape)}</span>}
+                {taxaAdicionalRodape > 0 && <span className="text-amber-700 text-[11px]">+ {fmt(taxaAdicionalRodape)}</span>}
                 {desconto > 0 && <span className="text-amber-600 text-[11px]">- {fmt(desconto)}</span>}
                 {totalPago > 0 && <span className="text-green-600 text-[11px]">pago {fmt(totalPago)}</span>}
               </div>
@@ -1872,7 +1872,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   <span className="font-medium">{fmt(totalItens)}</span>
                 </div>
                 {taxaAdicionalConclusao > 0 && (
-                  <div className="flex justify-between text-blue-600">
+                  <div className="flex justify-between text-amber-700">
                     <span>Taxa adicional</span>
                     <span>+ {fmt(taxaAdicionalConclusao)}</span>
                   </div>
@@ -2019,7 +2019,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                 </span>
               )}
               {previewMensagem.linkRegenerado && (
-                <span className="inline-flex w-fit bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-0.5 items-center gap-1">
+                <span className="inline-flex w-fit bg-amber-50 text-blue-700 border border-blue-200 rounded-full px-2 py-0.5 items-center gap-1">
                   <Link2 className="w-3 h-3 shrink-0" /> Link regenerado automaticamente
                 </span>
               )}

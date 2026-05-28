@@ -242,11 +242,11 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onPortMouseDown, isC
   isHoverTarget: boolean;
 }) {
   const styles: Record<NodeType, { bg: string; border: string; iconBg: string; icon: React.ReactNode; label: string; labelColor: string }> = {
-    trigger: { bg: "bg-indigo-50", border: "border-indigo-300", iconBg: "bg-indigo-100", icon: <Zap size={14} className="text-indigo-600" />, label: "Gatilho", labelColor: "text-indigo-600" },
+    trigger: { bg: "bg-amber-50", border: "border-amber-300", iconBg: "bg-amber-100", icon: <Zap size={14} className="text-amber-600" />, label: "Gatilho", labelColor: "text-amber-600" },
     condition: { bg: "bg-amber-50", border: "border-amber-300", iconBg: "bg-amber-100", icon: <Filter size={14} className="text-amber-600" />, label: "Condição", labelColor: "text-amber-600" },
     action: { bg: "bg-emerald-50", border: "border-emerald-300", iconBg: "bg-emerald-100", icon: <MessageSquare size={14} className="text-emerald-600" />, label: "Ação", labelColor: "text-emerald-600" },
-    delay: { bg: "bg-sky-50", border: "border-sky-300", iconBg: "bg-sky-100", icon: <Clock size={14} className="text-sky-600" />, label: "Aguardar", labelColor: "text-sky-600" },
-    end: { bg: "bg-gray-50", border: "border-gray-300", iconBg: "bg-gray-100", icon: <Check size={14} className="text-gray-600" />, label: "Fim", labelColor: "text-gray-600" },
+    delay: { bg: "bg-amber-50", border: "border-sky-300", iconBg: "bg-amber-100", icon: <Clock size={14} className="text-sky-600" />, label: "Aguardar", labelColor: "text-sky-600" },
+    end: { bg: "bg-stone-50", border: "border-gray-300", iconBg: "bg-stone-100", icon: <Check size={14} className="text-gray-600" />, label: "Fim", labelColor: "text-gray-600" },
   };
   const s = styles[node.type];
   const title = node.data.label || node.data.tipo || "Configurar...";
@@ -329,18 +329,18 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, onPortMouseDown, isC
           <div
             data-port="source"
             title="Arraste para conectar ao próximo nó"
-            className="group flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-indigo-200 shadow-sm cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition-all select-none"
+            className="group flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-amber-200 shadow-sm cursor-grab hover:border-amber-500 hover:bg-amber-50 transition-all select-none"
             onMouseDown={e => onPortMouseDown(e, node.id)}
           >
-            <div className="w-3 h-3 rounded-full bg-indigo-400 group-hover:bg-indigo-600 transition-colors" />
-            <span className="text-[10px] text-gray-400 group-hover:text-indigo-600 font-medium">Conectar</span>
+            <div className="w-3 h-3 rounded-full bg-amber-400 group-hover:bg-amber-600 transition-colors" />
+            <span className="text-[10px] text-gray-400 group-hover:text-amber-600 font-medium">Conectar</span>
           </div>
         </div>
       )}
       {/* Porta de entrada (target port) — ponto no topo */}
       {node.type !== "trigger" && (
-        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-indigo-400 shadow-sm z-10 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-full bg-indigo-400" />
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 border-amber-400 shadow-sm z-10 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-full bg-amber-400" />
         </div>
       )}
     </div>
@@ -419,13 +419,13 @@ function PreviewMensagemModal({ open, onClose, mensagem, midiaUrl }: {
           <p className="text-right text-[10px] text-gray-400 mt-1">14:32 ✓✓</p>
         </div>
 
-        <div className="mt-2 bg-gray-50 rounded-lg px-3 py-2">
+        <div className="mt-2 bg-stone-50 rounded-lg px-3 py-2">
           <p className="text-xs text-gray-500 font-medium mb-1">Variáveis usadas:</p>
           <div className="flex flex-wrap gap-1">
             {Object.entries(PREVIEW_VARS)
               .filter(([key]) => mensagem.includes(key))
               .map(([key, val]) => (
-                <span key={key} className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1.5 py-0.5 font-mono">
+                <span key={key} className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 font-mono">
                   {key} → {val}
                 </span>
               ))}
@@ -517,7 +517,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
               placeholder="Buscar serviço..."
               value={buscaServico}
               onChange={e => setBuscaServico(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white placeholder-gray-400"
+              className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-amber-400 bg-white placeholder-gray-400"
             />
             {buscaServico && (
               <button
@@ -538,8 +538,8 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
                 onClick={() => { setFiltroCategoria("__todos__"); setBuscaServico(""); }}
                 className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                   filtroCategoria === "__todos__"
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                    ? "bg-amber-600 text-white border-amber-600"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-amber-300 hover:text-amber-600"
                 }`}
               >
                 Todos
@@ -551,8 +551,8 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
                   onClick={() => { setFiltroCategoria(cat); setBuscaServico(""); }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                     filtroCategoria === cat
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                      ? "bg-amber-600 text-white border-amber-600"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-amber-300 hover:text-amber-600"
                   }`}
                 >
                   {cat}
@@ -568,7 +568,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
           ) : (
             <div className="border border-gray-200 rounded-lg max-h-52 overflow-y-auto divide-y divide-gray-100">
               {servicosFiltrados.map((s: any) => (
-                <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-indigo-50 transition-colors">
+                <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-amber-50 transition-colors">
                   <input
                     type="checkbox"
                     checked={servicosSelecionados.includes(s.nome)}
@@ -577,7 +577,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
                   />
                   <span className="text-sm text-gray-800 flex-1">{s.nome}</span>
                   {s.categoria && (
-                    <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                    <span className="text-[10px] font-medium text-gray-400 bg-stone-100 px-1.5 py-0.5 rounded shrink-0">
                       {s.categoria}
                     </span>
                   )}
@@ -588,7 +588,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
 
           {servicosSelecionados.length > 0 && (
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-indigo-600 font-medium">{servicosSelecionados.length} serviço(s) selecionado(s)</p>
+              <p className="text-[11px] text-amber-600 font-medium">{servicosSelecionados.length} serviço(s) selecionado(s)</p>
               <button
                 type="button"
                 onClick={() => { set("servicos", []); set("valor", ""); }}
@@ -610,7 +610,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
           ) : (
             <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-100">
               {profissionaisData.map((p: any) => (
-                <label key={p.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                <label key={p.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-stone-50">
                   <input
                     type="checkbox"
                     checked={profissionaisSelecionados.includes(p.nome)}
@@ -623,7 +623,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
             </div>
           )}
           {profissionaisSelecionados.length > 0 && (
-            <p className="text-[10px] text-indigo-600 mt-1">{profissionaisSelecionados.length} profissional(is) selecionado(s)</p>
+            <p className="text-[10px] text-amber-600 mt-1">{profissionaisSelecionados.length} profissional(is) selecionado(s)</p>
           )}
         </div>
       )}
@@ -691,7 +691,7 @@ function ConditionFields({ data, set }: { data: Record<string, any>; set: (k: st
                 <div className="flex items-center gap-2"><UserPlus size={13} className="text-emerald-500" />Novo cliente (1º agendamento)</div>
               </SelectItem>
               <SelectItem value="recorrente">
-                <div className="flex items-center gap-2"><RefreshCw size={13} className="text-blue-500" />Cliente recorrente (2+ agendamentos)</div>
+                <div className="flex items-center gap-2"><RefreshCw size={13} className="text-amber-600" />Cliente recorrente (2+ agendamentos)</div>
               </SelectItem>
               <SelectItem value="inativo">
                 <div className="flex items-center gap-2"><UserX size={13} className="text-red-400" />Cliente inativo (sem agendamento há 60+ dias)</div>
@@ -778,7 +778,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-stone-50">
         <h3 className="font-semibold text-gray-800 text-sm">Configurar nó</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={15} /></button>
       </div>
@@ -877,28 +877,28 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                     Gatilhos adicionais
                     <span className="text-[10px] text-muted-foreground">(mesma mensagem, múltiplos eventos)</span>
                   </Label>
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/50 p-2 space-y-1 max-h-[180px] overflow-y-auto">
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-stone-50/50 p-2 space-y-1 max-h-[180px] overflow-y-auto">
                     {eventosCompativeis.map(t => {
                       const evValue = t.value.replace("evento_", "");
                       const checked = selecionados.includes(evValue);
                       return (
                         <label key={t.value} className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-xs ${
-                          checked ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-gray-100'
+                          checked ? 'bg-amber-50 border border-amber-200' : 'hover:bg-stone-100'
                         }`}>
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleEvento(evValue)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                            className="rounded border-gray-300 text-amber-600 focus:ring-indigo-500 h-3.5 w-3.5"
                           />
                           <t.icon size={12} style={{ color: t.color }} />
-                          <span className={checked ? 'font-medium text-indigo-700' : 'text-gray-600'}>{t.label}</span>
+                          <span className={checked ? 'font-medium text-amber-700' : 'text-gray-600'}>{t.label}</span>
                         </label>
                       );
                     })}
                   </div>
                   {selecionados.length > 0 && (
-                    <p className="text-[10px] text-indigo-600 mt-1 px-1">
+                    <p className="text-[10px] text-amber-600 mt-1 px-1">
                       <Check size={10} className="inline mr-0.5" />
                       Esta automação dispara em {selecionados.length + 1} evento(s)
                     </p>
@@ -966,7 +966,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                               <Tooltip key={v.var}>
                                 <TooltipTrigger asChild>
                                   <button onClick={() => insertVar(v.var)}
-                                    className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 font-medium transition-colors">
+                                    className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 hover:bg-amber-100 font-medium transition-colors">
                                     {v.label}
                                   </button>
                                 </TooltipTrigger>
@@ -984,7 +984,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
 
                   {/* Anexo de mídia */}
                   {data.tipo === "enviar_whatsapp" && (
-                    <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div className="mt-3 border border-dashed border-gray-200 rounded-lg p-3 bg-stone-50">
                       <p className="text-xs text-gray-500 mb-2 font-medium">Anexar imagem ou PDF (opcional)</p>
                       {data.midiaUrl ? (
                         <div className="flex items-center gap-2">
@@ -1000,9 +1000,9 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
                         </div>
                       ) : (
                         <label className="cursor-pointer">
-                          <div className="flex items-center gap-2 text-xs text-gray-500 hover:text-indigo-600 transition-colors">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 hover:text-amber-600 transition-colors">
                             {uploadMidiaMutation.isPending ? (
-                              <span className="text-xs text-indigo-500">Enviando...</span>
+                              <span className="text-xs text-amber-500">Enviando...</span>
                             ) : (
                               <>
                                 <span className="text-lg">📎</span>
@@ -1042,8 +1042,8 @@ function NodeConfigPanel({ node, onUpdate, onClose, onSaveFlow }: {
           </div>
         )}
       </div>
-      <div className="px-4 py-3 border-t bg-gray-50">
-        <Button onClick={save} size="sm" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+      <div className="px-4 py-3 border-t bg-stone-50">
+        <Button onClick={save} size="sm" className="w-full bg-amber-600 hover:bg-amber-800 text-white">
           <Save size={13} className="mr-1.5" />Salvar configuração
         </Button>
       </div>
@@ -1430,7 +1430,7 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600 transition-colors"
                 onClick={() => setZoom(z => Math.min(z * 1.2, MAX_ZOOM))}
               >
                 <Plus size={14} strokeWidth={2.5} />
@@ -1444,7 +1444,7 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600 transition-colors"
                 onClick={() => setZoom(z => Math.max(z * 0.8, MIN_ZOOM))}
               >
                 <Minus size={14} strokeWidth={2.5} />
@@ -1454,13 +1454,13 @@ function FlowCanvas({ nodes, onNodesChange, selectedId, onSelect, onDragEnd }: {
           </Tooltip>
         </TooltipProvider>
 
-        <div className="w-8 h-px bg-gray-200 mx-auto" />
+        <div className="w-8 h-px bg-stone-200 mx-auto" />
 
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                className="w-8 h-8 rounded-lg bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600 transition-colors"
                 onClick={fitView}
                 disabled={nodes.length === 0}
               >
@@ -1999,7 +1999,7 @@ export default function Automacoes() {
                     <span className="sm:hidden">Pipeline IA</span>
                   </Button>
                 )}
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}>
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white" onClick={() => openEditor()}>
                   <Plus size={14} className="mr-1" />
                   <span className="hidden sm:inline">Nova Automação</span>
                   <span className="sm:hidden">Nova</span>
@@ -2024,7 +2024,7 @@ export default function Automacoes() {
           </div>
 
           {/* Abas de navegação */}
-          <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+          <div className="flex gap-1 mb-5 bg-stone-100 p-1 rounded-xl w-fit">
             <button
               onClick={() => setActiveTab("automacoes")}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
@@ -2088,8 +2088,8 @@ export default function Automacoes() {
                   onClick={() => { setHistoricoApenasTestes(v => !v); setHistoricoPage(0); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                     historicoApenasTestes
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300'
                   }`}
                 >
                   <Send size={12} />
@@ -2103,14 +2103,14 @@ export default function Automacoes() {
                       : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${historicoAoVivo ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${historicoAoVivo ? 'bg-white animate-pulse' : 'bg-stone-400'}`} />
                   Ao vivo
                 </button>
               </div>
 
               {/* Tabela */}
               {historicoLoading ? (
-                <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+                <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-stone-100 rounded-xl animate-pulse" />)}</div>
               ) : !historicoData?.rows.length ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
                   <History size={40} className="mx-auto text-gray-300 mb-3" />
@@ -2122,7 +2122,7 @@ export default function Automacoes() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100">
+                        <tr className="bg-stone-50 border-b border-gray-100">
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data/Hora</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
@@ -2137,7 +2137,7 @@ export default function Automacoes() {
                         {historicoData.rows.map((row: any) => {
                           const isExpanded = historicoExpandedId === row.id;
                           return (<>
-                          <tr key={row.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setHistoricoExpandedId(isExpanded ? null : row.id)}>
+                          <tr key={row.id} className="hover:bg-stone-50 transition-colors cursor-pointer" onClick={() => setHistoricoExpandedId(isExpanded ? null : row.id)}>
                             <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                               {new Date(row.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </td>
@@ -2154,7 +2154,7 @@ export default function Automacoes() {
                             </td>
                             <td className="px-4 py-3">
                               {row.servicoNome ? (
-                                <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-medium" title={row.servicoNome}>
+                                <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium" title={row.servicoNome}>
                                   {row.servicoNome.length > 22 ? row.servicoNome.slice(0, 22) + '…' : row.servicoNome}
                                 </span>
                               ) : (
@@ -2164,9 +2164,9 @@ export default function Automacoes() {
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                 row.canal === 'whatsapp' ? 'bg-green-100 text-green-700' :
-                                row.canal === 'lembrete' ? 'bg-blue-100 text-blue-700' :
+                                row.canal === 'lembrete' ? 'bg-amber-100 text-blue-700' :
                                 row.canal === 'email' ? 'bg-purple-100 text-purple-700' :
-                                'bg-gray-100 text-gray-600'
+                                'bg-stone-100 text-gray-600'
                               }`}>
                                 {row.canal === 'whatsapp' ? <><MessageSquare size={9} />WhatsApp</> :
                                  row.canal === 'lembrete' ? <><Bell size={9} />Lembrete</> :
@@ -2177,7 +2177,7 @@ export default function Automacoes() {
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                 row.status === 'enviado' ? 'bg-emerald-100 text-emerald-700' :
-                                row.status === 'cancelado' ? 'bg-gray-100 text-gray-500' :
+                                row.status === 'cancelado' ? 'bg-stone-100 text-gray-500' :
                                 row.status === 'falhou' ? 'bg-red-100 text-red-700' :
                                 'bg-yellow-100 text-yellow-700'
                               }`}>
@@ -2197,7 +2197,7 @@ export default function Automacoes() {
                             </td>
                           </tr>
                           {isExpanded && (
-                            <tr key={`${row.id}-expanded`} className="bg-indigo-50/40">
+                            <tr key={`${row.id}-expanded`} className="bg-amber-50/40">
                               <td colSpan={8} className="px-6 py-3">
                                 {row.mensagem && (
                                   <div className="mb-2">
@@ -2219,7 +2219,7 @@ export default function Automacoes() {
                                     <button
                                       onClick={() => reenviarMutation.mutate({ envioId: row.id })}
                                       disabled={reenviarMutation.isPending}
-                                      className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                                      className="flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                                     >
                                       <RefreshCw size={11} />
                                       Reenviar mensagem
@@ -2267,8 +2267,8 @@ export default function Automacoes() {
                     onClick={() => setJornadaPeriodo(p)}
                     className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
                       jornadaPeriodo === p
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "bg-white border border-gray-200 text-gray-600 hover:border-indigo-300"
+                        ? "bg-amber-600 text-white shadow-sm"
+                        : "bg-white border border-gray-200 text-gray-600 hover:border-amber-300"
                     }`}
                   >
                     {p === "24h" ? "Últimas 24h" : p === "7d" ? "Últimos 7 dias" : "Últimos 30 dias"}
@@ -2284,14 +2284,14 @@ export default function Automacoes() {
 
               {jornadaLoading ? (
                 <div className="space-y-3">
-                  {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
+                  {[1,2,3].map(i => <div key={i} className="h-24 bg-stone-100 rounded-xl animate-pulse" />)}
                 </div>
               ) : (
                 <>
                   {/* Métricas de status */}
                   <div className="mb-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp size={14} className="text-indigo-500" />
+                      <TrendingUp size={14} className="text-amber-500" />
                       <h3 className="text-sm font-semibold text-gray-700">Resumo dos envios — {jornadaPeriodo === "24h" ? "últimas 24h" : jornadaPeriodo === "7d" ? "últimos 7 dias" : "últimos 30 dias"}</h3>
                     </div>
                     {(!jornadaData?.metricas || jornadaData.metricas.length === 0) ? (
@@ -2310,7 +2310,7 @@ export default function Automacoes() {
                             </div>
                             <p className="text-xs text-gray-500 font-medium">{m.label}</p>
                             {jornadaData.metricas.reduce((acc: number, x: any) => acc + x.total, 0) > 0 && (
-                              <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="mt-2 h-1.5 rounded-full bg-stone-100 overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all"
                                   style={{
@@ -2345,7 +2345,7 @@ export default function Automacoes() {
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="divide-y divide-gray-50">
                           {jornadaData.feed.map((item: any) => (
-                            <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                            <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
                               <span className="text-base flex-shrink-0">{item.emoji}</span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -2389,7 +2389,7 @@ export default function Automacoes() {
                                     onClick={() => reenviarMutation.mutate({ envioId: item.id })}
                                     disabled={reenviarMutation.isPending}
                                     title="Reenviar mensagem"
-                                    className="p-1 rounded-md text-indigo-500 hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                                    className="p-1 rounded-md text-amber-500 hover:bg-amber-50 transition-colors disabled:opacity-50"
                                   >
                                     {reenviarMutation.isPending ? (
                                       <Loader2 size={12} className="animate-spin" />
@@ -2427,7 +2427,7 @@ export default function Automacoes() {
               </div>
 
               {isLoading ? (
-                <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+                <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-stone-100 rounded-xl animate-pulse" />)}</div>
               ) : (automacoesSalvas as any[]).length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
                   <Zap size={40} className="mx-auto text-gray-300 mb-3" />
@@ -2435,19 +2435,19 @@ export default function Automacoes() {
                   <p className="text-sm text-gray-400 mt-1 mb-4">Use templates prontos ou crie do zero com a esteira visual</p>
                   <div className="flex gap-2 justify-center">
                     <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}><Sparkles size={14} className="mr-1.5" />Ver templates</Button>
-                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => openEditor()}><Plus size={14} className="mr-1.5" />Criar do zero</Button>
+                    <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white" onClick={() => openEditor()}><Plus size={14} className="mr-1.5" />Criar do zero</Button>
                   </div>
                 </div>
               ) : (
                 <>
                   {/* Barra flutuante de seleção múltipla */}
                   {modoSelecao && (
-                    <div className="flex items-center gap-2 mb-3 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
                       <input type="checkbox" className="w-4 h-4 accent-indigo-600 cursor-pointer"
                         checked={selecionadas.size === automacoesFiltradas.length && automacoesFiltradas.length > 0}
                         onChange={() => selecionadas.size === automacoesFiltradas.length ? setSelecionadas(new Set()) : setSelecionadas(new Set((automacoesFiltradas as any[]).map((a: any) => a.id)))}
                       />
-                      <span className="text-sm text-indigo-700 font-medium flex-1">
+                      <span className="text-sm text-amber-700 font-medium flex-1">
                         {selecionadas.size === 0 ? "Nenhuma selecionada" : `${selecionadas.size} selecionada${selecionadas.size > 1 ? "s" : ""}`}
                       </span>
                       {selecionadas.size > 0 && (
@@ -2467,8 +2467,8 @@ export default function Automacoes() {
                       onClick={() => setFiltroTipoGatilho("todos")}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                         filtroTipoGatilho === "todos"
-                          ? "bg-indigo-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ? "bg-amber-600 text-white"
+                          : "bg-stone-100 text-gray-700 hover:bg-stone-200"
                       }`}
                     >
                       Todos ({automacoesSalvas.length})
@@ -2481,8 +2481,8 @@ export default function Automacoes() {
                           onClick={() => setFiltroTipoGatilho(tipo)}
                           className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                             filtroTipoGatilho === tipo
-                              ? "bg-indigo-600 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-amber-600 text-white"
+                              : "bg-stone-100 text-gray-700 hover:bg-stone-200"
                           }`}
                         >
                           {getTipoGatilhoLabel(tipo)} ({count})
@@ -2492,7 +2492,7 @@ export default function Automacoes() {
                     {!modoSelecao && (
                       <button
                         onClick={() => setModoSelecao(true)}
-                        className="ml-auto px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1.5 flex-shrink-0"
+                        className="ml-auto px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-stone-100 text-gray-700 hover:bg-stone-200 flex items-center gap-1.5 flex-shrink-0"
                       >
                         <Check size={13} /> Selecionar
                       </button>
@@ -2508,15 +2508,15 @@ export default function Automacoes() {
                         const incompletosLista = nodesLista.filter((n: FlowNode) => n.type !== "end" && getNodeIncompleto(n).length > 0);
                         const temIncompletoLista = incompletosLista.length > 0;
                         return (
-                    <div key={a.id} className={`bg-white rounded-xl border shadow-sm p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${temIncompletoLista ? "border-amber-200" : selecionadas.has(a.id) ? "border-indigo-400 bg-indigo-50" : "border-gray-100"}`}>
+                    <div key={a.id} className={`bg-white rounded-xl border shadow-sm p-3.5 flex items-center gap-3 hover:border-amber-200 transition-colors ${temIncompletoLista ? "border-amber-200" : selecionadas.has(a.id) ? "border-amber-400 bg-amber-50" : "border-gray-100"}`}>
                       {modoSelecao && (
                         <input type="checkbox" className="w-4 h-4 accent-indigo-600 cursor-pointer flex-shrink-0"
                           checked={selecionadas.has(a.id)}
                           onChange={() => toggleSelecao(a.id)}
                         />
                       )}
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-indigo-100" : "bg-gray-100"}`}>
-                        <Zap size={16} className={a.ativo ? "text-indigo-600" : "text-gray-400"} />
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-amber-100" : "bg-stone-100"}`}>
+                        <Zap size={16} className={a.ativo ? "text-amber-600" : "text-gray-400"} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -2540,11 +2540,11 @@ export default function Automacoes() {
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
+                          <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-stone-100 text-gray-500"}`}>
                             {a.ativo ? "Ativa" : "Pausada"}
                           </Badge>
                           {a.isTemplate && (
-                            <Badge className="text-[10px] px-1.5 py-0 flex-shrink-0 bg-blue-50 text-blue-600 border-blue-200">
+                            <Badge className="text-[10px] px-1.5 py-0 flex-shrink-0 bg-amber-50 text-amber-700 border-blue-200">
                               Padrão
                             </Badge>
                           )}
@@ -2581,7 +2581,7 @@ export default function Automacoes() {
                         )}
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
                           onClick={() => setTesteEnvioId(a.id)}>
-                          <Send size={13} className="text-indigo-500" />
+                          <Send size={13} className="text-amber-500" />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2, eventosAdicionais: (a as any).eventosAdicionais ?? null } as any)}>
                           <Edit2 size={13} />
@@ -2600,23 +2600,23 @@ export default function Automacoes() {
               {automacoesDoSistema.length > 0 && (
                 <div className="mt-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1 bg-gray-200" />
+                    <div className="h-px flex-1 bg-stone-200" />
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 flex items-center gap-1.5">
                       <Settings size={11} /> Automações do Sistema
                     </span>
-                    <div className="h-px flex-1 bg-gray-200" />
+                    <div className="h-px flex-1 bg-stone-200" />
                   </div>
                   <p className="text-xs text-gray-400 mb-3 text-center">Criadas automaticamente pelo Hubly. Você pode ativar, pausar ou editar o conteúdo.</p>
                   <div className="space-y-2">
                     {automacoesDoSistema.map((a: any) => (
-                      <div key={a.id} className={`bg-gray-50 rounded-xl border p-3.5 flex items-center gap-3 hover:border-indigo-200 transition-colors ${a.ativo ? "border-gray-200" : "border-gray-100 opacity-70"}`}>
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-blue-100" : "bg-gray-100"}`}>
-                          <Settings size={14} className={a.ativo ? "text-blue-500" : "text-gray-400"} />
+                      <div key={a.id} className={`bg-stone-50 rounded-xl border p-3.5 flex items-center gap-3 hover:border-amber-200 transition-colors ${a.ativo ? "border-gray-200" : "border-gray-100 opacity-70"}`}>
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${a.ativo ? "bg-amber-100" : "bg-stone-100"}`}>
+                          <Settings size={14} className={a.ativo ? "text-amber-600" : "text-gray-400"} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-700 text-sm truncate">{a.nome}</p>
-                            <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-500"}`}>
+                            <Badge className={`text-[10px] px-1.5 py-0 flex-shrink-0 ${a.ativo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-stone-100 text-gray-500"}`}>
                               {a.ativo ? "Ativa" : "Pausada"}
                             </Badge>
                           </div>
@@ -2635,7 +2635,7 @@ export default function Automacoes() {
                         />
                         <button
                           onClick={() => openEditor({ id: a.id, nome: a.nome, ativo: a.ativo, flowJson: a.flowJson ?? undefined, nodes: [], confirmacaoAutoAtivo: (a as any).confirmacaoAutoAtivo ?? false, confirmacaoAutoHorasAntes: (a as any).confirmacaoAutoHorasAntes ?? 2 } as any)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                           title="Editar"
                         >
                           <Edit2 size={14} />
@@ -2717,8 +2717,8 @@ export default function Automacoes() {
         <Dialog open={showSincModal} onOpenChange={(open) => { if (!sincronizarMutation.isPending) { setShowSincModal(open); if (!open) { setSincPreview(null); setSincPipelineId(null); } } }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-indigo-700">
-                <GitBranch size={18} className="text-indigo-600" />
+              <DialogTitle className="flex items-center gap-2 text-amber-700">
+                <GitBranch size={18} className="text-amber-600" />
                 Sincronizar Pipeline com Automações
               </DialogTitle>
             </DialogHeader>
@@ -2729,16 +2729,16 @@ export default function Automacoes() {
               {sincPreview && sincPreview.pipelines.length > 0 && (
                 <div className="space-y-2">
                   {sincPreview.pipelines.map((p) => (
-                    <div key={p.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sincPipelineId === p.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'}`}
+                    <div key={p.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sincPipelineId === p.id ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-amber-300'}`}
                       onClick={() => setSincPipelineId(p.id)}>
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm text-gray-800">{p.nome}</span>
-                        {sincPipelineId === p.id && <Check size={14} className="text-indigo-600" />}
+                        {sincPipelineId === p.id && <Check size={14} className="text-amber-600" />}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {p.colunas.map((c) => (
-                          <span key={c.id} className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                            {c.nome} {c.totalCartoes > 0 && <span className="font-semibold text-indigo-600">({c.totalCartoes})</span>}
+                          <span key={c.id} className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 text-gray-600">
+                            {c.nome} {c.totalCartoes > 0 && <span className="font-semibold text-amber-600">({c.totalCartoes})</span>}
                           </span>
                         ))}
                       </div>
@@ -2747,11 +2747,11 @@ export default function Automacoes() {
                 </div>
               )}
               {sincPreview && sincPreview.automacoes.length > 0 && (
-                <div className="bg-indigo-50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-indigo-700 mb-1.5">Colunas que serão adicionadas/vinculadas:</p>
+                <div className="bg-amber-50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-amber-700 mb-1.5">Colunas que serão adicionadas/vinculadas:</p>
                   <div className="flex flex-wrap gap-1">
                     {sincPreview.automacoes.map((a) => (
-                      <span key={a.id} className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                      <span key={a.id} className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                         {a.label}
                       </span>
                     ))}
@@ -2764,7 +2764,7 @@ export default function Automacoes() {
               <Button variant="outline" size="sm" onClick={() => { setShowSincModal(false); setSincPreview(null); setSincPipelineId(null); }} disabled={sincronizarMutation.isPending}>
                 Agora não
               </Button>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white"
                 disabled={!sincPipelineId || sincronizarMutation.isPending}
                 onClick={() => { if (sincPipelineId) sincronizarMutation.mutate({ pipelineId: sincPipelineId }); }}>
                 {sincronizarMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <GitBranch size={14} className="mr-1" />}
@@ -2789,7 +2789,7 @@ export default function Automacoes() {
                 {/* Etapa 1: Descrição (sem preview ainda) */}
                 {!pipelinePreview && (
                   <>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                    <div className="bg-amber-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
                       <strong>⚠️ Atenção:</strong> Se você já possui um pipeline, ele será <strong>atualizado</strong> com os dados atuais das suas automações.
                     </div>
                     <p className="text-sm text-gray-600">
@@ -2843,7 +2843,7 @@ export default function Automacoes() {
                       </div>
                     </div>
                     {pipelinePreview.estimativaCartoes > 0 && (
-                      <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                      <div className="bg-stone-50 rounded-lg p-3 text-sm text-gray-600">
                         <strong>{pipelinePreview.estimativaCartoes}</strong> clientes dos últimos 30 dias serão adicionados como cartões.
                       </div>
                     )}
@@ -2882,12 +2882,12 @@ export default function Automacoes() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="bg-stone-50 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-purple-600">{pipelineGerado.totalColunas}</p>
                     <p className="text-xs text-gray-500 mt-0.5">Colunas criadas</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-indigo-600">{pipelineGerado.totalCartoes}</p>
+                  <div className="bg-stone-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{pipelineGerado.totalCartoes}</p>
                     <p className="text-xs text-gray-500 mt-0.5">Cartões com clientes</p>
                   </div>
                 </div>
@@ -2943,7 +2943,7 @@ export default function Automacoes() {
                       className={`border rounded-xl p-3 cursor-pointer transition-all ${
                         snapshotParaRestaurar === snap.id
                           ? "border-purple-400 bg-purple-50"
-                          : "border-gray-200 hover:border-purple-200 hover:bg-gray-50"
+                          : "border-gray-200 hover:border-purple-200 hover:bg-stone-50"
                       }`}
                       onClick={() => setSnapshotParaRestaurar(snap.id)}
                     >
@@ -2965,7 +2965,7 @@ export default function Automacoes() {
                           </span>
                         ))}
                         {snap.colunas.length > 5 && (
-                          <span className="px-2 py-0.5 rounded-full text-xs text-gray-500 bg-gray-100">+{snap.colunas.length - 5}</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs text-gray-500 bg-stone-100">+{snap.colunas.length - 5}</span>
                         )}
                       </div>
                     </div>
@@ -3001,15 +3001,15 @@ export default function Automacoes() {
         <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><Sparkles size={17} className="text-indigo-600" />Templates de automação</DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><Sparkles size={17} className="text-amber-600" />Templates de automação</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {TEMPLATES.map((t, i) => (
-                <button key={i} className="text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+                <button key={i} className="text-left p-4 rounded-xl border border-gray-200 hover:border-amber-300 hover:bg-amber-50 transition-all group"
                   onClick={() => { openEditor({ nome: t.nome, descricao: t.descricao, ativo: true, nodes: t.nodes }); setShowTemplates(false); }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                      <t.icon size={15} className="text-indigo-600" />
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+                      <t.icon size={15} className="text-amber-600" />
                     </div>
                     <span className="font-semibold text-sm text-gray-900">{t.nome}</span>
                   </div>
@@ -3037,14 +3037,14 @@ export default function Automacoes() {
   // ── MOBILE EDITOR ──────────────────────────────────────────────────────────
   if (isMobile) {
     const NODE_LABELS: Record<NodeType, { label: string; color: string; bg: string; icon: any }> = {
-      trigger: { label: "Gatilho", color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200", icon: Zap },
+      trigger: { label: "Gatilho", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: Zap },
       condition: { label: "Condição", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: Filter },
       action: { label: "Ação", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: MessageSquare },
-      delay: { label: "Aguardar", color: "text-sky-700", bg: "bg-sky-50 border-sky-200", icon: Clock },
-      end: { label: "Fim", color: "text-gray-600", bg: "bg-gray-50 border-gray-200", icon: Check },
+      delay: { label: "Aguardar", color: "text-sky-700", bg: "bg-amber-50 border-sky-200", icon: Clock },
+      end: { label: "Fim", color: "text-gray-600", bg: "bg-stone-50 border-gray-200", icon: Check },
     };
     const ADD_NODE_TYPES: { type: NodeType; label: string; icon: any; color: string }[] = [
-      { type: "trigger", label: "Gatilho", icon: Zap, color: "text-indigo-600" },
+      { type: "trigger", label: "Gatilho", icon: Zap, color: "text-amber-600" },
       { type: "condition", label: "Condição", icon: Filter, color: "text-amber-600" },
       { type: "action", label: "Ação", icon: MessageSquare, color: "text-emerald-600" },
       { type: "delay", label: "Aguardar", icon: Clock, color: "text-sky-600" },
@@ -3052,7 +3052,7 @@ export default function Automacoes() {
     ];
     return (
       <>
-        <div className="flex flex-col bg-gray-50" style={{ minHeight: "calc(100vh - 64px)" }}>
+        <div className="flex flex-col bg-stone-50" style={{ minHeight: "calc(100vh - 64px)" }}>
           {/* Mobile Toolbar */}
           <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 px-3 py-2">
@@ -3064,7 +3064,7 @@ export default function Automacoes() {
                 onChange={e => setCurrentFlow(p => ({ ...p, nome: e.target.value }))}
                 className="h-8 text-sm font-semibold border-gray-200 focus-visible:ring-indigo-400 flex-1 min-w-0"
               />
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 h-8 px-3" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white shrink-0 h-8 px-3" onClick={() => saveFlow()} disabled={createMutation.isPending}>
                 {createMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
               </Button>
             </div>
@@ -3080,7 +3080,7 @@ export default function Automacoes() {
                 {addNodeMenu && (
                   <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-40 py-1">
                     {ADD_NODE_TYPES.map(item => (
-                      <button key={item.type} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                      <button key={item.type} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-stone-50"
                         onClick={() => { addNode(item.type); setAddNodeMenu(false); }}>
                         <item.icon size={13} className={item.color} />{item.label}
                       </button>
@@ -3147,7 +3147,7 @@ export default function Automacoes() {
               const triggerNode = nodes.find(n => n.type === "trigger");
               if (triggerNode?.data?.tipo !== "horas_antes_agendamento") return null;
               return (
-                <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+                <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-800">Confirmação automática</p>
@@ -3248,13 +3248,13 @@ export default function Automacoes() {
               {addNodeMenu && (
                 <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-44 py-1">
                   {([
-                    { type: "trigger" as NodeType, label: "Gatilho", icon: Zap, color: "text-indigo-600" },
+                    { type: "trigger" as NodeType, label: "Gatilho", icon: Zap, color: "text-amber-600" },
                     { type: "condition" as NodeType, label: "Condição", icon: Filter, color: "text-amber-600" },
                     { type: "action" as NodeType, label: "Ação", icon: MessageSquare, color: "text-emerald-600" },
                     { type: "delay" as NodeType, label: "Aguardar", icon: Clock, color: "text-sky-600" },
                     { type: "end" as NodeType, label: "Fim do fluxo", icon: Check, color: "text-gray-600" },
                   ]).map(item => (
-                    <button key={item.type} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                    <button key={item.type} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-stone-50 transition-colors"
                       onClick={() => addNode(item.type)}>
                       <item.icon size={13} className={item.color} />{item.label}
                     </button>
@@ -3298,7 +3298,7 @@ export default function Automacoes() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="relative">
-                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+                        <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
                           <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
                         </Button>
                         <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold">
@@ -3317,7 +3317,7 @@ export default function Automacoes() {
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white" onClick={() => saveFlow()} disabled={createMutation.isPending}>
                   <Save size={13} className="mr-1.5" />{createMutation.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               );
@@ -3330,7 +3330,7 @@ export default function Automacoes() {
           <button
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               abaEditor === "canvas"
-                ? "border-indigo-600 text-indigo-600"
+                ? "border-amber-600 text-amber-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setAbaEditor("canvas")}
@@ -3340,7 +3340,7 @@ export default function Automacoes() {
           <button
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
               abaEditor === "jornada"
-                ? "border-indigo-600 text-indigo-600"
+                ? "border-amber-600 text-amber-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setAbaEditor("jornada")}
@@ -3375,12 +3375,12 @@ export default function Automacoes() {
                   <div className="w-72 border-l border-gray-200 bg-white overflow-y-auto flex flex-col flex-shrink-0">
                     <div className="p-4 border-b border-gray-100">
                       <div className="flex items-center gap-2">
-                        <Settings size={14} className="text-indigo-500" />
+                        <Settings size={14} className="text-amber-500" />
                         <span className="text-sm font-semibold text-gray-800">Configurações Avançadas</span>
                       </div>
                     </div>
                     <div className="p-4 space-y-4">
-                      <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+                      <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-semibold text-gray-800">Confirmação automática</p>
@@ -3411,7 +3411,7 @@ export default function Automacoes() {
                                 <SelectItem value="24">24 horas antes</SelectItem>
                               </SelectContent>
                             </Select>
-                            <p className="text-xs text-indigo-600 mt-1">⚠️ Desabilitado por padrão. Ative apenas se quiser confirmar sem resposta do cliente.</p>
+                            <p className="text-xs text-amber-600 mt-1">⚠️ Desabilitado por padrão. Ative apenas se quiser confirmar sem resposta do cliente.</p>
                           </div>
                         )}
                       </div>
@@ -3420,7 +3420,7 @@ export default function Automacoes() {
                 );
               }
               return (
-                <div className="w-56 border-l border-gray-100 bg-gray-50 flex flex-col items-center justify-center text-center p-6 flex-shrink-0">
+                <div className="w-56 border-l border-gray-100 bg-stone-50 flex flex-col items-center justify-center text-center p-6 flex-shrink-0">
                   <Settings size={26} className="text-gray-300 mb-2" />
                   <p className="text-sm text-gray-500 font-medium">Selecione um nó</p>
                   <p className="text-xs text-gray-400 mt-1">Clique em qualquer nó para configurar</p>
@@ -3452,7 +3452,7 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
 
   if (!automacaoId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50">
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-stone-50">
         <Radio size={36} className="text-gray-300 mb-3" />
         <p className="text-sm text-gray-500 font-medium">Salve a automação primeiro</p>
         <p className="text-xs text-gray-400 mt-1">A Jornada ao Vivo fica disponível após salvar a automação.</p>
@@ -3462,8 +3462,8 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <Loader2 size={24} className="text-indigo-400 animate-spin" />
+      <div className="flex-1 flex items-center justify-center bg-stone-50">
+        <Loader2 size={24} className="text-amber-400 animate-spin" />
       </div>
     );
   }
@@ -3472,7 +3472,7 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
   const totalGeral = grupos.reduce((acc, g) => acc + g.total, 0);
 
   const COR_CONFIG: Record<string, { bg: string; border: string; text: string; dot: string; badge: string; activeBg: string; activeBorder: string }> = {
-    blue:   { bg: "bg-blue-50",   border: "border-blue-200",   text: "text-blue-700",   dot: "bg-blue-400",   badge: "bg-blue-100 text-blue-700",   activeBg: "bg-blue-600",   activeBorder: "border-blue-600" },
+    blue:   { bg: "bg-amber-50",   border: "border-blue-200",   text: "text-blue-700",   dot: "bg-amber-400",   badge: "bg-amber-100 text-blue-700",   activeBg: "bg-amber-700",   activeBorder: "border-blue-600" },
     yellow: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700", dot: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700", activeBg: "bg-yellow-500", activeBorder: "border-yellow-500" },
     green:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700",  dot: "bg-green-400",  badge: "bg-green-100 text-green-700",  activeBg: "bg-green-600",  activeBorder: "border-green-600" },
     red:    { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700",    dot: "bg-red-400",    badge: "bg-red-100 text-red-700",    activeBg: "bg-red-600",    activeBorder: "border-red-600" },
@@ -3511,12 +3511,12 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
         </div>
       </div>
       {item.servicoNome && (
-        <span className="inline-block mt-1.5 text-[10px] font-medium bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">
+        <span className="inline-block mt-1.5 text-[10px] font-medium bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded">
           {item.servicoNome}
         </span>
       )}
       {item.tempoRestante && (
-        <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1">
+        <p className="text-[10px] text-amber-700 mt-1 flex items-center gap-1">
           <Clock size={9} />{item.tempoRestante}
         </p>
       )}
@@ -3532,17 +3532,17 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
   );
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+    <div className="flex-1 flex flex-col overflow-hidden bg-stone-50">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Radio size={14} className="text-indigo-500" />
+          <Radio size={14} className="text-amber-500" />
           <span className="text-sm font-semibold text-gray-800">Jornada ao Vivo</span>
           <span className="hidden sm:inline text-xs text-gray-400">• últimos 90 dias</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">{totalGeral} cliente{totalGeral !== 1 ? "s" : ""}</span>
-          <button onClick={() => refetch()} className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 transition-colors">
+          <button onClick={() => refetch()} className="flex items-center gap-1 text-xs text-gray-400 hover:text-amber-600 transition-colors">
             <RefreshCw size={12} />
             <span className="hidden sm:inline">Atualizar</span>
           </button>
@@ -3579,7 +3579,7 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
                   <span className={`w-2 h-2 rounded-full ${cor.dot}`} />
                   {grupo.label}
                   <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    ativo ? cor.badge : "bg-gray-100 text-gray-500"
+                    ativo ? cor.badge : "bg-stone-100 text-gray-500"
                   }`}>{grupo.total}</span>
                 </button>
               );
@@ -3629,7 +3629,7 @@ function JornadaAoVivo({ automacaoId }: { automacaoId: number | null }) {
                   key={grupo.status}
                   onClick={() => irParaAba(idx)}
                   className={`rounded-full transition-all ${
-                    abaAtiva === idx ? `w-5 h-2 ${cor.activeBg}` : "w-2 h-2 bg-gray-300"
+                    abaAtiva === idx ? `w-5 h-2 ${cor.activeBg}` : "w-2 h-2 bg-stone-300"
                   }`}
                 />
               );
@@ -3700,7 +3700,7 @@ function TesteEnvioModal({ open, onClose, automacaoId, telefonePadrao }: {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <Send size={15} className="text-indigo-600" />
+            <Send size={15} className="text-amber-600" />
             Testar Envio
           </DialogTitle>
         </DialogHeader>
@@ -3718,7 +3718,7 @@ function TesteEnvioModal({ open, onClose, automacaoId, telefonePadrao }: {
         </div>
         <div className="flex gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={onClose} disabled={testarMutation.isPending}>Cancelar</Button>
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[110px]"
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-800 text-white min-w-[110px]"
             onClick={() => testarMutation.mutate({ automacaoId, telefone })}
             disabled={!telefone || testarMutation.isPending}>
             {testarMutation.isPending ? (
@@ -3767,7 +3767,7 @@ function TesteComClienteModal({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <Users size={15} className="text-blue-600" />
+            <Users size={15} className="text-amber-700" />
             Testar com Cliente
           </DialogTitle>
         </DialogHeader>
@@ -3788,8 +3788,8 @@ function TesteComClienteModal({
                   <button
                     key={c.id}
                     onClick={() => setClienteId(c.id)}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b last:border-b-0 ${
-                      clienteId === c.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-stone-50 border-b last:border-b-0 ${
+                      clienteId === c.id ? 'bg-amber-50 border-l-2 border-blue-500' : ''
                     }`}
                   >
                     <div className="font-medium text-gray-900">{c.nome}</div>
@@ -3803,7 +3803,7 @@ function TesteComClienteModal({
         </div>
         <div className="flex gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white"
+          <Button size="sm" className="bg-amber-700 hover:bg-amber-800 text-white"
             onClick={() => clienteId && onSubmit(clienteId)}
             disabled={!clienteId || isLoading}>
             {isLoading ? "Enviando..." : "Enviar teste"}

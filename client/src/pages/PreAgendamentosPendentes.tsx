@@ -129,8 +129,8 @@ export default function PreAgendamentosPendentes() {
             {/* Linha superior: cliente + badge */}
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-amber-700" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">

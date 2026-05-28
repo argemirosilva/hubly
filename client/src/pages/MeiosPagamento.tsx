@@ -40,10 +40,10 @@ const TIPO_ICONS: Record<TipoMeio, React.ReactNode> = {
 
 const TIPO_COLORS: Record<TipoMeio, string> = {
   pix: "bg-green-100 text-green-700 border-green-200",
-  debito: "bg-blue-100 text-blue-700 border-blue-200",
+  debito: "bg-amber-100 text-blue-700 border-blue-200",
   credito: "bg-purple-100 text-purple-700 border-purple-200",
   dinheiro: "bg-amber-100 text-amber-700 border-amber-200",
-  outro: "bg-gray-100 text-gray-700 border-gray-200",
+  outro: "bg-stone-100 text-gray-700 border-gray-200",
 };
 
 interface TaxaParcelaForm {
@@ -188,13 +188,13 @@ export default function MeiosPagamento() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-stone-100 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : meios.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center mb-4">
               <CreditCard className="w-7 h-7 text-gray-400" />
             </div>
             <h3 className="font-semibold text-gray-700 mb-1">Nenhum meio de pagamento</h3>
@@ -230,7 +230,7 @@ export default function MeiosPagamento() {
                           {TIPO_LABELS[tipo] || tipo}
                         </Badge>
                         {!meio.ativo && (
-                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">Inativo</Badge>
+                          <Badge variant="outline" className="text-xs bg-stone-100 text-gray-500">Inativo</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500 flex-wrap">
@@ -283,7 +283,7 @@ export default function MeiosPagamento() {
                       <p className="text-xs font-medium text-gray-500 mb-2">Taxas por parcela:</p>
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
                         {meio.taxas.map((t: any) => (
-                          <div key={t.parcela} className="text-center bg-gray-50 rounded-md p-1.5">
+                          <div key={t.parcela} className="text-center bg-stone-50 rounded-md p-1.5">
                             <div className="text-[10px] text-gray-500">{t.parcela}x</div>
                             <div className="text-xs font-semibold text-gray-800">{parseFloat(t.taxa).toFixed(2)}%</div>
                           </div>

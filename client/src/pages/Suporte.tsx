@@ -23,11 +23,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  aberto: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  aberto: "bg-amber-100 text-blue-700 dark:bg-stone-900/30 dark:text-blue-300",
   em_atendimento: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
   aguardando_cliente: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   resolvido: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  fechado: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  fechado: "bg-stone-100 text-gray-600 dark:bg-stone-800 dark:text-gray-400",
 };
 
 const STATUS_ICONS: Record<string, React.ElementType> = {
@@ -46,8 +46,8 @@ const PRIORIDADE_LABELS: Record<string, string> = {
 };
 
 const PRIORIDADE_COLORS: Record<string, string> = {
-  baixa: "bg-gray-100 text-gray-600",
-  media: "bg-blue-100 text-blue-600",
+  baixa: "bg-stone-100 text-gray-600",
+  media: "bg-amber-100 text-amber-700",
   alta: "bg-orange-100 text-orange-600",
   critica: "bg-red-100 text-red-600",
 };

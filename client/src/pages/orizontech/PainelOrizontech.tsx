@@ -55,7 +55,7 @@ function LoginOrizontech({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-4 shadow-sm">
@@ -126,17 +126,17 @@ function LoginOrizontech({ onLogin }: { onLogin: () => void }) {
 function badgeStatus(status: string) {
   const map: Record<string, string> = {
     ativa: "bg-green-100 text-green-800",
-    trial: "bg-blue-100 text-blue-800",
+    trial: "bg-amber-100 text-blue-800",
     inadimplente: "bg-red-100 text-red-800",
-    cancelada: "bg-gray-100 text-gray-600",
+    cancelada: "bg-stone-100 text-gray-600",
     suspensa: "bg-orange-100 text-orange-800",
     aberto: "bg-yellow-100 text-yellow-800",
-    em_atendimento: "bg-blue-100 text-blue-800",
+    em_atendimento: "bg-amber-100 text-blue-800",
     aguardando_cliente: "bg-purple-100 text-purple-800",
     resolvido: "bg-green-100 text-green-800",
-    fechado: "bg-gray-100 text-gray-600",
+    fechado: "bg-stone-100 text-gray-600",
   };
-  return map[status] ?? "bg-gray-100 text-gray-600";
+  return map[status] ?? "bg-stone-100 text-gray-600";
 }
 
 function badgePrioridade(p: string) {
@@ -144,9 +144,9 @@ function badgePrioridade(p: string) {
     critica: "bg-red-600 text-white",
     alta: "bg-orange-500 text-white",
     media: "bg-yellow-500 text-white",
-    baixa: "bg-gray-200 text-gray-700",
+    baixa: "bg-stone-200 text-gray-700",
   };
-  return map[p] ?? "bg-gray-200 text-gray-700";
+  return map[p] ?? "bg-stone-200 text-gray-700";
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ export default function PainelOrizontech() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-stone-50 text-gray-900">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -250,7 +250,7 @@ function TabDashboard() {
   const cards = [
     { label: "Total de empresas", value: metricas.totalEmpresas, icon: Building2, color: "text-orange-500" },
     { label: "Assinaturas ativas", value: metricas.ativas, icon: CheckCircle2, color: "text-green-500" },
-    { label: "Em trial", value: metricas.trial, icon: Clock, color: "text-blue-500" },
+    { label: "Em trial", value: metricas.trial, icon: Clock, color: "text-amber-600" },
     { label: "Inadimplentes", value: metricas.inadimplentes, icon: AlertCircle, color: "text-red-500" },
     { label: "MRR estimado", value: `R$ ${metricas.mrr.toLocaleString("pt-BR")}`, icon: DollarSign, color: "text-emerald-500" },
     { label: "Chamados abertos", value: metricas.chamadosAbertos, icon: MessageSquare, color: "text-yellow-500" },
@@ -279,9 +279,9 @@ function TabDashboard() {
           <CardContent className="space-y-2">
             {[
               { label: "Ativas", value: metricas.ativas, color: "bg-green-500" },
-              { label: "Trial", value: metricas.trial, color: "bg-blue-500" },
+              { label: "Trial", value: metricas.trial, color: "bg-amber-500" },
               { label: "Inadimplentes", value: metricas.inadimplentes, color: "bg-red-500" },
-              { label: "Canceladas", value: metricas.canceladas, color: "bg-gray-500" },
+              { label: "Canceladas", value: metricas.canceladas, color: "bg-stone-500" },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${color}`} />
@@ -397,7 +397,7 @@ function TabEmpresas() {
         <div className="rounded-lg border border-gray-200 overflow-x-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+              <tr className="bg-stone-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Empresa</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Plano</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
@@ -410,7 +410,7 @@ function TabEmpresas() {
             </thead>
             <tbody>
               {(data?.empresas ?? []).map(e => (
-                <tr key={e.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <tr key={e.id} className="border-b border-gray-100 hover:bg-stone-50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{e.nome}</div>
                     <div className="text-xs text-gray-400">{e.email}</div>
@@ -568,7 +568,7 @@ function TabEmpresas() {
             <DialogTitle>Configuração WhatsApp — Uso Interno</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-gray-100 text-xs text-gray-500">
+            <div className="p-3 rounded-lg bg-stone-100 text-xs text-gray-500">
               Esta configuração é interna. O cliente não vê qual API está sendo usada.
             </div>
             <div className="flex items-center gap-3">
@@ -580,7 +580,7 @@ function TabEmpresas() {
             {formWa.zapiAtivo && (
               <>
                 {/* Status em tempo real da instância Z-API */}
-                <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                <div className="p-3 rounded-lg border border-gray-200 bg-stone-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {zapiStatusLoading ? (
@@ -743,7 +743,7 @@ function TabPlanos() {
                     {p.descricao && <p className="text-xs text-gray-500 mt-0.5">{p.descricao}</p>}
                   </div>
                   <div className="flex gap-1">
-                    {!p.ativo && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inativo</span>}
+                    {!p.ativo && <span className="text-xs bg-stone-100 text-gray-500 px-2 py-0.5 rounded-full">Inativo</span>}
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700"
                       onClick={() => abrirEditar(p as PlanoItem)}>
                       <Edit className="w-3.5 h-3.5" />
@@ -958,7 +958,7 @@ function TabChamados() {
                 className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                   chamadoAberto === c.id
                     ? "border-orange-300 bg-orange-50"
-                    : "border-gray-200 bg-white hover:bg-gray-50"
+                    : "border-gray-200 bg-white hover:bg-stone-50"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -1023,8 +1023,8 @@ function TabChamados() {
                     m.autorTipo === "agente"
                       ? "bg-orange-500 text-white"
                       : m.autorTipo === "ia"
-                      ? "bg-blue-50 text-blue-900 border border-blue-200"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-amber-50 text-blue-900 border border-blue-200"
+                      : "bg-stone-100 text-gray-800"
                   }`}>
                     <div className="text-xs opacity-70 mb-1">
                       {m.autorTipo === "ia" ? "🤖 IA" : m.autorNome}

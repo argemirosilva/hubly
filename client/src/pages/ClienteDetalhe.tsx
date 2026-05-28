@@ -34,7 +34,7 @@ const statusColor: Record<string, string> = {
   concluido: "bg-emerald-100 text-emerald-700",
   cancelado: "bg-red-100 text-red-700",
   faltou: "bg-amber-100 text-amber-700",
-  agendado: "bg-blue-100 text-blue-700",
+  agendado: "bg-amber-100 text-blue-700",
   confirmado: "bg-emerald-100 text-emerald-700",
   remarcado: "bg-purple-100 text-purple-700",
 };
@@ -443,7 +443,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "Total gasto", value: formatCurrency(c.totalGasto), icon: DollarSign, color: "text-emerald-600" },
-                { label: "Atendimentos", value: c.totalAtendimentos ?? 0, icon: Scissors, color: "text-blue-600" },
+                { label: "Atendimentos", value: c.totalAtendimentos ?? 0, icon: Scissors, color: "text-amber-700" },
                 { label: "Saldo sessões", value: c.saldoSessoes ?? 0, icon: Calendar, color: "text-purple-600" },
                 { label: "Crédito", value: formatCurrency(saldoCredito), icon: Wallet, color: saldoCredito > 0 ? "text-green-600" : "text-muted-foreground" },
               ].map(stat => {
@@ -558,7 +558,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                   +{(ag as any).minutosAtraso}min
                                 </span>
                               )}
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[ag.status] ?? "bg-gray-100 text-gray-600"}`}>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[ag.status] ?? "bg-stone-100 text-gray-600"}`}>
                                 {ag.status}
                               </span>
                               <span className="text-sm font-semibold">
@@ -596,10 +596,10 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
 
                       const statusBadge = {
                         ativo: "bg-emerald-100 text-emerald-700",
-                        concluido: "bg-slate-100 text-slate-600",
+                        concluido: "bg-stone-100 text-slate-600",
                         cancelado: "bg-red-100 text-red-600",
                         vencido: "bg-amber-100 text-amber-700",
-                      }[(pacote.status ?? "ativo") as string] ?? "bg-slate-100 text-slate-600";
+                      }[(pacote.status ?? "ativo") as string] ?? "bg-stone-100 text-slate-600";
 
                       const StatusIcon = pacote.status === "ativo"
                         ? CheckCircle2
@@ -668,7 +668,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                         )}
                                       </div>
                                     </div>
-                                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
                                       <div
                                         className="h-full rounded-full transition-all duration-500"
                                         style={{ width: `${pct}%`, background: cor }}
@@ -725,7 +725,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                     })),
                                   });
                                 }}
-                                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                                className="flex items-center gap-1.5 text-xs text-amber-700 hover:text-blue-800 font-medium transition-colors"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                                 Editar pacote
@@ -761,7 +761,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                 ) : (
                                   <div className="space-y-1.5">
                                     {historicoSessoes.map((s: any, i: number) => (
-                                      <div key={i} className="flex items-center justify-between bg-slate-50 rounded-md px-3 py-2">
+                                      <div key={i} className="flex items-center justify-between bg-stone-50 rounded-md px-3 py-2">
                                         <div>
                                           <p className="text-xs font-medium text-foreground">{s.servicoNome ?? "Serviço"}</p>
                                           <p className="text-xs text-muted-foreground">
@@ -773,7 +773,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                                           s.status === "concluido" ? "bg-emerald-100 text-emerald-700"
                                           : s.status === "cancelado" ? "bg-red-100 text-red-600"
-                                          : "bg-blue-100 text-blue-700"
+                                          : "bg-amber-100 text-blue-700"
                                         }`}>
                                           {s.status ?? "agendado"}
                                         </span>
@@ -997,7 +997,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-blue-600" />
+              <Pencil className="w-4 h-4 text-amber-700" />
               Editar Movimentação de Crédito
             </DialogTitle>
           </DialogHeader>
@@ -1169,7 +1169,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-blue-600" />
+              <Pencil className="w-4 h-4 text-amber-700" />
               Editar Pacote
             </DialogTitle>
           </DialogHeader>
@@ -1227,14 +1227,14 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               </div>
             </div>
             {Number(editarPacoteForm.numeroParcelas) > 1 && Number(editarPacoteForm.valorPago) > 0 && (
-              <p className="text-xs text-muted-foreground bg-blue-50 rounded-md px-3 py-2">
+              <p className="text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-2">
                 Valor por parcela: <strong>{formatCurrency(Number(editarPacoteForm.valorPago) / Number(editarPacoteForm.numeroParcelas))}</strong>
               </p>
             )}
             <div className="space-y-2">
               <Label>Itens do pacote</Label>
               {editarPacoteForm.itens.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-slate-50 rounded-md px-3 py-2">
+                <div key={idx} className="flex items-center gap-2 bg-stone-50 rounded-md px-3 py-2">
                   <span className="text-sm flex-1">{item.servicoNome}</span>
                   <div className="flex items-center gap-1">
                     <button
@@ -1243,7 +1243,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         ...f,
                         itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: Math.max(it.sessoesUsadas + 1, it.quantidade - 1) } : it)
                       }))}
-                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                      className="w-6 h-6 rounded bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-sm font-bold"
                     >-</button>
                     <span className="w-8 text-center text-sm font-medium">{item.quantidade}</span>
                     <button
@@ -1252,7 +1252,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                         ...f,
                         itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: it.quantidade + 1 } : it)
                       }))}
-                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                      className="w-6 h-6 rounded bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-sm font-bold"
                     >+</button>
                   </div>
                   <span className="text-xs text-muted-foreground">{item.sessoesUsadas} usadas</span>
@@ -1294,7 +1294,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPacoteEditarId(null)}>Cancelar</Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-amber-700 hover:bg-amber-800 text-white"
               disabled={!editarPacoteForm.nome || editarPacoteMutation.isPending}
               onClick={() => {
                 if (!pacoteEditarId) return;
@@ -1487,7 +1487,7 @@ function ClienteScoreCard({ agendamentos, cliente }: { agendamentos: any[]; clie
                   <span className="text-[11px] text-muted-foreground">{f.nome}</span>
                   <span className="text-[11px] font-medium tabular-nums">{f.pts}/{f.max}</span>
                 </div>
-                <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${(f.pts / f.max) * 100}%`, background: color }} />
                 </div>

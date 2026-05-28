@@ -386,7 +386,7 @@ export default function ModalAbrirPacote({
                           idx === i ? { ...it, quantidadeTotal: Math.max(1, it.quantidadeTotal - 1) } : it
                         ))
                       }
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold"
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold"
                     >
                       −
                     </button>
@@ -397,7 +397,7 @@ export default function ModalAbrirPacote({
                           idx === i ? { ...it, quantidadeTotal: it.quantidadeTotal + 1 } : it
                         ))
                       }
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold"
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold"
                     >
                       +
                     </button>

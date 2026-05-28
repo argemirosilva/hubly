@@ -154,7 +154,7 @@ export default function Onboarding() {
               return (
                 <div key={s.id} className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                    isDone ? "bg-green-500" : isActive ? "bg-blue-500" : "bg-white/10"
+                    isDone ? "bg-green-500" : isActive ? "bg-amber-500" : "bg-white/10"
                   }`}>
                     {isDone ? (
                       <CheckCircle2 className="w-4 h-4 text-white" />
@@ -194,7 +194,7 @@ export default function Onboarding() {
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
             </div>
           </div>
 
@@ -231,8 +231,8 @@ export default function Onboarding() {
                           onClick={() => setTipoNegocio(tipo.value)}
                           className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
                             selected
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
-                              : "border-border hover:border-blue-300 hover:bg-muted/50"
+                              ? "border-amber-500 bg-amber-50 text-amber-800"
+                              : "border-border hover:border-amber-300 hover:bg-muted/50"
                           }`}
                         >
                           <Icon className="w-5 h-5" style={{ color: selected ? tipo.color : undefined }} />
@@ -286,8 +286,8 @@ export default function Onboarding() {
                         onClick={() => toggleDia(dia.value)}
                         className={`w-12 h-12 rounded-xl text-sm font-semibold border-2 transition-all ${
                           diasFuncionamento.includes(dia.value)
-                            ? "border-blue-500 bg-blue-500 text-white"
-                            : "border-border hover:border-blue-300 text-muted-foreground"
+                            ? "border-amber-500 bg-amber-500 text-white"
+                            : "border-border hover:border-amber-300 text-muted-foreground"
                         }`}
                       >
                         {dia.label}
@@ -306,8 +306,8 @@ export default function Onboarding() {
                         onClick={() => setIntervalo(min)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
                           intervalo === min
-                            ? "border-blue-500 bg-blue-500 text-white"
-                            : "border-border hover:border-blue-300"
+                            ? "border-amber-500 bg-amber-500 text-white"
+                            : "border-border hover:border-amber-300"
                         }`}
                       >
                         {min}min
@@ -381,7 +381,7 @@ export default function Onboarding() {
                           onClick={() => setDuracaoServico(min)}
                           className={`px-3 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
                             duracaoServico === min
-                              ? "border-blue-500 bg-blue-500 text-white"
+                              ? "border-blue-500 bg-amber-500 text-white"
                               : "border-border hover:border-blue-300"
                           }`}
                         >
@@ -421,7 +421,7 @@ export default function Onboarding() {
 
               <div className="bg-muted/50 rounded-2xl p-5 text-left space-y-3">
                 <div className="flex items-center gap-3">
-                  <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <Building2 className="w-4 h-4 text-amber-600 flex-shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Negócio</p>
                     <p className="text-sm font-semibold">{nomeEmpresa} · {TIPOS_NEGOCIO.find(t => t.value === tipoNegocio)?.label}</p>

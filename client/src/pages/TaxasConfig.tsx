@@ -117,10 +117,10 @@ export default function TaxasConfig() {
               <CardContent className="p-0">
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                       {taxa.tipo === "percentual"
-                        ? <Percent className="w-4 h-4 text-blue-600" />
-                        : <DollarSign className="w-4 h-4 text-blue-600" />
+                        ? <Percent className="w-4 h-4 text-amber-700" />
+                        : <DollarSign className="w-4 h-4 text-amber-700" />
                       }
                     </div>
                     <div>

@@ -58,7 +58,7 @@ const statusConfig = {
   pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
   pago: { label: "Pago", color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle2 },
   vencido: { label: "Vencido", color: "bg-red-100 text-red-800 border-red-200", icon: AlertTriangle },
-  cancelado: { label: "Cancelado", color: "bg-gray-100 text-gray-600 border-gray-200", icon: X },
+  cancelado: { label: "Cancelado", color: "bg-stone-100 text-gray-600 border-gray-200", icon: X },
 };
 
 const ICONES_CATEGORIAS = [
@@ -647,10 +647,10 @@ export default function ContasPagar() {
             <p className="text-sm font-bold text-green-700">{formatCurrency(metricas?.totalPagoMes ?? 0)}</p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-sm bg-blue-50">
+        <Card className="border-0 shadow-sm bg-amber-50">
           <CardContent className="p-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <Calendar className="w-3 h-3 text-blue-600" />
+              <Calendar className="w-3 h-3 text-amber-700" />
               <span className="text-[10px] font-medium text-blue-700">Total do Mês</span>
             </div>
             <p className="text-sm font-bold text-blue-700">{formatCurrency(metricas?.totalMes ?? 0)}</p>

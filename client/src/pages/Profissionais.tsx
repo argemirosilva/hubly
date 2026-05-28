@@ -176,7 +176,7 @@ export default function Profissionais() {
                   <p className="text-sm font-semibold text-foreground">{p.nome}</p>
                   <p className="text-xs text-muted-foreground">{p.especialidade ?? "Profissional"}</p>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${p.ativo ? "bg-emerald-500" : "bg-gray-300"}`} />
+                <div className={`w-2 h-2 rounded-full ${p.ativo ? "bg-emerald-500" : "bg-stone-300"}`} />
               </div>
               <Button
                 variant="outline"

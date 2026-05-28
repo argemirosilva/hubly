@@ -52,7 +52,7 @@ export function PlanLimitAlert() {
           </div>
           <button
             onClick={() => setDismissed(true)}
-            className="flex-shrink-0 p-1 hover:bg-gray-100 rounded-md transition-colors"
+            className="flex-shrink-0 p-1 hover:bg-stone-100 rounded-md transition-colors"
           >
             <X className="w-4 h-4" style={{ color: "oklch(40% 0.050 55)" }} />
           </button>

@@ -161,7 +161,7 @@ function RelatorioPacotes() {
             <p className="font-semibold text-amber-800 text-sm">Pacotes que precisam de atenção</p>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-stone-50">
               <tr>
                 <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Cliente</th>
                 <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Pacote</th>
@@ -174,7 +174,7 @@ function RelatorioPacotes() {
                 const venc = p.dataVencimento ? new Date(p.dataVencimento) : null;
                 const vencido = venc && venc < new Date();
                 return (
-                  <tr key={p.id} className="hover:bg-slate-50">
+                  <tr key={p.id} className="hover:bg-stone-50">
                     <td className="px-4 py-2.5 font-medium text-slate-700">{p.clienteNome ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-600">{p.nome}</td>
                     <td className="px-4 py-2.5 text-slate-500">{venc ? venc.toLocaleDateString("pt-BR") : "—"}</td>
@@ -208,7 +208,7 @@ function ProgressBar({ used, total, color }: { used: number; total: number; colo
           {remaining} restantes
         </span>
       </div>
-      <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+      <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: pct >= 100 ? "#ef4444" : pct >= 75 ? "#f59e0b" : color }}
@@ -221,11 +221,11 @@ function ProgressBar({ used, total, color }: { used: number; total: number; colo
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
     ativo: { label: "Ativo", color: "bg-green-100 text-green-700" },
-    concluido: { label: "Concluído", color: "bg-blue-100 text-blue-700" },
+    concluido: { label: "Concluído", color: "bg-amber-100 text-blue-700" },
     vencido: { label: "Vencido", color: "bg-orange-100 text-orange-700" },
     cancelado: { label: "Cancelado", color: "bg-red-100 text-red-700" },
   };
-  const s = map[status] ?? { label: status, color: "bg-slate-100 text-slate-600" };
+  const s = map[status] ?? { label: status, color: "bg-stone-100 text-slate-600" };
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.color}`}>{s.label}</span>;
 }
 
@@ -344,10 +344,10 @@ function ModalModelo({
                   </Select>
                   <div className="flex items-center gap-1">
                     <button onClick={() => updateItem(i, "quantidade", Math.max(1, item.quantidade - 1))}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold">−</button>
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold">−</button>
                     <span className="w-6 text-center text-sm font-semibold">{item.quantidade}</span>
                     <button onClick={() => updateItem(i, "quantidade", item.quantidade + 1)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold">+</button>
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold">+</button>
                   </div>
                   {itens.length > 1 && (
                     <button onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600">
@@ -631,10 +631,10 @@ function ModalAbrirPacote({
                   </Select>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setItens(itens.map((it, idx) => idx === i ? { ...it, quantidadeTotal: Math.max(1, it.quantidadeTotal - 1) } : it))}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold">−</button>
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold">−</button>
                     <span className="w-6 text-center text-sm font-semibold">{item.quantidadeTotal}</span>
                     <button onClick={() => setItens(itens.map((it, idx) => idx === i ? { ...it, quantidadeTotal: it.quantidadeTotal + 1 } : it))}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-sm font-bold">+</button>
+                      className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-sm font-bold">+</button>
                   </div>
                   {itens.length > 1 && (
                     <button onClick={() => setItens(itens.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">
@@ -678,7 +678,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -735,7 +735,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
               </button>
             )}
             {pacote.status === "ativo" && onEditar && (
-              <button onClick={() => onEditar(pacote)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 font-medium">
+              <button onClick={() => onEditar(pacote)} className="text-amber-600 hover:text-blue-700 flex items-center gap-1 font-medium">
                 <Pencil className="w-3 h-3" /> Editar
               </button>
             )}
@@ -747,7 +747,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
           </div>
           {/* Parcelamento */}
           {pacote.numeroParcelas > 1 && (
-            <div className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+            <div className="text-xs text-slate-500 bg-stone-50 rounded-lg px-3 py-2">
               💳 {pacote.numeroParcelas}x de {pacote.valorParcela ? `R$ ${parseFloat(pacote.valorParcela).toFixed(2).replace('.', ',')}` : formatCurrency(parseFloat(pacote.valorPago) / pacote.numeroParcelas)}
               {pacote.formaPagamento && ` · ${pacote.formaPagamento}`}
             </div>
@@ -923,7 +923,7 @@ export default function Pacotes() {
                   className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                     filtroStatus === s
                       ? "bg-violet-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      : "bg-stone-100 text-slate-600 hover:bg-stone-200"
                   }`}
                 >
                   {s === "ativo" ? "Ativos" : s === "concluido" ? "Concluídos" : s === "vencido" ? "Vencidos" : s === "cancelado" ? "Cancelados" : "Todos"}
@@ -1025,7 +1025,7 @@ export default function Pacotes() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => { setEditandoModelo(m); setModalModelo(true); }}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                          className="p-1.5 rounded-lg hover:bg-stone-100 text-slate-400 hover:text-slate-600"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -1082,7 +1082,7 @@ export default function Pacotes() {
                 {mostrarOcultos && (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {modelosOcultos.map(m => (
-                      <div key={m.id} className="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-4 space-y-3 opacity-70">
+                      <div key={m.id} className="bg-stone-50 rounded-xl border border-dashed border-slate-200 p-4 space-y-3 opacity-70">
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold text-slate-600 line-through">{m.nome}</p>
@@ -1223,7 +1223,7 @@ export default function Pacotes() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-blue-600" />
+              <Pencil className="w-4 h-4 text-amber-700" />
               Editar Pacote
             </DialogTitle>
           </DialogHeader>
@@ -1281,14 +1281,14 @@ export default function Pacotes() {
               </div>
             </div>
             {Number(editarPacoteForm.numeroParcelas) > 1 && Number(editarPacoteForm.valorPago) > 0 && (
-              <p className="text-xs text-muted-foreground bg-blue-50 rounded-md px-3 py-2">
+              <p className="text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-2">
                 Valor por parcela: <strong>{formatCurrency(Number(editarPacoteForm.valorPago) / Number(editarPacoteForm.numeroParcelas))}</strong>
               </p>
             )}
             <div className="space-y-2">
               <Label>Itens do pacote</Label>
               {editarPacoteForm.itens.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-slate-50 rounded-md px-3 py-2">
+                <div key={idx} className="flex items-center gap-2 bg-stone-50 rounded-md px-3 py-2">
                   <span className="text-sm flex-1">{item.servicoNome}</span>
                   <div className="flex items-center gap-1">
                     <button
@@ -1297,7 +1297,7 @@ export default function Pacotes() {
                         ...f,
                         itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: Math.max(it.sessoesUsadas + 1, it.quantidade - 1) } : it)
                       }))}
-                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                      className="w-6 h-6 rounded bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-sm font-bold"
                     >-</button>
                     <span className="w-8 text-center text-sm font-medium">{item.quantidade}</span>
                     <button
@@ -1306,7 +1306,7 @@ export default function Pacotes() {
                         ...f,
                         itens: f.itens.map((it, i) => i === idx ? { ...it, quantidade: it.quantidade + 1 } : it)
                       }))}
-                      className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-sm font-bold"
+                      className="w-6 h-6 rounded bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-sm font-bold"
                     >+</button>
                   </div>
                   <span className="text-xs text-muted-foreground">{item.sessoesUsadas} usadas</span>
@@ -1326,7 +1326,7 @@ export default function Pacotes() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPacoteEditarId(null)}>Cancelar</Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-amber-700 hover:bg-amber-800 text-white"
               disabled={!editarPacoteForm.nome || editarPacoteMutation.isPending}
               onClick={() => {
                 if (!pacoteEditarId) return;

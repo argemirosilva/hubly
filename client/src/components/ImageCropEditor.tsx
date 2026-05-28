@@ -130,7 +130,7 @@ export function ImageCropEditor({ imageSrc, aspect = 1, title = "Editar imagem",
             <span className="text-xs text-slate-500 w-10 text-right">{rotation}°</span>
             <button
               onClick={() => setRotation(r => (r + 90) % 360)}
-              className="text-xs px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-600 flex-shrink-0"
+              className="text-xs px-2 py-1 rounded border border-slate-200 hover:bg-stone-50 text-slate-600 flex-shrink-0"
             >
               +90°
             </button>

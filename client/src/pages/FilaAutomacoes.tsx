@@ -42,7 +42,7 @@ function MessageStatusIcon({ messageStatus }: { messageStatus?: string | null })
     return <span className="text-muted-foreground text-[11px] font-semibold" title="Entregue">✓✓</span>;
   }
   if (messageStatus === "read") {
-    return <span className="text-blue-500 text-[11px] font-bold" title="Lido">✓✓</span>;
+    return <span className="text-amber-600 text-[11px] font-bold" title="Lido">✓✓</span>;
   }
   if (messageStatus === "failed") {
     return <span className="text-red-500 text-[11px]" title="Falhou">✕</span>;
@@ -54,12 +54,12 @@ function StatusBadge({ status, tempoRestante, messageStatus, canal }: { status: 
   if (status === "agendado") {
     return (
       <div className="flex flex-col items-end gap-0.5">
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+        <Badge variant="outline" className="bg-amber-50 text-blue-700 border-blue-200 text-xs">
           <CalendarCheck className="w-3 h-3 mr-1" />
           Agendado
         </Badge>
         {tempoRestante && (
-          <span className="text-xs text-blue-600 font-medium">{tempoRestante}</span>
+          <span className="text-xs text-amber-700 font-medium">{tempoRestante}</span>
         )}
       </div>
     );
@@ -249,8 +249,8 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
                   onClick={() => onReagendar(row.id, parseInt(delayHoras))}
                   disabled={reagendarLoading || reenviarLoading}
                 >
-                  <CalendarCheck className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-600">{reagendarLoading ? "Reagendando..." : "Reagendar"}</span>
+                  <CalendarCheck className="w-4 h-4 text-amber-600" />
+                  <span className="text-amber-700">{reagendarLoading ? "Reagendando..." : "Reagendar"}</span>
                 </Button>
               </div>
             </div>
@@ -270,7 +270,7 @@ function DetalheModal({ row, open, onClose, onReenviar, reenviarLoading, onCance
           {/* Botão limpar — apenas para enviados */}
           {row.status === "enviado" && (
             <Button
-              className="w-full gap-2 border-gray-200 hover:bg-gray-50"
+              className="w-full gap-2 border-gray-200 hover:bg-stone-50"
               variant="outline"
               onClick={() => onLimpar(row.id)}
               disabled={limparLoading}
@@ -547,13 +547,13 @@ export default function FilaAutomacoes() {
 
       {/* Painel de política de envios anti-spam */}
       {showRateConfig && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-4">
+        <div className="rounded-xl border border-blue-200 bg-amber-50 p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-blue-600" />
+              <ShieldAlert className="w-4 h-4 text-amber-700" />
               <span className="text-sm font-semibold text-blue-800">Política Anti-Spam de Envios</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => { setShowRateConfig(false); setLocalDelay(null); setLocalPorCiclo(null); }} className="h-7 w-7 p-0 text-blue-600">
+            <Button variant="ghost" size="sm" onClick={() => { setShowRateConfig(false); setLocalDelay(null); setLocalPorCiclo(null); }} className="h-7 w-7 p-0 text-amber-700">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -562,7 +562,7 @@ export default function FilaAutomacoes() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-blue-800">Intervalo entre mensagens</label>
-                <span className="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{delayAtual}s</span>
+                <span className="text-sm font-bold text-blue-700 bg-amber-100 px-2 py-0.5 rounded-full">{delayAtual}s</span>
               </div>
               <Slider
                 min={5} max={120} step={5}
@@ -570,7 +570,7 @@ export default function FilaAutomacoes() {
                 onValueChange={([v]) => setLocalDelay(v)}
                 className="w-full"
               />
-              <div className="flex justify-between text-[10px] text-blue-500">
+              <div className="flex justify-between text-[10px] text-amber-600">
                 <span>5s (rápido)</span>
                 <span>30s (seguro)</span>
                 <span>120s (muito lento)</span>
@@ -579,7 +579,7 @@ export default function FilaAutomacoes() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-blue-800">Máx. mensagens por minuto</label>
-                <span className="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{porCicloAtual}/min</span>
+                <span className="text-sm font-bold text-blue-700 bg-amber-100 px-2 py-0.5 rounded-full">{porCicloAtual}/min</span>
               </div>
               <Slider
                 min={1} max={50} step={1}
@@ -587,7 +587,7 @@ export default function FilaAutomacoes() {
                 onValueChange={([v]) => setLocalPorCiclo(v)}
                 className="w-full"
               />
-              <div className="flex justify-between text-[10px] text-blue-500">
+              <div className="flex justify-between text-[10px] text-amber-600">
                 <span>1 (muito lento)</span>
                 <span>10 (seguro)</span>
                 <span>50 (arriscado)</span>
@@ -599,12 +599,12 @@ export default function FilaAutomacoes() {
               size="sm"
               onClick={() => updateRateLimitMutation.mutate({ envioDelaySegundos: delayAtual, envioPorCiclo: porCicloAtual })}
               disabled={updateRateLimitMutation.isPending}
-              className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700"
+              className="gap-1.5 text-xs bg-amber-700 hover:bg-amber-800"
             >
               <Settings2 className="w-3.5 h-3.5" />
               Salvar política
             </Button>
-            <span className="text-xs text-blue-600">
+            <span className="text-xs text-amber-700">
               Com essas configurações, 150 mensagens levarão ~{Math.ceil(150 / porCicloAtual)} minutos para enviar.
             </span>
           </div>
@@ -660,10 +660,10 @@ export default function FilaAutomacoes() {
       <div className="grid grid-cols-4 gap-3">
         <button
           onClick={() => setStatus(status === "agendado" ? "todos" : "agendado")}
-          className={`rounded-xl border p-3 text-left transition-all ${status === "agendado" ? "border-blue-400 bg-blue-50" : "bg-card hover:bg-muted/50"}`}
+          className={`rounded-xl border p-3 text-left transition-all ${status === "agendado" ? "border-blue-400 bg-amber-50" : "bg-card hover:bg-muted/50"}`}
         >
           <p className="text-xs text-muted-foreground">Agendados</p>
-          <p className="text-2xl font-bold text-blue-600">{agendados}</p>
+          <p className="text-2xl font-bold text-amber-700">{agendados}</p>
         </button>
         <button
           onClick={() => setStatus(status === "pendente" ? "todos" : "pendente")}

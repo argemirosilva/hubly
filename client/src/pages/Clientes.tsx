@@ -380,7 +380,7 @@ export default function Clientes() {
                       <>
                         <button
                           onClick={e => { e.preventDefault(); abrirEditar(c); }}
-                          className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-700 transition-colors"
                           title="Editar cliente"
                         >
                           <Pencil className="w-3.5 h-3.5" />

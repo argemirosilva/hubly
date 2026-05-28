@@ -405,7 +405,7 @@ export default function Servicos() {
                             </span>
                             <div className="flex items-center gap-0.5">
                               <span className={`text-[9px] font-medium px-1 py-0.5 rounded-full leading-none ${
-                                s.ativo ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+                                s.ativo ? "bg-emerald-50 text-emerald-600" : "bg-stone-100 text-gray-400"
                               }`}>
                                 {s.ativo ? "Ativo" : "Inativo"}
                               </span>

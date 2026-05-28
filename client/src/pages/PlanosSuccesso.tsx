@@ -24,7 +24,7 @@ function getPlanConfig(planType: string) {
     case "SOLO":
       return {
         gradient: "from-blue-500 to-blue-600",
-        lightBg: "bg-blue-50",
+        lightBg: "bg-amber-50",
         lightText: "text-blue-700",
         lightBorder: "border-blue-200",
         icon: Gem,
@@ -71,7 +71,7 @@ function getPlanConfig(planType: string) {
     default:
       return {
         gradient: "from-slate-400 to-slate-500",
-        lightBg: "bg-slate-50",
+        lightBg: "bg-stone-50",
         lightText: "text-slate-700",
         lightBorder: "border-slate-200",
         icon: Gem,
@@ -244,7 +244,7 @@ export default function PlanosSuccesso() {
                 {planConfig.features.map((feature, i) => {
                   const FeatureIcon = feature.icon;
                   return (
-                    <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50">
+                    <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-stone-50">
                       <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                         <FeatureIcon className="w-3.5 h-3.5 text-emerald-600" />
                       </div>
@@ -292,7 +292,7 @@ export default function PlanosSuccesso() {
               const StepIcon = step.icon;
               return (
                 <Link key={step.href} href={step.href}>
-                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
+                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors cursor-pointer group">
                     <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
                       <StepIcon className="w-4 h-4 text-violet-600" />
                     </div>

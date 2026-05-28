@@ -317,7 +317,7 @@ function PainelPrevisao() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground">Agendamentos Futuros</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">{fmt(data.receitaPrevista)}</p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{fmt(data.receitaPrevista)}</p>
             <p className="text-xs text-muted-foreground mt-1">{data.agendamentosFuturos} agendamentos</p>
           </CardContent>
         </Card>
@@ -356,7 +356,7 @@ function PainelPrevisao() {
               <span>{fmt(data.mediaMensal3Meses)}</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-blue-400 rounded-full" style={{ width: `${Math.min(100, Math.round((data.mediaMensal3Meses / Math.max(data.projecaoMes, 1)) * 100))}%` }} />
+              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(100, Math.round((data.mediaMensal3Meses / Math.max(data.projecaoMes, 1)) * 100))}%` }} />
             </div>
           </div>
         </CardContent>

@@ -478,14 +478,14 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
         <div className="border-t px-5 py-3.5 flex-shrink-0" style={{ background: "oklch(96.2% 0.012 75)" }}>
           {/* Banner de confirmação — visível apenas para pré-agendamentos */}
           {ag.status === "pre_agendado" && (
-            <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 flex items-center justify-between gap-3">
+            <div className="mb-3 rounded-xl border border-blue-200 bg-amber-50 px-3.5 py-2.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <p className="text-xs text-blue-700 font-medium">Pré-agendamento pendente de confirmação</p>
               </div>
               <Button
                 size="sm"
-                className="h-8 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                className="h-8 text-xs gap-1.5 bg-amber-700 hover:bg-amber-800 text-white flex-shrink-0"
                 onClick={handleConfirmar}
                 disabled={confirmarMutation.isPending}
               >

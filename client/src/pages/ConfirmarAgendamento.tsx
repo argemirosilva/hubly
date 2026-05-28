@@ -114,7 +114,7 @@ export default function ConfirmarAgendamento() {
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-slate-500">
@@ -130,7 +130,7 @@ export default function ConfirmarAgendamento() {
   // ── Erro / token inválido ──────────────────────────────────────────────────
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
           <ResultCard
@@ -163,19 +163,19 @@ export default function ConfirmarAgendamento() {
         icon: <XCircle className="w-14 h-14 text-slate-400" />,
         title: "Agendamento Cancelado",
         description: "Seu agendamento foi cancelado. Se quiser reagendar, entre em contato conosco.",
-        color: "text-slate-700", bgColor: "bg-slate-50", borderColor: "border-slate-200",
+        color: "text-slate-700", bgColor: "bg-stone-50", borderColor: "border-slate-200",
       },
       ja_confirmado: {
-        icon: <CheckCircle className="w-14 h-14 text-blue-500" />,
+        icon: <CheckCircle className="w-14 h-14 text-amber-600" />,
         title: "Já Confirmado",
         description: "Este agendamento já foi confirmado anteriormente. Tudo certo, até breve!",
-        color: "text-blue-700", bgColor: "bg-blue-50", borderColor: "border-blue-200",
+        color: "text-blue-700", bgColor: "bg-amber-50", borderColor: "border-blue-200",
       },
       ja_cancelado: {
         icon: <XCircle className="w-14 h-14 text-slate-400" />,
         title: "Já Cancelado",
         description: "Este agendamento já estava cancelado.",
-        color: "text-slate-700", bgColor: "bg-slate-50", borderColor: "border-slate-200",
+        color: "text-slate-700", bgColor: "bg-stone-50", borderColor: "border-slate-200",
       },
       expirado: {
         icon: <Clock className="w-14 h-14 text-amber-500" />,
@@ -192,7 +192,7 @@ export default function ConfirmarAgendamento() {
     };
     const cfg = configs[resultado] ?? configs.erro;
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
           <ResultCard {...cfg} empresa={empresa} />
@@ -205,14 +205,14 @@ export default function ConfirmarAgendamento() {
   // ── Status já definido (sem ação do usuário) ───────────────────────────────
   if (data.status === "ja_confirmado") {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
           <ResultCard
-            icon={<CheckCircle className="w-14 h-14 text-blue-500" />}
+            icon={<CheckCircle className="w-14 h-14 text-amber-600" />}
             title="Já Confirmado"
             description="Este agendamento já foi confirmado anteriormente. Tudo certo, até breve!"
-            color="text-blue-700" bgColor="bg-blue-50" borderColor="border-blue-200"
+            color="text-blue-700" bgColor="bg-amber-50" borderColor="border-blue-200"
             empresa={empresa}
             extra={data.usadoEm ? `Confirmado em ${new Date(data.usadoEm).toLocaleString("pt-BR")}` : undefined}
           />
@@ -224,7 +224,7 @@ export default function ConfirmarAgendamento() {
 
   if (data.status === "expirado") {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
           <ResultCard
@@ -242,14 +242,14 @@ export default function ConfirmarAgendamento() {
 
   if (data.status === "cancelado") {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
           <ResultCard
             icon={<XCircle className="w-14 h-14 text-slate-400" />}
             title="Agendamento Cancelado"
             description="Este agendamento foi cancelado. Entre em contato para reagendar."
-            color="text-slate-700" bgColor="bg-slate-50" borderColor="border-slate-200"
+            color="text-slate-700" bgColor="bg-stone-50" borderColor="border-slate-200"
             empresa={empresa}
           />
         </div>
@@ -269,7 +269,7 @@ export default function ConfirmarAgendamento() {
   const temValor = !isNaN(valorBrutoNum) && valorBrutoNum > 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-stone-50">
       <Header />
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 py-8">
@@ -444,7 +444,7 @@ function ResultCard({
         )}
         <button
           onClick={() => window.close()}
-          className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 text-sm font-medium hover:bg-slate-50 transition-colors"
+          className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 text-sm font-medium hover:bg-stone-50 transition-colors"
         >
           Fechar
         </button>

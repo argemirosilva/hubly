@@ -32,7 +32,7 @@ function getStatusConfig(status: string | null | undefined) {
     case "active":
       return { label: "Ativa", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2, dot: "bg-emerald-500" };
     case "trialing":
-      return { label: "Trial", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Clock, dot: "bg-blue-500" };
+      return { label: "Trial", color: "bg-amber-100 text-blue-700 border-blue-200", icon: Clock, dot: "bg-amber-500" };
     case "past_due":
       return { label: "Pagamento pendente", color: "bg-amber-100 text-amber-700 border-amber-200", icon: AlertTriangle, dot: "bg-amber-500" };
     case "canceled":
@@ -40,7 +40,7 @@ function getStatusConfig(status: string | null | undefined) {
     case "unpaid":
       return { label: "Inadimplente", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle, dot: "bg-red-500" };
     default:
-      return { label: "Plano Free", color: "bg-slate-100 text-slate-600 border-slate-200", icon: Shield, dot: "bg-slate-400" };
+      return { label: "Plano Free", color: "bg-stone-100 text-slate-600 border-slate-200", icon: Shield, dot: "bg-slate-400" };
   }
 }
 
@@ -51,11 +51,11 @@ function getInvoiceStatusConfig(status: string | null | undefined) {
     case "open":
       return { label: "Em aberto", color: "bg-amber-100 text-amber-700" };
     case "void":
-      return { label: "Cancelada", color: "bg-slate-100 text-slate-500" };
+      return { label: "Cancelada", color: "bg-stone-100 text-slate-500" };
     case "uncollectible":
       return { label: "Inadimplente", color: "bg-red-100 text-red-700" };
     default:
-      return { label: status ?? "—", color: "bg-slate-100 text-slate-500" };
+      return { label: status ?? "—", color: "bg-stone-100 text-slate-500" };
   }
 }
 
@@ -208,7 +208,7 @@ export default function Assinatura() {
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-36 rounded-2xl bg-slate-100 animate-pulse" />
+            <div key={i} className="h-36 rounded-2xl bg-stone-100 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -297,7 +297,7 @@ export default function Assinatura() {
                     </p>
                   )}
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-slate-400" />
                 </div>
               </div>
@@ -400,7 +400,7 @@ export default function Assinatura() {
                   <span className="text-xs font-mono text-slate-400">{subDetails.stripeSubId}</span>
                 </div>
               </div>
-              <div className="px-5 py-4 bg-slate-50 flex gap-2 flex-wrap">
+              <div className="px-5 py-4 bg-stone-50 flex gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -447,7 +447,7 @@ export default function Assinatura() {
               <div className="p-8 text-center text-slate-400 text-sm">Carregando faturas...</div>
             ) : !invoices || invoices.length === 0 ? (
               <div className="p-10 text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center mx-auto">
                   <FileText className="w-6 h-6 text-slate-300" />
                 </div>
                 <p className="text-slate-500 font-medium text-sm">Nenhuma fatura encontrada</p>
@@ -462,8 +462,8 @@ export default function Assinatura() {
                 {invoices.map((inv) => {
                   const invStatus = getInvoiceStatusConfig(inv.status);
                   return (
-                    <div key={inv.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                    <div key={inv.id} className="px-5 py-4 flex items-center gap-4 hover:bg-stone-50 transition-colors">
+                      <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4 text-slate-400" />
                       </div>
                       <div className="flex-1 min-w-0">

@@ -187,7 +187,7 @@ export default function PoliticaPrivacidade() {
               Em caso de dúvidas sobre esta Política de Privacidade ou sobre o tratamento dos seus dados, entre em
               contato com nosso Encarregado de Proteção de Dados (DPO):
             </p>
-            <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm space-y-1">
+            <div className="mt-3 rounded-xl border border-gray-100 bg-stone-50 p-4 text-sm space-y-1">
               <p><strong>Orizontech</strong></p>
               <p>E-mail: <a href="mailto:privacidade@orizontech.com.br" className="text-[#1a1a2e] underline">privacidade@orizontech.com.br</a></p>
               <p>Site: <a href="https://hubly.orizontech.com.br" className="text-[#1a1a2e] underline" target="_blank" rel="noopener noreferrer">hubly.orizontech.com.br</a></p>

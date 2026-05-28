@@ -41,7 +41,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
   recebido: { label: "Recebido", color: "bg-green-100 text-green-800 border-green-200" },
   vencido: { label: "Vencido", color: "bg-red-100 text-red-800 border-red-200" },
-  cancelado: { label: "Cancelado", color: "bg-gray-100 text-gray-600 border-gray-200" },
+  cancelado: { label: "Cancelado", color: "bg-stone-100 text-gray-600 border-gray-200" },
 };
 
 const ORIGEM_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -609,10 +609,10 @@ export default function ContasReceber() {
         <Card>
           <CardContent className="p-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <TrendingUp className="w-3 h-3 text-blue-500" />
+              <TrendingUp className="w-3 h-3 text-amber-600" />
               <span className="text-[10px] text-muted-foreground">Próx. 7 dias</span>
             </div>
-            <p className="text-sm font-bold text-blue-600">{fmt(metricas?.totalProximas7 ?? 0)}</p>
+            <p className="text-sm font-bold text-amber-700">{fmt(metricas?.totalProximas7 ?? 0)}</p>
             <p className="text-[10px] text-muted-foreground">{metricas?.quantidadeProximas7 ?? 0} contas</p>
           </CardContent>
         </Card>
@@ -770,7 +770,7 @@ function LinhaContaReceber({
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors ${isVencida ? "border-red-200" : ""}`}>
       {/* Indicador de status */}
-      <div className={`w-1 h-10 rounded-full flex-shrink-0 ${conta.status === "recebido" ? "bg-green-500" : isVencida || conta.status === "vencido" ? "bg-red-500" : conta.status === "cancelado" ? "bg-gray-300" : "bg-yellow-400"}`} />
+      <div className={`w-1 h-10 rounded-full flex-shrink-0 ${conta.status === "recebido" ? "bg-green-500" : isVencida || conta.status === "vencido" ? "bg-red-500" : conta.status === "cancelado" ? "bg-stone-300" : "bg-yellow-400"}`} />
 
       {/* Info principal */}
       <div className="flex-1 min-w-0">

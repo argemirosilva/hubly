@@ -56,11 +56,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  aberto: "bg-blue-100 text-blue-700",
+  aberto: "bg-amber-100 text-blue-700",
   em_atendimento: "bg-yellow-100 text-yellow-700",
   aguardando_cliente: "bg-orange-100 text-orange-700",
   resolvido: "bg-green-100 text-green-700",
-  fechado: "bg-gray-100 text-gray-600",
+  fechado: "bg-stone-100 text-gray-600",
 };
 
 export function SupportChat() {
@@ -234,7 +234,7 @@ export function SupportChat() {
               onClick={() => setTab("chat")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                 tab === "chat"
-                  ? "border-b-2 border-blue-600 text-blue-600"
+                  ? "border-b-2 border-blue-600 text-amber-700"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -244,7 +244,7 @@ export function SupportChat() {
               onClick={() => setTab("chamados")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                 tab === "chamados" || tab === "novo_chamado" || tab === "detalhe_chamado"
-                  ? "border-b-2 border-blue-600 text-blue-600"
+                  ? "border-b-2 border-blue-600 text-amber-700"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -331,7 +331,7 @@ export function SupportChat() {
                   <span className="text-muted-foreground">Problema não resolvido?</span>
                   <button
                     onClick={() => setTab("novo_chamado")}
-                    className="flex items-center gap-1 text-blue-600 font-medium hover:underline"
+                    className="flex items-center gap-1 text-amber-700 font-medium hover:underline"
                   >
                     <TicketPlus size={12} /> Abrir chamado
                   </button>

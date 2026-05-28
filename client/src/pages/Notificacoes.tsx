@@ -355,8 +355,8 @@ export default function Notificacoes() {
             </div>
           )}
           {!push.isSubscribed && !push.isDenied && push.isSupported && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100">
-              <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-blue-100">
+              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700">
                 Ative para receber alertas de novos agendamentos, lembretes e avisos financeiros{isPWA ? " com som" : ". Instale o app como atalho para receber notificações com som"}.
               </p>
@@ -369,7 +369,7 @@ export default function Notificacoes() {
                   size="sm"
                   onClick={push.subscribe}
                   disabled={push.isLoading}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  className="gap-2 bg-amber-700 hover:bg-amber-800"
                 >
                   {push.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
                   Ativar Notificações Push

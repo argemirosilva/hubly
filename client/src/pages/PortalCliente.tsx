@@ -209,7 +209,7 @@ function CalendarioCustom({ corPrimaria, corSecundaria, datasDisponiveis, dispon
       <div className="flex items-center justify-center gap-4 px-4 py-2.5 border-t text-[10px] font-medium" style={{ borderColor: `${corPrimaria}15`, color: "#94a3b8" }}>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: corPrimaria }} /> Disponível</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-300" /> Lotado</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-200" /> Indisponível</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-stone-200" /> Indisponível</span>
       </div>
     </div>
   );
@@ -464,7 +464,7 @@ export default function PortalCliente() {
 
   if (loadingEmpresa) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-stone-50">
         {/* Header skeleton */}
         <div className="w-full h-36 bg-gradient-to-br from-slate-200 to-slate-100 animate-pulse relative">
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-white shadow-md border-2 border-white" />
@@ -472,29 +472,29 @@ export default function PortalCliente() {
         <div className="max-w-lg mx-auto px-4 pt-12 pb-8 space-y-6">
           {/* Nome da empresa */}
           <div className="flex flex-col items-center gap-2">
-            <div className="h-5 w-40 bg-slate-200 animate-pulse rounded" />
-            <div className="h-3 w-56 bg-slate-200 animate-pulse rounded" />
+            <div className="h-5 w-40 bg-stone-200 animate-pulse rounded" />
+            <div className="h-3 w-56 bg-stone-200 animate-pulse rounded" />
           </div>
           {/* Stepper skeleton */}
           <div className="flex items-center justify-center gap-2">
             {[1,2,3,4].map(i => (
               <div key={i} className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-slate-200 animate-pulse" />
-                {i < 4 && <div className="w-6 h-0.5 bg-slate-200 animate-pulse" />}
+                <div className="w-7 h-7 rounded-full bg-stone-200 animate-pulse" />
+                {i < 4 && <div className="w-6 h-0.5 bg-stone-200 animate-pulse" />}
               </div>
             ))}
           </div>
           {/* Serviços skeleton */}
           <div className="space-y-3">
-            <div className="h-4 w-32 bg-slate-200 animate-pulse rounded" />
+            <div className="h-4 w-32 bg-stone-200 animate-pulse rounded" />
             {[1,2,3,4].map(i => (
               <div key={i} className="flex items-center gap-3 p-4 rounded-xl border bg-white">
-                <div className="w-10 h-10 rounded-lg bg-slate-200 animate-pulse" />
+                <div className="w-10 h-10 rounded-lg bg-stone-200 animate-pulse" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-4 w-28 bg-slate-200 animate-pulse rounded" />
-                  <div className="h-3 w-20 bg-slate-200 animate-pulse rounded" />
+                  <div className="h-4 w-28 bg-stone-200 animate-pulse rounded" />
+                  <div className="h-3 w-20 bg-stone-200 animate-pulse rounded" />
                 </div>
-                <div className="h-4 w-14 bg-slate-200 animate-pulse rounded" />
+                <div className="h-4 w-14 bg-stone-200 animate-pulse rounded" />
               </div>
             ))}
           </div>
@@ -505,7 +505,7 @@ export default function PortalCliente() {
 
   if (semIdentificacao || errorEmpresa || !empresa) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 px-4">
         <div className="text-center max-w-sm space-y-4">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
           <h2 className="font-bold text-xl text-slate-800">Portal indisponível</h2>
@@ -524,7 +524,7 @@ export default function PortalCliente() {
   // ── Bloqueio por limite de plano ──────────────────────────────────────────
   if (statusLimite?.bloqueado) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
         <div className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="text-center max-w-sm space-y-6">
@@ -559,7 +559,7 @@ export default function PortalCliente() {
   if (step === "sucesso") {
     const profFinal = profissionais?.find(p => p.id === (profissionalParaHora ?? profissionalId));
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-stone-50">
         <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
         <div className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="text-center max-w-md space-y-6">
@@ -619,7 +619,7 @@ export default function PortalCliente() {
   const stepIdx = STEPS.indexOf(step);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-stone-50">
       <PortalHeader empresa={empresa} corPrimaria={corPrimaria} />
 
       {empresa.portalHeaderUrl && step === "identificacao" && (
@@ -1029,23 +1029,23 @@ export default function PortalCliente() {
                       {/* Skeleton de horários */}
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="h-4 w-4 bg-slate-200 animate-pulse rounded" />
-                          <div className="h-4 w-16 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-4 bg-stone-200 animate-pulse rounded" />
+                          <div className="h-4 w-16 bg-stone-200 animate-pulse rounded" />
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                           {[1,2,3,4,5,6,7,8].map(i => (
-                            <div key={i} className="h-10 bg-slate-200 animate-pulse rounded-lg" />
+                            <div key={i} className="h-10 bg-stone-200 animate-pulse rounded-lg" />
                           ))}
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="h-4 w-4 bg-slate-200 animate-pulse rounded" />
-                          <div className="h-4 w-14 bg-slate-200 animate-pulse rounded" />
+                          <div className="h-4 w-4 bg-stone-200 animate-pulse rounded" />
+                          <div className="h-4 w-14 bg-stone-200 animate-pulse rounded" />
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                           {[1,2,3,4].map(i => (
-                            <div key={i} className="h-10 bg-slate-200 animate-pulse rounded-lg" />
+                            <div key={i} className="h-10 bg-stone-200 animate-pulse rounded-lg" />
                           ))}
                         </div>
                       </div>
@@ -1183,7 +1183,7 @@ export default function PortalCliente() {
               )}
 
               {empresa.portalPoliticaCancelamento && (
-                <div className="rounded-lg px-3 py-2.5 border flex items-start gap-2 bg-slate-50 border-slate-200">
+                <div className="rounded-lg px-3 py-2.5 border flex items-start gap-2 bg-stone-50 border-slate-200">
                   <span className="text-base mt-0.5">⚠️</span>
                   <div>
                     <p className="text-xs font-semibold text-slate-700 mb-0.5">Política de cancelamento</p>

@@ -25,9 +25,9 @@ type WAStatus = "disconnected" | "connecting" | "qr_ready" | "scanning" | "conne
 
 const statusConfig: Record<WAStatus, { label: string; color: string; icon: React.ReactNode }> = {
   scanning: { label: "QR Code lido...", color: "bg-purple-100 text-purple-700 border-purple-200", icon: <Loader2 className="w-4 h-4 animate-spin" /> },
-  disconnected: { label: "Desconectado", color: "bg-gray-100 text-gray-700 border-gray-200", icon: <WifiOff className="w-4 h-4" /> },
+  disconnected: { label: "Desconectado", color: "bg-stone-100 text-gray-700 border-gray-200", icon: <WifiOff className="w-4 h-4" /> },
   connecting: { label: "Conectando...", color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <Loader2 className="w-4 h-4 animate-spin" /> },
-  qr_ready: { label: "Aguardando leitura", color: "bg-blue-100 text-blue-700 border-blue-200", icon: <QrCode className="w-4 h-4" /> },
+  qr_ready: { label: "Aguardando leitura", color: "bg-amber-100 text-blue-700 border-blue-200", icon: <QrCode className="w-4 h-4" /> },
   connected: { label: "Conectado", color: "bg-green-100 text-green-700 border-green-200", icon: <CheckCircle2 className="w-4 h-4" /> },
   logged_out: { label: "Sessão encerrada", color: "bg-red-100 text-red-700 border-red-200", icon: <AlertCircle className="w-4 h-4" /> },
 };
@@ -161,7 +161,7 @@ export default function WhatsAppPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Status da Conexão</CardTitle>
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-              connected ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 border-gray-200"
+              connected ? "bg-green-100 text-green-700 border-green-200" : "bg-stone-100 text-gray-700 border-gray-200"
             }`}>
               {connected ? <CheckCircle2 className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
               {connected ? "Conectado" : "Desconectado"}
@@ -197,7 +197,7 @@ export default function WhatsAppPage() {
             </>
           ) : !showZapiQr ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-stone-50 border border-gray-200">
                 <WifiOff className="w-5 h-5 text-gray-500 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-800">WhatsApp desconectado</p>
@@ -309,14 +309,14 @@ export default function WhatsAppPage() {
               </>
             ) : effectiveBaileysStatus === "connecting" || effectiveBaileysStatus === "scanning" ? (
               <div className="flex flex-col items-center gap-3 py-6">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
                 <p className="text-sm text-muted-foreground">
                   {effectiveBaileysStatus === "scanning" ? "QR Code lido, autenticando..." : "Conectando ao WhatsApp..."}
                 </p>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-stone-50 border border-gray-200">
                   <WifiOff className="w-5 h-5 text-gray-500 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-gray-800">WhatsApp desconectado</p>

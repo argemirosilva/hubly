@@ -182,7 +182,7 @@ export default function ComissoesPagar() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
+              <TrendingUp className="w-4 h-4 text-amber-600" />
               <span className="text-xs text-gray-500">Total</span>
             </div>
             <p className="text-lg font-bold text-gray-900">{formatCurrency(metricas.total)}</p>
@@ -268,13 +268,13 @@ export default function ComissoesPagar() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-stone-100 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : comissoesFiltradas.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center mb-4">
               <DollarSign className="w-7 h-7 text-gray-400" />
             </div>
             <h3 className="font-semibold text-gray-700 mb-1">Nenhuma comissão encontrada</h3>
@@ -291,7 +291,7 @@ export default function ComissoesPagar() {
             <Card key={grupo.nome}>
               <CardContent className="p-0">
                 {/* Header do grupo */}
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50 rounded-t-xl">
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-stone-50 rounded-t-xl">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-xs font-bold text-primary">
@@ -321,7 +321,7 @@ export default function ComissoesPagar() {
                       <div
                         key={c.id}
                         className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                          isPendente ? "cursor-pointer hover:bg-gray-50" : ""
+                          isPendente ? "cursor-pointer hover:bg-stone-50" : ""
                         } ${isSelected ? "bg-green-50" : ""}`}
                         onClick={() => isPendente && toggleSelect(c.id)}
                       >
