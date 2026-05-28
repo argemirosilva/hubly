@@ -565,10 +565,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
+              src="/manus-storage/hubly-logo-white_b68a2476.png"
               alt="Hubly"
-              className="h-9 w-auto object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
+              className="h-12 w-auto object-contain"
+              style={{}}
             />
           </div>
           <button onClick={() => setSidebarOpen(false)}
