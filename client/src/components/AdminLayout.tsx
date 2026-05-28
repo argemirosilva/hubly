@@ -567,7 +567,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
-              style={{}}
+              style={{ filter: "brightness(0) invert(1)" }}
             />
           </div>
           <button onClick={() => setSidebarOpen(false)}
