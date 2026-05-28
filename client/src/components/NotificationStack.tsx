@@ -57,7 +57,7 @@ function NotificationStack({ notifications, onRemove }: { notifications: Notific
         return 'oklch(50% 0.18 70 / 95%)';
       case 'info':
       default:
-        return 'oklch(20% 0.02 255 / 95%)';
+        return 'oklch(22% 0.030 55 / 95%)';
     }
   };
 
@@ -71,7 +71,7 @@ function NotificationStack({ notifications, onRemove }: { notifications: Notific
         return 'oklch(85% 0.15 70)';
       case 'info':
       default:
-        return 'oklch(90% 0.02 255)';
+        return 'oklch(96.2% 0.012 75)';
     }
   };
 

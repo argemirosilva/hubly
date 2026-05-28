@@ -160,7 +160,7 @@ export default function Perfil() {
             <div className="relative">
               <div
                 className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0"
-                style={{ background: "oklch(55% 0.22 264)" }}
+                style={{ background: "oklch(78.5% 0.075 85)" }}
               >
                 {perfil?.avatarUrl ? (
                   <img

@@ -28,7 +28,7 @@ export default function Setup() {
       <div className="hidden lg:flex w-2/5 flex-col justify-between p-12 relative overflow-hidden"
         style={{ background: "var(--sidebar)" }}>
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full opacity-10"
-          style={{ background: "oklch(62% 0.16 225)" }} />
+          style={{ background: "oklch(78.5% 0.075 85)" }} />
         <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full opacity-5"
           style={{ background: "oklch(62% 0.18 145)" }} />
 
@@ -42,15 +42,15 @@ export default function Setup() {
           </div>
           <div className="space-y-4">
             <p className="text-xs font-semibold tracking-[0.18em] uppercase"
-              style={{ color: "oklch(62% 0.16 225)" }}>
+              style={{ color: "oklch(78.5% 0.075 85)" }}>
               Primeiros passos
             </p>
             <h2 className="font-bold leading-tight"
-              style={{ fontSize: "2rem", color: "oklch(95% 0.008 240)", letterSpacing: "-0.03em" }}>
+              style={{ fontSize: "2rem", color: "oklch(96.2% 0.012 75)", letterSpacing: "-0.03em" }}>
               Configure seu negócio em minutos
             </h2>
             <p className="text-sm leading-relaxed"
-              style={{ color: "oklch(55% 0.08 255)" }}>
+              style={{ color: "oklch(55% 0.050 55)" }}>
               Preencha as informações básicas do seu estabelecimento para começar a usar o Hubly.
             </p>
           </div>
@@ -65,10 +65,10 @@ export default function Setup() {
           ].map(item => (
             <div key={item} className="flex items-center gap-2.5">
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "oklch(55% 0.22 264 / 20%)" }}>
-                <CheckCircle2 className="w-3 h-3" style={{ color: "oklch(65% 0.16 225)" }} />
+                style={{ background: "oklch(78.5% 0.075 85 / 20%)" }}>
+                <CheckCircle2 className="w-3 h-3" style={{ color: "oklch(82% 0.090 80)" }} />
               </div>
-              <span className="text-sm" style={{ color: "oklch(65% 0.08 255)" }}>{item}</span>
+              <span className="text-sm" style={{ color: "oklch(78.5% 0.075 85)" }}>{item}</span>
             </div>
           ))}
         </div>
@@ -115,12 +115,12 @@ export default function Setup() {
                     placeholder={placeholder}
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm transition-all"
                     style={{
-                      border: "2px solid oklch(90% 0.012 250)",
+                      border: "2px solid oklch(89.5% 0.018 80)",
                       background: "white",
                       outline: "none",
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = "oklch(62% 0.16 225)"; }}
-                    onBlur={e => { e.currentTarget.style.borderColor = "oklch(90% 0.012 250)"; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = "oklch(78.5% 0.075 85)"; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = "oklch(89.5% 0.018 80)"; }}
                   />
                 </div>
               </div>

@@ -399,7 +399,7 @@ export default function Servicos() {
                           <div className="flex items-center justify-between mb-0.5">
                             <span
                               className="text-[9px] font-semibold uppercase tracking-wider leading-none"
-                              style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}
+                              style={{ color: grupo.cor ?? "oklch(78.5% 0.075 85)" }}
                             >
                               {grupo.label === "Sem categoria" ? "Geral" : grupo.label}
                             </span>
@@ -438,7 +438,7 @@ export default function Servicos() {
                                 {s.duracaoMinutos ?? 60}m
                               </span>
                               {podeVerDadosFinanceiros(s.id) && (s as any).percentualComissao && parseFloat(String((s as any).percentualComissao)) > 0 && (
-                                <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color: grupo.cor ?? "oklch(55% 0.22 264)" }}>
+                                <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color: grupo.cor ?? "oklch(78.5% 0.075 85)" }}>
                                   <Percent className="w-2 h-2" />
                                   {parseFloat(String((s as any).percentualComissao)).toFixed(0)}%
                                 </span>

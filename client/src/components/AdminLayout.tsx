@@ -246,7 +246,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       case "PRO": return "oklch(45% 0.15 160)";
       case "PLUS": return "oklch(60% 0.20 30)";
       case "SOLO": return "oklch(65% 0.18 170)";
-      default: return "oklch(52% 0.016 260)";
+      default: return "oklch(52% 0.016 55)";
     }
   };
 

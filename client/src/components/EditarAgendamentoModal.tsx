@@ -475,7 +475,7 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
         </div>
 
         {/* Footer */}
-        <div className="border-t px-5 py-3.5 flex-shrink-0" style={{ background: "oklch(97% 0.006 250)" }}>
+        <div className="border-t px-5 py-3.5 flex-shrink-0" style={{ background: "oklch(96.2% 0.012 75)" }}>
           {/* Banner de confirmação — visível apenas para pré-agendamentos */}
           {ag.status === "pre_agendado" && (
             <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 flex items-center justify-between gap-3">

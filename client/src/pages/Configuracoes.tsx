@@ -255,7 +255,7 @@ export default function Configuracoes() {
 
       {/* Dados da Empresa */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Building2 className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Dados da Empresa</h3>
         </div>
@@ -287,7 +287,7 @@ export default function Configuracoes() {
 
       {/* Identidade Visual */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Palette className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Identidade Visual</h3>
         </div>
@@ -439,7 +439,7 @@ export default function Configuracoes() {
 
       {/* Portal de Agendamento Público */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Globe className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Portal de Agendamento Público</h3>
         </div>
@@ -447,7 +447,7 @@ export default function Configuracoes() {
 
           {/* Ativar portal */}
           <div className="flex items-center justify-between p-4 rounded-xl border"
-            style={{ background: form.portalAtivo ? "oklch(62% 0.18 155 / 6%)" : "oklch(96% 0.008 250)", borderColor: form.portalAtivo ? "oklch(62% 0.18 155 / 30%)" : "oklch(90% 0.012 250)" }}>
+            style={{ background: form.portalAtivo ? "oklch(62% 0.18 155 / 6%)" : "oklch(96.2% 0.012 75)", borderColor: form.portalAtivo ? "oklch(62% 0.18 155 / 30%)" : "oklch(89.5% 0.018 80)" }}>
             <div>
               <p className="font-semibold text-sm">Ativar portal público</p>
               <p className="text-xs text-muted-foreground mt-0.5">Permite que clientes agendem online sem precisar ligar</p>
@@ -455,7 +455,7 @@ export default function Configuracoes() {
             <button
               onClick={() => setForm(f => ({ ...f, portalAtivo: !f.portalAtivo }))}
               className="relative w-11 h-6 rounded-full transition-all flex-shrink-0"
-              style={{ background: form.portalAtivo ? "oklch(62% 0.18 155)" : "oklch(80% 0.012 250)" }}>
+              style={{ background: form.portalAtivo ? "oklch(62% 0.18 155)" : "oklch(82% 0.090 80)" }}>
               <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
                 style={{ left: form.portalAtivo ? "22px" : "2px" }} />
             </button>
@@ -463,7 +463,7 @@ export default function Configuracoes() {
 
           {/* Link do portal */}
           {form.portalAtivo && (
-            <div className="rounded-xl p-4 space-y-3" style={{ background: "oklch(96% 0.008 250)", border: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link do portal</p>
 
               {/* Campo de slug personalizado */}
@@ -476,10 +476,10 @@ export default function Configuracoes() {
                       ? "oklch(55% 0.18 25)"
                       : slugDisponivel
                       ? "oklch(55% 0.15 145)"
-                      : "oklch(88% 0.012 250)"
+                      : "oklch(89.5% 0.018 80)"
                   }}
                 >
-                  <span className="text-xs text-muted-foreground px-2 py-2 bg-muted border-r whitespace-nowrap" style={{ borderColor: "oklch(88% 0.012 250)" }}>
+                  <span className="text-xs text-muted-foreground px-2 py-2 bg-muted border-r whitespace-nowrap" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                     /agendar/
                   </span>
                   <input
@@ -535,7 +535,7 @@ export default function Configuracoes() {
 
           {/* Confirmação automática */}
           <div className="flex items-center justify-between p-4 rounded-xl border"
-            style={{ background: "oklch(96% 0.008 250)", borderColor: "oklch(90% 0.012 250)" }}>
+            style={{ background: "oklch(96.2% 0.012 75)", borderColor: "oklch(89.5% 0.018 80)" }}>
             <div>
               <p className="font-semibold text-sm">Confirmação automática</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -547,7 +547,7 @@ export default function Configuracoes() {
             <button
               onClick={() => setForm(f => ({ ...f, autoConfirmarPortal: !f.autoConfirmarPortal }))}
               className="relative w-11 h-6 rounded-full transition-all flex-shrink-0"
-              style={{ background: form.autoConfirmarPortal ? "oklch(55% 0.22 264)" : "oklch(80% 0.012 250)" }}>
+              style={{ background: form.autoConfirmarPortal ? "oklch(78.5% 0.075 85)" : "oklch(82% 0.090 80)" }}>
               <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
                 style={{ left: form.autoConfirmarPortal ? "22px" : "2px" }} />
             </button>
@@ -555,7 +555,7 @@ export default function Configuracoes() {
 
           {/* Cobrar sinal no portal */}
           <div className="flex items-center justify-between p-4 rounded-xl border"
-            style={{ background: "oklch(96% 0.008 250)", borderColor: "oklch(90% 0.012 250)" }}>
+            style={{ background: "oklch(96.2% 0.012 75)", borderColor: "oklch(89.5% 0.018 80)" }}>
             <div>
               <p className="font-semibold text-sm">Cobrar sinal no portal</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -567,7 +567,7 @@ export default function Configuracoes() {
             <button
               onClick={() => setForm(f => ({ ...f, portalCobraSinal: !f.portalCobraSinal }))}
               className="relative w-11 h-6 rounded-full transition-all flex-shrink-0"
-              style={{ background: form.portalCobraSinal ? "oklch(55% 0.22 264)" : "oklch(80% 0.012 250)" }}>
+              style={{ background: form.portalCobraSinal ? "oklch(78.5% 0.075 85)" : "oklch(82% 0.090 80)" }}>
               <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
                 style={{ left: form.portalCobraSinal ? "22px" : "2px" }} />
             </button>
@@ -582,7 +582,7 @@ export default function Configuracoes() {
               placeholder="Ex: Bem-vindo ao nosso salão! Agende seu horário com facilidade."
               rows={2}
               className="w-full px-3 py-2.5 rounded-xl text-sm resize-none border outline-none transition-all bg-background text-foreground"
-              style={{ borderColor: "oklch(90% 0.012 250)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)" }}
             />
           </div>
 
@@ -595,7 +595,7 @@ export default function Configuracoes() {
               placeholder="Ex: Cancelamentos com menos de 24h de antecedência não serão reembolsados."
               rows={2}
               className="w-full px-3 py-2.5 rounded-xl text-sm resize-none border outline-none transition-all bg-background text-foreground"
-              style={{ borderColor: "oklch(90% 0.012 250)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)" }}
             />
             <p className="text-xs text-muted-foreground mt-1">Exibida para o cliente na etapa de confirmação do agendamento.</p>
           </div>
@@ -606,7 +606,7 @@ export default function Configuracoes() {
 
       {/* Horário de Funcionamento */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Clock className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Horário de Funcionamento</h3>
         </div>
@@ -620,9 +620,9 @@ export default function Configuracoes() {
                   onClick={() => toggleDia(dia.value)}
                   className="w-12 h-10 rounded-xl text-xs font-semibold border-2 transition-all"
                   style={{
-                    borderColor: form.diasFuncionamento.includes(dia.value) ? "oklch(55% 0.22 264)" : "oklch(90% 0.012 250)",
-                    background: form.diasFuncionamento.includes(dia.value) ? "oklch(55% 0.22 264 / 10%)" : "oklch(96% 0.008 250)",
-                    color: form.diasFuncionamento.includes(dia.value) ? "oklch(45% 0.18 264)" : "oklch(52% 0.016 260)",
+                    borderColor: form.diasFuncionamento.includes(dia.value) ? "oklch(78.5% 0.075 85)" : "oklch(89.5% 0.018 80)",
+                    background: form.diasFuncionamento.includes(dia.value) ? "oklch(78.5% 0.075 85 / 10%)" : "oklch(96.2% 0.012 75)",
+                    color: form.diasFuncionamento.includes(dia.value) ? "oklch(45% 0.060 55)" : "oklch(52% 0.016 55)",
                   }}>
                   {dia.label}
                 </button>
@@ -685,7 +685,7 @@ export default function Configuracoes() {
 
       {/* Regras de Agendamento */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Settings className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Regras de Agendamento</h3>
         </div>
@@ -709,7 +709,7 @@ export default function Configuracoes() {
 
       {/* Notificações Push */}
       <div className="card-elegant">
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Bell className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Notificações Push</h3>
           <span className="ml-auto text-xs text-muted-foreground">Escolha quais alertas receber no dispositivo</span>

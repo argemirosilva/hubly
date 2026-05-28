@@ -135,7 +135,7 @@ export default function Suporte() {
           </div>
         </div>
         {view === "lista" && (
-          <Button onClick={() => setView("novo")} style={{ background: "oklch(32% 0.12 255)", color: "white" }}>
+          <Button onClick={() => setView("novo")} style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}>
             <TicketPlus size={16} className="mr-2" /> Abrir chamado
           </Button>
         )}
@@ -147,7 +147,7 @@ export default function Suporte() {
           {/* Cabeçalho do manual */}
           <div
             className="px-5 py-4 flex items-center justify-between"
-            style={{ background: "oklch(45% 0.18 264)", color: "white" }}
+            style={{ background: "oklch(45% 0.060 55)", color: "white" }}
           >
             <div className="flex items-center gap-3">
               <BookOpen size={20} />
@@ -169,15 +169,15 @@ export default function Suporte() {
           <div className="p-4" style={{ background: "var(--card)" }}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { href: "/admin/manual", icon: <Calendar size={15} />, label: "Agendamentos", color: "oklch(50% 0.18 264)" },
+                { href: "/admin/manual", icon: <Calendar size={15} />, label: "Agendamentos", color: "oklch(50% 0.060 55)" },
                 { href: "/admin/manual", icon: <Users size={15} />, label: "Clientes", color: "oklch(50% 0.18 200)" },
                 { href: "/admin/manual", icon: <DollarSign size={15} />, label: "Financeiro", color: "oklch(50% 0.18 155)" },
                 { href: "/admin/manual", icon: <Zap size={15} />, label: "Automações", color: "oklch(50% 0.18 300)" },
                 { href: "/admin/manual", icon: <UserCog size={15} />, label: "Equipe e Permissões", color: "oklch(50% 0.18 30)" },
                 { href: "/admin/manual", icon: <Package size={15} />, label: "Pacotes", color: "oklch(50% 0.18 60)" },
                 { href: "/admin/manual", icon: <Bell size={15} />, label: "Notificações", color: "oklch(50% 0.18 340)" },
-                { href: "/admin/manual", icon: <Kanban size={15} />, label: "Pipeline", color: "oklch(50% 0.18 220)" },
-                { href: "/admin/manual", icon: <Settings size={15} />, label: "Configurações", color: "oklch(50% 0.12 255)" },
+                { href: "/admin/manual", icon: <Kanban size={15} />, label: "Pipeline", color: "oklch(50% 0.060 55)" },
+                { href: "/admin/manual", icon: <Settings size={15} />, label: "Configurações", color: "oklch(50% 0.050 55)" },
               ].map((item) => (
                 <Link key={item.label} href={item.href}>
                   <button
@@ -307,7 +307,7 @@ export default function Suporte() {
               className="flex-1"
               disabled={!titulo.trim() || !descricao.trim() || abrirChamadoMutation.isPending}
               onClick={() => abrirChamadoMutation.mutate({ titulo, descricao, prioridade })}
-              style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+              style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
             >
               {abrirChamadoMutation.isPending ? (
                 <Loader2 size={15} className="animate-spin mr-2" />
@@ -382,7 +382,7 @@ export default function Suporte() {
                         ? "oklch(62% 0.18 145)"
                         : m.autorTipo === "ia"
                         ? "oklch(55% 0.15 300)"
-                        : "oklch(32% 0.12 255)",
+                        : "oklch(28.5% 0.035 55)",
                     }}
                   >
                     {m.autorTipo === "cliente" ? <User size={14} /> : <Bot size={14} />}
@@ -400,7 +400,7 @@ export default function Suporte() {
                       className="rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
                       style={{
                         background: m.autorTipo === "cliente"
-                          ? "oklch(32% 0.12 255)"
+                          ? "oklch(28.5% 0.035 55)"
                           : "var(--muted)",
                         color: m.autorTipo === "cliente" ? "white" : "var(--foreground)",
                         borderBottomRightRadius: m.autorTipo === "cliente" ? "4px" : undefined,
@@ -440,7 +440,7 @@ export default function Suporte() {
                     }
                   }}
                   disabled={!respostaMsg.trim() || responderMutation.isPending}
-                  style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                  style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                 >
                   {responderMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : "Enviar"}
                 </Button>
@@ -485,7 +485,7 @@ export default function Suporte() {
                           comentario: avaliacaoComentario || undefined,
                         })
                       }
-                      style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                      style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                     >
                       {avaliarMutation.isPending ? <Loader2 size={15} className="animate-spin mr-2" /> : null}
                       Enviar avaliação

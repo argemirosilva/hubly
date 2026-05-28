@@ -200,7 +200,7 @@ export default function RelatoriosBloqueios() {
                   <XAxis dataKey="nome" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="bloqueios" fill="oklch(55% 0.22 264)" />
+                  <Bar dataKey="bloqueios" fill="oklch(78.5% 0.075 85)" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

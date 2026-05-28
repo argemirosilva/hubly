@@ -134,10 +134,10 @@ const DEFAULT_LAYOUT: WidgetConfig[] = WIDGET_CATALOG.map((w, i) => ({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
-  agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  agendado:           { label: "Agendado",        bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" },
   confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
-  concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  concluido:          { label: "Concluído",       bg: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(40% 0.050 55)" },
   cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
 };
@@ -159,8 +159,8 @@ type PlanoStatus = {
 } | null | undefined;
 
 const PLAN_COLORS: Record<string, { gradient: string; badge: string; badgeText: string }> = {
-  FREE:  { gradient: "oklch(55% 0.04 260)", badge: "oklch(94% 0.008 250)", badgeText: "oklch(35% 0.012 260)" },
-  SOLO:  { gradient: "var(--primary)", badge: "oklch(55% 0.22 264 / 12%)", badgeText: "oklch(35% 0.18 264)" },
+  FREE:  { gradient: "oklch(55% 0.050 55)", badge: "oklch(94% 0.010 75)", badgeText: "oklch(35% 0.050 55)" },
+  SOLO:  { gradient: "var(--primary)", badge: "oklch(78.5% 0.075 85 / 12%)", badgeText: "oklch(35% 0.060 55)" },
   PLUS:  { gradient: "oklch(55% 0.22 290)", badge: "oklch(55% 0.22 290 / 12%)", badgeText: "oklch(35% 0.18 290)" },
   PRO:   { gradient: "oklch(62% 0.20 60)",  badge: "oklch(62% 0.20 60 / 12%)",  badgeText: "oklch(38% 0.16 60)" },
 };
@@ -174,7 +174,7 @@ function UsageBar({ label, icon: Icon, count, limit, percent }: { label: string;
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5"><Icon className="w-3 h-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{label}</span></div>
-        <span className="text-xs font-semibold" style={{ color: isCritical ? "oklch(40% 0.18 25)" : isWarning ? "oklch(42% 0.14 75)" : "oklch(35% 0.012 260)" }}>
+        <span className="text-xs font-semibold" style={{ color: isCritical ? "oklch(40% 0.18 25)" : isWarning ? "oklch(42% 0.14 75)" : "oklch(35% 0.050 55)" }}>
           {isUnlimited ? `${count} / ∞` : `${count} / ${limit}`}
         </span>
       </div>
@@ -209,7 +209,7 @@ function PlanStatusCard({ statusPlano }: { statusPlano: PlanoStatus }) {
           </button>
         </Link>
       </div>
-      <div className="space-y-2.5 pt-1 border-t" style={{ borderColor: "oklch(92% 0.008 250)" }}>
+      <div className="space-y-2.5 pt-1 border-t" style={{ borderColor: "oklch(94% 0.010 75)" }}>
         <UsageBar label="Agendamentos/mês" icon={CalendarCheck} count={usage.agendamentosCount} limit={usage.agendamentosLimit} percent={usage.agendamentosPercent} />
         <UsageBar label="WhatsApp/mês" icon={MessageCircle} count={usage.notificacoesWhatsappCount} limit={usage.notificacoesWhatsappLimit} percent={usage.notificacoesWhatsappLimit > 0 ? Math.round((usage.notificacoesWhatsappCount / usage.notificacoesWhatsappLimit) * 100) : 0} />
       </div>
@@ -414,12 +414,12 @@ export default function Dashboard() {
         return (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
             {[
-              { label: "Hoje", value: String(agendamentosHoje?.length ?? 0), sub: isProfissional ? "atendimentos" : "agendamentos", icon: Calendar, iconBg: "oklch(55% 0.22 264 / 12%)", iconColor: "oklch(45% 0.18 264)" },
+              { label: "Hoje", value: String(agendamentosHoje?.length ?? 0), sub: isProfissional ? "atendimentos" : "agendamentos", icon: Calendar, iconBg: "oklch(78.5% 0.075 85 / 12%)", iconColor: "oklch(45% 0.060 55)" },
               ...(podeVerFinanceiro || pode("financeiroVerComissoes") ? [{ label: isProfissional ? "Minha receita" : "Receita", value: formatCurrency(metrics?.receitaMes ?? 0), sub: variacaoReceita !== 0 ? `${variacaoReceita >= 0 ? "+" : ""}${variacaoReceita.toFixed(0)}% vs ant.` : "mês atual", trend: variacaoReceita, icon: DollarSign, iconBg: "oklch(62% 0.18 155 / 12%)", iconColor: "oklch(38% 0.14 155)", onClick: () => setReceitaDetalheOpen(true) }] : []),
               { label: isProfissional ? "Clientes" : "Clientes", value: String(metrics?.totalClientes ?? 0), sub: isProfissional ? "no mês" : "cadastrados", icon: Users, iconBg: "oklch(60% 0.20 300 / 12%)", iconColor: "oklch(42% 0.16 300)" },
               { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: "concluídos", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
               ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "disparadas", icon: Send, iconBg: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(75% 0.18 55 / 20%)" : "oklch(62% 0.20 200 / 12%)", iconColor: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(45% 0.18 55)" : "oklch(40% 0.16 200)", alert: (metrics?.enviosHoje ?? 0) > 50, onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
-              ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0}/${metricasPreAg?.total ?? 0} confirm.`, icon: CalendarCheck, iconBg: "oklch(60% 0.20 220 / 12%)", iconColor: "oklch(40% 0.16 220)" }] : []),
+              ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0}/${metricasPreAg?.total ?? 0} confirm.`, icon: CalendarCheck, iconBg: "oklch(78.5% 0.075 85 / 12%)", iconColor: "oklch(40% 0.060 55)" }] : []),
             ].map((stat) => {
               const Icon = stat.icon;
               const isClickable = !!(stat as any).onClick;
@@ -475,11 +475,11 @@ export default function Dashboard() {
             <Link href="/admin/contas-pagar?filtro=semana">
                 <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "var(--primary)" }}>
                 <div className="flex items-start justify-between mb-1 lg:mb-1.5">
-                  <div className="w-5 h-5 lg:w-6 lg:h-6 rounded-md lg:rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}><CalendarCheck className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: "oklch(45% 0.18 264)" }} /></div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>{contasSemana?.length ?? 0} conta{(contasSemana?.length ?? 0) !== 1 ? "s" : ""}</span>
+                  <div className="w-5 h-5 lg:w-6 lg:h-6 rounded-md lg:rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}><CalendarCheck className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: "oklch(45% 0.060 55)" }} /></div>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(35% 0.060 55)" }}>{contasSemana?.length ?? 0} conta{(contasSemana?.length ?? 0) !== 1 ? "s" : ""}</span>
                 </div>
-                <p className="text-sm lg:text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.18 264)" }}>{formatCurrency(totalContasSemana)}</p>
-                <p className="text-[10px] lg:text-[11px] text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(35% 0.18 264)" }}>A Pagar na Semana</span> · próximos 7 dias</p>
+                <p className="text-sm lg:text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.060 55)" }}>{formatCurrency(totalContasSemana)}</p>
+                <p className="text-[10px] lg:text-[11px] text-muted-foreground mt-0.5"><span className="font-medium" style={{ color: "oklch(35% 0.060 55)" }}>A Pagar na Semana</span> · próximos 7 dias</p>
               </div>
             </Link>
           </div>
@@ -488,10 +488,10 @@ export default function Dashboard() {
       case "agenda_hoje":
         return (
           <div className="card-elegant overflow-hidden">
-            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 10%)" }}><Clock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} /></div>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 10%)" }}><Clock className="w-4 h-4" style={{ color: "oklch(45% 0.060 55)" }} /></div>
                   <div>
                     <h3 className="font-semibold text-sm tracking-tight">{isProfissional ? "Minha Agenda" : "Agenda"}</h3>
                     <p className="text-xs text-muted-foreground">{agendamentosOrdenados.length} atendimento{agendamentosOrdenados.length !== 1 ? "s" : ""}</p>
@@ -506,9 +506,9 @@ export default function Dashboard() {
                     onClick={() => aplicarPeriodoAgenda(p)}
                     className="h-7 px-2.5 rounded-md border text-[11px] font-medium transition-all"
                     style={{
-                      background: agendaPeriodo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
-                      borderColor: agendaPeriodo === p ? "oklch(55% 0.22 264 / 50%)" : "var(--primary)",
-                      color: agendaPeriodo === p ? "oklch(45% 0.18 264)" : "oklch(50% 0.010 260)",
+                      background: agendaPeriodo === p ? "oklch(78.5% 0.075 85 / 12%)" : "transparent",
+                      borderColor: agendaPeriodo === p ? "oklch(78.5% 0.075 85 / 50%)" : "var(--primary)",
+                      color: agendaPeriodo === p ? "oklch(45% 0.060 55)" : "oklch(50% 0.016 55)",
                       fontWeight: agendaPeriodo === p ? 600 : 400,
                     }}
                   >
@@ -519,13 +519,13 @@ export default function Dashboard() {
             </div>
             {agendamentosOrdenados.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 text-center px-6">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: "oklch(55% 0.22 264 / 8%)" }}><Calendar className="w-5 h-5" style={{ color: "var(--primary)" }} /></div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: "oklch(78.5% 0.075 85 / 8%)" }}><Calendar className="w-5 h-5" style={{ color: "var(--primary)" }} /></div>
                 <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento {agendaPeriodo === "hoje" ? "hoje" : agendaPeriodo === "semana" ? "esta semana" : "este mês"}</p>
                 <p className="text-xs text-muted-foreground mb-5">Que tal criar o primeiro?</p>
                 <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary text-xs py-1.5"><Plus className="w-3.5 h-3.5" /> Criar agendamento</button>
               </div>
             ) : (
-              <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+              <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
                 {agendamentosOrdenados.map((ag) => {
                   const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
                   const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
@@ -605,7 +605,7 @@ export default function Dashboard() {
           <div className="card-elegant p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}><Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} /></div>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}><Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} /></div>
                 <h3 className="font-semibold text-sm tracking-tight">Score Financeiro</h3>
               </div>
               <Link href="/admin/ia-financeiro"><button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">Detalhes <ChevronRight className="w-3 h-3" /></button></Link>
@@ -613,7 +613,7 @@ export default function Dashboard() {
             {!scoreIA ? (
               <div className="text-center py-3">
                 <p className="text-xs text-muted-foreground mb-2">Nenhuma análise ainda</p>
-                <Link href="/admin/ia-financeiro"><button className="text-xs font-medium" style={{ color: "oklch(45% 0.18 264)" }}>Calcular agora →</button></Link>
+                <Link href="/admin/ia-financeiro"><button className="text-xs font-medium" style={{ color: "oklch(45% 0.060 55)" }}>Calcular agora →</button></Link>
               </div>
             ) : (
               <div className="space-y-2">
@@ -645,9 +645,9 @@ export default function Dashboard() {
         if (!dashboardPipeline) return null;
         return (
           <div className="card-elegant overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 10%)" }}><KanbanSquare className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} /></div>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 10%)" }}><KanbanSquare className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} /></div>
                 <div>
                   <h3 className="font-semibold text-xs tracking-tight truncate max-w-[130px]">{dashboardPipeline.nome}</h3>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" /> Pipeline favorita</p>
@@ -665,11 +665,11 @@ export default function Dashboard() {
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.cor ?? "#6366f1" }} />
                       <span className="text-xs text-muted-foreground truncate">{col.nome}</span>
                     </div>
-                    <span className="text-xs font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(35% 0.18 264)" }}>{col.cartoes.length}</span>
+                    <span className="text-xs font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(35% 0.060 55)" }}>{col.cartoes.length}</span>
                   </div>
                 ))
               )}
-              <div className="pt-1 border-t" style={{ borderColor: "oklch(92% 0.008 250)" }}>
+              <div className="pt-1 border-t" style={{ borderColor: "oklch(94% 0.010 75)" }}>
                 <p className="text-[10px] text-muted-foreground">{dashboardPipeline.colunas.reduce((acc: number, c: any) => acc + c.cartoes.length, 0)} cartões no total</p>
               </div>
             </div>
@@ -887,7 +887,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-xs sm:text-sm text-muted-foreground truncate">{empresa?.nome}</p>
             {isProfissional && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(35% 0.060 55)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />Minha agenda
               </span>
             )}
@@ -914,11 +914,11 @@ export default function Dashboard() {
 
       {/* ─── Modo de edição ─────────────────────────────────────────────────── */}
       {editMode && (
-        <div className="rounded-2xl border-2 border-dashed p-5 space-y-4 animate-in-up" style={{ borderColor: "oklch(55% 0.22 264 / 30%)", background: "oklch(55% 0.22 264 / 4%)" }}>
+        <div className="rounded-2xl border-2 border-dashed p-5 space-y-4 animate-in-up" style={{ borderColor: "oklch(78.5% 0.075 85 / 30%)", background: "oklch(78.5% 0.075 85 / 4%)" }}>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-sm tracking-tight flex items-center gap-2">
-                <Settings2 className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
+                <Settings2 className="w-4 h-4" style={{ color: "oklch(45% 0.060 55)" }} />
                 Personalizar Dashboard
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">Arraste para reordenar · clique em Visível/Oculto para mostrar ou esconder</p>

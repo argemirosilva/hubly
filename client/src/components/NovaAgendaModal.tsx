@@ -519,8 +519,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                         type="button"
                         className="text-left p-3 rounded-lg border transition-all"
                         style={{
-                          borderColor: isSelected ? "oklch(55% 0.22 264)" : "oklch(90% 0.012 250)",
-                          background: isSelected ? "oklch(55% 0.22 264 / 6%)" : "oklch(98% 0.006 250)",
+                          borderColor: isSelected ? "oklch(78.5% 0.075 85)" : "oklch(89.5% 0.018 80)",
+                          background: isSelected ? "oklch(78.5% 0.075 85 / 6%)" : "oklch(96.2% 0.012 75)",
                         }}
                         onClick={() => {
                           const servico = servicos?.find(s => s.id === p.servicoId);
@@ -541,7 +541,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                             <p className="text-xs text-muted-foreground">{p.servicoNome}</p>
                           </div>
                           <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(45% 0.18 264)" }}>
+                            style={{ background: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(45% 0.060 55)" }}>
                             {p.sessoesDisponiveis} sessão(ões)
                           </span>
                         </div>
@@ -863,7 +863,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
           </div>
         </div>
 
-        <DialogFooter className="px-5 py-4 flex-shrink-0 border-t" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+        <DialogFooter className="px-5 py-4 flex-shrink-0 border-t" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button
             onClick={handleSubmit}

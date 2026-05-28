@@ -10,10 +10,10 @@ interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 const CLASSIFICACAO_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
   principal:        { label: "Principal",        icon: "", color: "oklch(38% 0.14 155)", bg: "oklch(55% 0.18 155 / 10%)" },
-  bom_pagador:      { label: "Bom pagador",       icon: "", color: "oklch(45% 0.18 264)", bg: "oklch(55% 0.22 264 / 10%)" },
+  bom_pagador:      { label: "Bom pagador",       icon: "", color: "oklch(45% 0.060 55)", bg: "oklch(78.5% 0.075 85 / 10%)" },
   em_crescimento:   { label: "Em crescimento",    icon: "", color: "oklch(40% 0.16 300)", bg: "oklch(60% 0.20 300 / 10%)" },
-  em_queda:         { label: "Em queda",          icon: "", color: "oklch(45% 0.16 220)", bg: "oklch(55% 0.14 220 / 10%)" },
-  inativo:          { label: "Inativo",           icon: "", color: "oklch(45% 0.06 250)", bg: "oklch(60% 0.04 250 / 10%)" },
+  em_queda:         { label: "Em queda",          icon: "", color: "oklch(45% 0.060 55)", bg: "oklch(78.5% 0.075 85 / 10%)" },
+  inativo:          { label: "Inativo",           icon: "", color: "oklch(45% 0.050 55)", bg: "oklch(60% 0.040 75 / 10%)" },
   atraso_frequente: { label: "Atraso frequente",  icon: "",  color: "oklch(45% 0.18 75)",  bg: "oklch(65% 0.20 75 / 10%)"  },
   risco:            { label: "Risco",             icon: "", color: "oklch(45% 0.22 25)",  bg: "oklch(55% 0.22 25 / 10%)"  },
   novo:             { label: "Novo",              icon: "", color: "oklch(45% 0.14 200)", bg: "oklch(55% 0.12 200 / 10%)" },
@@ -131,9 +131,9 @@ export default function IAClientes() {
           {/* Cards de contagem */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Total analisados", value: analise.totalClientes, icon: Users, color: "oklch(45% 0.18 264)" },
+              { label: "Total analisados", value: analise.totalClientes, icon: Users, color: "oklch(45% 0.060 55)" },
               { label: "Principais", value: analise.contagens.principal + analise.contagens.bom_pagador, icon: Star, color: "oklch(38% 0.14 155)" },
-              { label: "Inativos", value: analise.contagens.inativo, icon: Moon, color: "oklch(45% 0.06 250)" },
+              { label: "Inativos", value: analise.contagens.inativo, icon: Moon, color: "oklch(45% 0.050 55)" },
               { label: "Com risco", value: analise.contagens.risco + analise.contagens.atraso_frequente, icon: AlertTriangle, color: "oklch(45% 0.22 25)" },
             ].map(card => {
               const Icon = card.icon;
@@ -151,7 +151,7 @@ export default function IAClientes() {
 
           {/* Top clientes */}
           <div className="card-elegant overflow-hidden">
-            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
               <h3 className="font-semibold text-sm">Top Clientes por Receita</h3>
             </div>
             <ul className="divide-y divide-border">
@@ -181,7 +181,7 @@ export default function IAClientes() {
 
       {/* Insights */}
       <div className="card-elegant overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-semibold text-sm">Insights sobre seus clientes</h3>
@@ -210,7 +210,7 @@ export default function IAClientes() {
                     <p className="text-sm font-medium">{insight.titulo}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{insight.mensagem}</p>
                     {insight.acao && (
-                      <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.18 264)" }}> {insight.acao}</p>
+                      <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.060 55)" }}> {insight.acao}</p>
                     )}
                   </div>
                   {!insight.lido && (
@@ -227,7 +227,7 @@ export default function IAClientes() {
 
       {/* Chat */}
       <div className="card-elegant overflow-hidden flex flex-col" style={{ height: "420px" }}>
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <Bot className="w-4 h-4" style={{ color: "oklch(42% 0.16 300)" }} />
           <h3 className="font-semibold text-sm">Assistente de Clientes</h3>
         </div>
@@ -257,7 +257,7 @@ export default function IAClientes() {
           )}
           <div ref={chatEndRef} />
         </div>
-        <div className="p-3 flex gap-2" style={{ borderTop: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="p-3 flex gap-2" style={{ borderTop: "1px solid oklch(89.5% 0.018 80)" }}>
           <input
             className="flex-1 bg-muted rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Pergunte sobre seus clientes..."

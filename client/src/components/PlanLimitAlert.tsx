@@ -28,10 +28,10 @@ export function PlanLimitAlert() {
             <AlertCircle className="w-5 h-5" style={{ color: "oklch(60% 0.20 30)" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm" style={{ color: "oklch(20% 0.010 260)" }}>
+            <h3 className="font-semibold text-sm" style={{ color: "oklch(28.5% 0.035 55)" }}>
               Limite de Plano Próximo
             </h3>
-            <p className="text-xs mt-1" style={{ color: "oklch(40% 0.010 260)" }}>
+            <p className="text-xs mt-1" style={{ color: "oklch(40% 0.050 55)" }}>
               {primeiroAlerta.mensagem}
             </p>
             {totalAlertas > 1 && (
@@ -54,7 +54,7 @@ export function PlanLimitAlert() {
             onClick={() => setDismissed(true)}
             className="flex-shrink-0 p-1 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <X className="w-4 h-4" style={{ color: "oklch(40% 0.010 260)" }} />
+            <X className="w-4 h-4" style={{ color: "oklch(40% 0.050 55)" }} />
           </button>
         </div>
       </div>

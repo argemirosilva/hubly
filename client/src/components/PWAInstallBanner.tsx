@@ -66,9 +66,9 @@ export function PWAInstallBanner() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="rounded-2xl shadow-2xl border overflow-hidden" style={{ borderColor: "oklch(80% 0.10 225)" }}>
+      <div className="rounded-2xl shadow-2xl border overflow-hidden" style={{ borderColor: "oklch(78.5% 0.075 85)" }}>
         {/* Header colorido */}
-        <div className="px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, oklch(32% 0.12 255), oklch(62% 0.16 225))" }}>
+        <div className="px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, oklch(28.5% 0.035 55), oklch(78.5% 0.075 85))" }}>
           <div className="flex items-center gap-2">
             <img
               src="/manus-storage/hubly-favicon-source_ba613b6a.png"
@@ -103,11 +103,11 @@ export function PWAInstallBanner() {
                   return (
                     <li key={i} className="flex items-start gap-2.5">
                       <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 text-white"
-                        style={{ background: "oklch(62% 0.16 225)" }}>
+                        style={{ background: "oklch(78.5% 0.075 85)" }}>
                         {i + 1}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: "oklch(62% 0.16 225)" }} />
+                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: "oklch(78.5% 0.075 85)" }} />
                         {step.text}
                       </div>
                     </li>
@@ -133,7 +133,7 @@ export function PWAInstallBanner() {
                 <Button
                   size="sm"
                   className="flex-1 text-white text-xs"
-                  style={{ background: "oklch(32% 0.12 255)" }}
+                  style={{ background: "oklch(28.5% 0.035 55)" }}
                   onClick={handleInstall}
                 >
                   <Smartphone className="w-3.5 h-3.5 mr-1.5" />

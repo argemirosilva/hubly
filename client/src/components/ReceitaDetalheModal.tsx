@@ -176,16 +176,16 @@ export default function ReceitaDetalheModal({ open, onClose }: Props) {
             </div>
 
             {/* Comissão total */}
-            <div className="rounded-xl p-3.5 border border-border/50" style={{ background: "oklch(55% 0.22 264 / 6%)" }}>
+            <div className="rounded-xl p-3.5 border border-border/50" style={{ background: "oklch(78.5% 0.075 85 / 6%)" }}>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 15%)" }}>
-                  <Banknote className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 15%)" }}>
+                  <Banknote className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">
                   {isProfissional ? "Minha comissão" : "Comissões"}
                 </span>
               </div>
-              <p className="text-xl font-bold tracking-tight" style={{ color: "oklch(35% 0.18 264)" }}>
+              <p className="text-xl font-bold tracking-tight" style={{ color: "oklch(35% 0.060 55)" }}>
                 {formatCurrency(metricas.totalComissao)}
               </p>
               <p className="text-[11px] text-muted-foreground mt-1">

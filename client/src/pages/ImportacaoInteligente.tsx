@@ -17,7 +17,7 @@ const STEPS: Step[] = ["upload", "configurar", "revisar", "importar"];
 const STEP_LABELS = ["Upload", "Configurar", "Revisar", "Importar"];
 
 const ENTITY_LABELS: Record<string, { label: string; icon: any; color: string }> = {
-  clientes: { label: "Clientes", icon: Users, color: "oklch(55% 0.22 264)" },
+  clientes: { label: "Clientes", icon: Users, color: "oklch(78.5% 0.075 85)" },
   servicos: { label: "Serviços", icon: Scissors, color: "oklch(50% 0.16 155)" },
   profissionais: { label: "Profissionais", icon: UserCog, color: "oklch(60% 0.20 30)" },
   agendamentos: { label: "Agendamentos", icon: Calendar, color: "oklch(55% 0.18 270)" },

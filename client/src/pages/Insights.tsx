@@ -22,8 +22,8 @@ export default function Insights() {
     <div className="p-4 lg:p-6 max-w-6xl mx-auto animate-in-up">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}>
-          <Sparkles className="w-5 h-5" style={{ color: "oklch(45% 0.18 264)" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}>
+          <Sparkles className="w-5 h-5" style={{ color: "oklch(45% 0.060 55)" }} />
         </div>
         <div>
           <h1 className="font-bold text-xl tracking-tight">Insights</h1>

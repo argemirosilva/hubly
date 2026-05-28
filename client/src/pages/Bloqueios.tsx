@@ -140,8 +140,8 @@ export default function Bloqueios() {
         {bloqueiosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
-              <Lock className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              style={{ background: "oklch(78.5% 0.075 85 / 8%)" }}>
+              <Lock className="w-5 h-5" style={{ color: "oklch(78.5% 0.075 85)" }} />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">Nenhuma solicitação</p>
             <p className="text-xs text-muted-foreground mb-4">Solicite bloqueios para férias, folgas ou consultas</p>
@@ -150,15 +150,15 @@ export default function Bloqueios() {
             </button>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {bloqueiosFiltrados.map(b => {
               const cfg = statusConfig[b.status] ?? statusConfig.pendente;
               return (
                 <div key={b.id} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
-                      <Lock className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
+                      style={{ background: "oklch(78.5% 0.075 85 / 10%)" }}>
+                      <Lock className="w-4 h-4" style={{ color: "oklch(45% 0.060 55)" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -210,7 +210,7 @@ export default function Bloqueios() {
                     )}
                     <button
                       className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors"
-                      style={{ borderColor: "oklch(55% 0.22 264 / 40%)", color: "oklch(45% 0.18 264)", background: "oklch(55% 0.22 264 / 8%)" }}
+                      style={{ borderColor: "oklch(78.5% 0.075 85 / 40%)", color: "oklch(45% 0.060 55)", background: "oklch(78.5% 0.075 85 / 8%)" }}
                       onClick={() => {
                         if (confirm("Tem certeza que deseja cancelar este bloqueio?")) {
                           excluirMutation.mutate({ id: b.id });
@@ -291,7 +291,7 @@ export default function Bloqueios() {
           </DialogHeader>
           {selectedBloqueio && (
             <div className="space-y-4 py-2">
-              <div className="p-3 rounded-lg" style={{ background: "oklch(94% 0.008 250)" }}>
+              <div className="p-3 rounded-lg" style={{ background: "oklch(94% 0.010 75)" }}>
                 <p className="text-xs text-muted-foreground mb-1">Profissional</p>
                 <p className="text-sm font-semibold">{profMap[selectedBloqueio.profissionalId] ?? "Profissional"}</p>
                 <p className="text-xs text-muted-foreground mt-2 mb-1">Período</p>

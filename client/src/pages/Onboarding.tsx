@@ -13,7 +13,7 @@ import {
 
 const TIPOS_NEGOCIO = [
   { value: "salao", label: "Salão de Beleza", icon: Scissors, color: "oklch(65% 0.18 330)" },
-  { value: "barbearia", label: "Barbearia", icon: Scissors, color: "oklch(55% 0.15 260)" },
+  { value: "barbearia", label: "Barbearia", icon: Scissors, color: "oklch(55% 0.050 55)" },
   { value: "clinica", label: "Clínica", icon: Stethoscope, color: "oklch(55% 0.18 200)" },
   { value: "consultorio", label: "Consultório", icon: Stethoscope, color: "oklch(55% 0.15 160)" },
   { value: "outro", label: "Outro", icon: Store, color: "oklch(55% 0.12 80)" },
@@ -118,9 +118,9 @@ export default function Onboarding() {
     <div className="min-h-screen flex bg-background">
       {/* Painel esquerdo */}
       <div className="hidden lg:flex w-80 flex-col justify-between p-10 relative overflow-hidden flex-shrink-0"
-        style={{ background: "oklch(16% 0.018 255)" }}>
+        style={{ background: "oklch(22% 0.030 55)" }}>
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10"
-          style={{ background: "oklch(62% 0.16 225)" }} />
+          style={{ background: "oklch(78.5% 0.075 85)" }} />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full opacity-8"
           style={{ background: "oklch(62% 0.18 145)" }} />
 
@@ -134,13 +134,13 @@ export default function Onboarding() {
           </div>
 
           <div className="space-y-2 mb-10">
-            <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: "oklch(62% 0.16 225)" }}>
+            <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: "oklch(78.5% 0.075 85)" }}>
               Configuração inicial
             </p>
-            <h2 className="text-2xl font-bold leading-tight" style={{ color: "oklch(95% 0.008 240)" }}>
+            <h2 className="text-2xl font-bold leading-tight" style={{ color: "oklch(96.2% 0.012 75)" }}>
               Vamos configurar sua plataforma
             </h2>
-            <p className="text-sm leading-relaxed" style={{ color: "oklch(55% 0.025 255)" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "oklch(55% 0.050 55)" }}>
               Em poucos passos você estará pronto para receber agendamentos.
             </p>
           </div>
@@ -174,7 +174,7 @@ export default function Onboarding() {
         </div>
 
         <div className="relative">
-          <div className="flex items-center gap-2 text-xs" style={{ color: "oklch(45% 0.025 255)" }}>
+          <div className="flex items-center gap-2 text-xs" style={{ color: "oklch(45% 0.050 55)" }}>
             <Sparkles className="w-3 h-3" />
             <span>Você pode alterar tudo depois nas configurações</span>
           </div>

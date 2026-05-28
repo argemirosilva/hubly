@@ -84,7 +84,7 @@ const SECTIONS: Section[] = [
     icon: <Calendar size={20} />,
     title: "Agendamentos",
     subtitle: "Como marcar, confirmar, cancelar e acompanhar os atendimentos",
-    color: "oklch(45% 0.18 264)",
+    color: "oklch(45% 0.060 55)",
     intro: "O módulo de agendamentos é onde tudo acontece. Aqui você marca os horários dos clientes, acompanha o que está confirmado, o que foi cancelado e o que está aguardando confirmação.",
     topics: [
       {
@@ -394,7 +394,7 @@ const SECTIONS: Section[] = [
     icon: <UserCog size={20} />,
     title: "Equipe e Permissões",
     subtitle: "Controle quem pode fazer o quê no sistema",
-    color: "oklch(45% 0.18 264)",
+    color: "oklch(45% 0.060 55)",
     intro: "Aqui você gerencia toda a sua equipe: profissionais, usuários do sistema e os grupos de permissão. Cada pessoa pode ter acesso diferente — por exemplo, uma recepcionista pode criar agendamentos, mas não ver o financeiro.",
     topics: [
       {
@@ -827,7 +827,7 @@ const SECTIONS: Section[] = [
     icon: <Kanban size={20} />,
     title: "Pipeline",
     subtitle: "Acompanhe o progresso dos seus clientes em um quadro visual",
-    color: "oklch(45% 0.18 220)",
+    color: "oklch(45% 0.060 55)",
     intro: "O Pipeline é um quadro Kanban que permite acompanhar a jornada dos seus clientes em colunas personalizadas. Cada empresa tem um único pipeline, que pode ser editado mas não excluído — garantindo continuidade no acompanhamento.",
     topics: [
       {
@@ -912,7 +912,7 @@ const SECTIONS: Section[] = [
     icon: <Star size={20} />,
     title: "Assinatura e Planos",
     subtitle: "Seu plano atual e como fazer upgrade",
-    color: "oklch(45% 0.18 264)",
+    color: "oklch(45% 0.060 55)",
     intro: "O sistema tem diferentes planos com recursos e limites distintos. Você pode ver seu plano atual, acompanhar o uso e fazer upgrade quando precisar.",
     topics: [
       {
@@ -949,7 +949,7 @@ const SECTIONS: Section[] = [
     icon: <Settings size={20} />,
     title: "Configurações",
     subtitle: "Personalize o sistema para o seu negócio",
-    color: "oklch(45% 0.10 250)",
+    color: "oklch(45% 0.050 55)",
     intro: "Nas Configurações você ajusta tudo sobre o seu negócio: nome, horários, cores, link de agendamento online e muito mais.",
     topics: [
       {
@@ -1069,7 +1069,7 @@ export default function Manual() {
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: "oklch(45% 0.18 264)", color: "white" }}
+                style={{ background: "oklch(45% 0.060 55)", color: "white" }}
               >
                 <BookOpen size={16} />
               </div>

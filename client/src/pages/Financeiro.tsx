@@ -204,7 +204,7 @@ export default function Financeiro() {
         {/* Barra visual receita vs despesa */}
         {(receitasMes + despesasMes) > 0 && (
           <div className="mt-3">
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(88% 0.012 250)" }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(89.5% 0.018 80)" }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -220,7 +220,7 @@ export default function Financeiro() {
           </div>
         )}
         {/* Detalhes secundários colapsáveis */}
-        <div className="mt-3 pt-3" style={{ borderTop: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid oklch(89.5% 0.018 80)" }}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="stat-card">
               <p className={`${valueFontSize(metrics?.ticketMedio ?? 0, 'sm')} font-bold text-foreground tracking-tight break-all`}>{formatCurrency(metrics?.ticketMedio ?? 0)}</p>
@@ -244,11 +244,11 @@ export default function Financeiro() {
 
       {/* Card de resumo do período */}
       {filtradas.length > 0 && (
-        <div className="card-elegant px-5 py-4" style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 20%)" }}>
+        <div className="card-elegant px-5 py-4" style={{ background: "oklch(78.5% 0.075 85 / 6%)", border: "1px solid oklch(78.5% 0.075 85 / 20%)" }}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-medium" style={{ color: "oklch(45% 0.18 264)" }}>{labelPeriodo}</p>
-              <p className="text-2xl font-bold tracking-tight mt-0.5" style={{ color: "oklch(25% 0.12 264)" }}>
+              <p className="text-xs font-medium" style={{ color: "oklch(45% 0.060 55)" }}>{labelPeriodo}</p>
+              <p className="text-2xl font-bold tracking-tight mt-0.5" style={{ color: "oklch(28.5% 0.035 55)" }}>
                 {formatCurrency(totalGeral)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Total de comissões no período</p>
@@ -258,12 +258,12 @@ export default function Financeiro() {
                 <p className="text-base font-bold" style={{ color: "oklch(35% 0.14 155)" }}>{formatCurrency(totalPago)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Pagas</p>
               </div>
-              <div className="w-px" style={{ background: "oklch(88% 0.012 250)" }} />
+              <div className="w-px" style={{ background: "oklch(89.5% 0.018 80)" }} />
               <div className="text-center">
                 <p className="text-base font-bold" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalPendente)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Pendentes</p>
               </div>
-              <div className="w-px" style={{ background: "oklch(88% 0.012 250)" }} />
+              <div className="w-px" style={{ background: "oklch(89.5% 0.018 80)" }} />
               <div className="text-center">
                 <p className="text-base font-bold text-foreground">{filtradas.length}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Comissões</p>
@@ -273,7 +273,7 @@ export default function Financeiro() {
           {/* Barra de progresso pago/pendente */}
           {totalGeral > 0 && (
             <div className="mt-3">
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(88% 0.012 250)" }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(89.5% 0.018 80)" }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${(totalPago / totalGeral) * 100}%`, background: "oklch(62% 0.18 155)" }}
@@ -290,7 +290,7 @@ export default function Financeiro() {
       {/* Créditos em Aberto */}
       {resumoCreditos && resumoCreditos.clientesComCredito > 0 && (
         <div className="card-elegant overflow-hidden">
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="w-4 h-4" style={{ color: "oklch(38% 0.14 155)" }} />
@@ -325,7 +325,7 @@ export default function Financeiro() {
               <div key={d.clienteId} className="flex items-center justify-between px-5 py-2.5 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white"
-                    style={{ background: "oklch(55% 0.22 264)" }}>
+                    style={{ background: "oklch(78.5% 0.075 85)" }}>
                     C
                   </div>
                   <span className="text-xs font-medium text-foreground">{clienteNomeMap[d.clienteId] ?? `Cliente #${d.clienteId}`}</span>
@@ -347,7 +347,7 @@ export default function Financeiro() {
       {/* Comissões agrupadas por profissional */}
       <div className="card-elegant overflow-hidden">
         <div className="flex flex-col gap-3 px-5 py-4"
-          style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           {/* Linha 1: título + filtros de status/profissional */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -394,8 +394,8 @@ export default function Financeiro() {
                 onClick={() => aplicarPeriodo(tipo)}
                 className="text-xs px-2.5 py-1 rounded-md border transition-colors"
                 style={periodoAtivo === tipo
-                  ? { background: "oklch(55% 0.22 264 / 14%)", borderColor: "oklch(55% 0.22 264 / 50%)", color: "oklch(35% 0.18 264)" }
-                  : { background: "transparent", borderColor: "oklch(88% 0.012 250)", color: "oklch(50% 0.04 250)" }
+                  ? { background: "oklch(78.5% 0.075 85 / 14%)", borderColor: "oklch(78.5% 0.075 85 / 50%)", color: "oklch(35% 0.060 55)" }
+                  : { background: "transparent", borderColor: "oklch(89.5% 0.018 80)", color: "oklch(50% 0.040 75)" }
                 }
               >
                 {tipo === "mes" ? "Mês atual" : tipo === "mes_ant" ? "Mês anterior" : "Últimos 30 dias"}
@@ -426,7 +426,7 @@ export default function Financeiro() {
             <p className="text-sm text-muted-foreground">Nenhuma comissão encontrada</p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {grupos.map(grupo => {
               const isOpen = expandidos[grupo.profissionalId] ?? false;
               const cor = grupo.cor;
@@ -475,7 +475,7 @@ export default function Financeiro() {
 
                   {/* Detalhes expandidos: comissões individuais */}
                   {isOpen && (
-                    <div className="divide-y" style={{ background: "oklch(98.5% 0.004 250)", borderColor: "oklch(94% 0.008 250)" }}>
+                    <div className="divide-y" style={{ background: "oklch(96.2% 0.012 75)", borderColor: "oklch(94% 0.010 75)" }}>
                       {grupo.comissoes.map(c => {
                         const vServico = parseFloat(String(c.valorServico ?? 0));
                         const vTaxa = parseFloat(String(c.taxaMaquininha ?? 0));
@@ -526,7 +526,7 @@ export default function Financeiro() {
                               )}
                             </div>
                             {/* Breakdown de valores */}
-                            <div className="ml-3 rounded-lg px-3 py-2 space-y-1" style={{ background: "oklch(96% 0.006 250)", border: "1px solid oklch(91% 0.01 250)" }}>
+                            <div className="ml-3 rounded-lg px-3 py-2 space-y-1" style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
                               <div className="flex justify-between items-center">
                                 <span className="text-[10px] text-muted-foreground">Valor bruto do serviço</span>
                                 <span className="text-[10px] font-medium text-foreground">{formatCurrency(vServico)}</span>
@@ -544,12 +544,12 @@ export default function Financeiro() {
                                 </div>
                               )}
                               {temDesconto && (
-                                <div className="flex justify-between items-center pt-1" style={{ borderTop: "1px solid oklch(88% 0.01 250)" }}>
+                                <div className="flex justify-between items-center pt-1" style={{ borderTop: "1px solid oklch(89.5% 0.018 80)" }}>
                                   <span className="text-[10px] font-medium text-muted-foreground">Valor líquido</span>
                                   <span className="text-[10px] font-semibold text-foreground">{formatCurrency(vLiquido)}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between items-center pt-1" style={{ borderTop: temDesconto ? undefined : "1px solid oklch(88% 0.01 250)" }}>
+                              <div className="flex justify-between items-center pt-1" style={{ borderTop: temDesconto ? undefined : "1px solid oklch(89.5% 0.018 80)" }}>
                                 <span className="text-[10px] font-medium" style={{ color: cor }}>Comissão ({pct.toFixed(0)}%)</span>
                                 <span className="text-[10px] font-bold" style={{ color: cor }}>{formatCurrency(vComissao)}</span>
                               </div>

@@ -32,10 +32,10 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Ag
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
-  agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  agendado:           { label: "Agendado",        bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" },
   confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
-  concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  concluido:          { label: "Concluído",       bg: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(40% 0.050 55)" },
   cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   remarcado:          { label: "Remarcado",       bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
@@ -304,12 +304,12 @@ export default function Calendario() {
                 className="h-7 px-2.5 rounded-lg border text-xs font-medium transition-all shrink-0"
                 style={{
                   background: (key === "mes" && eHoje) || (key === "semana" && eHoje) || (key === "hoje" && eHoje)
-                    ? "oklch(55% 0.22 264 / 10%)"
+                    ? "oklch(78.5% 0.075 85 / 10%)"
                     : "transparent",
                   borderColor: eHoje && key === "mes"
-                    ? "oklch(55% 0.22 264 / 40%)"
-                    : "oklch(88% 0.010 250)",
-                  color: "oklch(45% 0.010 260)",
+                    ? "oklch(78.5% 0.075 85 / 40%)"
+                    : "oklch(89.5% 0.018 80)",
+                  color: "oklch(45% 0.050 55)",
                 }}
               >
                 {label}{count > 0 ? <span className="ml-1 opacity-60">· {count}</span> : null}
@@ -339,14 +339,14 @@ export default function Calendario() {
             <button
               onClick={() => setViewMode("grid")}
               className="p-2 transition-colors"
-              style={{ background: viewMode === "grid" ? "oklch(55% 0.22 264)" : "transparent" }}>
-              <LayoutGrid className="w-4 h-4" style={{ color: viewMode === "grid" ? "white" : "oklch(55% 0.010 260)" }} />
+              style={{ background: viewMode === "grid" ? "oklch(78.5% 0.075 85)" : "transparent" }}>
+              <LayoutGrid className="w-4 h-4" style={{ color: viewMode === "grid" ? "white" : "oklch(55% 0.016 55)" }} />
             </button>
             <button
               onClick={() => setViewMode("lista")}
               className="p-2 transition-colors"
-              style={{ background: viewMode === "lista" ? "oklch(55% 0.22 264)" : "transparent" }}>
-              <List className="w-4 h-4" style={{ color: viewMode === "lista" ? "white" : "oklch(55% 0.010 260)" }} />
+              style={{ background: viewMode === "lista" ? "oklch(78.5% 0.075 85)" : "transparent" }}>
+              <List className="w-4 h-4" style={{ color: viewMode === "lista" ? "white" : "oklch(55% 0.016 55)" }} />
             </button>
           </div>
 
@@ -369,7 +369,7 @@ export default function Calendario() {
       {/* ── Calendário Grid (desktop sempre, mobile quando viewMode=grid) ── */}
       <div className={`card-elegant overflow-hidden ${viewMode === "lista" ? "hidden lg:block" : ""}`}>
         {/* Cabeçalho dos dias da semana */}
-        <div className="grid grid-cols-7" style={{ borderBottom: "1px solid oklch(90% 0.012 250)", background: "oklch(97% 0.008 68)" }}>
+        <div className="grid grid-cols-7" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)", background: "oklch(97% 0.008 68)" }}>
           {DIAS_SEMANA.map((dia, i) => (
             <div key={dia} className="py-2.5 text-center"
               style={{ borderRight: i < 6 ? "1px solid oklch(92% 0.012 68)" : "none" }}>
@@ -425,7 +425,7 @@ export default function Calendario() {
                   <span
                     className="text-xs font-medium w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full transition-colors"
                     style={{
-                      background: isToday ? "oklch(55% 0.22 264)" : "transparent",
+                      background: isToday ? "oklch(78.5% 0.075 85)" : "transparent",
                       color: isToday
                         ? "white"
                         : !isCurrentMonth
@@ -548,9 +548,9 @@ export default function Calendario() {
                   <div
                     className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: isToday ? "oklch(55% 0.22 264)" : "oklch(94% 0.010 250)",
+                      background: isToday ? "oklch(78.5% 0.075 85)" : "oklch(94% 0.010 75)",
                     }}>
-                    <span className="text-sm font-bold" style={{ color: isToday ? "white" : "oklch(35% 0.018 260)" }}>
+                    <span className="text-sm font-bold" style={{ color: isToday ? "white" : "oklch(35% 0.050 55)" }}>
                       {day}
                     </span>
                   </div>
@@ -576,7 +576,7 @@ export default function Calendario() {
                       <div
                         key={`${bloco.id}-${bi}`}
                         className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
-                        style={{ background: "white", border: `1px solid ${bloco.isItemBloco ? cor + "40" : "oklch(92% 0.010 250)"}`, boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.6 : 1 }}
+                        style={{ background: "white", border: `1px solid ${bloco.isItemBloco ? cor + "40" : "oklch(94% 0.010 75)"}`, boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.6 : 1 }}
                         onClick={() => setAgendamentoSelecionado(bloco.id)}
                       >
                         {/* Barra colorida */}
@@ -596,7 +596,7 @@ export default function Calendario() {
                           <div className="flex items-center gap-1.5">
                             <p className="text-sm font-semibold truncate">{clienteMap[bloco.clienteId] ?? "Cliente"}</p>
                             {bloco.pessoasCount > 0 && (
-                              <span className="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "oklch(92% 0.04 264)", color: "oklch(40% 0.18 264)" }}>
+                              <span className="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "oklch(94% 0.010 75)", color: "oklch(40% 0.050 55)" }}>
                                 <Users className="w-2.5 h-2.5" />
                                 +{bloco.pessoasCount}
                               </span>

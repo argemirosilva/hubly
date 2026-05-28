@@ -44,10 +44,10 @@ const statusLabel: Record<string, string> = {
 
 const statusStyle: Record<string, { bg: string; color: string }> = {
   pre_agendado:       { bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
-  agendado:           { bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  agendado:           { bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" },
   confirmado:         { bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
-  concluido:          { bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  concluido:          { bg: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(40% 0.050 55)" },
   cancelado:          { bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   remarcado:          { bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
@@ -240,7 +240,7 @@ export default function Agendamentos() {
 
   const profMap = useMemo(() => {
     const m: Record<number, { nome: string; cor: string }> = {};
-    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(55% 0.22 264)" }; });
+    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(78.5% 0.075 85)" }; });
     return m;
   }, [profissionais]);
 
@@ -314,14 +314,14 @@ export default function Agendamentos() {
           onClick={() => setFiltrosAbertos(!filtrosAbertos)}
           className="lg:hidden flex items-center gap-1.5 px-3 h-10 rounded-lg border text-sm font-medium transition-colors relative"
           style={{
-            background: filtrosAtivos ? "oklch(55% 0.22 264 / 10%)" : "transparent",
-            borderColor: filtrosAtivos ? "oklch(55% 0.22 264 / 40%)" : "oklch(88% 0.010 250)",
-            color: filtrosAtivos ? "oklch(45% 0.18 264)" : "oklch(45% 0.010 260)",
+            background: filtrosAtivos ? "oklch(78.5% 0.075 85 / 10%)" : "transparent",
+            borderColor: filtrosAtivos ? "oklch(78.5% 0.075 85 / 40%)" : "oklch(89.5% 0.018 80)",
+            color: filtrosAtivos ? "oklch(45% 0.060 55)" : "oklch(45% 0.050 55)",
           }}>
           <SlidersHorizontal className="w-4 h-4" />
           {filtrosAtivos && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
-              style={{ background: "oklch(55% 0.22 264)" }} />
+              style={{ background: "oklch(78.5% 0.075 85)" }} />
           )}
         </button>
       </div>
@@ -334,9 +334,9 @@ export default function Agendamentos() {
             onClick={() => aplicarPeriodo(p)}
             className="h-9 px-3 rounded-lg border text-xs font-medium transition-all flex-1 sm:flex-none"
             style={{
-              background: periodoAtivo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
-              borderColor: periodoAtivo === p ? "oklch(55% 0.22 264 / 50%)" : "oklch(88% 0.010 250)",
-              color: periodoAtivo === p ? "oklch(45% 0.18 264)" : "oklch(45% 0.010 260)",
+              background: periodoAtivo === p ? "oklch(78.5% 0.075 85 / 12%)" : "transparent",
+              borderColor: periodoAtivo === p ? "oklch(78.5% 0.075 85 / 50%)" : "oklch(89.5% 0.018 80)",
+              color: periodoAtivo === p ? "oklch(45% 0.060 55)" : "oklch(45% 0.050 55)",
               fontWeight: periodoAtivo === p ? 600 : 400,
             }}
           >
@@ -423,8 +423,8 @@ export default function Agendamentos() {
           className="flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all"
           style={{
             background: filtroSaldoAberto ? "oklch(72% 0.16 80 / 14%)" : "transparent",
-            borderColor: filtroSaldoAberto ? "oklch(62% 0.14 75)" : "oklch(88% 0.010 250)",
-            color: filtroSaldoAberto ? "oklch(38% 0.14 75)" : "oklch(45% 0.010 260)",
+            borderColor: filtroSaldoAberto ? "oklch(62% 0.14 75)" : "oklch(89.5% 0.018 80)",
+            color: filtroSaldoAberto ? "oklch(38% 0.14 75)" : "oklch(45% 0.050 55)",
           }}>
           Com saldo em aberto
         </button>
@@ -494,14 +494,14 @@ export default function Agendamentos() {
         {filtrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
-              <Clock className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              style={{ background: "oklch(78.5% 0.075 85 / 8%)" }}>
+              <Clock className="w-5 h-5" style={{ color: "oklch(78.5% 0.075 85)" }} />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento encontrado</p>
             <p className="text-xs text-muted-foreground">Tente ajustar os filtros ou criar um novo agendamento</p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {(() => {
               const multiDia = dataInicio !== dataFim;
               let ultimaData = "";
@@ -515,7 +515,7 @@ export default function Agendamentos() {
                   const [ano, mes, dia] = ag.data.split("-");
                   const dataFormatada = new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
                   items.push(
-                    <div key={`sep-${ag.data}`} className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide" style={{ background: "oklch(97% 0.005 250)", borderBottom: "1px solid oklch(94% 0.008 250)" }}>
+                    <div key={`sep-${ag.data}`} className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide" style={{ background: "oklch(96.2% 0.012 75)", borderBottom: "1px solid oklch(94% 0.010 75)" }}>
                       {dataFormatada}
                     </div>
                   );
@@ -546,7 +546,7 @@ export default function Agendamentos() {
 
                   {/* Barra colorida do profissional (mobile) */}
                   <div className="sm:hidden w-1 h-10 rounded-full flex-shrink-0"
-                    style={{ background: prof?.cor ?? "oklch(55% 0.22 264)" }} />
+                    style={{ background: prof?.cor ?? "oklch(78.5% 0.075 85)" }} />
 
                   {/* Data e hora */}
                   <div className="text-center flex-shrink-0 w-12">

@@ -14,10 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
   pre_agendado:       { label: "Pré-agendado",    bg: "oklch(72% 0.16 80 / 14%)",  color: "oklch(42% 0.14 75)" },
-  agendado:           { label: "Agendado",        bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" },
+  agendado:           { label: "Agendado",        bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" },
   confirmado:         { label: "Confirmado",      bg: "oklch(62% 0.18 155 / 14%)", color: "oklch(35% 0.14 155)" },
   em_andamento:       { label: "Em andamento",    bg: "oklch(68% 0.18 80 / 14%)",  color: "oklch(38% 0.14 80)" },
-  concluido:          { label: "Concluído",       bg: "oklch(55% 0.04 260 / 10%)", color: "oklch(40% 0.04 260)" },
+  concluido:          { label: "Concluído",       bg: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(40% 0.050 55)" },
   cancelado:          { label: "Cancelado",       bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   faltou:             { label: "Faltou",          bg: "oklch(58% 0.22 25 / 12%)",  color: "oklch(40% 0.18 25)" },
   remarcado:          { label: "Remarcado",       bg: "oklch(68% 0.18 290 / 12%)", color: "oklch(40% 0.16 290)" },
@@ -502,7 +502,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
       <DialogContent className="max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col" showCloseButton={false}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+          style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
               <Calendar className="w-4 h-4 text-white" />
@@ -525,11 +525,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Info block */}
           <div className="rounded-xl p-4 space-y-3.5"
-            style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+            style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "oklch(55% 0.22 264 / 10%)" }}>
-                <User className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                style={{ background: "oklch(78.5% 0.075 85 / 10%)" }}>
+                <User className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />
               </div>
               <div>
                 <p className="text-sm font-semibold">{cliente?.nome ?? "—"}</p>
@@ -763,10 +763,10 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             const emAberto = Math.max(0, totalItens + taxaAdicional - desconto - totalPago);
             const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
             return (
-              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(89.5% 0.018 80)" }}>
                 {/* Header da seção */}
                 <div className="flex items-center justify-between px-4 py-2.5"
-                  style={{ background: "oklch(97% 0.006 250)", borderBottom: "1px solid oklch(91% 0.010 250)" }}>
+                  style={{ background: "oklch(96.2% 0.012 75)", borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pagamento</span>
@@ -843,7 +843,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   )}
 
                   {showAddPagamento ? (
-                    <div className="space-y-2 p-3 rounded-lg" style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+                    <div className="space-y-2 p-3 rounded-lg" style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
                       <div className="space-y-2">
                         <div>
                           <Label className="text-[10px] text-muted-foreground mb-1 block">Valor (R$) *</Label>
@@ -1130,11 +1130,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
             const jaRegistrada = !!comissaoExistente;
             return (
-              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(89.5% 0.018 80)" }}>
                 <div className="flex items-center justify-between px-4 py-2.5"
-                  style={{ background: "oklch(97% 0.006 250)", borderBottom: "1px solid oklch(91% 0.010 250)" }}>
+                  style={{ background: "oklch(96.2% 0.012 75)", borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
                   <div className="flex items-center gap-2">
-                    <Percent className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                    <Percent className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />
                     <span className="text-xs font-semibold">Comissão</span>
                     {jaRegistrada && !comissaoEditando && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
@@ -1144,7 +1144,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                     )}
                     {jaRegistrada && comissaoEditando && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                        style={{ background: "oklch(70% 0.18 264 / 14%)", color: "oklch(40% 0.18 264)" }}>
+                        style={{ background: "oklch(78.5% 0.075 85 / 14%)", color: "oklch(40% 0.050 55)" }}>
                         Editando
                       </span>
                     )}
@@ -1155,7 +1155,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                       <button
                         onClick={() => setComissaoEditando(true)}
                         className="text-[10px] px-2 py-0.5 rounded font-medium transition-colors"
-                        style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(40% 0.18 264)", border: "1px solid oklch(55% 0.22 264 / 25%)" }}
+                        style={{ background: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(40% 0.050 55)", border: "1px solid oklch(78.5% 0.075 85 / 25%)" }}
                       >
                         Editar
                       </button>
@@ -1257,8 +1257,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   )}
                   {pctAtual > 0 && (
                     <div className="rounded-lg p-2.5 space-y-1 text-xs"
-                      style={{ background: "oklch(55% 0.22 264 / 6%)", border: "1px solid oklch(55% 0.22 264 / 20%)" }}>
-                      <p className="font-semibold" style={{ color: "oklch(45% 0.18 264)" }}>Prévia do cálculo</p>
+                      style={{ background: "oklch(78.5% 0.075 85 / 6%)", border: "1px solid oklch(78.5% 0.075 85 / 20%)" }}>
+                      <p className="font-semibold" style={{ color: "oklch(45% 0.060 55)" }}>Prévia do cálculo</p>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Valor do serviço</span>
                         <span className="font-medium">{fmt(valorBase)}</span>
@@ -1286,9 +1286,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           <span>- {fmt(custoAtual)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between font-bold pt-1 border-t" style={{ borderColor: "oklch(55% 0.22 264 / 20%)" }}>
-                        <span style={{ color: "oklch(45% 0.18 264)" }}>Comissão ({pctAtual.toFixed(1)}%)</span>
-                        <span style={{ color: "oklch(45% 0.18 264)" }}>{fmt(valorComissao)}</span>
+                      <div className="flex justify-between font-bold pt-1 border-t" style={{ borderColor: "oklch(78.5% 0.075 85 / 20%)" }}>
+                        <span style={{ color: "oklch(45% 0.060 55)" }}>Comissão ({pctAtual.toFixed(1)}%)</span>
+                        <span style={{ color: "oklch(45% 0.060 55)" }}>{fmt(valorComissao)}</span>
                       </div>
                     </div>
                   )}
@@ -1330,7 +1330,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
           {ag.observacoes && (
             <div className="rounded-xl p-3.5"
-              style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
+              style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Observações</p>
               <p className="text-sm">{ag.observacoes}</p>
             </div>
@@ -1339,8 +1339,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           {/* ── Seção: Pessoas da Reserva ── */}
           {isAdmin && (
             <div className="rounded-xl overflow-hidden"
-              style={{ background: "oklch(97.5% 0.006 250)", border: "1px solid oklch(91% 0.010 250)" }}>
-              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+              style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
+              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                 <div className="flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-muted-foreground" />
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pessoas da Reserva</p>
@@ -1351,7 +1351,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                 <button
                   onClick={() => setMostrarAddPessoa(v => !v)}
                   className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
-                  style={{ color: "oklch(45% 0.18 264)", background: "oklch(55% 0.22 264 / 10%)" }}
+                  style={{ color: "oklch(45% 0.060 55)", background: "oklch(78.5% 0.075 85 / 10%)" }}
                 >
                   <UserPlus className="w-3 h-3" />
                   Adicionar
@@ -1360,7 +1360,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
               {/* Lista de pessoas */}
               {pessoasReserva.length > 0 && (
-                <div className="divide-y" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                <div className="divide-y" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                   {pessoasReserva.map((p: any) => (
                     <div key={p.id} className="flex items-center justify-between px-4 py-2.5 group hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -1414,7 +1414,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
               {/* Formulário de adicionar pessoa */}
               {mostrarAddPessoa && (
-                <div className="px-4 py-3 space-y-2.5 border-t" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                <div className="px-4 py-3 space-y-2.5 border-t" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Cliente</Label>
                     <Select value={novaClienteId} onValueChange={setNovaClienteId}>
@@ -1466,10 +1466,10 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
           {/* ── Seção: Mensagens Enviadas ── */}
           {isAdmin && mensagens.length > 0 && (
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(91% 0.010 250)" }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid oklch(89.5% 0.018 80)" }}>
               <button
                 className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-muted/30"
-                style={{ background: "oklch(97% 0.006 250)", borderBottom: mostrarMensagens ? "1px solid oklch(91% 0.010 250)" : undefined }}
+                style={{ background: "oklch(96.2% 0.012 75)", borderBottom: mostrarMensagens ? "1px solid oklch(89.5% 0.018 80)" : undefined }}
                 onClick={() => setMostrarMensagens(v => !v)}
               >
                 <div className="flex items-center gap-2">
@@ -1480,7 +1480,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                 {mostrarMensagens ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
               </button>
               {mostrarMensagens && (
-                <div className="divide-y" style={{ borderColor: "oklch(91% 0.010 250)" }}>
+                <div className="divide-y" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                   {mensagens.map((m: any) => {
                     const statusColor = m.status === 'enviado' ? 'text-green-600' : m.status === 'falhou' ? 'text-red-500' : 'text-amber-500';
                     const statusLabel = m.status === 'enviado' ? 'Enviado' : m.status === 'falhou' ? 'Falhou' : m.status === 'pendente' ? 'Pendente' : 'Agendado';
@@ -1525,7 +1525,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               <button
                 onClick={() => setEditarModal(true)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={{ background: "oklch(55% 0.22 264 / 10%)", color: "oklch(45% 0.18 264)", border: "1px solid oklch(55% 0.22 264 / 25%)" }}
+                style={{ background: "oklch(78.5% 0.075 85 / 10%)", color: "oklch(45% 0.060 55)", border: "1px solid oklch(78.5% 0.075 85 / 25%)" }}
               >
                 <Edit3 className="w-4 h-4" />
                 Editar Agendamento
@@ -1567,9 +1567,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               <ActionBtn
                 label={gerarLinkMutation.isPending ? "Gerando..." : linkCopiado ? "Copiado!" : "Link Confirm."}
                 icon={linkCopiado ? Check : Link2}
-                bg="oklch(55% 0.22 264 / 10%)"
-                color="oklch(45% 0.18 264)"
-                border="oklch(55% 0.22 264 / 25%)"
+                bg="oklch(78.5% 0.075 85 / 10%)"
+                color="oklch(45% 0.060 55)"
+                border="oklch(78.5% 0.075 85 / 25%)"
                 onClick={() => gerarLinkMutation.mutate({ agendamentoId: ag.id, origin: window.location.origin })}
                 loading={gerarLinkMutation.isPending}
               />
@@ -1578,9 +1578,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                 <ActionBtn
                   label="Concluído"
                   icon={CheckCircle2}
-                  bg="oklch(55% 0.04 260 / 8%)"
-                  color="oklch(40% 0.04 260)"
-                  border="oklch(55% 0.04 260 / 20%)"
+                  bg="oklch(78.5% 0.075 85 / 8%)"
+                  color="oklch(40% 0.050 55)"
+                  border="oklch(78.5% 0.075 85 / 20%)"
                   onClick={() => handleStatus("concluido")}
                   loading={updateMutation.isPending}
                 />
@@ -1685,7 +1685,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
           const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
           return (
             <div className="border-t px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0"
-              style={{ borderColor: "oklch(91% 0.010 250)", background: "oklch(97% 0.006 250)" }}>
+              style={{ borderColor: "oklch(89.5% 0.018 80)", background: "oklch(96.2% 0.012 75)" }}>
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-muted-foreground">Total</span>
                 <span className="font-bold">{fmt(totalItens)}</span>

@@ -19,13 +19,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 // ── Ícones por tipo ───────────────────────────────────────────────────────────
 function getNotifIcon(tipo?: string | null) {
   switch (tipo) {
-    case "agendamento":       return { icon: Calendar,      bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" };
+    case "agendamento":       return { icon: Calendar,      bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" };
     case "financeiro":        return { icon: DollarSign,    bg: "oklch(62% 0.18 155 / 12%)", color: "oklch(38% 0.14 155)" };
     case "alerta":            return { icon: AlertCircle,   bg: "oklch(72% 0.16 80 / 12%)",  color: "oklch(40% 0.14 75)"  };
     case "vencimento_proximo":return { icon: Clock,         bg: "oklch(72% 0.16 60 / 12%)",  color: "oklch(45% 0.18 55)"  };
     case "sessoes_restantes": return { icon: Package,       bg: "oklch(62% 0.18 300 / 12%)", color: "oklch(38% 0.16 300)" };
     case "pacote_vencido":    return { icon: AlertCircle,   bg: "oklch(65% 0.20 25 / 12%)",  color: "oklch(40% 0.18 25)"  };
-    default:                  return { icon: Bell,          bg: "oklch(55% 0.22 264 / 12%)", color: "oklch(45% 0.18 264)" };
+    default:                  return { icon: Bell,          bg: "oklch(78.5% 0.075 85 / 12%)", color: "oklch(45% 0.060 55)" };
   }
 }
 
@@ -223,7 +223,7 @@ export default function Notificacoes() {
           {naoLidas > 0 && (
             <button
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
-              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)", color: "oklch(45% 0.050 55)" }}
               onClick={marcarTodasLidas}
               disabled={marcarTodasSistemaMutation.isPending || marcarTodasPacotesMutation.isPending}
             >
@@ -255,8 +255,8 @@ export default function Notificacoes() {
         {lista.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
-              <Bell className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              style={{ background: "oklch(78.5% 0.075 85 / 8%)" }}>
+              <Bell className="w-5 h-5" style={{ color: "oklch(78.5% 0.075 85)" }} />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">Nenhuma notificação</p>
             <p className="text-xs text-muted-foreground mb-4">
@@ -264,7 +264,7 @@ export default function Notificacoes() {
             </p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {lista.map(n => (
               <SwipeableNotifItem
                 key={`${n.origem}-${n.id}`}
@@ -427,7 +427,7 @@ export default function Notificacoes() {
             <p className="text-sm text-muted-foreground">Informe o motivo da recusa (opcional):</p>
             <textarea
               className="w-full border rounded-lg p-2.5 text-sm resize-none focus:outline-none focus:ring-2"
-              style={{ borderColor: "oklch(88% 0.010 250)", minHeight: 80 }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)", minHeight: 80 }}
               placeholder="Ex: Período com alta demanda..."
               value={motivoRecusa}
               onChange={e => setMotivoRecusa(e.target.value)}
@@ -436,7 +436,7 @@ export default function Notificacoes() {
           <DialogFooter className="gap-2">
             <button
               className="px-4 py-2 text-sm rounded-lg border transition-colors"
-              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)", color: "oklch(45% 0.050 55)" }}
               onClick={() => { setRecusaModal(null); setMotivoRecusa(""); }}
             >
               Cancelar
@@ -458,7 +458,7 @@ export default function Notificacoes() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Clock className="w-4 h-4" style={{ color: "oklch(55% 0.18 264)" }} />
+              <Clock className="w-4 h-4" style={{ color: "oklch(78.5% 0.075 85)" }} />
               Prorrogar prazo do pré-agendamento
             </DialogTitle>
           </DialogHeader>
@@ -467,7 +467,7 @@ export default function Notificacoes() {
             <input
               type="datetime-local"
               className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{ borderColor: "oklch(88% 0.010 250)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)" }}
               value={novaDataLimite}
               onChange={e => setNovaDataLimite(e.target.value)}
               min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
@@ -476,14 +476,14 @@ export default function Notificacoes() {
           <DialogFooter className="gap-2">
             <button
               className="px-4 py-2 text-sm rounded-lg border transition-colors"
-              style={{ borderColor: "oklch(88% 0.010 250)", color: "oklch(45% 0.010 260)" }}
+              style={{ borderColor: "oklch(89.5% 0.018 80)", color: "oklch(45% 0.050 55)" }}
               onClick={() => { setProrrogarModal(null); setNovaDataLimite(""); }}
             >
               Cancelar
             </button>
             <button
               className="px-4 py-2 text-sm rounded-lg font-medium transition-colors"
-              style={{ background: "oklch(55% 0.18 264)", color: "white" }}
+              style={{ background: "oklch(78.5% 0.075 85)", color: "white" }}
               onClick={() => prorrogarModal && novaDataLimite && prorrogarPrazoMutation.mutate({
                 id: prorrogarModal.agendamentoId,
                 novaDataLimite: new Date(novaDataLimite).toISOString(),
@@ -566,7 +566,7 @@ function EnvioRapidoModal({ clienteId, clienteNome, pacoteClienteId, notificacao
         ) : (
           <div className="space-y-4">
             <div className="rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap"
-              style={{ background: "oklch(96% 0.006 250)", border: "1px solid oklch(90% 0.012 250)" }}>
+              style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>
               {preview || automacao.corpoMensagem}
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -681,7 +681,7 @@ function SwipeableNotifItem({
   if (dismissed) return null;
 
   return (
-    <div className="relative overflow-hidden" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+    <div className="relative overflow-hidden" style={{ borderColor: "oklch(94% 0.010 75)" }}>
       {/* Fundo vermelho de delete (visível no swipe) */}
       <div
         className="absolute inset-0 flex items-center justify-end pr-5 pointer-events-none"
@@ -694,7 +694,7 @@ function SwipeableNotifItem({
       <div
         className="flex items-start gap-3 px-4 py-4 cursor-pointer transition-colors relative"
         style={{
-          background: hovered ? "oklch(97% 0.006 250)" : (!n.lida ? "oklch(55% 0.22 264 / 3%)" : "transparent"),
+          background: hovered ? "oklch(96.2% 0.012 75)" : (!n.lida ? "oklch(78.5% 0.075 85 / 3%)" : "transparent"),
           transform: `translateX(${translateX}px)`,
           transition: isDragging.current ? "none" : "transform 0.25s cubic-bezier(.4,0,.2,1)",
         }}
@@ -725,7 +725,7 @@ function SwipeableNotifItem({
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <button
                 className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-                style={{ color: "oklch(55% 0.22 264)" }}
+                style={{ color: "oklch(78.5% 0.075 85)" }}
                 onClick={e => { e.stopPropagation(); if (n.clienteId) onVerCliente(n.clienteId); }}
               >
                 {n.clienteNome}
@@ -803,7 +803,7 @@ function SwipeableNotifItem({
           <XCircle className="w-4 h-4" />
         </button>
         {!n.lida && (
-          <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: "oklch(55% 0.22 264)" }} />
+          <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: "oklch(78.5% 0.075 85)" }} />
         )}
       </div>
     </div>

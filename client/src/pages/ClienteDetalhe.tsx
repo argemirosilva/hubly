@@ -336,7 +336,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
             <CardContent className="p-6">
               <div className="text-center mb-5">
                 <Avatar className="w-16 h-16 mx-auto mb-3">
-                  <AvatarFallback className="text-xl font-bold" style={{ background: "oklch(55% 0.22 264)", color: "white" }}>
+                  <AvatarFallback className="text-xl font-bold" style={{ background: "oklch(78.5% 0.075 85)", color: "white" }}>
                     {(modoEdicao ? form.nome : c.nome)?.charAt(0)?.toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
@@ -468,13 +468,13 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
               <Card className="border-border shadow-none">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}>
-                      <Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}>
+                      <Brain className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />
                     </div>
                     <h3 className="font-semibold text-sm">Análise IA</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto" style={{
-                      color: (analiseIA as any).classificacao === 'risco' ? 'oklch(40% 0.18 25)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(42% 0.14 75)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(40% 0.06 250)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(38% 0.14 155)' : 'oklch(45% 0.18 264)',
-                      background: (analiseIA as any).classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(60% 0.04 250 / 12%)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(55% 0.22 264 / 12%)'
+                      color: (analiseIA as any).classificacao === 'risco' ? 'oklch(40% 0.18 25)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(42% 0.14 75)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(40% 0.050 55)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(38% 0.14 155)' : 'oklch(45% 0.060 55)',
+                      background: (analiseIA as any).classificacao === 'risco' ? 'oklch(55% 0.22 25 / 12%)' : (analiseIA as any).classificacao === 'atraso_frequente' ? 'oklch(65% 0.20 75 / 12%)' : (analiseIA as any).classificacao === 'inativo' ? 'oklch(60% 0.040 75 / 12%)' : (analiseIA as any).classificacao === 'principal' ? 'oklch(55% 0.18 155 / 12%)' : 'oklch(78.5% 0.075 85 / 12%)'
                     }}>
                       {{
                         principal: '⭐ Principal',
@@ -540,7 +540,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                               <div className="flex items-center gap-1.5">
                                 <p className="text-sm font-medium">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}</p>
                                 {(ag as any).isVinculado && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "oklch(92% 0.04 264)", color: "oklch(40% 0.18 264)" }}>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "oklch(94% 0.010 75)", color: "oklch(40% 0.050 55)" }}>
                                     convidada
                                   </span>
                                 )}
@@ -1424,7 +1424,7 @@ function calcularScore(agendamentos: any[], cliente: any) {
   let color: string;
   let icon: any;
   if (score >= 80) { label = "Excelente"; color = "oklch(50% 0.16 155)"; icon = Star; }
-  else if (score >= 60) { label = "Bom"; color = "oklch(55% 0.22 264)"; icon = TrendingUp; }
+  else if (score >= 60) { label = "Bom"; color = "oklch(78.5% 0.075 85)"; icon = TrendingUp; }
   else if (score >= 40) { label = "Regular"; color = "oklch(60% 0.20 75)"; icon = Activity; }
   else if (score >= 20) { label = "Baixo"; color = "oklch(55% 0.18 30)"; icon = TrendingDown; }
   else { label = "Crítico"; color = "oklch(50% 0.22 25)"; icon = Ban; }
@@ -1445,7 +1445,7 @@ function ScoreRing({ score, color, size = 80 }: { score: number; color: string; 
   const offset = circ - (score / 100) * circ;
   return (
     <svg width={size} height={size} className="transform -rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(92% 0.005 250)" strokeWidth={6} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(94% 0.010 75)" strokeWidth={6} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={6}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         className="transition-all duration-700" />

@@ -8,7 +8,7 @@ import {
 // ─── Mapeamento de palavras-chave → ícone ─────────────────────────────────────
 const KEYWORD_MAP: Array<{ keywords: string[]; icon: LucideIcon; color: string }> = [
   // Cabelo
-  { keywords: ["cabelo", "corte", "escova", "tintura", "coloração", "mechas", "luzes", "progressiva", "relaxamento", "permanente", "hidratação capilar", "queratina", "penteado", "tranças", "dreadlock"], icon: Scissors, color: "oklch(55% 0.22 264)" },
+  { keywords: ["cabelo", "corte", "escova", "tintura", "coloração", "mechas", "luzes", "progressiva", "relaxamento", "permanente", "hidratação capilar", "queratina", "penteado", "tranças", "dreadlock"], icon: Scissors, color: "oklch(78.5% 0.075 85)" },
   // Unhas
   { keywords: ["unhas", "manicure", "pedicure", "gel", "acrigel", "fibra", "nail", "cutícula", "esmalt", "alongamento de unhas"], icon: Sparkles, color: "oklch(62% 0.18 320)" },
   // Pele / Estética facial
@@ -22,9 +22,9 @@ const KEYWORD_MAP: Array<{ keywords: string[]; icon: LucideIcon; color: string }
   // Maquiagem
   { keywords: ["maquiagem", "make", "noiva", "social", "artística", "airbrush"], icon: Palette, color: "oklch(62% 0.18 340)" },
   // Tratamentos capilares
-  { keywords: ["tratamento", "reconstrução", "nutrição", "cauterização", "botox capilar", "olaplex"], icon: Droplets, color: "oklch(55% 0.22 220)" },
+  { keywords: ["tratamento", "reconstrução", "nutrição", "cauterização", "botox capilar", "olaplex"], icon: Droplets, color: "oklch(78.5% 0.075 85)" },
   // Barba / Barbearia
-  { keywords: ["barba", "bigode", "navalha", "barbearia", "degradê", "fade", "navalhado"], icon: Brush, color: "oklch(45% 0.12 260)" },
+  { keywords: ["barba", "bigode", "navalha", "barbearia", "degradê", "fade", "navalhado"], icon: Brush, color: "oklch(45% 0.050 55)" },
   // Estética corporal
   { keywords: ["criolipólise", "radiofrequência", "ultrassom", "lipocavitação", "endermologia", "vacuoterapia", "eletroestimulação"], icon: Activity, color: "oklch(55% 0.22 155)" },
   // Saúde / Médico
@@ -42,15 +42,15 @@ const KEYWORD_MAP: Array<{ keywords: string[]; icon: LucideIcon; color: string }
   // Casamento / Noiva
   { keywords: ["noiva", "casamento", "debutante", "formatura", "festa"], icon: Crown, color: "oklch(72% 0.16 60)" },
   // Joias / Piercing
-  { keywords: ["piercing", "tatuagem", "tattoo", "brinco", "joia"], icon: Gem, color: "oklch(55% 0.22 264)" },
+  { keywords: ["piercing", "tatuagem", "tattoo", "brinco", "joia"], icon: Gem, color: "oklch(78.5% 0.075 85)" },
   // Fotografia
-  { keywords: ["foto", "ensaio", "book", "fotografia"], icon: Camera, color: "oklch(45% 0.12 260)" },
+  { keywords: ["foto", "ensaio", "book", "fotografia"], icon: Camera, color: "oklch(45% 0.050 55)" },
   // Moda / Styling
   { keywords: ["styling", "consultoria de imagem", "roupa", "look", "moda"], icon: Shirt, color: "oklch(62% 0.18 320)" },
 ];
 
 // ─── Ícone padrão ─────────────────────────────────────────────────────────────
-const DEFAULT_ICON = { icon: Star, color: "oklch(55% 0.22 264)" };
+const DEFAULT_ICON = { icon: Star, color: "oklch(78.5% 0.075 85)" };
 
 // ─── Função principal ─────────────────────────────────────────────────────────
 export function getServiceIcon(serviceName: string): { icon: LucideIcon; color: string } {
@@ -100,16 +100,16 @@ export function ServiceIcon({ serviceName, size = "md", showBackground = true, c
 
 // ─── Mapeamento de categorias pré-definidas para o formulário ─────────────────
 export const SERVICE_CATEGORIES = [
-  { value: "cabelo", label: "Cabelo", icon: Scissors, color: "oklch(55% 0.22 264)" },
+  { value: "cabelo", label: "Cabelo", icon: Scissors, color: "oklch(78.5% 0.075 85)" },
   { value: "unhas", label: "Unhas", icon: Sparkles, color: "oklch(62% 0.18 320)" },
   { value: "estetica_facial", label: "Estética Facial", icon: Sun, color: "oklch(72% 0.16 60)" },
   { value: "depilacao", label: "Depilação", icon: Zap, color: "oklch(72% 0.16 80)" },
   { value: "massagem", label: "Massagem / Corpo", icon: Waves, color: "oklch(62% 0.18 200)" },
   { value: "sobrancelha", label: "Sobrancelha / Cílios", icon: Eye, color: "oklch(55% 0.22 30)" },
   { value: "maquiagem", label: "Maquiagem", icon: Palette, color: "oklch(62% 0.18 340)" },
-  { value: "barba", label: "Barba / Barbearia", icon: Brush, color: "oklch(45% 0.12 260)" },
+  { value: "barba", label: "Barba / Barbearia", icon: Brush, color: "oklch(45% 0.050 55)" },
   { value: "estetica_corporal", label: "Estética Corporal", icon: Activity, color: "oklch(55% 0.22 155)" },
   { value: "saude", label: "Saúde / Clínica", icon: Stethoscope, color: "oklch(55% 0.22 180)" },
   { value: "fitness", label: "Fitness / Personal", icon: Dumbbell, color: "oklch(62% 0.18 140)" },
-  { value: "outro", label: "Outro", icon: Star, color: "oklch(55% 0.22 264)" },
+  { value: "outro", label: "Outro", icon: Star, color: "oklch(78.5% 0.075 85)" },
 ] as const;

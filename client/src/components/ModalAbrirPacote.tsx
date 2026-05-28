@@ -238,7 +238,7 @@ export default function ModalAbrirPacote({
                   <div
                     ref={clienteDropdownRef}
                     className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden"
-                    style={{ borderColor: "oklch(92% 0.01 250)" }}
+                    style={{ borderColor: "oklch(89.5% 0.018 80)" }}
                   >
                     {clientesFiltrados.map((c: any) => (
                       <button
@@ -261,7 +261,7 @@ export default function ModalAbrirPacote({
                   <div
                     ref={clienteDropdownRef}
                     className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-lg px-4 py-3 text-sm text-muted-foreground"
-                    style={{ borderColor: "oklch(92% 0.01 250)" }}
+                    style={{ borderColor: "oklch(89.5% 0.018 80)" }}
                   >
                     Nenhum cliente encontrado
                   </div>

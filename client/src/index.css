@@ -247,7 +247,7 @@
   .badge-confirmado { background: oklch(62% 0.18 155 / 12%); color: oklch(35% 0.14 155); }
   .badge-pendente   { background: oklch(78.5% 0.075 85 / 15%);  color: oklch(45% 0.060 85); }
   .badge-faltou     { background: oklch(58% 0.22 25 / 12%);  color: oklch(38% 0.18 25); }
-  .badge-cancelado  { background: oklch(55% 0.04 260 / 10%); color: oklch(40% 0.04 260); }
+  .badge-cancelado  { background: oklch(78.5% 0.075 85 / 10%); color: oklch(40% 0.050 55); }
 
   /* ── Sidebar item */
   .sidebar-item {

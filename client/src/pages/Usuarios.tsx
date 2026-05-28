@@ -18,7 +18,7 @@ import {
 // ─── Mapa completo de permissões por módulo ───────────────────────────────────
 const PERMISSION_GROUPS = [
   {
-    key: "agendamentos", label: "Agendamentos", icon: CalendarDays, color: "oklch(55% 0.22 264)",
+    key: "agendamentos", label: "Agendamentos", icon: CalendarDays, color: "oklch(78.5% 0.075 85)",
     items: [
       { key: "agendamentosVer", label: "Visualizar agendamentos" },
       { key: "agendamentosVerTodos", label: "Ver agendamentos de todos os profissionais" },
@@ -93,7 +93,7 @@ const PERMISSION_GROUPS = [
     ],
   },
   {
-    key: "relatorios", label: "Relatórios e Dashboard", icon: BarChart3, color: "oklch(55% 0.22 220)",
+    key: "relatorios", label: "Relatórios e Dashboard", icon: BarChart3, color: "oklch(78.5% 0.075 85)",
     items: [
       { key: "dashboardVer", label: "Acessar dashboard" },
       { key: "dashboardVerMetricas", label: "Ver métricas do dashboard" },
@@ -102,7 +102,7 @@ const PERMISSION_GROUPS = [
     ],
   },
   {
-    key: "sistema", label: "Sistema e Usuários", icon: Settings2, color: "oklch(45% 0.12 260)",
+    key: "sistema", label: "Sistema e Usuários", icon: Settings2, color: "oklch(45% 0.050 55)",
     items: [
       { key: "notificacoesVer", label: "Receber notificações" },
       { key: "configuracoesVer", label: "Ver configurações" },
@@ -207,7 +207,7 @@ function PermissoesEditor({ grupoId, permissoes, onClose }: {
                 </div>
               </div>
               {expanded && (
-                <div className="divide-y divide-border/50" style={{ background: "oklch(98.5% 0.003 264)" }}>
+                <div className="divide-y divide-border/50" style={{ background: "oklch(96.2% 0.012 75)" }}>
                   {group.items.map((item) => (
                     <div key={item.key} className="flex items-center justify-between px-4 py-2.5 hover:bg-accent/20 transition-colors">
                       <label htmlFor={item.key} className="text-sm text-foreground cursor-pointer flex-1 pr-4">{item.label}</label>
@@ -328,7 +328,7 @@ function UsuarioModal({ user, grupos, onClose, onSave }: {
               ))}
             </select>
           </div>
-          <div className="rounded-lg p-3 text-xs" style={{ background: "oklch(96% 0.01 264)", color: "oklch(40% 0.08 264)" }}>
+          <div className="rounded-lg p-3 text-xs" style={{ background: "oklch(96.2% 0.012 75)", color: "oklch(40% 0.060 55)" }}>
             <p className="font-medium mb-1">Como funciona o acesso</p>
             <p>O usuário acessa com e-mail e senha. As permissões são definidas pelo grupo atribuído. Sem grupo, o acesso é mínimo.</p>
           </div>
@@ -428,7 +428,7 @@ export default function Usuarios() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Total de usuários", value: systemUsers.length, icon: Users, color: "oklch(55% 0.22 264)" },
+          { label: "Total de usuários", value: systemUsers.length, icon: Users, color: "oklch(78.5% 0.075 85)" },
           { label: "Usuários ativos", value: systemUsers.filter((u: any) => u.ativo).length, icon: CheckCircle2, color: "oklch(55% 0.22 155)" },
           { label: "Grupos criados", value: grupos.length, icon: Shield, color: "oklch(62% 0.18 60)" },
         ].map((stat) => {
@@ -487,7 +487,7 @@ export default function Usuarios() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0"
-                            style={{ background: u.grupoCor ? `${u.grupoCor}20` : "oklch(93% 0.04 264)", color: u.grupoCor ?? "oklch(45% 0.15 264)" }}>
+                            style={{ background: u.grupoCor ? `${u.grupoCor}20` : "oklch(94% 0.010 75)", color: u.grupoCor ?? "oklch(45% 0.060 55)" }}>
                             {u.nome?.charAt(0).toUpperCase() ?? "?"}
                           </div>
                           <div>
@@ -632,7 +632,7 @@ export default function Usuarios() {
                 ))}
               </div>
             </div>
-            <div className="rounded-lg p-3 text-xs" style={{ background: "oklch(96% 0.01 264)", color: "oklch(40% 0.08 264)" }}>
+            <div className="rounded-lg p-3 text-xs" style={{ background: "oklch(96.2% 0.012 75)", color: "oklch(40% 0.060 55)" }}>
               Após criar o grupo, você poderá definir as permissões detalhadas clicando em "Editar permissões".
             </div>
             <div className="flex gap-3 pt-2">

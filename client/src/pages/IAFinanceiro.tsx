@@ -97,8 +97,8 @@ export default function IAFinanceiro() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}>
-            <Brain className="w-5 h-5" style={{ color: "oklch(45% 0.18 264)" }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}>
+            <Brain className="w-5 h-5" style={{ color: "oklch(45% 0.060 55)" }} />
           </div>
           <div>
             <h1 className="font-bold text-xl tracking-tight">IA Financeira</h1>
@@ -165,7 +165,7 @@ export default function IAFinanceiro() {
 
       {/* Alertas */}
       <div className="card-elegant overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-semibold text-sm">Alertas Proativos</h3>
@@ -192,7 +192,7 @@ export default function IAFinanceiro() {
                   <p className="text-sm font-medium">{alerta.titulo}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{alerta.mensagem}</p>
                   {alerta.acao && (
-                    <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.18 264)" }}>
+                    <p className="text-xs mt-1 font-medium" style={{ color: "oklch(45% 0.060 55)" }}>
                        {alerta.acao}
                     </p>
                   )}
@@ -210,16 +210,16 @@ export default function IAFinanceiro() {
 
       {/* Chat */}
       <div className="card-elegant overflow-hidden flex flex-col" style={{ height: "420px" }}>
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(90% 0.012 250)" }}>
-          <Bot className="w-4 h-4" style={{ color: "oklch(45% 0.18 264)" }} />
+        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
+          <Bot className="w-4 h-4" style={{ color: "oklch(45% 0.060 55)" }} />
           <h3 className="font-semibold text-sm">Assistente Financeiro</h3>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {chatMsgs.map((msg, i) => (
             <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${msg.role === "user" ? "bg-primary" : ""}`}
-                style={msg.role === "assistant" ? { background: "oklch(45% 0.18 264 / 12%)" } : {}}>
-                {msg.role === "user" ? <User className="w-3.5 h-3.5 text-primary-foreground" /> : <Bot className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />}
+                style={msg.role === "assistant" ? { background: "oklch(78.5% 0.075 85 / 12%)" } : {}}>
+                {msg.role === "user" ? <User className="w-3.5 h-3.5 text-primary-foreground" /> : <Bot className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />}
               </div>
               <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted rounded-tl-sm"}`}>
                 {msg.content}
@@ -228,8 +228,8 @@ export default function IAFinanceiro() {
           ))}
           {sendingMsg && (
             <div className="flex gap-2">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "oklch(45% 0.18 264 / 12%)" }}>
-                <Bot className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.18 264)" }} />
+              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "oklch(78.5% 0.075 85 / 12%)" }}>
+                <Bot className="w-3.5 h-3.5" style={{ color: "oklch(45% 0.060 55)" }} />
               </div>
               <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-2.5 flex gap-1 items-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -240,7 +240,7 @@ export default function IAFinanceiro() {
           )}
           <div ref={chatEndRef} />
         </div>
-        <div className="p-3 flex gap-2" style={{ borderTop: "1px solid oklch(90% 0.012 250)" }}>
+        <div className="p-3 flex gap-2" style={{ borderTop: "1px solid oklch(89.5% 0.018 80)" }}>
           <input
             className="flex-1 bg-muted rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Pergunte sobre seu financeiro..."

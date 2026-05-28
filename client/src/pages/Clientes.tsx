@@ -234,7 +234,7 @@ export default function Clientes() {
       {/* Cards de métricas — compactos no mobile */}
       <div className="grid grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4">
         {[
-          { label: "Ativos", value: String(metricas.ativos), icon: UserCheck, color: "oklch(55% 0.22 264)" },
+          { label: "Ativos", value: String(metricas.ativos), icon: UserCheck, color: "oklch(78.5% 0.075 85)" },
           { label: "Receita", value: formatCurrency(metricas.totalReceita), icon: DollarSign, color: "oklch(50% 0.16 155)" },
           { label: "Ticket médio", value: formatCurrency(metricas.ticketMedio), icon: TrendingUp, color: "oklch(60% 0.20 30)" },
           { label: "Atendimentos", value: String(metricas.totalAtendimentos), icon: Calendar, color: "oklch(55% 0.18 270)" },
@@ -267,7 +267,7 @@ export default function Clientes() {
           <div className="flex items-center justify-between mb-2">
             <p className="text-[11px] font-medium text-muted-foreground">Frequência de atendimentos</p>
           </div>
-          <MiniBarChart data={metricas.atendDistrib} color="oklch(55% 0.22 264)" />
+          <MiniBarChart data={metricas.atendDistrib} color="oklch(78.5% 0.075 85)" />
           <div className="flex justify-between mt-1">
             <span className="text-[9px] text-muted-foreground">0</span>
             <span className="text-[9px] text-muted-foreground">1-2</span>
@@ -299,8 +299,8 @@ export default function Clientes() {
         {clientes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: "oklch(55% 0.22 264 / 8%)" }}>
-              <Users className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} />
+              style={{ background: "oklch(78.5% 0.075 85 / 8%)" }}>
+              <Users className="w-5 h-5" style={{ color: "oklch(78.5% 0.075 85)" }} />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">
               {busca ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
@@ -315,14 +315,14 @@ export default function Clientes() {
             )}
           </div>
         ) : (
-          <div className="overflow-y-auto flex-1 divide-y" style={{ borderColor: "oklch(94% 0.008 250)" }}>
+          <div className="overflow-y-auto flex-1 divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {clientes.map(c => {
               const inativo = !c.ativo;
               return (
                 <div key={c.id} className={`flex items-center gap-3 px-4 py-3 transition-colors group ${inativo ? "opacity-50" : "hover:bg-muted/30"}`}>
                   {/* Avatar */}
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold text-white ${inativo ? "bg-muted-foreground/40" : ""}`}
-                    style={!inativo ? { background: "oklch(55% 0.22 264)" } : {}}>
+                    style={!inativo ? { background: "oklch(78.5% 0.075 85)" } : {}}>
                     {c.nome.charAt(0).toUpperCase()}
                   </div>
 

@@ -191,7 +191,7 @@ export function SupportChat() {
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3 shrink-0"
-            style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+            style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
           >
             <div className="flex items-center gap-2">
               {(tab === "novo_chamado" || tab === "detalhe_chamado") && (
@@ -270,7 +270,7 @@ export function SupportChat() {
                       style={{
                         background: msg.role === "user"
                           ? "oklch(62% 0.18 145)"
-                          : "oklch(32% 0.12 255)",
+                          : "oklch(28.5% 0.035 55)",
                       }}
                     >
                       {msg.role === "user" ? <User size={13} /> : <Bot size={13} />}
@@ -279,7 +279,7 @@ export function SupportChat() {
                       className="max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
                       style={{
                         background: msg.role === "user"
-                          ? "oklch(32% 0.12 255)"
+                          ? "oklch(28.5% 0.035 55)"
                           : "var(--muted)",
                         color: msg.role === "user" ? "white" : "var(--foreground)",
                         borderBottomRightRadius: msg.role === "user" ? "4px" : undefined,
@@ -295,7 +295,7 @@ export function SupportChat() {
                   <div className="flex gap-2 items-center">
                     <div
                       className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white"
-                      style={{ background: "oklch(32% 0.12 255)" }}
+                      style={{ background: "oklch(28.5% 0.035 55)" }}
                     >
                       <Bot size={13} />
                     </div>
@@ -358,7 +358,7 @@ export function SupportChat() {
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || chatMutation.isPending}
                   className="shrink-0"
-                  style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                  style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                 >
                   <Send size={15} />
                 </Button>
@@ -404,7 +404,7 @@ export function SupportChat() {
                 <Button
                   className="w-full"
                   onClick={() => setTab("novo_chamado")}
-                  style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                  style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                 >
                   <TicketPlus size={15} className="mr-2" /> Abrir novo chamado
                 </Button>
@@ -468,7 +468,7 @@ export function SupportChat() {
                       prioridade: novoChamadoPrioridade,
                     })
                   }
-                  style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                  style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                 >
                   {abrirChamadoMutation.isPending ? (
                     <Loader2 size={15} className="animate-spin mr-2" />
@@ -515,7 +515,7 @@ export function SupportChat() {
                           ? "oklch(62% 0.18 145)"
                           : m.autorTipo === "ia"
                           ? "oklch(55% 0.15 300)"
-                          : "oklch(32% 0.12 255)",
+                          : "oklch(28.5% 0.035 55)",
                       }}
                     >
                       {m.autorTipo === "cliente" ? <User size={13} /> : <Bot size={13} />}
@@ -528,7 +528,7 @@ export function SupportChat() {
                         className="rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
                         style={{
                           background: m.autorTipo === "cliente"
-                            ? "oklch(32% 0.12 255)"
+                            ? "oklch(28.5% 0.035 55)"
                             : "var(--muted)",
                           color: m.autorTipo === "cliente" ? "white" : "var(--foreground)",
                           borderBottomRightRadius: m.autorTipo === "cliente" ? "4px" : undefined,
@@ -583,7 +583,7 @@ export function SupportChat() {
                                 comentario: avaliacaoComentario || undefined,
                               })
                             }
-                            style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                            style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                           >
                             {avaliarMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
                             Enviar avaliação
@@ -625,7 +625,7 @@ export function SupportChat() {
                     }}
                     disabled={!respostaMsg.trim() || responderMutation.isPending}
                     className="shrink-0"
-                    style={{ background: "oklch(32% 0.12 255)", color: "white" }}
+                    style={{ background: "oklch(28.5% 0.035 55)", color: "white" }}
                   >
                     {responderMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={15} />}
                   </Button>
