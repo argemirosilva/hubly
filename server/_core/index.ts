@@ -16,6 +16,7 @@ import { registerStripeWebhook } from "../stripe-webhook";
 import { waManager } from "../whatsapp";
 import { registerConfirmacaoRoute } from "../confirmacao";
 import { registerZapiWebhook } from "../zapi-webhook";
+import { trialReminderHandler } from "../trial-reminder";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -56,6 +57,8 @@ async function startServer() {
   registerConfirmacaoRoute(app);
   // Webhook Z-API — status de entrega/leitura de mensagens
   registerZapiWebhook(app);
+  // Cron: lembrete diário de trial para donos sem cartão cadastrado
+  app.post("/api/scheduled/trial-reminder", trialReminderHandler);
   // tRPC API
   app.use(
     "/api/trpc",
