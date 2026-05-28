@@ -306,7 +306,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(22% 0.030 55)" }}>
         <div className="flex flex-col items-center gap-4">
           <img
-            src="/manus-storage/hubly-logo-white_b68a2476.png"
+            src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
             alt="Hubly"
             className="h-48 w-auto object-contain animate-pulse"
             style={{}}
@@ -335,7 +335,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
+                src="/manus-storage/hubly-logo-bold-dark_3f889242.png"
                 alt="Hubly"
                 className="w-auto object-contain"
                 style={{height: '115px', marginLeft: '-40px'}}
@@ -371,7 +371,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
+                src="/manus-storage/hubly-logo-bold-dark_3f889242.png"
                 alt="Hubly"
                 className="h-24 w-auto object-contain"
                 style={{}}
@@ -564,7 +564,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
             <img
-              src="/manus-storage/hubly-logo-white_b68a2476.png"
+              src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
               alt="Hubly"
               className="h-16 w-auto object-contain"
               style={{}}

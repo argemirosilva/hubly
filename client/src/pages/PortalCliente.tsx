@@ -1238,8 +1238,8 @@ export default function PortalCliente() {
   );
 }
 
-const HUBLY_LOGO_COMPLETO = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png";
-const HUBLY_LOGO_TRANSPARENTE = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png";
+const HUBLY_LOGO_COMPLETO = "/manus-storage/hubly-logo-bold-dark_3f889242.png";
+const HUBLY_LOGO_TRANSPARENTE = "/manus-storage/hubly-logo-bold-dark_3f889242.png";
 
 function HublyFooter() {
   return (
@@ -1305,7 +1305,7 @@ function PortalHeader({ empresa, corPrimaria }: {
             {empresa.logoUrl ? (
               <img 
                 ref={imgRef}
-                src={empresa.logoUrl || "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"} 
+                src={empresa.logoUrl || "/manus-storage/hubly-logo-bold-dark_3f889242.png"} 
                 alt={empresa.nome}
                 className="h-9 w-auto object-contain rounded-lg"
                 style={{ 

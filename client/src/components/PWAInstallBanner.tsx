@@ -71,10 +71,9 @@ export function PWAInstallBanner() {
         <div className="px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, oklch(32% 0.12 255), oklch(62% 0.16 225))" }}>
           <div className="flex items-center gap-2">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+              src="/manus-storage/hubly-favicon-source_ba613b6a.png"
               alt="Hubly"
-              className="w-8 h-8 rounded-xl object-contain bg-white/20 p-1"
-              style={{ filter: "brightness(0) invert(1)" }}
+              className="w-8 h-8 rounded-xl object-contain"
             />
             <span className="text-white font-semibold text-sm">Instalar Hubly</span>
           </div>

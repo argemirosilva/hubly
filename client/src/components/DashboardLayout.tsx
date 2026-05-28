@@ -37,7 +37,7 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
-const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png";
+const LOGO_URL = "/manus-storage/hubly-logo-bold-dark_3f889242.png";
 
 export default function DashboardLayout({
   children,
