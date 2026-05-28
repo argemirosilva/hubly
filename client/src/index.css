@@ -43,62 +43,62 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Paleta: Hubly Warm (Marrom #6d412a, Bege #c1a37f, Creme #f5f5dc, Dourado #dec480) ─── */
+/* ─── Paleta: Hubly Premium (Creme #F8F2EA, Ouro #D6B98A, Marrom Escuro #3B2F26, Bege #E7DED0) ─── */
 :root {
   --radius: 0.5rem;
 
-  /* Foreground — Marrom escuro (#2D1810) */
-  --foreground:                   oklch(18% 0.050 40);
-  --foreground:         oklch(22% 0.040 50);
+  /* Foreground — Marrom escuro premium (#3B2F26) */
+  --foreground:                   oklch(20% 0.045 45);
+  --foreground:         oklch(20% 0.045 45);
 
-  /* Cards — branco levemente quente */
-  --card:               oklch(99% 0.006 85);
-  --card-foreground:    oklch(22% 0.040 50);
+  /* Cards — creme claro premium (#F8F2EA) */
+  --card:               oklch(98% 0.008 85);
+  --card-foreground:    oklch(20% 0.045 45);
 
-  --popover:            oklch(99% 0.006 85);
-  --popover-foreground: oklch(22% 0.040 50);
+  --popover:            oklch(98% 0.008 85);
+  --popover-foreground: oklch(20% 0.045 45);
 
-  /* Primary — Marrom escuro (#6d412a) */
-  --primary:            oklch(36% 0.085 50);
-  --primary-foreground: oklch(100% 0 0);
+  /* Primary — Marrom escuro premium (#3B2F26) */
+  --primary:            oklch(20% 0.045 45);
+  --primary-foreground: oklch(98% 0.008 85);
 
-  /* Secondary — Bege (#c1a37f) */
-  --secondary:          oklch(72% 0.065 65);
-  --secondary-foreground: oklch(22% 0.040 50);
+  /* Secondary — Bege/Areia (#E7DED0) */
+  --secondary:          oklch(88% 0.015 80);
+  --secondary-foreground: oklch(20% 0.045 45);
 
   /* Muted — creme suave */
-  --muted:              oklch(94% 0.016 80);
-  --muted-foreground:   oklch(52% 0.030 60);
+  --muted:              oklch(95% 0.010 85);
+  --muted-foreground:   oklch(55% 0.025 60);
 
-  /* Accent — Dourado (#dec480) */
-  --accent:             oklch(82% 0.090 80);
-  --accent-foreground:  oklch(22% 0.040 50);
+  /* Accent — Ouro suave (#D6B98A) */
+  --accent:             oklch(75% 0.075 75);
+  --accent-foreground:  oklch(20% 0.045 45);
 
   /* Destructive */
   --destructive:        oklch(55% 0.22 25);
-  --destructive-foreground: oklch(100% 0 0);
+  --destructive-foreground: oklch(98% 0.008 85);
 
   /* Borders & inputs */
-  --border:             oklch(88% 0.022 75);
-  --input:              oklch(88% 0.022 75);
-  --ring:               oklch(36% 0.085 50 / 35%);
+  --border:             oklch(90% 0.012 80);
+  --input:              oklch(90% 0.012 80);
+  --ring:               oklch(75% 0.075 75 / 30%);
 
   /* Charts */
-  --chart-1:            oklch(36% 0.085 50);
-  --chart-2:            oklch(72% 0.065 65);
-  --chart-3:            oklch(82% 0.090 80);
-  --chart-4:            oklch(58% 0.055 55);
-  --chart-5:            oklch(48% 0.070 45);
+  --chart-1:            oklch(20% 0.045 45);
+  --chart-2:            oklch(75% 0.075 75);
+  --chart-3:            oklch(88% 0.015 80);
+  --chart-4:            oklch(60% 0.050 55);
+  --chart-5:            oklch(50% 0.060 50);
 
-  /* Sidebar — Café Espresso (#231B10) */
-  --sidebar:                      oklch(12% 0.020 45);
-  --sidebar-foreground:           oklch(82% 0.090 70);
-  --sidebar-primary:              oklch(60% 0.100 55);
-  --sidebar-primary-foreground:   oklch(22.8% 0.029 84);
-  --sidebar-accent:               oklch(60% 0.100 55);
-  --sidebar-accent-foreground:    oklch(22.8% 0.029 84);
-  --sidebar-border:               oklch(32% 0.040 50);
-  --sidebar-ring:                 oklch(60% 0.100 55);
+  /* Sidebar — Café Espresso Premium (#231B10) */
+  --sidebar:                      oklch(11% 0.018 40);
+  --sidebar-foreground:           oklch(85% 0.080 75);
+  --sidebar-primary:              oklch(75% 0.075 75);
+  --sidebar-primary-foreground:   oklch(11% 0.018 40);
+  --sidebar-accent:               oklch(75% 0.075 75);
+  --sidebar-accent-foreground:    oklch(11% 0.018 40);
+  --sidebar-border:               oklch(28% 0.035 45);
+  --sidebar-ring:                 oklch(75% 0.075 75);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
@@ -114,17 +114,19 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    font-family: 'Poppins', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     font-size: 14px;
+    font-weight: 300;
     line-height: 1.6;
+    letter-spacing: 0.3px;
   }
 
   h1, h2, h3 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-family: 'Poppins', system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.5px;
     line-height: 1.2;
-    color: oklch(22% 0.040 50);
+    color: oklch(20% 0.045 45);
   }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
@@ -132,8 +134,8 @@
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: oklch(72% 0.040 65); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(58% 0.055 55); }
+  ::-webkit-scrollbar-thumb { background: oklch(75% 0.075 75); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(60% 0.050 55); }
 
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -177,7 +179,7 @@
     }
   }
   .stat-card:hover {
-    box-shadow: 0 4px 24px oklch(55% 0.22 264 / 8%);
+    box-shadow: 0 4px 24px oklch(75% 0.075 75 / 12%);
     transform: translateY(-2px);
   }
 
@@ -186,11 +188,11 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    box-shadow: 0 1px 3px oklch(0% 0 0 / 4%);
+    box-shadow: 0 2px 8px oklch(0% 0 0 / 3%);
     transition: box-shadow 0.2s ease;
   }
   .card-elegant:hover {
-    box-shadow: 0 4px 20px oklch(0% 0 0 / 8%);
+    box-shadow: 0 4px 16px oklch(75% 0.075 75 / 10%);
   }
 
   /* ── Botão primário */
@@ -203,11 +205,11 @@
     color: var(--primary-foreground);
     border-radius: var(--radius-md);
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: 0 4px 12px oklch(20% 0.045 45 / 15%); }
   .btn-primary:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
 
   /* ── Botão ghost */
@@ -253,19 +255,20 @@
     padding: 0.5rem 0.75rem;
     border-radius: var(--radius-md);
     font-size: 0.8125rem;
-    font-weight: 500;
-    color: oklch(75% 0.030 70);
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    color: oklch(80% 0.070 75);
     transition: background 0.15s ease, color 0.15s ease;
     cursor: pointer;
     text-decoration: none;
   }
   .sidebar-item:hover {
-    background: oklch(36% 0.065 48);
-    color: oklch(94% 0.016 80);
+    background: oklch(25% 0.040 45);
+    color: oklch(85% 0.080 75);
   }
   .sidebar-item.active {
-    background: oklch(82% 0.090 80 / 20%);
-    color: oklch(88% 0.070 78);
+    background: oklch(75% 0.075 75 / 15%);
+    color: oklch(85% 0.080 75);
   }
 
   /* ── Animações */
@@ -285,9 +288,9 @@
     animation: fadeIn 0.2s ease both;
   }
 
-  /* ── Gradient accent — Marrom para Dourado */
+  /* ── Gradient accent — Marrom para Ouro Premium */
   .gradient-primary {
-    background: linear-gradient(135deg, oklch(36% 0.085 50), oklch(82% 0.090 80));
+    background: linear-gradient(135deg, oklch(20% 0.045 45), oklch(75% 0.075 75));
   }
   /* ── WhatsApp status pulse — animação lenta e discreta */
   /* ── Menu pop-in — fade-in + scale para menu de contexto */

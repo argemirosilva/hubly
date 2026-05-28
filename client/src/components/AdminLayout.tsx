@@ -306,7 +306,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(72% 0.055 70)" }}>
         <div className="flex flex-col items-center gap-4">
           <img
-            src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
             alt="Hubly"
             className="h-12 w-auto object-contain animate-pulse"
             style={{ filter: "brightness(0) invert(1)" }}
@@ -336,7 +336,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
                 style={{}}
@@ -372,7 +372,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
                 style={{ filter: "brightness(0) invert(1)" }}
@@ -565,7 +565,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
               style={{ filter: "brightness(0) invert(1)" }}
@@ -888,7 +888,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <div className="flex flex-col justify-center">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
                 style={{ filter: "brightness(0) invert(1)" }}
