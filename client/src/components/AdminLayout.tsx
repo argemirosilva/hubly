@@ -373,7 +373,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <img
                 src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
-                className="h-10 w-auto object-contain"
+                className="h-16 w-auto object-contain"
                 style={{}}
               />
             </div>
