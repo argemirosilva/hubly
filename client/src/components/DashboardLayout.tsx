@@ -38,13 +38,26 @@ const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
 const LOGO_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
-const LOGO_WHITE_URL = "/manus-storage/hubly-logo-white_e1e7eab2.png";
+const ICON_GOLD_URL = "/manus-storage/hubly-icon-gold_40021193.png";
 
 function HublyLogoSidebar({ className, textColor = 'white' }: { className?: string; textColor?: 'white' | 'dark' }) {
-  const logoSrc = textColor === 'dark' ? LOGO_URL : LOGO_WHITE_URL;
+  const textColorStyle = textColor === 'dark' ? '#45291a' : '#ffffff';
   return (
-    <div className={`flex items-center justify-center ${className ?? ''}`}>
-      <img src={logoSrc} alt="Hubly" className="h-12 w-auto object-contain" />
+    <div className={`flex items-center gap-2 ${className ?? ''}`}>
+      <img src={ICON_GOLD_URL} alt="Hubly" className="h-8 w-8 object-contain flex-shrink-0" />
+      <span
+        style={{
+          fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif",
+          fontWeight: 300,
+          letterSpacing: '0.18em',
+          fontSize: '1.25rem',
+          color: textColorStyle,
+          lineHeight: 1,
+          userSelect: 'none',
+        }}
+      >
+        hubly
+      </span>
     </div>
   );
 }
@@ -265,3 +278,4 @@ function DashboardLayoutContent({
     </>
   );
 }
+

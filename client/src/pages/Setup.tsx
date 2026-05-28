@@ -34,11 +34,10 @@ export default function Setup() {
 
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
-            <img
-              src="/manus-storage/hubly-logo-white_e1e7eab2.png"
-              alt="Hubly"
-              className="h-9 w-auto object-contain"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/manus-storage/hubly-icon-gold_40021193.png" alt="Hubly" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+              <span style={{ fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif", fontWeight: 300, letterSpacing: '0.18em', fontSize: '1.2rem', color: '#ffffff', lineHeight: 1, userSelect: 'none' }}>hubly</span>
+            </div>
           </div>
           <div className="space-y-4">
             <p className="text-xs font-semibold tracking-[0.18em] uppercase"
@@ -78,11 +77,10 @@ export default function Setup() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <img
-              src="/manus-storage/hubly-logo-white_e1e7eab2.png"
-              alt="Hubly"
-              className="h-9 w-auto object-contain"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/manus-storage/hubly-icon-gold_40021193.png" alt="Hubly" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+              <span style={{ fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif", fontWeight: 300, letterSpacing: '0.18em', fontSize: '1.2rem', color: '#ffffff', lineHeight: 1, userSelect: 'none' }}>hubly</span>
+            </div>
           </div>
 
           <div className="mb-8">

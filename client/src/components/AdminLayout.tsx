@@ -12,13 +12,28 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import { useBadge } from "@/hooks/useBadge";
 
-const HUBLY_LOGO_WHITE_URL = "/manus-storage/hubly-logo-white_e1e7eab2.png";
 const HUBLY_LOGO_DARK_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
+const HUBLY_ICON_GOLD_URL = "/manus-storage/hubly-icon-gold_40021193.png";
 
 function HublyLogoSVG({ variant = 'white', height = 56 }: { variant?: 'white' | 'dark'; height?: number }) {
-  const src = variant === 'dark' ? HUBLY_LOGO_DARK_URL : HUBLY_LOGO_WHITE_URL;
+  if (variant === 'dark') {
+    return (
+      <img src={HUBLY_LOGO_DARK_URL} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
+    );
+  }
   return (
-    <img src={src} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <img src={HUBLY_ICON_GOLD_URL} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
+      <span style={{
+        fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif",
+        fontWeight: 300,
+        letterSpacing: '0.18em',
+        fontSize: `${height * 0.55}px`,
+        color: '#ffffff',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}>hubly</span>
+    </div>
   );
 }
 
