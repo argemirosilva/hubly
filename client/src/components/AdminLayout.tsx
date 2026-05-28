@@ -335,7 +335,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="/manus-storage/hubly-logo-white_b68a2476.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="w-auto object-contain"
                 style={{height: '115px'}}
