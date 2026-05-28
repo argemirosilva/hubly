@@ -367,7 +367,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Painel direito — formulário de login */}
-        <div className="flex-1 flex items-center justify-center px-8">
+        <div className="flex-1 flex items-center justify-center px-8" style={{ backgroundColor: '#fdf7ee' }}>
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
               <img
