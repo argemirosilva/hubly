@@ -130,6 +130,7 @@ export default function Onboarding() {
               src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
+              style={{ filter: "brightness(0) invert(1)" }}
             />
           </div>
 
@@ -187,7 +188,7 @@ export default function Onboarding() {
           {/* Progress bar mobile */}
           <div className="lg:hidden mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png" alt="Hubly" className="h-7 w-auto" />
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png" alt="Hubly" className="h-7 w-auto" style={{ filter: "brightness(0) invert(1)" }} />
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
               <span>Passo {step} de {STEPS.length}</span>

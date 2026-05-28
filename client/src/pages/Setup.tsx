@@ -35,7 +35,7 @@ export default function Setup() {
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-9 w-auto object-contain brightness-0 invert"
             />
@@ -79,9 +79,10 @@ export default function Setup() {
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-completo_b33cf08a.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
+              style={{ filter: "brightness(0) invert(1)" }}
             />
           </div>
 

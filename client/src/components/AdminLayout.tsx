@@ -375,6 +375,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
+                style={{ filter: "brightness(0) invert(1)" }}
               />
             </div>
             {modoLogin === "login" ? (
@@ -890,7 +891,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-logo-clean_9c312391.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
-                style={{}}
+                style={{ filter: "brightness(0) invert(1)" }}
               />
               {empresaData?.nome && (
                 <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(28% 0.060 45)" }}>
