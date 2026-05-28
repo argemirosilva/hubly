@@ -12,22 +12,36 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import { useBadge } from "@/hooks/useBadge";
 
-// Logo SVG inline — sem artefatos de fundo transparente
-function HublyLogoSVG({ variant = 'white', height = 40 }: { variant?: 'white' | 'dark'; height?: number }) {
-  const textColor = variant === 'dark' ? 'oklch(28% 0.060 45)' : '#ffffff';
-  const iconSize = height;
-  const textSize = Math.round(height * 0.45);
+// Logo SVG inline — dimensões medidas pixel a pixel do logo original
+// Círculos: raio externo=19, stroke=6.2 | Linhas: stroke=6.2
+// Centros: topo(50,25), inf-esq(22,78), inf-dir(78,78)
+function HublyLogoSVG({ variant = 'white', height = 56 }: { variant?: 'white' | 'dark'; height?: number }) {
+  const textColor = variant === 'dark' ? '#1a1008' : '#ffffff';
+  const iconColor = '#C9A84C';
+  const iconH = Math.round(height * 0.68);
+  const textSize = Math.round(height * 0.30);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="50" y1="18" x2="22" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
-        <line x1="50" y1="18" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
-        <line x1="22" y1="72" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
-        <circle cx="50" cy="18" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
-        <circle cx="22" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
-        <circle cx="78" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <svg width={iconH} height={iconH} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Linhas retas conectando os 3 nós */}
+        <line x1="50" y1="25" x2="22" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
+        <line x1="50" y1="25" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
+        <line x1="22" y1="78" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
+        {/* Círculo topo: raio externo 19, stroke 6.2 → raio do centro = 19 - 3.1 = 15.9 */}
+        <circle cx="50" cy="25" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
+        {/* Círculo inferior esquerdo */}
+        <circle cx="22" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
+        {/* Círculo inferior direito */}
+        <circle cx="78" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
       </svg>
-      <span style={{ color: textColor, fontWeight: 600, fontSize: textSize, letterSpacing: '0.02em' }}>hubly</span>
+      <span style={{
+        color: textColor,
+        fontWeight: 300,
+        fontSize: textSize,
+        letterSpacing: '0.06em',
+        fontFamily: 'inherit',
+        lineHeight: 1,
+      }}>hubly</span>
     </div>
   );
 }
