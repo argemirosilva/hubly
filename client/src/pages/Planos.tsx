@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Check, Zap, Users, Brain, MessageCircle, BarChart3, Package,
-  Globe, Crown, Star, ArrowRight, Loader2
+  Globe, Crown, Star, ArrowRight, Loader2, Info
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // ─── Dados dos planos ─────────────────────────────────────────────────────────
 const PLANOS = [
@@ -294,7 +300,19 @@ export default function Planos() {
                           </div>
                           <span className={isDestaque ? "text-amber-800 font-medium" : "text-foreground"}>{f.text}</span>
                           {isDestaque && (
-                            <span className="ml-auto text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full shrink-0">PRO</span>
+                            <div className="ml-auto flex items-center gap-1 shrink-0">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3.5 h-3.5 text-amber-500 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[220px] text-xs">
+                                    Conexão via Z-API: maior estabilidade, sem risco de desconexão inesperada e sem dependência do celular ligado.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+                            </div>
                           )}
                         </li>
                       );
@@ -347,6 +365,7 @@ export default function Planos() {
             { q: "Como funciona o plano anual?", r: "No plano anual, o valor total é cobrado de uma vez no cartão. Você economiza em relação ao mensal e garante o preço por 12 meses." },
             { q: "Posso mudar de plano depois?", r: "Sim. Você pode fazer upgrade ou downgrade pelo portal do cliente Stripe a qualquer momento." },
             { q: "Quais formas de pagamento são aceitas?", r: "Aceitamos cartão de crédito e débito via Stripe. O pagamento é processado com segurança." },
+            { q: "Qual a diferença entre QR Code e API dedicada no WhatsApp?", r: "Nos planos Solo e Plus, a conexão WhatsApp é feita via QR Code no seu celular. No plano PRO, usamos uma API dedicada (Z-API) que oferece maior estabilidade, sem dependência do celular ligado e com menor risco de interrupções no envio de mensagens." },
           ].map((item, i) => (
             <div key={i} className="rounded-lg border bg-card p-4">
               <p className="font-medium text-sm mb-1">{item.q}</p>

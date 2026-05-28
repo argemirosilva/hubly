@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Link } from "wouter";
 import {
   Smartphone,
   WifiOff,
@@ -19,6 +20,8 @@ import {
   MessageCircle,
   RotateCcw,
   History,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 
 type WAStatus = "disconnected" | "connecting" | "qr_ready" | "scanning" | "connected" | "logged_out";
@@ -381,6 +384,26 @@ export default function WhatsAppPage() {
           <RefreshCw className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Banner de upgrade PRO — visível apenas para Solo/Plus */}
+      {planoCarregado && !isPro && (
+        <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-amber-100 shrink-0">
+            <Zap className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900">Quer mais estabilidade no WhatsApp?</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              O plano <strong>PRO</strong> usa uma API dedicada — sem dependência do celular ligado e com menor risco de desconexões.
+            </p>
+          </div>
+          <Link href="/admin/planos">
+            <button className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors whitespace-nowrap">
+              Ver PRO <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </Link>
+        </div>
+      )}
 
       {/* Conteúdo principal — transparente ao usuário */}
       {!planoCarregado ? (
