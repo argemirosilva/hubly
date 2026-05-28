@@ -37,8 +37,8 @@ const COLORS_PIE = ["#7c3aed", "#10b981", "#f59e0b", "#ef4444"];
 function RelatorioPacotes() {
   const { data, isLoading } = trpc.pacotes.relatorioFinanceiro.useQuery();
 
-  if (isLoading) return <div className="text-center py-16 text-slate-400">Carregando relatório...</div>;
-  if (!data) return <div className="text-center py-16 text-slate-400">Nenhum dado disponível.</div>;
+  if (isLoading) return <div className="text-center py-16 text-stone-400">Carregando relatório...</div>;
+  if (!data) return <div className="text-center py-16 text-stone-400">Nenhum dado disponível.</div>;
 
   // Receita por mês — últimos 6 meses
   const mesesLabels: Record<string, string> = {
@@ -75,24 +75,24 @@ function RelatorioPacotes() {
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-violet-500" /> Receita Total</p>
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Receita Total</p>
           <p className="text-2xl font-bold text-violet-700">{formatCurrency(data.receitaTotal)}</p>
-          <p className="text-xs text-slate-400">{data.totalPacotes} pacote{data.totalPacotes !== 1 ? "s" : ""} no total</p>
+          <p className="text-xs text-stone-400">{data.totalPacotes} pacote{data.totalPacotes !== 1 ? "s" : ""} no total</p>
         </div>
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ativos</p>
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ativos</p>
           <p className="text-2xl font-bold text-emerald-600">{data.pacotesAtivos}</p>
-          <p className="text-xs text-slate-400">{data.pacotesConcluidos} concluídos</p>
+          <p className="text-xs text-stone-400">{data.pacotesConcluidos} concluídos</p>
         </div>
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5 text-amber-500" /> Vencendo em 7 dias</p>
-          <p className={`text-2xl font-bold ${data.pacotesVencendo.length > 0 ? "text-amber-600" : "text-slate-400"}`}>{data.pacotesVencendo.length}</p>
-          <p className="text-xs text-slate-400">{data.pacotesVencidos.length} já vencidos</p>
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5 text-amber-500" /> Vencendo em 7 dias</p>
+          <p className={`text-2xl font-bold ${data.pacotesVencendo.length > 0 ? "text-amber-600" : "text-stone-400"}`}>{data.pacotesVencendo.length}</p>
+          <p className="text-xs text-stone-400">{data.pacotesVencidos.length} já vencidos</p>
         </div>
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-red-400" /> Cancelados</p>
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-red-400" /> Cancelados</p>
           <p className="text-2xl font-bold text-red-500">{data.pacotesCancelados}</p>
-          <p className="text-xs text-slate-400">de {data.totalPacotes} total</p>
+          <p className="text-xs text-stone-400">de {data.totalPacotes} total</p>
         </div>
       </div>
 
@@ -100,9 +100,9 @@ function RelatorioPacotes() {
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Receita por mês */}
         <div className="bg-white rounded-xl border shadow-sm p-4">
-          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-violet-500" /> Receita por Mês</p>
+          <p className="font-semibold text-stone-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-amber-600" /> Receita por Mês</p>
           {receitaChart.every(r => r.receita === 0) ? (
-            <div className="text-center py-8 text-slate-400 text-sm">Nenhuma receita registrada ainda</div>
+            <div className="text-center py-8 text-stone-400 text-sm">Nenhuma receita registrada ainda</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={receitaChart} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -118,9 +118,9 @@ function RelatorioPacotes() {
 
         {/* Status dos pacotes */}
         <div className="bg-white rounded-xl border shadow-sm p-4">
-          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><Package className="w-4 h-4 text-violet-500" /> Status dos Pacotes</p>
+          <p className="font-semibold text-stone-700 mb-4 flex items-center gap-2"><Package className="w-4 h-4 text-amber-600" /> Status dos Pacotes</p>
           {statusChart.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-sm">Nenhum pacote cadastrado ainda</div>
+            <div className="text-center py-8 text-stone-400 text-sm">Nenhum pacote cadastrado ainda</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -138,7 +138,7 @@ function RelatorioPacotes() {
       {/* Sessões por serviço */}
       {sessoesChart.length > 0 && (
         <div className="bg-white rounded-xl border shadow-sm p-4">
-          <p className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-emerald-500" /> Sessões por Serviço</p>
+          <p className="font-semibold text-stone-700 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-emerald-500" /> Sessões por Serviço</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={sessoesChart} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
@@ -163,10 +163,10 @@ function RelatorioPacotes() {
           <table className="w-full text-sm">
             <thead className="bg-stone-50">
               <tr>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Cliente</th>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Pacote</th>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Vencimento</th>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Status</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-stone-500">Cliente</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-stone-500">Pacote</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-stone-500">Vencimento</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-stone-500">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -175,9 +175,9 @@ function RelatorioPacotes() {
                 const vencido = venc && venc < new Date();
                 return (
                   <tr key={p.id} className="hover:bg-stone-50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{p.clienteNome ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{p.nome}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{venc ? venc.toLocaleDateString("pt-BR") : "—"}</td>
+                    <td className="px-4 py-2.5 font-medium text-stone-700">{p.clienteNome ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-stone-600">{p.nome}</td>
+                    <td className="px-4 py-2.5 text-stone-500">{venc ? venc.toLocaleDateString("pt-BR") : "—"}</td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
                         vencido ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
@@ -202,9 +202,9 @@ function ProgressBar({ used, total, color }: { used: number; total: number; colo
   const remaining = total - used;
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-slate-500">
+      <div className="flex justify-between text-xs text-stone-500">
         <span>{used} usadas</span>
-        <span className={remaining === 0 ? "text-red-500 font-semibold" : "text-slate-600"}>
+        <span className={remaining === 0 ? "text-red-500 font-semibold" : "text-stone-600"}>
           {remaining} restantes
         </span>
       </div>
@@ -225,7 +225,7 @@ function StatusBadge({ status }: { status: string }) {
     vencido: { label: "Vencido", color: "bg-orange-100 text-orange-700" },
     cancelado: { label: "Cancelado", color: "bg-red-100 text-red-700" },
   };
-  const s = map[status] ?? { label: status, color: "bg-stone-100 text-slate-600" };
+  const s = map[status] ?? { label: status, color: "bg-stone-100 text-stone-600" };
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.color}`}>{s.label}</span>;
 }
 
@@ -598,7 +598,7 @@ function ModalAbrirPacote({
             </div>
             {numParcelas > 1 && valorTotal > 0 && (
               <div className="flex flex-col justify-end">
-                <p className="text-xs text-slate-500 mb-1">Valor por parcela</p>
+                <p className="text-xs text-stone-500 mb-1">Valor por parcela</p>
                 <p className="text-base font-semibold text-violet-700">
                   {numParcelas}x de R$ {valorPorParcela.toFixed(2).replace('.', ',')}
                 </p>
@@ -687,16 +687,16 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">{pacote.nome}</p>
-            <p className="text-xs text-slate-500">{pacote.clienteNome ?? `Cliente #${pacote.clienteId}`}</p>
+            <p className="text-xs text-stone-500">{pacote.clienteNome ?? `Cliente #${pacote.clienteId}`}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-slate-500">{usadosItens}/{totalItens} sessões</p>
-            <p className="text-xs font-semibold text-slate-700">{formatCurrency(pacote.valorPago)}</p>
+            <p className="text-xs text-stone-500">{usadosItens}/{totalItens} sessões</p>
+            <p className="text-xs font-semibold text-stone-700">{formatCurrency(pacote.valorPago)}</p>
           </div>
           <StatusBadge status={pacote.status} />
-          {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
         </div>
       </div>
 
@@ -705,11 +705,11 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
           {pacote.itens.map((item: any) => (
             <div key={item.id} className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
+                <span className="text-sm font-medium text-stone-700">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
                 {pacote.status === "ativo" && item.quantidadeUsada < item.quantidadeTotal && (
                   <button
                     onClick={() => onConsumir(item.id)}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-medium transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-medium transition-colors"
                   >
                     Usar sessão
                   </button>
@@ -724,7 +724,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
             </div>
           ))}
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-stone-500">
             <span>Aberto em {new Date(pacote.dataAbertura).toLocaleDateString("pt-BR")}</span>
             {pacote.dataVencimento && (
               <span>Vence em {new Date(pacote.dataVencimento).toLocaleDateString("pt-BR")}</span>
@@ -747,7 +747,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
           </div>
           {/* Parcelamento */}
           {pacote.numeroParcelas > 1 && (
-            <div className="text-xs text-slate-500 bg-stone-50 rounded-lg px-3 py-2">
+            <div className="text-xs text-stone-500 bg-stone-50 rounded-lg px-3 py-2">
               💳 {pacote.numeroParcelas}x de {pacote.valorParcela ? `R$ ${parseFloat(pacote.valorParcela).toFixed(2).replace('.', ',')}` : formatCurrency(parseFloat(pacote.valorPago) / pacote.numeroParcelas)}
               {pacote.formaPagamento && ` · ${pacote.formaPagamento}`}
             </div>
@@ -868,7 +868,7 @@ export default function Pacotes() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Pacotes de Serviços</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Gerencie pacotes pré-pagos por cliente</p>
+            <p className="text-sm text-stone-500 mt-0.5">Gerencie pacotes pré-pagos por cliente</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -888,7 +888,7 @@ export default function Pacotes() {
         </div>
 
         <Tabs defaultValue="pacotes">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4" style={{backgroundColor: '#f2eadc'}}>
             <TabsTrigger value="pacotes" className="gap-2">
               <Users className="w-4 h-4" /> Pacotes por Cliente
             </TabsTrigger>
@@ -911,7 +911,7 @@ export default function Pacotes() {
                 placeholder="Buscar por nome do cliente..."
                 className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
-              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -922,9 +922,9 @@ export default function Pacotes() {
                   onClick={() => setFiltroStatus(s)}
                   className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                     filtroStatus === s
-                      ? "bg-violet-600 text-white"
-                      : "bg-stone-100 text-slate-600 hover:bg-stone-200"
-                  }`}
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-amber-50 text-stone-600 hover:bg-amber-100"
+                  }`} style={{backgroundColor: '#f2eadc'}}
                 >
                   {s === "ativo" ? "Ativos" : s === "concluido" ? "Concluídos" : s === "vencido" ? "Vencidos" : s === "cancelado" ? "Cancelados" : "Todos"}
                 </button>
@@ -932,14 +932,14 @@ export default function Pacotes() {
             </div>
 
             {loadingPacotes ? (
-              <div className="text-center py-12 text-slate-400">Carregando pacotes...</div>
+              <div className="text-center py-12 text-stone-400">Carregando pacotes...</div>
             ) : pacotesAtivos.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <div className="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center mx-auto">
                   <Package className="w-8 h-8 text-violet-300" />
                 </div>
-                <p className="text-slate-500 font-medium">Nenhum pacote encontrado</p>
-                <p className="text-sm text-slate-400">Abra um pacote para uma cliente para começar</p>
+                <p className="text-stone-500 font-medium">Nenhum pacote encontrado</p>
+                <p className="text-sm text-stone-400">Abra um pacote para uma cliente para começar</p>
                 <Button variant="outline" onClick={() => setModalAbrirPacote(true)} className="gap-2 mt-2">
                   <Plus className="w-4 h-4" /> Abrir primeiro pacote
                 </Button>
@@ -1001,14 +1001,14 @@ export default function Pacotes() {
             </div>
 
             {loadingModelos ? (
-              <div className="text-center py-12 text-slate-400">Carregando modelos...</div>
+              <div className="text-center py-12 text-stone-400">Carregando modelos...</div>
             ) : modelos.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <div className="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center mx-auto">
                   <Package className="w-8 h-8 text-violet-300" />
                 </div>
-                <p className="text-slate-500 font-medium">Nenhum modelo cadastrado</p>
-                <p className="text-sm text-slate-400">Crie modelos reutilizáveis para agilizar a abertura de pacotes</p>
+                <p className="text-stone-500 font-medium">Nenhum modelo cadastrado</p>
+                <p className="text-sm text-stone-400">Crie modelos reutilizáveis para agilizar a abertura de pacotes</p>
                 <Button variant="outline" onClick={() => setModalModelo(true)} className="gap-2 mt-2">
                   <Plus className="w-4 h-4" /> Criar modelo
                 </Button>
@@ -1020,19 +1020,19 @@ export default function Pacotes() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-semibold text-slate-800">{m.nome}</p>
-                        {m.descricao && <p className="text-xs text-slate-500 mt-0.5">{m.descricao}</p>}
+                        {m.descricao && <p className="text-xs text-stone-500 mt-0.5">{m.descricao}</p>}
                       </div>
                       <div className="flex gap-1">
                         <button
                           onClick={() => { setEditandoModelo(m); setModalModelo(true); }}
-                          className="p-1.5 rounded-lg hover:bg-stone-100 text-slate-400 hover:text-slate-600"
+                          className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-600"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         {m.ativo && (
                           <button
                             onClick={() => desativarModeloMutation.mutate({ id: m.id })}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500"
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1043,7 +1043,7 @@ export default function Pacotes() {
                     <div className="space-y-1">
                       {m.itens.map((item: any) => (
                         <div key={item.id} className="flex items-center justify-between text-xs">
-                          <span className="text-slate-600">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
+                          <span className="text-stone-600">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
                           <Badge variant="secondary" className="text-xs">{item.quantidade}x</Badge>
                         </div>
                       ))}
@@ -1052,13 +1052,13 @@ export default function Pacotes() {
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span className="font-bold text-violet-700">{formatCurrency(m.preco)}</span>
                       {m.validadeDias && (
-                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <span className="text-xs text-stone-500 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {m.validadeDias} dias
                         </span>
                       )}
                       <button
                         onClick={() => setModalAbrirPacote(true)}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-medium"
+                        className="text-xs px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-medium"
                       >
                         Usar modelo
                       </button>
@@ -1073,7 +1073,7 @@ export default function Pacotes() {
               <div className="mt-6">
                 <button
                   onClick={() => setMostrarOcultos(v => !v)}
-                  className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 font-medium mb-3"
+                  className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 font-medium mb-3"
                 >
                   <EyeOff className="w-4 h-4" />
                   {mostrarOcultos ? "Ocultar" : "Ver"} modelos ocultos ({modelosOcultos.length})
@@ -1085,13 +1085,13 @@ export default function Pacotes() {
                       <div key={m.id} className="bg-stone-50 rounded-xl border border-dashed border-slate-200 p-4 space-y-3 opacity-70">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="font-semibold text-slate-600 line-through">{m.nome}</p>
-                            {m.descricao && <p className="text-xs text-slate-400 mt-0.5">{m.descricao}</p>}
+                            <p className="font-semibold text-stone-600 line-through">{m.nome}</p>
+                            {m.descricao && <p className="text-xs text-stone-400 mt-0.5">{m.descricao}</p>}
                           </div>
                           <button
                             onClick={() => restaurarModeloMutation.mutate({ id: m.id })}
                             disabled={restaurarModeloMutation.isPending}
-                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 text-slate-500 transition-colors"
+                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 text-stone-500 transition-colors"
                           >
                             <RotateCcw className="w-3 h-3" /> Restaurar
                           </button>
@@ -1099,13 +1099,13 @@ export default function Pacotes() {
                         <div className="space-y-1">
                           {m.itens.map((item: any) => (
                             <div key={item.id} className="flex items-center justify-between text-xs">
-                              <span className="text-slate-500">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
+                              <span className="text-stone-500">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
                               <Badge variant="secondary" className="text-xs opacity-60">{item.quantidade}x</Badge>
                             </div>
                           ))}
                         </div>
                         <div className="pt-2 border-t border-slate-100">
-                          <span className="font-bold text-slate-400">{formatCurrency(m.preco)}</span>
+                          <span className="font-bold text-stone-400">{formatCurrency(m.preco)}</span>
                         </div>
                       </div>
                     ))}
@@ -1198,7 +1198,7 @@ export default function Pacotes() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPacoteRenovarId(null)}>Cancelar</Button>
             <Button
-              className="bg-violet-600 hover:bg-violet-700 text-white"
+              className="bg-violet-600 hover:opacity-90 text-white"
               disabled={!renovarForm.valorPago || renovarMutation.isPending}
               onClick={() => {
                 if (!pacoteRenovarId) return;
