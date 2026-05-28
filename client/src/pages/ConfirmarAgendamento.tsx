@@ -67,9 +67,9 @@ export default function ConfirmarAgendamento() {
   function Header() {
     return (
       <header className="sticky top-0 z-20 shadow-md" style={{
-        background: `linear-gradient(135deg, #1a3a6b 0%, #1e6fa8 60%, #29abe2 100%)`,
+        background: "#231B10",
       }}>
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-lg mx-auto px-4 py-3 flex flex-col gap-3">
           <div className="flex items-center gap-3">
             {empresa?.logoUrl ? (
               <img src={empresa.logoUrl} alt={empresa.nome}
@@ -84,7 +84,7 @@ export default function ConfirmarAgendamento() {
               <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">
                 {empresa?.nome ?? "Agendamento"}
               </p>
-              <p className="text-[10px] text-blue-100/80">{isPreAgendado ? 'Confirmação de Pré-agendamento' : 'Confirmação de Presença'}</p>
+              <p className="text-[10px] text-white/70">{isPreAgendado ? 'Confirmação de Pré-agendamento' : 'Confirmação de Presença'}</p>
             </div>
           </div>
           <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"

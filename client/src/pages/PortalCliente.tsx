@@ -1234,38 +1234,43 @@ function PortalHeader({ empresa, corPrimaria }: {
 
   return (
     <header className="sticky top-0 z-20 shadow-md" style={{
-      background: `linear-gradient(135deg, ${darkenHex(corPrimaria, 20)} 0%, ${corPrimaria} 60%, ${darkenHex(corPrimaria, -20)} 100%)`,
+      background: "#231B10",
     }}>
-      <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {empresa.logoUrl ? (
-            <img src={empresa.logoUrl} alt={empresa.nome}
-              className="h-9 w-auto object-contain rounded-lg"
-              style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }} />
-          ) : (
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/30">
-              <Sparkles className="w-5 h-5 text-white" />
+      <div className="max-w-lg mx-auto px-4 py-3 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {empresa.logoUrl ? (
+              <img src={empresa.logoUrl} alt={empresa.nome}
+                className="h-9 w-auto object-contain rounded-lg"
+                style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }} />
+            ) : (
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/30">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <div>
+              <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">{empresa.nome}</p>
+              <p className="text-[10px] text-white/70">Agendamento Online</p>
             </div>
-          )}
-          <div>
-            <p className="font-bold text-sm tracking-tight text-white drop-shadow-sm">{empresa.nome}</p>
-            <p className="text-[10px] text-white/70">Agendamento Online</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={compartilhar}
+              title="Compartilhar link de agendamento"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all text-white border border-white/20 text-[11px] font-medium"
+            >
+              {copiado
+                ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-300" /><span className="hidden sm:inline">Copiado!</span></>
+                : <><Share2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Compartilhar</span></>
+              }
+            </button>
+            <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
+              className="h-5 w-auto object-contain opacity-60 hover:opacity-90 transition-opacity"
+              style={{ filter: "brightness(0) invert(1)" }} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={compartilhar}
-            title="Compartilhar link de agendamento"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all text-white border border-white/20 text-[11px] font-medium"
-          >
-            {copiado
-              ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-300" /><span className="hidden sm:inline">Copiado!</span></>
-              : <><Share2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Compartilhar</span></>
-            }
-          </button>
-          <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
-            className="h-5 w-auto object-contain opacity-60 hover:opacity-90 transition-opacity"
-            style={{ filter: "brightness(0) invert(1)" }} />
+        <div className="text-center pb-2">
+          <p className="text-xs font-semibold tracking-widest text-white/80 uppercase">Você no controle do seu negócio</p>
         </div>
       </div>
     </header>

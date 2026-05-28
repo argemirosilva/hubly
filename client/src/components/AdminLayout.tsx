@@ -826,7 +826,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             </Link>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold truncate" style={{ color: "oklch(94% 0.016 80)" }}>
+              <p className="text-[13px] font-semibold truncate" style={{ color: "oklch(28% 0.060 45)" }}>
                 {user?.name?.split(" ")[0] ?? "Usuário"}
               </p>
               <p className="text-[11px] truncate" style={{ color: "oklch(62% 0.028 65)" }}>
@@ -854,21 +854,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ background: "oklch(97% 0.010 80)", borderBottom: "1px solid oklch(90% 0.015 80)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer hover:shadow-md transition-all border"
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:shadow-md transition-all border plan-badge-premium"
                 style={{
-                  background: getPlanColor(planStatus.plan) + "18",
-                  borderColor: getPlanColor(planStatus.plan) + "40",
+                  background: getPlanColor(planStatus.plan) + "14",
+                  borderColor: getPlanColor(planStatus.plan) + "35",
                   color: getPlanColor(planStatus.plan),
-                  boxShadow: `0 2px 8px ${getPlanColor(planStatus.plan)}20`,
                 }}>
                 <div className="w-2 h-2 rounded-full" style={{ background: getPlanColor(planStatus.plan) }}></div>
-                <span className="text-[12px] font-bold tracking-wider uppercase">{planStatus.planLabel ?? planStatus.plan}</span>
+                <span className="text-xs font-bold tracking-wide uppercase">{planStatus.planLabel ?? planStatus.plan}</span>
               </div>
             </Link>
           )}
           <Link href="/admin/notificacoes">
             <div className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-              <Bell className="w-5 h-5" style={{ color: "oklch(94% 0.016 80)" }} />
+              <Bell className="w-5 h-5" style={{ color: "oklch(28% 0.060 45)" }} />
               {naoLidas > 0 && (
                 <span className="absolute top-1 right-1 text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
                   style={{ background: "oklch(82% 0.090 80)", color: "oklch(22% 0.040 50)" }}>
@@ -904,7 +903,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-1.5">
             {planStatus && (
               <Link href="/admin/assinatura">
-                <div className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:shadow-sm transition-all border"
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:shadow-sm transition-all border plan-badge-premium"
                   style={{
                     background: getPlanColor(planStatus.plan) + "14",
                     borderColor: getPlanColor(planStatus.plan) + "35",

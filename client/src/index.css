@@ -315,6 +315,19 @@
     }
   }
 
+  @keyframes planGlow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(222, 196, 128, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(222, 196, 128, 0);
+    }
+  }
+
+  .plan-badge-premium {
+    animation: planGlow 2s infinite;
+  }
+
   /* ── Fix iOS Safari: esconde o ícone nativo de calendário/relógio que
      renderiza fora do box do input causando overflow horizontal no modal */
   input[type="date"],
