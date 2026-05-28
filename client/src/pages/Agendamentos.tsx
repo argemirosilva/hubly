@@ -515,7 +515,7 @@ export default function Agendamentos() {
                   const [ano, mes, dia] = ag.data.split("-");
                   const dataFormatada = new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
                   items.push(
-                    <div key={`sep-${ag.data}`} className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide" style={{ background: "oklch(96.2% 0.012 75)", borderBottom: "1px solid oklch(94% 0.010 75)" }}>
+                    <div key={`sep-${ag.data}`} className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide" style={{ background: '#f2eadc', borderBottom: '1px solid #e8ddd0' }}>
                       {dataFormatada}
                     </div>
                   );
