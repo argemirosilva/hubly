@@ -182,11 +182,11 @@ export default function PreAgendamentosPendentes() {
             </div>
 
             {/* Valor + ações */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-              <span className="text-sm font-semibold text-foreground">
-                {formatCurrency(ag.valorTotal)}
-              </span>
-              <div className="flex items-center gap-1.5">
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">
+                  {formatCurrency(ag.valorTotal)}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -195,23 +195,25 @@ export default function PreAgendamentosPendentes() {
                 >
                   Ver detalhes
                 </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-[11px] h-7 px-2.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  className="text-[11px] h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full"
                   onClick={() => handleAction(ag.id, "cancelar")}
                   disabled={updateMutation.isPending}
                 >
-                  <XCircle className="w-3 h-3 mr-0.5" />
+                  <XCircle className="w-3 h-3 mr-1" />
                   Cancelar
                 </Button>
                 <Button
                   size="sm"
-                  className="text-[11px] h-7 px-2.5 bg-primary hover:bg-primary/90 text-white"
+                  className="text-[11px] h-8 bg-primary hover:bg-primary/90 text-white w-full"
                   onClick={() => handleAction(ag.id, "confirmar")}
                   disabled={updateMutation.isPending}
                 >
-                  <CheckCircle className="w-3 h-3 mr-0.5" />
+                  <CheckCircle className="w-3 h-3 mr-1" />
                   Confirmar
                 </Button>
               </div>
