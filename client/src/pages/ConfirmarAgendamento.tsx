@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const HUBLY_LOGO_COMPLETO = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png";
-const HUBLY_LOGO_TRANSPARENTE = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png";
+const HUBLY_LOGO_COMPLETO = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png";
+const HUBLY_LOGO_TRANSPARENTE = "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png";
 
 function formatarDataCompleta(data: string) {
   const [ano, mes, dia] = data.split("-").map(Number);
@@ -67,7 +67,7 @@ export default function ConfirmarAgendamento() {
   function Header() {
     return (
       <header className="sticky top-0 z-20 shadow-md" style={{
-        background: "#231B10",
+        background: "var(--sidebar)",
       }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -89,7 +89,7 @@ export default function ConfirmarAgendamento() {
           </div>
           <img src={HUBLY_LOGO_TRANSPARENTE} alt="Hubly"
             className="h-5 w-auto object-contain opacity-60"
-            style={{ filter: "brightness(0) invert(1)" }} />
+            style={{}} />
         </div>
       </header>
     );

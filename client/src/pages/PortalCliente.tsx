@@ -1240,7 +1240,7 @@ function PortalHeader({ empresa, corPrimaria }: {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {empresa.logoUrl ? (
-              <img src={empresa.logoUrl} alt={empresa.nome}
+              <img src={empresa.logoUrl || "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"} alt={empresa.nome}
                 className="h-9 w-auto object-contain rounded-lg"
                 style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }} />
             ) : (

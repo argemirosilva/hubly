@@ -324,7 +324,7 @@ export default function Configuracoes() {
             </p>
             <div className="flex items-center gap-3">
               {form.logoUrl
-                ? <img src={form.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-contain border" style={{ borderColor: form.corPrimaria + "40" }} />
+                ? <img src={form.logoUrl || "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"} alt="Logo" className="w-10 h-10 rounded-xl object-contain border" style={{ borderColor: form.corPrimaria + "40" }} />
                 : <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: form.corPrimaria }}>A</div>
               }
               <div className="flex-1 h-3 rounded-full" style={{ background: form.corSecundaria }} />

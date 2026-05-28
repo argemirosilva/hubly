@@ -43,62 +43,67 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Paleta: Hubly Premium (Creme #F8F2EA, Ouro #D6B98A, Marrom Escuro #3B2F26, Bege #E7DED0) ─── */
+/* ─── Paleta: Hubly Premium ─── 
+   Creme: #F8F2EA -> oklch(96.2% 0.012 75)
+   Ouro Suave: #D6B98A -> oklch(78.5% 0.075 85)
+   Marrom Escuro: #3B2F26 -> oklch(28.5% 0.035 55)
+   Bege/Areia: #E7DED0 -> oklch(89.5% 0.018 80)
+*/
 :root {
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
-  /* Foreground — Marrom escuro premium (#3B2F26) */
-  --foreground:                   oklch(20% 0.045 45);
-  --foreground:         oklch(20% 0.045 45);
+  /* Background — Creme (#F8F2EA) */
+  --background:                   oklch(96.2% 0.012 75);
+  --foreground:                   oklch(28.5% 0.035 55);
 
-  /* Cards — creme claro premium (#F8F2EA) */
-  --card:               oklch(98% 0.008 85);
-  --card-foreground:    oklch(20% 0.045 45);
+  /* Cards — Branco suave ou Creme */
+  --card:               oklch(98.5% 0.005 75);
+  --card-foreground:    oklch(28.5% 0.035 55);
 
-  --popover:            oklch(98% 0.008 85);
-  --popover-foreground: oklch(20% 0.045 45);
+  --popover:            oklch(98.5% 0.005 75);
+  --popover-foreground: oklch(28.5% 0.035 55);
 
   /* Primary — Marrom escuro premium (#3B2F26) */
-  --primary:            oklch(20% 0.045 45);
-  --primary-foreground: oklch(98% 0.008 85);
+  --primary:            oklch(28.5% 0.035 55);
+  --primary-foreground: oklch(96.2% 0.012 75);
 
   /* Secondary — Bege/Areia (#E7DED0) */
-  --secondary:          oklch(88% 0.015 80);
-  --secondary-foreground: oklch(20% 0.045 45);
+  --secondary:          oklch(89.5% 0.018 80);
+  --secondary-foreground: oklch(28.5% 0.035 55);
 
-  /* Muted — creme suave */
-  --muted:              oklch(95% 0.010 85);
+  /* Muted — tons suaves */
+  --muted:              oklch(92% 0.010 75);
   --muted-foreground:   oklch(55% 0.025 60);
 
   /* Accent — Ouro suave (#D6B98A) */
-  --accent:             oklch(75% 0.075 75);
-  --accent-foreground:  oklch(20% 0.045 45);
+  --accent:             oklch(78.5% 0.075 85);
+  --accent-foreground:  oklch(28.5% 0.035 55);
 
   /* Destructive */
   --destructive:        oklch(55% 0.22 25);
   --destructive-foreground: oklch(98% 0.008 85);
 
   /* Borders & inputs */
-  --border:             oklch(90% 0.012 80);
-  --input:              oklch(90% 0.012 80);
-  --ring:               oklch(75% 0.075 75 / 30%);
+  --border:             oklch(85% 0.015 75);
+  --input:              oklch(85% 0.015 75);
+  --ring:               oklch(78.5% 0.075 85 / 30%);
 
   /* Charts */
-  --chart-1:            oklch(20% 0.045 45);
-  --chart-2:            oklch(75% 0.075 75);
-  --chart-3:            oklch(88% 0.015 80);
+  --chart-1:            oklch(28.5% 0.035 55);
+  --chart-2:            oklch(78.5% 0.075 85);
+  --chart-3:            oklch(89.5% 0.018 80);
   --chart-4:            oklch(60% 0.050 55);
   --chart-5:            oklch(50% 0.060 50);
 
-  /* Sidebar — Café Espresso Premium (#231B10) */
-  --sidebar:                      oklch(11% 0.018 40);
-  --sidebar-foreground:           oklch(85% 0.080 75);
-  --sidebar-primary:              oklch(75% 0.075 75);
-  --sidebar-primary-foreground:   oklch(11% 0.018 40);
-  --sidebar-accent:               oklch(75% 0.075 75);
-  --sidebar-accent-foreground:    oklch(11% 0.018 40);
-  --sidebar-border:               oklch(28% 0.035 45);
-  --sidebar-ring:                 oklch(75% 0.075 75);
+  /* Sidebar — Marrom Escuro (#3B2F26) ou mais escuro (#231B10) */
+  --sidebar:                      oklch(22% 0.030 55);
+  --sidebar-foreground:           oklch(89.5% 0.018 80);
+  --sidebar-primary:              oklch(78.5% 0.075 85);
+  --sidebar-primary-foreground:   oklch(22% 0.030 55);
+  --sidebar-accent:               oklch(28.5% 0.035 55);
+  --sidebar-accent-foreground:    oklch(89.5% 0.018 80);
+  --sidebar-border:               oklch(35% 0.025 55);
+  --sidebar-ring:                 oklch(78.5% 0.075 85);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
@@ -126,16 +131,16 @@
     font-weight: 300;
     letter-spacing: 0.5px;
     line-height: 1.2;
-    color: oklch(20% 0.045 45);
+    color: var(--primary);
   }
-  h1 { font-size: 2rem; }
-  h2 { font-size: 1.5rem; }
-  h3 { font-size: 1.15rem; }
+  h1 { font-size: 2.25rem; font-weight: 400; }
+  h2 { font-size: 1.75rem; font-weight: 400; }
+  h3 { font-size: 1.25rem; font-weight: 400; }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: oklch(75% 0.075 75); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(60% 0.050 55); }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(70% 0.070 85); }
 
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -153,14 +158,11 @@
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  @media (min-width: 640px) {
-    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
   @media (min-width: 1024px) {
-    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
+    .container { padding-left: 2.5rem; padding-right: 2.5rem; max-width: 1440px; }
   }
 
   .flex { min-height: 0; min-width: 0; }
@@ -170,16 +172,11 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: 0.4rem 0.55rem;
-    transition: box-shadow 0.2s ease, transform 0.15s ease;
-  }
-  @media (min-width: 1024px) {
-    .stat-card {
-      padding: 0.625rem 0.75rem;
-    }
+    padding: 0.75rem 1rem;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
   }
   .stat-card:hover {
-    box-shadow: 0 4px 24px oklch(75% 0.075 75 / 12%);
+    box-shadow: 0 10px 30px oklch(28.5% 0.035 55 / 5%);
     transform: translateY(-2px);
   }
 
@@ -188,28 +185,34 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    box-shadow: 0 2px 8px oklch(0% 0 0 / 3%);
-    transition: box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px oklch(0% 0 0 / 2%);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
   }
   .card-elegant:hover {
-    box-shadow: 0 4px 16px oklch(75% 0.075 75 / 10%);
+    box-shadow: 0 12px 40px oklch(28.5% 0.035 55 / 6%);
   }
 
   /* ── Botão primário */
   .btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 0.625rem 1.25rem;
     background: var(--primary);
     color: var(--primary-foreground);
-    border-radius: var(--radius-md);
-    font-size: 0.8125rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
     font-weight: 500;
-    letter-spacing: 0.3px;
-    transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 0.01em;
+    transition: all 0.2s ease;
   }
-  .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: 0 4px 12px oklch(20% 0.045 45 / 15%); }
+  .btn-primary:hover { 
+    opacity: 0.9; 
+    transform: translateY(-1px); 
+    box-shadow: 0 8px 20px oklch(28.5% 0.035 55 / 20%); 
+  }
+  .btn-primary:active { transform: translateY(0); }
   .btn-primary:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
 
   /* ── Botão ghost */
@@ -217,13 +220,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.875rem;
+    padding: 0.5rem 1rem;
     background: transparent;
     color: var(--muted-foreground);
     border-radius: var(--radius-md);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: all 0.2s ease;
   }
   .btn-ghost:hover {
     background: var(--muted);
@@ -234,50 +237,52 @@
   .badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.6rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 99px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
   }
-  .badge-confirmado { background: oklch(62% 0.18 155 / 15%); color: oklch(35% 0.14 155); }
-  .badge-pendente   { background: oklch(72% 0.16 80 / 15%);  color: oklch(40% 0.14 75); }
-  .badge-faltou     { background: oklch(58% 0.22 25 / 15%);  color: oklch(38% 0.18 25); }
-  .badge-cancelado  { background: oklch(55% 0.04 260 / 12%); color: oklch(40% 0.04 260); }
-  .badge-pre        { background: oklch(55% 0.22 264 / 12%); color: oklch(38% 0.18 264); }
+  .badge-confirmado { background: oklch(62% 0.18 155 / 12%); color: oklch(35% 0.14 155); }
+  .badge-pendente   { background: oklch(78.5% 0.075 85 / 15%);  color: oklch(45% 0.060 85); }
+  .badge-faltou     { background: oklch(58% 0.22 25 / 12%);  color: oklch(38% 0.18 25); }
+  .badge-cancelado  { background: oklch(55% 0.04 260 / 10%); color: oklch(40% 0.04 260); }
 
   /* ── Sidebar item */
   .sidebar-item {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-md);
-    font-size: 0.8125rem;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
     font-weight: 400;
-    letter-spacing: 0.2px;
-    color: oklch(80% 0.070 75);
-    transition: background 0.15s ease, color 0.15s ease;
+    color: var(--sidebar-foreground);
+    transition: all 0.2s ease;
     cursor: pointer;
     text-decoration: none;
+    opacity: 0.85;
   }
   .sidebar-item:hover {
-    background: oklch(25% 0.040 45);
-    color: oklch(85% 0.080 75);
+    background: var(--sidebar-accent);
+    opacity: 1;
   }
   .sidebar-item.active {
-    background: oklch(75% 0.075 75 / 15%);
-    color: oklch(85% 0.080 75);
+    background: var(--sidebar-primary);
+    color: var(--sidebar-primary-foreground);
+    font-weight: 500;
+    opacity: 1;
+    box-shadow: 0 4px 12px oklch(0% 0 0 / 10%);
   }
 
   /* ── Animações */
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .animate-in-up {
-    animation: fadeInUp 0.25s ease both;
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   @keyframes fadeIn {
@@ -285,80 +290,16 @@
     to   { opacity: 1; }
   }
   .animate-in {
-    animation: fadeIn 0.2s ease both;
+    animation: fadeIn 0.3s ease both;
   }
 
   /* ── Gradient accent — Marrom para Ouro Premium */
   .gradient-primary {
-    background: linear-gradient(135deg, oklch(20% 0.045 45), oklch(75% 0.075 75));
-  }
-  /* ── WhatsApp status pulse — animação lenta e discreta */
-  /* ── Menu pop-in — fade-in + scale para menu de contexto */
-  @keyframes menuPopIn {
-    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  }
-  .animate-menu-pop {
-    animation: menuPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  @keyframes wa-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.55; transform: scale(0.82); }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes planGlow {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(222, 196, 128, 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 6px rgba(222, 196, 128, 0);
-    }
-  }
-
-  .plan-badge-premium {
-    animation: planGlow 2s infinite;
-  }
-
-  /* ── Fix iOS Safari: esconde o ícone nativo de calendário/relógio que
-     renderiza fora do box do input causando overflow horizontal no modal */
-  input[type="date"],
-  input[type="time"] {
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator {
-    display: none;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    padding: 0;
-    margin: 0;
-    pointer-events: none;
-  }
-  input[type="date"]::-webkit-inner-spin-button,
-  input[type="time"]::-webkit-inner-spin-button,
-  input[type="date"]::-webkit-clear-button,
-  input[type="time"]::-webkit-clear-button {
-    display: none;
-    -webkit-appearance: none;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
   }
 }
 
 /* ─── iOS Safe Area ────────────────────────────────────────────────────────── */
-/* Garante que o conteúdo não fique sob a barra de status / notch / Dynamic Island */
 @supports (padding-top: env(safe-area-inset-top)) {
   html {
     padding-top: env(safe-area-inset-top);
@@ -367,49 +308,11 @@
   }
 }
 
-/* ─── Indicador de Scroll Horizontal (tabelas em mobile) ───────────────────── */
-.scroll-hint {
-  position: relative;
-}
-.scroll-hint::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 32px;
-  background: linear-gradient(to right, transparent, oklch(97% 0.012 85 / 90%));
-  pointer-events: none;
-  opacity: 1;
-  transition: opacity 0.3s;
-}
-.scroll-hint.scrolled-end::after {
-  opacity: 0;
-}
-
-/* ─── Feedback Háptico Visual (active state) ───────────────────────────────── */
-@media (hover: none) and (pointer: coarse) {
-  button, a, [role="button"] {
-    -webkit-tap-highlight-color: transparent;
-  }
-  button:active, a:active, [role="button"]:active {
-    transform: scale(0.97);
-    transition: transform 0.1s ease;
-  }
-}
-
-/* ─── Mínimo de 44px para touch targets em mobile ─────────────────────────── */
-@media (max-width: 768px) {
-  button, a, [role="button"], input, select, textarea {
-    min-height: 36px;
-  }
-}
-
 /* ─── Transição suave entre páginas ────────────────────────────────────────── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .page-transition {
-  animation: pageEnter 0.2s ease both;
+  animation: pageEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

@@ -68,7 +68,7 @@ const PRESET_LAYOUTS: PresetLayout[] = [
     title: "Visão Geral",
     description: "Todos os widgets visíveis na ordem padrão",
     icon: LayoutDashboard,
-    color: "oklch(55% 0.22 264)",
+    color: "var(--primary)",
     widgets: [
       { id: "stats",         visible: true,  order: 0, size: "full" },
       { id: "contas_pagar",  visible: true,  order: 1, size: "full" },
@@ -160,7 +160,7 @@ type PlanoStatus = {
 
 const PLAN_COLORS: Record<string, { gradient: string; badge: string; badgeText: string }> = {
   FREE:  { gradient: "oklch(55% 0.04 260)", badge: "oklch(94% 0.008 250)", badgeText: "oklch(35% 0.012 260)" },
-  SOLO:  { gradient: "oklch(55% 0.22 264)", badge: "oklch(55% 0.22 264 / 12%)", badgeText: "oklch(35% 0.18 264)" },
+  SOLO:  { gradient: "var(--primary)", badge: "oklch(55% 0.22 264 / 12%)", badgeText: "oklch(35% 0.18 264)" },
   PLUS:  { gradient: "oklch(55% 0.22 290)", badge: "oklch(55% 0.22 290 / 12%)", badgeText: "oklch(35% 0.18 290)" },
   PRO:   { gradient: "oklch(62% 0.20 60)",  badge: "oklch(62% 0.20 60 / 12%)",  badgeText: "oklch(38% 0.16 60)" },
 };
@@ -169,7 +169,7 @@ function UsageBar({ label, icon: Icon, count, limit, percent }: { label: string;
   const isUnlimited = limit === -1;
   const isWarning = !isUnlimited && percent >= 80;
   const isCritical = !isUnlimited && percent >= 95;
-  const barColor = isCritical ? "oklch(55% 0.22 25)" : isWarning ? "oklch(65% 0.20 75)" : "oklch(55% 0.22 264)";
+  const barColor = isCritical ? "oklch(55% 0.22 25)" : isWarning ? "oklch(65% 0.20 75)" : "var(--primary)";
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -376,7 +376,7 @@ export default function Dashboard() {
 
   const profMap = useMemo(() => {
     const m: Record<number, { nome: string; cor: string }> = {};
-    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(55% 0.22 264)" }; });
+    profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "var(--primary)" }; });
     return m;
   }, [profissionais]);
 
@@ -473,7 +473,7 @@ export default function Dashboard() {
               </div>
             </Link>
             <Link href="/admin/contas-pagar?filtro=semana">
-                <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "oklch(55% 0.22 264)" }}>
+                <div className="stat-card cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "var(--primary)" }}>
                 <div className="flex items-start justify-between mb-1 lg:mb-1.5">
                   <div className="w-5 h-5 lg:w-6 lg:h-6 rounded-md lg:rounded-lg flex items-center justify-center" style={{ background: "oklch(55% 0.22 264 / 12%)" }}><CalendarCheck className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: "oklch(45% 0.18 264)" }} /></div>
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "oklch(55% 0.22 264 / 12%)", color: "oklch(35% 0.18 264)" }}>{contasSemana?.length ?? 0} conta{(contasSemana?.length ?? 0) !== 1 ? "s" : ""}</span>
@@ -507,7 +507,7 @@ export default function Dashboard() {
                     className="h-7 px-2.5 rounded-md border text-[11px] font-medium transition-all"
                     style={{
                       background: agendaPeriodo === p ? "oklch(55% 0.22 264 / 12%)" : "transparent",
-                      borderColor: agendaPeriodo === p ? "oklch(55% 0.22 264 / 50%)" : "oklch(88% 0.010 250)",
+                      borderColor: agendaPeriodo === p ? "oklch(55% 0.22 264 / 50%)" : "var(--primary)",
                       color: agendaPeriodo === p ? "oklch(45% 0.18 264)" : "oklch(50% 0.010 260)",
                       fontWeight: agendaPeriodo === p ? 600 : 400,
                     }}
@@ -519,7 +519,7 @@ export default function Dashboard() {
             </div>
             {agendamentosOrdenados.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 text-center px-6">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: "oklch(55% 0.22 264 / 8%)" }}><Calendar className="w-5 h-5" style={{ color: "oklch(55% 0.22 264)" }} /></div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: "oklch(55% 0.22 264 / 8%)" }}><Calendar className="w-5 h-5" style={{ color: "var(--primary)" }} /></div>
                 <p className="text-sm font-medium text-foreground mb-1">Nenhum agendamento {agendaPeriodo === "hoje" ? "hoje" : agendaPeriodo === "semana" ? "esta semana" : "este mês"}</p>
                 <p className="text-xs text-muted-foreground mb-5">Que tal criar o primeiro?</p>
                 <button onClick={() => setNovaAgendaOpen(true)} className="btn-primary text-xs py-1.5"><Plus className="w-3.5 h-3.5" /> Criar agendamento</button>
@@ -535,7 +535,7 @@ export default function Dashboard() {
                         <p className="text-sm font-bold tracking-tight text-foreground">{ag.horaInicio.slice(0, 5)}</p>
                         <p className="text-[10px] text-muted-foreground">{ag.horaFim.slice(0, 5)}</p>
                       </div>
-                      <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: prof?.cor ?? "oklch(55% 0.22 264)" }} />
+                      <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: prof?.cor ?? "var(--primary)" }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{clienteMap[ag.clienteId] ?? "Cliente"}</p>
                         <p className="text-xs text-muted-foreground truncate">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}</p>
@@ -697,9 +697,9 @@ export default function Dashboard() {
                 const agendamentosProf = agendamentosOrdenados.filter(a => a.profissionalId === p.id).length;
                 return (
                   <div key={p.id} className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-white" style={{ background: p.corCalendario ?? "oklch(55% 0.22 264)" }}>{p.nome.charAt(0)}</div>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-white" style={{ background: p.corCalendario ?? "var(--primary)" }}>{p.nome.charAt(0)}</div>
                     <div className="flex-1 min-w-0"><p className="text-xs font-medium truncate">{p.nome.split(" ")[0]}</p></div>
-                    <div className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3" style={{ color: "oklch(55% 0.22 264)" }} /><span className="text-[11px] font-semibold text-muted-foreground">{agendamentosProf}</span></div>
+                    <div className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3" style={{ color: "var(--primary)" }} /><span className="text-[11px] font-semibold text-muted-foreground">{agendamentosProf}</span></div>
                   </div>
                 );
               })}
@@ -958,7 +958,7 @@ export default function Dashboard() {
                       <p className={`text-xs font-semibold truncate ${isActive ? "text-primary" : ""}`}>{preset.title}</p>
                       <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{preset.description}</p>
                     </div>
-                    {isActive && <div className="ml-auto flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "oklch(55% 0.22 264)" }}><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div>}
+                    {isActive && <div className="ml-auto flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "var(--primary)" }}><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div>}
                   </button>
                 );
               })}

@@ -303,13 +303,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(72% 0.055 70)" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
         <div className="flex flex-col items-center gap-4">
           <img
-            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
             alt="Hubly"
             className="h-12 w-auto object-contain animate-pulse"
-            style={{ filter: "brightness(0) invert(1)" }}
+            style={{}}
           />
           <p className="text-sm font-medium" style={{ color: "oklch(28% 0.060 45)" }}>Carregando...</p>
         </div>
@@ -328,7 +328,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex bg-background">
         {/* Painel esquerdo */}
         <div className="hidden lg:flex w-1/2 flex-col justify-between p-14 relative overflow-hidden"
-          style={{ background: "oklch(72% 0.055 70)" }}>
+          style={{ background: "var(--background)" }}>
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-15"
             style={{ background: "oklch(82% 0.090 80)" }} />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-10"
@@ -336,7 +336,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
                 style={{}}
@@ -372,10 +372,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="h-10 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)" }}
+                style={{}}
               />
             </div>
             {modoLogin === "login" ? (
@@ -551,7 +551,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0 lg:w-56
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
-        style={{ background: "oklch(22.8% 0.029 84)", borderRight: "1px solid oklch(32% 0.040 50)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ background: "var(--sidebar)", borderRight: "1px solid var(--sidebar-border)", paddingTop: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => { sidebarTouchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           if (sidebarTouchStartX.current === null) return;
@@ -565,10 +565,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
+              style={{}}
             />
           </div>
           <button onClick={() => setSidebarOpen(false)}
@@ -888,10 +888,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <div className="flex flex-col justify-center">
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
-                style={{ filter: "brightness(0) invert(1)" }}
+                style={{}}
               />
               {empresaData?.nome && (
                 <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(72% 0.040 60)" }}>

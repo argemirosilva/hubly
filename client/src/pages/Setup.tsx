@@ -23,10 +23,10 @@ export default function Setup() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "oklch(98% 0.004 250)" }}>
+    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
       {/* Painel esquerdo */}
       <div className="hidden lg:flex w-2/5 flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: "oklch(20% 0.10 255)" }}>
+        style={{ background: "var(--sidebar)" }}>
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full opacity-10"
           style={{ background: "oklch(62% 0.16 225)" }} />
         <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full opacity-5"
@@ -35,9 +35,9 @@ export default function Setup() {
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
               alt="Hubly"
-              className="h-9 w-auto object-contain brightness-0 invert"
+              className="h-9 w-auto object-contain "
             />
           </div>
           <div className="space-y-4">
@@ -79,10 +79,10 @@ export default function Setup() {
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/myhUajQRkxFhBULl.png"
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
+              style={{}}
             />
           </div>
 
