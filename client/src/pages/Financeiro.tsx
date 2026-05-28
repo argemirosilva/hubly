@@ -158,6 +158,15 @@ export default function Financeiro() {
     return "Período personalizado";
   })();
 
+  // Retorna classe de tamanho de fonte adaptativa baseada no comprimento do valor
+  function valueFontSize(value: number, base: 'sm' | 'base' = 'base') {
+    const str = formatCurrency(value);
+    if (str.length > 12) return 'text-[9px] sm:text-xs lg:text-' + base;
+    if (str.length > 10) return 'text-[10px] sm:text-xs lg:text-' + base;
+    if (str.length > 8) return 'text-xs sm:text-sm lg:text-' + base;
+    return 'text-xs sm:text-' + base;
+  }
+
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
@@ -174,21 +183,21 @@ export default function Financeiro() {
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
               <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
             </div>
-            <p className="text-[10px] sm:text-base font-bold text-foreground tracking-tight truncate">{formatCurrency(receitasMes)}</p>
+            <p className={`${valueFontSize(receitasMes)} font-bold text-foreground tracking-tight break-all`}>{formatCurrency(receitasMes)}</p>
             <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Receita do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
               <ArrowDownRight className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
             </div>
-            <p className="text-[10px] sm:text-base font-bold text-foreground tracking-tight truncate">{formatCurrency(despesasMes)}</p>
+            <p className={`${valueFontSize(despesasMes)} font-bold text-foreground tracking-tight break-all`}>{formatCurrency(despesasMes)}</p>
             <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Despesas do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: saldoMes >= 0 ? "oklch(62% 0.18 155 / 12%)" : "oklch(60% 0.22 25 / 12%)" }}>
               <Wallet className="w-3 h-3" style={{ color: saldoMes >= 0 ? "oklch(38% 0.14 155)" : "oklch(42% 0.18 25)" }} />
             </div>
-            <p className={`text-[10px] sm:text-base font-bold tracking-tight truncate ${saldoMes >= 0 ? "text-foreground" : "text-destructive"}`}>{formatCurrency(saldoMes)}</p>
+            <p className={`${valueFontSize(saldoMes)} font-bold tracking-tight break-all ${saldoMes >= 0 ? 'text-foreground' : 'text-destructive'}`}>{formatCurrency(saldoMes)}</p>
             <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Saldo líquido</p>
           </div>
         </div>
@@ -214,7 +223,7 @@ export default function Financeiro() {
         <div className="mt-3 pt-3" style={{ borderTop: "1px solid oklch(90% 0.012 250)" }}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="stat-card">
-              <p className="text-sm font-bold text-foreground tracking-tight">{formatCurrency(metrics?.ticketMedio ?? 0)}</p>
+              <p className={`${valueFontSize(metrics?.ticketMedio ?? 0, 'sm')} font-bold text-foreground tracking-tight break-all`}>{formatCurrency(metrics?.ticketMedio ?? 0)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Ticket médio</p>
             </div>
             <div className="stat-card">
@@ -222,11 +231,11 @@ export default function Financeiro() {
               <p className="text-[10px] text-muted-foreground mt-0.5">Atendimentos</p>
             </div>
             <div className="stat-card">
-              <p className="text-sm font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAPagar)}</p>
+              <p className={`${valueFontSize(totalAPagar, 'sm')} font-bold tracking-tight break-all`} style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAPagar)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">A pagar (pendente)</p>
             </div>
             <div className="stat-card">
-              <p className="text-sm font-bold tracking-tight" style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAReceber)}</p>
+              <p className={`${valueFontSize(totalAReceber, 'sm')} font-bold tracking-tight break-all`} style={{ color: "oklch(40% 0.14 75)" }}>{formatCurrency(totalAReceber)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">A receber (pendente)</p>
             </div>
           </div>
