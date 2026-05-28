@@ -901,7 +901,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            {planStatus && (
+              <Link href="/admin/assinatura">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:shadow-sm transition-all border"
+                  style={{
+                    background: getPlanColor(planStatus.plan) + "14",
+                    borderColor: getPlanColor(planStatus.plan) + "35",
+                    color: getPlanColor(planStatus.plan),
+                  }}>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: getPlanColor(planStatus.plan) }}></div>
+                  <span className="text-[10px] font-bold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
+                </div>
+              </Link>
+            )}
             <Link href="/admin/notificacoes">
               <div className="relative p-2 rounded-xl transition-colors cursor-pointer">
                 <Bell className="w-5 h-5" style={{ color: "oklch(28% 0.060 45)" }} />
