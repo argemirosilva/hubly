@@ -697,15 +697,26 @@ export default function PortalCliente() {
               <div className="relative">
                 <InputField label="WhatsApp / Telefone *" value={telefone}
                   onChange={(v) => {
-                    setTelefone(v);
+                    // Máscara automática: (11) 99999-9999 ou (11) 9999-9999
+                    const digits = v.replace(/\D/g, "").slice(0, 11);
+                    let masked = digits;
+                    if (digits.length > 10) {
+                      masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7,11)}`;
+                    } else if (digits.length > 6) {
+                      masked = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+                    } else if (digits.length > 2) {
+                      masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                    } else if (digits.length > 0) {
+                      masked = `(${digits}`;
+                    }
+                    setTelefone(masked);
                     // Reset ao mudar telefone
                     setClienteEncontrado(null);
                     setCpf(""); setCpfErro(""); setCpfValidado(false);
                     setNome(""); setDataNascimento("");
                     // Busca automática ao atingir tamanho completo (10 ou 11 dígitos)
-                    const digits = v.replace(/\D/g, "");
                     if (digits.length >= 10) {
-                      executarBuscaTelefone(v);
+                      executarBuscaTelefone(masked);
                     }
                   }}
                   onBlur={() => executarBuscaTelefone(telefone)}
