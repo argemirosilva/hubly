@@ -812,7 +812,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* User */}
         <div className="px-3 py-3" style={{ borderTop: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl"
-            style={{ background: "oklch(22% 0.065 48)" }}>
+            style={{ background: '#302c2c' }}>
             <Link href="/admin/perfil" className="flex-shrink-0">
               <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ background: avatarUrl ? 'transparent' : 'oklch(72% 0.065 65)' }}>
