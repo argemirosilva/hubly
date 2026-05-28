@@ -27,12 +27,20 @@ function formatDateShort(date: Date | string | null | undefined) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function getStatusConfig(status: string | null | undefined) {
+function getStatusConfig(status: string | null | undefined, daysLeft?: number | null) {
   switch (status) {
     case "active":
       return { label: "Ativa", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2, dot: "bg-emerald-500" };
-    case "trialing":
-      return { label: "Trial", color: "bg-amber-100 text-blue-700 border-blue-200", icon: Clock, dot: "bg-amber-500" };
+    case "trial":
+    case "trialing": {
+      const urgent = daysLeft !== null && daysLeft !== undefined && daysLeft <= 2;
+      return {
+        label: daysLeft !== null && daysLeft !== undefined ? `Trial · ${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}` : "Trial",
+        color: urgent ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-700 border-amber-200",
+        icon: Clock,
+        dot: urgent ? "bg-red-500" : "bg-amber-500"
+      };
+    }
     case "past_due":
       return { label: "Pagamento pendente", color: "bg-amber-100 text-amber-700 border-amber-200", icon: AlertTriangle, dot: "bg-amber-500" };
     case "canceled":
@@ -105,14 +113,21 @@ export default function Assinatura() {
 
   const plan = planStatus?.plan ?? "FREE";
   const planLabel = planStatus?.planLabel ?? "Free";
-  const statusConfig = getStatusConfig(planStatus?.status);
+  const isOnTrial = planStatus?.status === "trial";
+  const trialDaysLeft = isOnTrial && planStatus?.trialEnd
+    ? Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const statusConfig = getStatusConfig(planStatus?.status, trialDaysLeft);
   const StatusIcon = statusConfig.icon;
-  const planGradient = getPlanColor(plan);
+  const planGradient = isOnTrial ? "from-amber-400 to-orange-500" : getPlanColor(plan);
+  const displayLabel = isOnTrial ? "Trial Gratuito" : planLabel;
 
   const isLoading = loadingPlan || loadingSub;
 
   // Calcular dias para renovação
-  const renovacaoDate = subDetails?.proximaCobranca ?? planStatus?.currentPeriodEnd;
+  const renovacaoDate = isOnTrial
+    ? (planStatus?.trialEnd ?? null)
+    : (subDetails?.proximaCobranca ?? planStatus?.currentPeriodEnd);
   const diasParaRenovacao = renovacaoDate
     ? Math.ceil((new Date(renovacaoDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
@@ -219,16 +234,22 @@ export default function Assinatura() {
             <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${planGradient} p-5 text-white shadow-sm`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-medium text-white/70 uppercase tracking-wide">Plano atual</p>
-                  <p className="text-2xl font-bold mt-1">{planLabel}</p>
-                  {planStatus?.billingCycle && plan !== "FREE" && (
+                  <p className="text-xs font-medium text-white/70 uppercase tracking-wide">
+                    {isOnTrial ? "Período de teste" : "Plano atual"}
+                  </p>
+                  <p className="text-2xl font-bold mt-1">{displayLabel}</p>
+                  {isOnTrial && trialDaysLeft !== null ? (
+                    <p className="text-xs text-white/90 mt-0.5 font-medium">
+                      {trialDaysLeft === 0 ? "Expira hoje!" : `${trialDaysLeft} dia${trialDaysLeft !== 1 ? "s" : ""} restante${trialDaysLeft !== 1 ? "s" : ""}`}
+                    </p>
+                  ) : planStatus?.billingCycle && plan !== "FREE" ? (
                     <p className="text-xs text-white/70 mt-0.5">
                       {planStatus.billingCycle === "annual" ? "Cobrança anual" : "Cobrança mensal"}
                     </p>
-                  )}
+                  ) : null}
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <Gem className="w-5 h-5 text-white" />
+                  {isOnTrial ? <Clock className="w-5 h-5 text-white" /> : <Gem className="w-5 h-5 text-white" />}
                 </div>
               </div>
               <div className="mt-4">
@@ -237,21 +258,28 @@ export default function Assinatura() {
                   {statusConfig.label}
                 </span>
               </div>
+              {isOnTrial && (
+                <div className="mt-3 text-xs text-white/80">
+                  Após o trial, você será movido para o plano Free.
+                </div>
+              )}
             </div>
 
-            {/* Card: Próxima cobrança */}
+            {/* Card: Próxima cobrança / Trial expira */}
             <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                    {planStatus?.cancelAtPeriodEnd ? "Acesso até" : "Próxima cobrança"}
+                    {isOnTrial ? "Trial expira em" : planStatus?.cancelAtPeriodEnd ? "Acesso até" : "Próxima cobrança"}
                   </p>
                   <p className="text-xl font-bold text-slate-800 mt-1">
-                    {subDetails?.proximaCobranca
-                      ? formatDate(subDetails.proximaCobranca)
-                      : planStatus?.currentPeriodEnd
-                        ? formatDate(planStatus.currentPeriodEnd)
-                        : plan === "FREE" ? "Plano gratuito" : "—"}
+                    {isOnTrial && planStatus?.trialEnd
+                      ? formatDate(planStatus.trialEnd)
+                      : subDetails?.proximaCobranca
+                        ? formatDate(subDetails.proximaCobranca)
+                        : planStatus?.currentPeriodEnd
+                          ? formatDate(planStatus.currentPeriodEnd)
+                          : plan === "FREE" ? "Plano gratuito" : "—"}
                   </p>
                   {subDetails?.valorMensal && (
                     <p className="text-sm text-slate-500 mt-0.5">

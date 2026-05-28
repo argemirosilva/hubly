@@ -274,6 +274,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       default: return "oklch(52% 0.016 55)";
     }
   };
+  // Calcular dias restantes de trial
+  const trialDaysLeft = planStatus?.status === "trial" && planStatus?.trialEnd
+    ? Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const isOnTrial = trialDaysLeft !== null;
+  const trialColor = trialDaysLeft !== null && trialDaysLeft <= 2
+    ? "oklch(55% 0.20 25)"  // vermelho urgente
+    : "oklch(58% 0.18 60)"; // âmbar normal
+  const planBadgeLabel = isOnTrial
+    ? `Trial · ${trialDaysLeft}d`
+    : (planStatus?.planLabel ?? planStatus?.plan ?? "Free");
+  const planBadgeColor = isOnTrial ? trialColor : getPlanColor(planStatus?.plan);
 
   // Controla quais itens com submenu estão expandidos (deve ficar antes dos returns condicionais)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
@@ -865,12 +877,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/assinatura">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:shadow-md transition-all border plan-badge-premium"
                 style={{
-                  background: getPlanColor(planStatus.plan) + "14",
-                  borderColor: getPlanColor(planStatus.plan) + "35",
-                  color: getPlanColor(planStatus.plan),
+                  background: planBadgeColor + "14",
+                  borderColor: planBadgeColor + "35",
+                  color: planBadgeColor,
                 }}>
-                <div className="w-2 h-2 rounded-full" style={{ background: getPlanColor(planStatus.plan) }}></div>
-                <span className="text-xs font-bold tracking-wide uppercase">{planStatus.planLabel ?? planStatus.plan}</span>
+                <div className="w-2 h-2 rounded-full" style={{ background: planBadgeColor }}></div>
+                <span className="text-xs font-bold tracking-wide uppercase">{planBadgeLabel}</span>
               </div>
             </Link>
           )}
@@ -908,12 +920,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link href="/admin/assinatura">
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:shadow-sm transition-all border plan-badge-premium"
                   style={{
-                    background: getPlanColor(planStatus.plan) + "14",
-                    borderColor: getPlanColor(planStatus.plan) + "35",
-                    color: getPlanColor(planStatus.plan),
+                    background: planBadgeColor + "14",
+                    borderColor: planBadgeColor + "35",
+                    color: planBadgeColor,
                   }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: getPlanColor(planStatus.plan) }}></div>
-                  <span className="text-[10px] font-bold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: planBadgeColor }}></div>
+                  <span className="text-[10px] font-bold tracking-wide">{planBadgeLabel}</span>
                 </div>
               </Link>
             )}
