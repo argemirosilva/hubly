@@ -608,28 +608,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <div
                           className="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden"
                           style={{
-                            background: isParentActive ? "oklch(60% 0.100 55 / 20%)" : "transparent",
-                            color: isParentActive ? "oklch(82% 0.090 70)" : "oklch(82% 0.090 70)",
-                            boxShadow: isParentActive ? "inset 3px 0 0 oklch(60% 0.100 55)" : "inset 3px 0 0 transparent",
+                            background: "transparent",
+                            color: "oklch(82% 0.090 70)",
+                            boxShadow: "inset 3px 0 0 transparent",
                           }}
                           onClick={() => toggleExpanded(item.href)}
                           onMouseEnter={e => {
-                            if (!isParentActive) {
-                              const el = e.currentTarget as HTMLElement;
-                              el.style.background = "oklch(60% 0.100 55 / 25%)";
-                              el.style.color = "oklch(82% 0.090 70)";
-                              el.style.boxShadow = "inset 3px 0 0 oklch(60% 0.100 55 / 60%)";
-                              el.style.transform = "translateX(2px)";
-                            }
+                            const el = e.currentTarget as HTMLElement;
+                            el.style.background = "oklch(60% 0.100 55 / 25%)";
+                            el.style.color = "oklch(82% 0.090 70)";
+                            el.style.boxShadow = "inset 3px 0 0 oklch(60% 0.100 55 / 60%)";
+                            el.style.transform = "translateX(2px)";
                           }}
                           onMouseLeave={e => {
-                            if (!isParentActive) {
-                              const el = e.currentTarget as HTMLElement;
-                              el.style.background = "transparent";
-                              el.style.color = "oklch(28% 0.060 45)";
-                              el.style.boxShadow = "inset 3px 0 0 transparent";
-                              el.style.transform = "translateX(0)";
-                            }
+                            const el = e.currentTarget as HTMLElement;
+                            el.style.background = "transparent";
+                            el.style.color = "oklch(82% 0.090 70)";
+                            el.style.boxShadow = "inset 3px 0 0 transparent";
+                            el.style.transform = "translateX(0)";
                           }}
                         >
                           <div className="flex items-center gap-3">
