@@ -102,6 +102,9 @@ queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
+    // Suprimir erros de autenticação (10001) — a UI de login já trata isso
+    if (error instanceof TRPCClientError && (error as any)?.data?.code === 'UNAUTHORIZED') return;
+    if (error instanceof TRPCClientError && error.message?.includes('10001')) return;
     console.error("[API Query Error]", error);
   }
 });
@@ -110,6 +113,9 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
+    // Suprimir erros de autenticação (10001) — a UI de login já trata isso
+    if (error instanceof TRPCClientError && (error as any)?.data?.code === 'UNAUTHORIZED') return;
+    if (error instanceof TRPCClientError && error.message?.includes('10001')) return;
     console.error("[API Mutation Error]", error);
   }
 });
