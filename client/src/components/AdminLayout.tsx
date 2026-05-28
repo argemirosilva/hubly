@@ -338,7 +338,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="w-auto object-contain"
-                style={{height: '115px'}}
+                style={{height: '115px', marginLeft: '-40px'}}
               />
             </div>
             <div className="space-y-5">
