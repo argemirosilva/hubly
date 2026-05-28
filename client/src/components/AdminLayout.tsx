@@ -327,7 +327,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex bg-background">
         {/* Painel esquerdo */}
         <div className="hidden lg:flex w-1/2 flex-col justify-between p-14 relative overflow-hidden"
-          style={{ background: "var(--background)" }}>
+          style={{ background: "var(--background)", backgroundColor: '#fdf7ee' }}>
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-15"
             style={{ background: "oklch(82% 0.090 80)" }} />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-10"
