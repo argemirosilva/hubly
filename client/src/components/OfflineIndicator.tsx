@@ -4,12 +4,39 @@ import { WifiOff } from "lucide-react";
 /**
  * Indicador de status offline — exibe uma barra no topo da tela quando sem internet.
  * Desaparece automaticamente quando a conexão é restabelecida.
+ * Usa detecção ativa de conexão ao invés de depender apenas de navigator.onLine
  */
 export function OfflineIndicator() {
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline, setIsOffline] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
 
   useEffect(() => {
+    // Verificar conexão real fazendo um ping para o servidor
+    const checkConnection = async () => {
+      try {
+        const response = await fetch("/api/trpc", {
+          method: "GET",
+          cache: "no-store",
+        });
+        // Se conseguir conectar, está online
+        if (!isOffline) return;
+        setIsOffline(false);
+        setShowReconnected(true);
+        setTimeout(() => setShowReconnected(false), 3000);
+      } catch {
+        // Se falhar, está offline
+        if (isOffline) return;
+        setIsOffline(true);
+      }
+    };
+
+    // Verificar conexão a cada 5 segundos
+    const interval = setInterval(checkConnection, 5000);
+    
+    // Verificar imediatamente ao montar
+    checkConnection();
+
+    // Manter os event listeners como fallback
     const handleOffline = () => setIsOffline(true);
     const handleOnline = () => {
       setIsOffline(false);
@@ -19,11 +46,13 @@ export function OfflineIndicator() {
 
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
+    
     return () => {
+      clearInterval(interval);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
     };
-  }, []);
+  }, [isOffline]);
 
   if (!isOffline && !showReconnected) return null;
 
