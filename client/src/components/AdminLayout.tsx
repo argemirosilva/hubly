@@ -303,15 +303,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(22% 0.030 55)" }}>
         <div className="flex flex-col items-center gap-4">
           <img
-            src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
+            src="/manus-storage/hubly-logo-white_b68a2476.png"
             alt="Hubly"
-            className="h-12 w-auto object-contain animate-pulse"
+            className="h-48 w-auto object-contain animate-pulse"
             style={{}}
           />
-          <p className="text-sm font-medium" style={{ color: "oklch(28% 0.060 45)" }}>Carregando...</p>
         </div>
       </div>
     );
