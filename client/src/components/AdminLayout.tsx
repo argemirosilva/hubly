@@ -1077,7 +1077,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
-              setNovaAgendaOpen(true);
+              navigate('/admin/novo-agendamento');
             }}
             className="flex items-center justify-center rounded-full shadow-lg transition-all active:scale-95"
             style={{

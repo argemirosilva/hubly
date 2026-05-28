@@ -48,6 +48,7 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
 import Suporte from "./pages/Suporte";
 import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
+import NovoAgendamento from "./pages/NovoAgendamento";
 import { SupportChat } from "./components/SupportChat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useMobileApp } from "./hooks/useMobileApp";
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/admin/relatorios">{() => <WithAdmin><Relatorios /></WithAdmin>}</Route>
       <Route path="/admin/automacoes/fila">{() => <WithAdmin><FilaAutomacoes /></WithAdmin>}</Route>
       <Route path="/admin/pre-agendamentos">{() => <WithAdmin><PreAgendamentosPendentes /></WithAdmin>}</Route>
+      <Route path="/admin/novo-agendamento">{() => <WithAdmin><NovoAgendamento /></WithAdmin>}</Route>
       <Route path="/admin">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
 
       <Route path="/orizontech">{() => <PainelOrizontech />}</Route>
