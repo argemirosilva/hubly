@@ -890,10 +890,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"
                 alt="Hubly"
                 className="h-6 w-auto object-contain"
-                style={{}}
+                style={{ filter: "brightness(0.3) saturate(1.5)" }}
               />
               {empresaData?.nome && (
-                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(72% 0.040 60)" }}>
+                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate font-semibold" style={{ color: "oklch(28% 0.060 45)" }}>
                   {empresaData.nome}
                 </span>
               )}
