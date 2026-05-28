@@ -854,14 +854,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ background: "oklch(97% 0.010 80)", borderBottom: "1px solid oklch(90% 0.015 80)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:opacity-90 transition-all border"
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer hover:shadow-md transition-all border"
                 style={{
-                  background: getPlanColor(planStatus.plan) + "12",
-                  borderColor: getPlanColor(planStatus.plan) + "30",
+                  background: getPlanColor(planStatus.plan) + "18",
+                  borderColor: getPlanColor(planStatus.plan) + "40",
                   color: getPlanColor(planStatus.plan),
+                  boxShadow: `0 2px 8px ${getPlanColor(planStatus.plan)}20`,
                 }}>
-                <CreditCard className="w-3 h-3" />
-                <span className="text-[11px] font-semibold tracking-wide">{planStatus.planLabel ?? planStatus.plan}</span>
+                <div className="w-2 h-2 rounded-full" style={{ background: getPlanColor(planStatus.plan) }}></div>
+                <span className="text-[12px] font-bold tracking-wider uppercase">{planStatus.planLabel ?? planStatus.plan}</span>
               </div>
             </Link>
           )}
