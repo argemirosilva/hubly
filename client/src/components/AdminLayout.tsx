@@ -894,7 +894,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 style={{ filter: "brightness(0) invert(1)" }}
               />
               {empresaData?.nome && (
-                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(28% 0.060 45)" }}>
+                <span className="text-[10px] leading-none mt-0.5 max-w-[130px] truncate" style={{ color: "oklch(72% 0.040 60)" }}>
                   {empresaData.nome}
                 </span>
               )}
