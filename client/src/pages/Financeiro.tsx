@@ -174,22 +174,22 @@ export default function Financeiro() {
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
               <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
             </div>
-            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(receitasMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Receita do mês</p>
+            <p className="text-xs sm:text-base font-bold text-foreground tracking-tight truncate">{formatCurrency(receitasMes)}</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Receita do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
               <ArrowDownRight className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />
             </div>
-            <p className="text-base font-bold text-foreground tracking-tight">{formatCurrency(despesasMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Despesas do mês</p>
+            <p className="text-xs sm:text-base font-bold text-foreground tracking-tight truncate">{formatCurrency(despesasMes)}</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Despesas do mês</p>
           </div>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: saldoMes >= 0 ? "oklch(62% 0.18 155 / 12%)" : "oklch(60% 0.22 25 / 12%)" }}>
               <Wallet className="w-3 h-3" style={{ color: saldoMes >= 0 ? "oklch(38% 0.14 155)" : "oklch(42% 0.18 25)" }} />
             </div>
-            <p className={`text-base font-bold tracking-tight ${saldoMes >= 0 ? "text-foreground" : "text-destructive"}`}>{formatCurrency(saldoMes)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Saldo líquido</p>
+            <p className={`text-xs sm:text-base font-bold tracking-tight truncate ${saldoMes >= 0 ? "text-foreground" : "text-destructive"}`}>{formatCurrency(saldoMes)}</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Saldo líquido</p>
           </div>
         </div>
         {/* Barra visual receita vs despesa */}
