@@ -3,10 +3,11 @@ import express from "express";
 import { stripe } from "./stripe";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
-import { subscriptions, assinaturas, planos } from "../drizzle/schema";
+import { subscriptions, assinaturas, planos, empresas } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 import { invalidatePlanCache } from "./whatsapp-router";
+import { sendPushToUser } from "./pushNotifications";
 
 /**
  * Sincroniza a tabela `assinaturas` (Painel Orizontech) com dados do Stripe.
@@ -296,6 +297,27 @@ export function registerStripeWebhook(app: Express) {
           case "customer.subscription.deleted": {
             const sub = event.data.object as { id: string };
             const db3 = await getDb();
+
+            // Capturar empresaId e ownerId ANTES de zerar o stripeSubscriptionId
+            let canceledEmpresaId: number | null = null;
+            let canceledOwnerId: number | null = null;
+            if (db3) {
+              const preRows = await db3
+                .select({ empresaId: subscriptions.empresaId })
+                .from(subscriptions)
+                .where(eq(subscriptions.stripeSubscriptionId, sub.id))
+                .limit(1);
+              if (preRows[0]?.empresaId) {
+                canceledEmpresaId = preRows[0].empresaId;
+                const ownerRow = await db3
+                  .select({ ownerId: empresas.ownerId })
+                  .from(empresas)
+                  .where(eq(empresas.id, canceledEmpresaId))
+                  .limit(1);
+                canceledOwnerId = ownerRow[0]?.ownerId ?? null;
+              }
+            }
+
             if (db3) {
               await db3
                 .update(subscriptions)
@@ -310,15 +332,9 @@ export function registerStripeWebhook(app: Express) {
                 .where(eq(subscriptions.stripeSubscriptionId, sub.id));
             }
 
-            // Invalida cache de plano para todas as empresas com essa subscription
-            if (db3) {
-              const rows = await db3
-                .select({ empresaId: subscriptions.empresaId })
-                .from(subscriptions)
-                .where(eq(subscriptions.stripeSubscriptionId, sub.id))
-                .limit(1);
-              if (rows[0]?.empresaId) invalidatePlanCache(rows[0].empresaId);
-            }
+            // Invalida cache de plano
+            if (canceledEmpresaId) invalidatePlanCache(canceledEmpresaId);
+
             console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para FREE`);
 
             // Sincronizar tabela assinaturas (Painel Orizontech) — marcar como cancelada
@@ -327,6 +343,20 @@ export function registerStripeWebhook(app: Express) {
                 status: 'cancelada',
                 canceladaEm: new Date(),
               }).where(eq(assinaturas.stripeSubscriptionId, sub.id));
+            }
+
+            // Notificar o dono da empresa sobre o cancelamento confirmado
+            if (canceledOwnerId) {
+              await sendPushToUser(canceledOwnerId, {
+                title: "Assinatura cancelada",
+                body: "Sua assinatura foi cancelada. Novos cadastros estão bloqueados. Reative para continuar usando todos os recursos.",
+                tag: "subscription-canceled",
+                sound: true,
+                url: "/admin/assinatura",
+              }).catch((err) =>
+                console.error("[Stripe Webhook] Erro ao enviar push de cancelamento:", err)
+              );
+              console.log(`[Stripe Webhook] Push de cancelamento enviado para ownerId=${canceledOwnerId}`);
             }
             break;
           }

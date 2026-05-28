@@ -128,6 +128,7 @@ export default function Assinatura() {
   const plan = planStatus?.plan ?? "FREE";
   const planLabel = planStatus?.planLabel ?? "Free";
   const isOnTrial = planStatus?.status === "trial";
+  const isCanceled = planStatus?.status === "canceled";
   const trialDaysLeft = isOnTrial && planStatus?.trialEnd
     ? Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
@@ -380,8 +381,29 @@ export default function Assinatura() {
             </div>
           )}
 
+
+          {/* ── Assinatura cancelada: CTA de reativação ── */}
+          {isCanceled && (
+            <div className="rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800">Sua assinatura foi cancelada</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Novos cadastros estão bloqueados. Reative agora para voltar a usar todos os recursos.</p>
+                </div>
+              </div>
+              <Link href="/admin/planos">
+                <Button className="gap-2 bg-red-600 hover:bg-red-700 shrink-0">
+                  Reativar assinatura <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* ── Plano Free: CTA de upgrade ── */}
-          {plan === "FREE" && (
+          {plan === "FREE" && !isCanceled && (
             <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-blue-50 border border-violet-100 p-6 flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">
