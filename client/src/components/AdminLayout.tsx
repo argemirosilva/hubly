@@ -12,37 +12,13 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import { useBadge } from "@/hooks/useBadge";
 
-// Logo SVG inline — dimensões medidas pixel a pixel do logo original
-// Círculos: raio externo=19, stroke=6.2 | Linhas: stroke=6.2
-// Centros: topo(50,25), inf-esq(22,78), inf-dir(78,78)
+const HUBLY_LOGO_WHITE_URL = "/manus-storage/hubly-logo-white_e1e7eab2.png";
+const HUBLY_LOGO_DARK_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
+
 function HublyLogoSVG({ variant = 'white', height = 56 }: { variant?: 'white' | 'dark'; height?: number }) {
-  const textColor = variant === 'dark' ? '#1a1008' : '#ffffff';
-  const iconColor = '#C9A84C';
-  const iconH = Math.round(height * 0.68);
-  const textSize = Math.round(height * 0.30);
+  const src = variant === 'dark' ? HUBLY_LOGO_DARK_URL : HUBLY_LOGO_WHITE_URL;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <svg width={iconH} height={iconH} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Linhas retas conectando os 3 nós */}
-        <line x1="50" y1="25" x2="22" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        <line x1="50" y1="25" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        <line x1="22" y1="78" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        {/* Círculo topo: raio externo 19, stroke 6.2 → raio do centro = 19 - 3.1 = 15.9 */}
-        <circle cx="50" cy="25" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-        {/* Círculo inferior esquerdo */}
-        <circle cx="22" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-        {/* Círculo inferior direito */}
-        <circle cx="78" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-      </svg>
-      <span style={{
-        color: textColor,
-        fontWeight: 300,
-        fontSize: textSize,
-        letterSpacing: '0.06em',
-        fontFamily: 'inherit',
-        lineHeight: 1,
-      }}>hubly</span>
-    </div>
+    <img src={src} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
   );
 }
 
@@ -366,7 +342,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
               <img
-                src="/manus-storage/hubly-logo-bold-dark_3f889242.png"
+                src="/manus-storage/hubly-logo-dark_ecdf0ad5.png"
                 alt="Hubly"
                 className="w-auto object-contain"
                 style={{height: '115px', marginLeft: '-40px'}}
@@ -395,7 +371,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
               <img
-                src="/manus-storage/hubly-logo-bold-dark_3f889242.png"
+                src="/manus-storage/hubly-logo-dark_ecdf0ad5.png"
                 alt="Hubly"
                 className="h-24 w-auto object-contain"
                 style={{}}

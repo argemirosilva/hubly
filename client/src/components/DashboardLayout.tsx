@@ -37,23 +37,14 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
 
-const LOGO_URL = "/manus-storage/hubly-logo-white-clean_c821ca03.png";
+const LOGO_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
+const LOGO_WHITE_URL = "/manus-storage/hubly-logo-white_e1e7eab2.png";
 
-// Logo SVG inline para uso na sidebar (dimensões fieis ao logo original)
 function HublyLogoSidebar({ className, textColor = 'white' }: { className?: string; textColor?: 'white' | 'dark' }) {
-  const textClass = textColor === 'dark' ? 'text-foreground' : 'text-white';
-  const iconColor = '#C9A84C';
+  const logoSrc = textColor === 'dark' ? LOGO_URL : LOGO_WHITE_URL;
   return (
-    <div className={`flex flex-col items-center gap-0.5 ${className ?? ''}`}>
-      <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="50" y1="25" x2="22" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        <line x1="50" y1="25" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        <line x1="22" y1="78" x2="78" y2="78" stroke={iconColor} strokeWidth="6.2" strokeLinecap="round"/>
-        <circle cx="50" cy="25" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-        <circle cx="22" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-        <circle cx="78" cy="78" r="15.9" stroke={iconColor} strokeWidth="6.2" fill="transparent"/>
-      </svg>
-      <span className={`${textClass} font-light text-sm`} style={{ letterSpacing: '0.06em' }}>hubly</span>
+    <div className={`flex items-center justify-center ${className ?? ''}`}>
+      <img src={logoSrc} alt="Hubly" className="h-12 w-auto object-contain" />
     </div>
   );
 }

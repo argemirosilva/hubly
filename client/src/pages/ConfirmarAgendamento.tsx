@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const HUBLY_LOGO_COMPLETO = "/manus-storage/hubly-logo-bold-dark_3f889242.png";
-const HUBLY_LOGO_TRANSPARENTE = "/manus-storage/hubly-logo-bold-dark_3f889242.png";
+const HUBLY_LOGO_COMPLETO = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
+const HUBLY_LOGO_TRANSPARENTE = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
 
 function formatarDataCompleta(data: string) {
   const [ano, mes, dia] = data.split("-").map(Number);

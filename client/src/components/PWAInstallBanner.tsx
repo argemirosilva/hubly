@@ -71,7 +71,7 @@ export function PWAInstallBanner() {
         <div className="px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, oklch(28.5% 0.035 55), oklch(78.5% 0.075 85))" }}>
           <div className="flex items-center gap-2">
             <img
-              src="/manus-storage/hubly-favicon-source_ba613b6a.png"
+              src="/manus-storage/hubly-icon-gold_40021193.png"
               alt="Hubly"
               className="w-8 h-8 rounded-xl object-contain"
             />

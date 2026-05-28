@@ -35,7 +35,7 @@ export default function Setup() {
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
             <img
-              src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
+              src="/manus-storage/hubly-logo-white_e1e7eab2.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
             />
@@ -79,7 +79,7 @@ export default function Setup() {
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <img
-              src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
+              src="/manus-storage/hubly-logo-white_e1e7eab2.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
             />

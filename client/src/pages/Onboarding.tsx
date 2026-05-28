@@ -127,7 +127,7 @@ export default function Onboarding() {
         <div className="relative">
           <div className="flex items-center gap-2.5 mb-12">
             <img
-              src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png"
+              src="/manus-storage/hubly-logo-white_e1e7eab2.png"
               alt="Hubly"
               className="h-9 w-auto object-contain"
             />
@@ -187,7 +187,7 @@ export default function Onboarding() {
           {/* Progress bar mobile */}
           <div className="lg:hidden mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <img src="/manus-storage/hubly-logo-bold-white-v2_de4eb5ae.png" alt="Hubly" className="h-7 w-auto" />
+              <img src="/manus-storage/hubly-logo-white_e1e7eab2.png" alt="Hubly" className="h-7 w-auto" />
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
               <span>Passo {step} de {STEPS.length}</span>
