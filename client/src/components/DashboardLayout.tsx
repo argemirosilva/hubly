@@ -39,6 +39,24 @@ const MAX_WIDTH = 400;
 
 const LOGO_URL = "/manus-storage/hubly-logo-white-clean_c821ca03.png";
 
+// Logo SVG inline para uso na sidebar (sem artefatos de fundo)
+function HublyLogoSidebar({ className, textColor = 'white' }: { className?: string; textColor?: 'white' | 'dark' }) {
+  const textClass = textColor === 'dark' ? 'text-foreground' : 'text-white';
+  return (
+    <div className={`flex items-center gap-2 ${className ?? ''}`}>
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="50" y1="18" x2="22" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <line x1="50" y1="18" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <line x1="22" y1="72" x2="78" y2="72" stroke="#C9A84C" strokeWidth="9" strokeLinecap="round"/>
+        <circle cx="50" cy="18" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+        <circle cx="22" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+        <circle cx="78" cy="72" r="11" stroke="#C9A84C" strokeWidth="7" fill="transparent"/>
+      </svg>
+      <span className={`${textClass} font-semibold text-lg tracking-wide`} style={{ letterSpacing: '0.02em' }}>hubly</span>
+    </div>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -164,11 +182,9 @@ function DashboardLayoutContent({
         >
           <SidebarHeader className="h-20 justify-center border-b border-sidebar-border/50 px-4">
             <div className="flex items-center gap-3 transition-all w-full overflow-hidden">
-              <img 
-                src={LOGO_URL} 
-                alt="Hubly" 
-                className={`h-8 w-auto object-contain transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`} 
-              />
+              <div className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                <HublyLogoSidebar />
+              </div>
               <button
                 onClick={toggleSidebar}
                 className="ml-auto h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
@@ -248,7 +264,7 @@ function DashboardLayoutContent({
           <div className="flex border-b items-center justify-between bg-background/95 px-4 backdrop-blur sticky top-0 z-40 h-16" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-9 w-9 rounded-lg" />
-              <img src={LOGO_URL} alt="Hubly" className="h-6 w-auto" />
+              <HublyLogoSidebar className="scale-90" textColor="dark" />
             </div>
           </div>
         )}
