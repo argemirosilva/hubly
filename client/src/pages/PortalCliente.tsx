@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import {
   Calendar as CalendarIcon2, Clock, CheckCircle2, ChevronRight, ChevronLeft,
@@ -26,6 +26,57 @@ function formatarData(data: string) {
 function diasDaSemanaStr(diasFuncionamento: number[]) {
   const nomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   return diasFuncionamento.map(d => nomes[d]).join(", ");
+}
+
+// ── Detectar se imagem é escura e inverter para branco se necessário ──
+function useInvertLogoIfDark(logoUrl?: string | null) {
+  const [shouldInvert, setShouldInvert] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (!logoUrl || !imgRef.current) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Calcular luminância média
+        let r = 0, g = 0, b = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+        }
+        const pixelCount = data.length / 4;
+        r /= pixelCount;
+        g /= pixelCount;
+        b /= pixelCount;
+        
+        // Fórmula de luminância relativa (WCAG)
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        
+        // Se luminância < 0.5, é escuro, então inverter
+        setShouldInvert(luminance < 0.5);
+      } catch (e) {
+        // Se houver erro (CORS, etc), não inverter
+        setShouldInvert(false);
+      }
+    };
+    img.onerror = () => setShouldInvert(false);
+    img.src = logoUrl;
+  }, [logoUrl]);
+
+  return { shouldInvert, imgRef };
 }
 
 // ── Calendário Customizado ────────────────────────────────────────────────
@@ -1213,6 +1264,7 @@ function PortalHeader({ empresa, corPrimaria }: {
   corPrimaria: string;
 }) {
   const [copiado, setCopiado] = useState(false);
+  const { shouldInvert, imgRef } = useInvertLogoIfDark(empresa.logoUrl);
 
   function compartilhar() {
     const url = window.location.href;
@@ -1240,9 +1292,16 @@ function PortalHeader({ empresa, corPrimaria }: {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {empresa.logoUrl ? (
-              <img src={empresa.logoUrl || "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"} alt={empresa.nome}
+              <img 
+                ref={imgRef}
+                src={empresa.logoUrl || "https://files.manuscdn.com/user_upload_by_module/session_file/310419663029250418/SqceyAPiNtiDBJva.png"} 
+                alt={empresa.nome}
                 className="h-9 w-auto object-contain rounded-lg"
-                style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }} />
+                style={{ 
+                  filter: shouldInvert 
+                    ? "brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.3))" 
+                    : "drop-shadow(0 1px 3px rgba(0,0,0,0.3))"
+                }} />
             ) : (
               <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/30">
                 <Sparkles className="w-5 h-5 text-white" />
