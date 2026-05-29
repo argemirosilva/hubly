@@ -128,6 +128,8 @@ export default function Atendimento() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [resposta, setResposta] = useState("");
   const [agenteNome, setAgenteNome] = useState(() => localStorage.getItem("hubly_agente_nome") ?? "Suporte Hubly");
+  // Mobile: 0=filas, 1=lista, 2=chat
+  const [mobileTab, setMobileTab] = useState<0 | 1 | 2>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
@@ -237,12 +239,25 @@ export default function Atendimento() {
     responderMutation.mutate({ chamadoId: selectedId, mensagem: resposta.trim(), agenteNome });
   }
 
+  // Helpers mobile
+  function selecionarChamadoMobile(id: number) {
+    setSelectedId(id);
+    setMobileTab(2);
+  }
+  function voltarParaLista() {
+    setSelectedId(null);
+    setMobileTab(1);
+  }
+  function voltarParaFilas() {
+    setMobileTab(0);
+  }
+
   if (!autenticado) return <TelaLogin onSuccess={() => setAutenticado(true)} />;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── Header ── */}
-      <header className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between bg-zinc-900 shrink-0">
+      <header className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between bg-zinc-900 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
             <Zap className="w-4 h-4 text-amber-400" />
@@ -252,13 +267,13 @@ export default function Atendimento() {
             <p className="text-xs text-zinc-500">Hubly · Painel técnico</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <User className="w-3.5 h-3.5 text-zinc-500" />
             <input
               value={agenteNome}
               onChange={e => setAgenteNome(e.target.value)}
-              className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-zinc-200 w-36 focus:outline-none focus:border-amber-500/50"
+              className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-zinc-200 w-32 focus:outline-none focus:border-amber-500/50"
               placeholder="Seu nome"
             />
           </div>
@@ -275,28 +290,56 @@ export default function Atendimento() {
       </header>
 
       {/* ── Métricas ── */}
-      <div className="border-b border-zinc-800 px-5 py-3 bg-zinc-900/50 grid grid-cols-4 gap-3 shrink-0">
+      <div className="border-b border-zinc-800 px-3 py-2 bg-zinc-900/50 grid grid-cols-4 gap-2 shrink-0">
         {[
           { icon: <Inbox className="w-4 h-4 text-blue-400" />, label: "Sem resposta", value: metricas?.abertos ?? "—", color: "text-blue-400" },
           { icon: <ShieldAlert className="w-4 h-4 text-red-400" />, label: "SLA vencido", value: metricas?.slaVencidos ?? "—", color: "text-red-400" },
           { icon: <CheckCircle2 className="w-4 h-4 text-green-400" />, label: "Resolvidos hoje", value: metricas?.resolvidosHoje ?? "—", color: "text-green-400" },
           { icon: <Timer className="w-4 h-4 text-amber-400" />, label: "Tempo médio 1ª resp.", value: metricas?.tempoMedioResposta != null ? `${metricas.tempoMedioResposta}min` : "—", color: "text-amber-400" },
         ].map((m, i) => (
-          <div key={i} className="bg-zinc-800/60 rounded-xl px-4 py-2.5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-700/60 flex items-center justify-center shrink-0">{m.icon}</div>
-            <div>
-              <p className={`text-lg font-semibold leading-tight ${m.color}`}>{m.value}</p>
-              <p className="text-xs text-zinc-500">{m.label}</p>
+          <div key={i} className="bg-zinc-800/60 rounded-xl px-2 py-2 flex flex-col items-center gap-1 sm:flex-row sm:px-4 sm:py-2.5 sm:gap-3">
+            <div className="w-7 h-7 rounded-lg bg-zinc-700/60 flex items-center justify-center shrink-0">{m.icon}</div>
+            <div className="text-center sm:text-left">
+              <p className={`text-base sm:text-lg font-semibold leading-tight ${m.color}`}>{m.value}</p>
+              <p className="text-[10px] sm:text-xs text-zinc-500 leading-tight">{m.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── Corpo: 3 colunas ── */}
+      {/* ── Navegação mobile por abas ── */}
+      <div className="flex sm:hidden border-b border-zinc-800 bg-zinc-900 shrink-0">
+        {[
+          { tab: 0 as const, label: "Filas", icon: <Inbox className="w-4 h-4" /> },
+          { tab: 1 as const, label: "Chamados", icon: <MessageCircle className="w-4 h-4" /> },
+          { tab: 2 as const, label: "Chat", icon: <Send className="w-4 h-4" /> },
+        ].map(({ tab, label, icon }) => (
+          <button
+            key={tab}
+            onClick={() => setMobileTab(tab)}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
+              mobileTab === tab
+                ? "text-amber-400 border-b-2 border-amber-500"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {icon}
+            <span>{label}</span>
+            {tab === 0 && novosCount > 0 && (
+              <span className="absolute mt-0 ml-8 -translate-y-1 bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">{novosCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Corpo: 3 colunas desktop / abas mobile ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Coluna 1: Filas */}
-        <nav className="w-52 border-r border-zinc-800 bg-zinc-900/40 flex flex-col py-2 shrink-0 overflow-y-auto">
+        {/* Coluna 1: Filas — desktop sempre visível, mobile só na aba 0 */}
+        <nav className={`border-r border-zinc-800 bg-zinc-900/40 flex flex-col py-2 shrink-0 overflow-y-auto
+          w-full sm:w-52
+          ${mobileTab === 0 ? "flex" : "hidden"} sm:flex
+        `}>
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider px-4 py-2">Filas</p>
           {FILAS.map(f => {
             const count = chamadosFila(f.key).length;
@@ -305,7 +348,7 @@ export default function Atendimento() {
             return (
               <button
                 key={f.key}
-                onClick={() => { setFilaAtiva(f.key); setSelectedId(null); }}
+                onClick={() => { setFilaAtiva(f.key); setSelectedId(null); setMobileTab(1); }}
                 className={`flex items-center justify-between px-4 py-2.5 text-sm transition-colors rounded-lg mx-2 my-0.5 ${
                   isAtiva
                     ? "bg-amber-500/15 text-amber-300"
@@ -329,12 +372,20 @@ export default function Atendimento() {
           })}
         </nav>
 
-        {/* Coluna 2: Lista de chamados */}
-        <div className="w-80 border-r border-zinc-800 flex flex-col bg-zinc-900/20 overflow-hidden shrink-0">
+        {/* Coluna 2: Lista de chamados — desktop sempre visível, mobile só na aba 1 */}
+        <div className={`border-r border-zinc-800 flex flex-col bg-zinc-900/20 overflow-hidden shrink-0
+          w-full sm:w-80
+          ${mobileTab === 1 ? "flex" : "hidden"} sm:flex
+        `}>
           <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-200">
-              {FILAS.find(f => f.key === filaAtiva)?.label}
-            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={voltarParaFilas} className="sm:hidden text-zinc-500 hover:text-zinc-300 mr-1">
+                <ChevronRight className="w-4 h-4 rotate-180" />
+              </button>
+              <p className="text-sm font-medium text-zinc-200">
+                {FILAS.find(f => f.key === filaAtiva)?.label}
+              </p>
+            </div>
             <span className="text-xs text-zinc-500">{chamadosFiltrados.length} chamados</span>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -357,7 +408,7 @@ export default function Atendimento() {
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setSelectedId(c.id)}
+                    onClick={() => selecionarChamadoMobile(c.id)}
                     className={`w-full text-left px-4 py-3.5 border-b border-zinc-800/50 transition-all hover:bg-zinc-800/40 ${
                       isSelected ? "bg-zinc-800/70 border-l-2 border-l-amber-500" : ""
                     }`}
@@ -395,8 +446,10 @@ export default function Atendimento() {
           </div>
         </div>
 
-        {/* Coluna 3: Chat */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Coluna 3: Chat — desktop sempre visível, mobile só na aba 2 */}
+        <div className={`flex-1 flex flex-col overflow-hidden
+          ${mobileTab === 2 ? "flex" : "hidden"} sm:flex
+        `}>
           {!selectedId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 gap-3">
               <MessageCircle className="w-14 h-14 text-zinc-800" />
@@ -406,9 +459,12 @@ export default function Atendimento() {
           ) : (
             <>
               {/* Header do chamado */}
-              <div className="border-b border-zinc-800 px-5 py-3 bg-zinc-900/50 flex items-center justify-between gap-4 shrink-0">
+              <div className="border-b border-zinc-800 px-3 sm:px-5 py-3 bg-zinc-900/50 flex items-center justify-between gap-2 sm:gap-4 shrink-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
+                    <button onClick={voltarParaLista} className="sm:hidden text-zinc-500 hover:text-zinc-300 shrink-0">
+                      <ChevronRight className="w-4 h-4 rotate-180" />
+                    </button>
                     <p className="text-sm font-medium text-zinc-100 truncate">{chamadoSelecionado?.titulo}</p>
                     <span className="text-xs text-zinc-600">#{selectedId}</span>
                   </div>
@@ -427,7 +483,7 @@ export default function Atendimento() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {/* Prioridade */}
                   <Select
                     value={chamadoSelecionado?.prioridade}
@@ -435,7 +491,7 @@ export default function Atendimento() {
                       atualizarPrioridadeMutation.mutate({ chamadoId: selectedId, prioridade: val as PrioridadeChamado })
                     }
                   >
-                    <SelectTrigger className="h-7 text-xs bg-zinc-800 border-zinc-700 w-28">
+                    <SelectTrigger className="h-7 text-xs bg-zinc-800 border-zinc-700 w-24 sm:w-28">
                       <SelectValue placeholder="Prioridade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -455,7 +511,7 @@ export default function Atendimento() {
                       atualizarStatusMutation.mutate({ chamadoId: selectedId, status: val as StatusChamado })
                     }
                   >
-                    <SelectTrigger className="h-7 text-xs bg-zinc-800 border-zinc-700 w-44">
+                    <SelectTrigger className="h-7 text-xs bg-zinc-800 border-zinc-700 w-36 sm:w-44">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

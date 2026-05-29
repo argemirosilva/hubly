@@ -2602,3 +2602,12 @@
 - [x] Ao registrar pagamento e concluir agendamento, baixar automaticamente as contas a receber vinculadas
 - [x] Contas com "Recebido" não devem aparecer na aba "Vencidas"
 - [x] TypeScript: 0 erros (verificado)
+
+## Responsividade Mobile — Central de Atendimento /atendimento
+- [x] Estado mobileTab (0=filas, 1=lista, 2=chat) para navegação por abas no mobile
+- [x] Barra de abas inferior no mobile (Filas/Chamados/Chat)
+- [x] Classes responsivas sm:flex/hidden para mostrar/ocultar colunas no desktop
+- [x] Botões de voltar (chevron) entre as abas (Filas←Lista←Chat)
+- [x] Funções selecionarChamadoMobile, voltarParaLista, voltarParaFilas
+- [x] Métricas compactas no mobile (flex-col em vez de flex-row)
+- [x] Correção de import duplicado de useState
