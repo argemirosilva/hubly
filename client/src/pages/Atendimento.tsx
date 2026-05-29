@@ -134,16 +134,19 @@ export default function Atendimento() {
   const chamadosQuery = trpc.suporte.adminListarChamados.useQuery(undefined, {
     enabled: autenticado,
     refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const metricasQuery = trpc.suporte.adminGetMetricas.useQuery(undefined, {
     enabled: autenticado,
     refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
 
   const mensagensQuery = trpc.suporte.adminGetMensagens.useQuery(
     { chamadoId: selectedId! },
-    { enabled: autenticado && selectedId !== null, refetchInterval: 8000 }
+    { enabled: autenticado && selectedId !== null, refetchInterval: 8000, refetchIntervalInBackground: true }
   );
 
   const responderMutation = trpc.suporte.adminResponderChamado.useMutation({
@@ -164,6 +167,16 @@ export default function Atendimento() {
   const atualizarPrioridadeMutation = trpc.suporte.adminAtualizarPrioridade.useMutation({
     onSuccess: () => { chamadosQuery.refetch(); toast.success("Prioridade atualizada"); },
     onError: () => toast.error("Erro ao atualizar prioridade"),
+  });
+
+  const encerrarMutation = trpc.suporte.adminEncerrarChamado.useMutation({
+    onSuccess: () => {
+      chamadosQuery.refetch();
+      metricasQuery.refetch();
+      setSelectedId(null);
+      toast.success("Chamado encerrado. Push enviado ao cliente.");
+    },
+    onError: () => toast.error("Erro ao encerrar chamado"),
   });
 
   // Scroll para o final das mensagens
@@ -453,6 +466,21 @@ export default function Atendimento() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {chamadoSelecionado?.status !== "fechado" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm(`Encerrar o chamado "${chamadoSelecionado?.titulo}"? O cliente receberá uma notificação.`)) {
+                          encerrarMutation.mutate({ chamadoId: selectedId });
+                        }
+                      }}
+                      disabled={encerrarMutation.isPending}
+                      className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 px-2.5"
+                    >
+                      {encerrarMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <><XCircle className="w-3 h-3 mr-1" /> Encerrar</>}
+                    </Button>
+                  )}
                 </div>
               </div>
 

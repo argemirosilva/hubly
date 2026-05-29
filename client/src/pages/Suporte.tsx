@@ -95,6 +95,15 @@ export default function Suporte() {
     onError: () => toast.error("Erro ao enviar mensagem"),
   });
 
+  const encerrarMutation = trpc.suporte.encerrarChamado.useMutation({
+    onSuccess: () => {
+      toast.success("Chamado encerrado com sucesso!");
+      utils.suporte.listarMeusChamados.invalidate();
+      setSelectedId(null);
+    },
+    onError: () => toast.error("Erro ao encerrar chamado"),
+  });
+
   const avaliarMutation = trpc.suporte.avaliarChamado.useMutation({
     onSuccess: () => {
       toast.success("Avaliação enviada!");
@@ -361,8 +370,24 @@ export default function Suporte() {
 
           {/* Thread */}
           <div className="rounded-xl border overflow-hidden">
-            <div className="px-4 py-3 border-b" style={{ background: "var(--muted)" }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ background: "var(--muted)" }}>
               <p className="text-sm font-medium">Conversa</p>
+              {selectedChamado.status !== "fechado" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm("Encerrar este chamado? Você poderá abrir um novo se precisar.")) {
+                      encerrarMutation.mutate({ chamadoId: selectedChamado.id });
+                    }
+                  }}
+                  disabled={encerrarMutation.isPending}
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                >
+                  {encerrarMutation.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                  Encerrar chamado
+                </Button>
+              )}
             </div>
             <div className="p-4 space-y-4 min-h-[200px] max-h-[400px] overflow-y-auto">
               {mensagensQuery.isLoading && (

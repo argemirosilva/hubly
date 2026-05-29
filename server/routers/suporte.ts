@@ -185,15 +185,28 @@ export const suporteRouter = router({
         conteudo: input.descricao,
         lido: false,
       });
-      // Notificar o owner da Orizontech (userId do owner da empresa principal)
+      // Notificar o owner da Orizontech via push (PWA)
       try {
-        const { notifyOwner } = await import('../_core/notification.js');
-        await notifyOwner({
-          title: `🎫 Novo chamado: ${input.titulo}`,
-          content: `Empresa: ${empresa.nome ?? `#${empresa.id}`} · Prioridade: ${input.prioridade}\n${input.descricao.slice(0, 200)}`,
-        });
+        const { getDb } = await import('../db.js');
+        const { users } = await import('../../drizzle/schema.js');
+        const { eq } = await import('drizzle-orm');
+        const { ENV } = await import('../_core/env.js');
+        const db2 = await getDb();
+        if (db2 && ENV.ownerOpenId) {
+          const [ownerUser] = await db2.select({ id: users.id }).from(users).where(eq(users.openId, ENV.ownerOpenId)).limit(1);
+          if (ownerUser) {
+            await sendPushToUser(ownerUser.id, {
+              title: `🎫 Novo chamado: ${input.titulo}`,
+              body: `${empresa.nome ?? `Empresa #${empresa.id}`} · ${input.prioridade.toUpperCase()} · ${input.descricao.slice(0, 120)}`,
+              tag: `chamado-novo-${chamadoId}`,
+              url: '/atendimento',
+              sound: true,
+              data: { chamadoId },
+            });
+          }
+        }
       } catch (e) {
-        console.error('[Suporte] Erro ao notificar owner:', e);
+        console.error('[Suporte] Erro ao enviar push para owner:', e);
       }
       return { chamadoId };
     }),
@@ -241,6 +254,25 @@ export const suporteRouter = router({
       });
       await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date() })
         .where(eq(chamados.id, input.chamadoId));
+      return { ok: true };
+    }),
+
+  /** Cliente encerra o chamado (com ou sem avaliação) */
+  encerrarChamado: protectedProcedure
+    .input(z.object({ chamadoId: z.number(), nota: z.number().min(1).max(5).optional(), comentario: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!db || !empresa) throw new Error("Empresa não encontrada");
+      const [chamado] = await db.select().from(chamados)
+        .where(and(eq(chamados.id, input.chamadoId), eq(chamados.empresaId, empresa.id)));
+      if (!chamado) throw new Error("Chamado não encontrado");
+      await db.update(chamados).set({
+        status: "fechado",
+        fechadoEm: new Date(),
+        updatedAt: new Date(),
+        ...(input.nota ? { avaliacaoNota: input.nota, avaliacaoComentario: input.comentario ?? null } : {}),
+      }).where(eq(chamados.id, input.chamadoId));
       return { ok: true };
     }),
 
@@ -402,6 +434,31 @@ export const suporteRouter = router({
           }, 0) / comResposta.length / 60000)
         : null;
       return { abertos, slaVencidos, resolvidosHoje, tempoMedioResposta };
+    }),
+
+  /** Atendente encerra o chamado (sem autenticação) */
+  adminEncerrarChamado: publicProcedure
+    .input(z.object({ chamadoId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Banco não disponível");
+      const [chamado] = await db.select().from(chamados).where(eq(chamados.id, input.chamadoId));
+      if (!chamado) throw new Error("Chamado não encontrado");
+      await db.update(chamados).set({ status: "fechado", fechadoEm: new Date(), updatedAt: new Date() })
+        .where(eq(chamados.id, input.chamadoId));
+      // Notificar cliente que o chamado foi encerrado
+      try {
+        await sendPushToEmpresa(chamado.empresaId, {
+          title: "Chamado encerrado",
+          body: `Seu chamado "${chamado.titulo}" foi encerrado pelo suporte.`,
+          tag: `chamado-encerrado-${input.chamadoId}`,
+          url: "/admin/suporte",
+          data: { chamadoId: input.chamadoId },
+        });
+      } catch (e) {
+        console.error("[Suporte] Erro ao enviar push de encerramento:", e);
+      }
+      return { ok: true };
     }),
 
   /** Verifica senha do painel de atendimento */
