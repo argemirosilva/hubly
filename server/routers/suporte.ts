@@ -359,6 +359,60 @@ export const suporteRouter = router({
       return { ok: true };
     }),
 
+  /** Atualiza a prioridade de um chamado */
+  adminAtualizarPrioridade: publicProcedure
+    .input(z.object({
+      chamadoId: z.number(),
+      prioridade: z.enum(["baixa", "media", "alta", "critica"]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Banco não disponível");
+      await db.update(chamados).set({ prioridade: input.prioridade, updatedAt: new Date() }).where(eq(chamados.id, input.chamadoId));
+      return { ok: true };
+    }),
+
+  /** Métricas rápidas para o painel de atendimento */
+  adminGetMetricas: publicProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { abertos: 0, slaVencidos: 0, resolvidosHoje: 0, tempoMedioResposta: null };
+      const todos = await db.select({
+        id: chamados.id,
+        status: chamados.status,
+        slaVencidoEm: chamados.slaVencidoEm,
+        primeiraRespostaEm: chamados.primeiraRespostaEm,
+        createdAt: chamados.createdAt,
+        resolvidoEm: chamados.resolvidoEm,
+      }).from(chamados);
+      const agora = new Date();
+      const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+      const abertos = todos.filter(c => c.status === "aberto" && !c.primeiraRespostaEm).length;
+      const slaVencidos = todos.filter(c =>
+        c.slaVencidoEm && new Date(c.slaVencidoEm) < agora &&
+        c.status !== "resolvido" && c.status !== "fechado"
+      ).length;
+      const resolvidosHoje = todos.filter(c =>
+        c.resolvidoEm && new Date(c.resolvidoEm) >= hoje
+      ).length;
+      const comResposta = todos.filter(c => c.primeiraRespostaEm && c.createdAt);
+      const tempoMedioResposta = comResposta.length > 0
+        ? Math.round(comResposta.reduce((acc, c) => {
+            return acc + (new Date(c.primeiraRespostaEm!).getTime() - new Date(c.createdAt!).getTime());
+          }, 0) / comResposta.length / 60000)
+        : null;
+      return { abertos, slaVencidos, resolvidosHoje, tempoMedioResposta };
+    }),
+
+  /** Verifica senha do painel de atendimento */
+  adminVerificarSenha: publicProcedure
+    .input(z.object({ senha: z.string() }))
+    .mutation(async ({ input }) => {
+      const senhaCorreta = process.env.SUPPORT_ADMIN_PASSWORD ?? "hubly2024";
+      if (input.senha !== senhaCorreta) throw new Error("Senha incorreta");
+      return { ok: true };
+    }),
+
   // ─── Chat IA ─────────────────────────────────────────────────────────────────
   chat: protectedProcedure
     .input(z.object({

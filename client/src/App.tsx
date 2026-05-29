@@ -48,6 +48,7 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
 import Suporte from "./pages/Suporte";
 import SuporteAdmin from "./pages/SuporteAdmin";
+import Atendimento from "./pages/Atendimento";
 import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
 import NovoAgendamento from "./pages/NovoAgendamento";
 import { SupportChat } from "./components/SupportChat";
@@ -124,6 +125,7 @@ function Router() {
 
       <Route path="/orizontech">{() => <PainelOrizontech />}</Route>
       <Route path="/suporte-admin">{() => <SuporteAdmin />}</Route>
+      <Route path="/atendimento">{() => <Atendimento />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
