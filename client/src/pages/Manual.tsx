@@ -3,7 +3,7 @@ import {
   Calendar, Users, DollarSign, Zap,
   Bell, Settings, ChevronRight,
   CheckCircle2, Lock, MessageSquare, HelpCircle, BookOpen, Search, X,
-  UserCog, Package, Star, Kanban,
+  UserCog, Package, Star, Kanban, Brain,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -877,25 +877,48 @@ const SECTIONS: Section[] = [
     title: "WhatsApp",
     subtitle: "Conecte seu WhatsApp para enviar mensagens automáticas",
     color: "oklch(45% 0.18 155)",
-    intro: "O sistema pode enviar mensagens pelo seu WhatsApp Business automaticamente. Para isso, você precisa conectar o WhatsApp uma vez. Depois disso, tudo funciona sozinho!",
+    intro: "O sistema pode enviar mensagens pelo WhatsApp automaticamente — confirmações, lembretes, aniversários e muito mais. O modo de conexão depende do seu plano: planos Solo e Plus usam conexão via QR Code; o plano Pro usa uma API dedicada, mais robusta e estável.",
     topics: [
       {
-        title: "Conectar o WhatsApp",
+        title: "Planos Solo e Plus: conectar via QR Code",
         steps: [
           "Clique em WhatsApp no menu lateral.",
           "Clique em Conectar WhatsApp.",
-          "Abra o WhatsApp no celular, vá em Dispositivos Vinculados e escaneie o QR Code.",
+          "Abra o WhatsApp no celular, vá em Dispositivos Vinculados e escaneie o QR Code exibido na tela.",
           "Aguarde o status ficar verde — isso significa que está conectado.",
+          "A conexão fica ativa em segundo plano mesmo após fechar a tela.",
         ],
-        warning: "Use o WhatsApp Business da empresa, não o seu pessoal. Usar o pessoal pode causar bloqueios pelo WhatsApp.",
+        warning: "Prefira usar o número do WhatsApp Business da empresa. Se a conexão cair, basta acessar a tela de WhatsApp e escanear o QR Code novamente.",
+      },
+      {
+        title: "Plano Pro: API dedicada (Z-API)",
+        steps: [
+          "No plano Pro, a conexão é feita via API dedicada — mais robusta e estável.",
+          "O processo de conexão também usa QR Code, mas a infraestrutura por trás é diferente.",
+          "Clique em WhatsApp no menu lateral e siga as instruções de conexão exibidas.",
+          "Uma vez conectado, a API mantém a sessão de forma muito mais confiável.",
+        ],
+        tip: "A API dedicada do plano Pro oferece maior estabilidade, sem risco de desconexão inesperada e sem dependência do celular ligado o tempo todo.",
       },
       {
         title: "A conexão fica ativa?",
         steps: [
           "Sim! Uma vez conectado, o WhatsApp fica ativo em segundo plano.",
-          "Mesmo que você feche a tela de WhatsApp, a conexão continua.",
-          "Se cair, basta reconectar escaneando o QR Code novamente.",
+          "Mesmo que você feche a tela de WhatsApp, a conexão continua funcionando.",
+          "O sistema envia um alerta automático caso a conexão caia, para que você possa reconectar rapidamente.",
+          "Se cair, acesse a tela de WhatsApp e siga as instruções de reconexão.",
         ],
+      },
+      {
+        title: "Quantas mensagens posso enviar por mês?",
+        steps: [
+          "Free: 10 notificações por mês.",
+          "Solo: 100 notificações por mês.",
+          "Plus: 400 notificações por mês.",
+          "Pro: 1.000 notificações por mês.",
+          "O contador de uso aparece na tela de WhatsApp e na página de Assinatura.",
+        ],
+        tip: "As notificações são consumidas pelas automações ativas (confirmações, lembretes, aniversários etc.). Acompanhe o uso para não ser surpreendido.",
       },
       {
         title: "Enviar mensagem manual para um cliente",
@@ -911,26 +934,62 @@ const SECTIONS: Section[] = [
     id: "assinatura",
     icon: <Star size={20} />,
     title: "Assinatura e Planos",
-    subtitle: "Seu plano atual e como fazer upgrade",
+    subtitle: "Trial, planos, upgrade, cancelamento e reativação",
     color: "oklch(45% 0.060 55)",
-    intro: "O sistema tem diferentes planos com recursos e limites distintos. Você pode ver seu plano atual, acompanhar o uso e fazer upgrade quando precisar.",
+    intro: "O Hubly oferece quatro planos: Free, Solo, Plus e Pro. Toda conta nova começa com 7 dias de trial gratuito no plano Solo. Após o trial, você pode assinar um plano pago ou continuar no Free com recursos limitados.",
     topics: [
       {
-        title: "Ver seu plano atual",
+        title: "Período de teste gratuito (Trial)",
         steps: [
-          "Clique em Assinatura no menu lateral.",
-          "Você vê o plano atual, os recursos incluídos e os limites.",
-          "O sistema também mostra quanto você já usou de cada recurso.",
+          "Toda nova conta começa automaticamente com 7 dias de trial gratuito no plano Solo.",
+          "Não é necessário cadastrar cartão durante o trial.",
+          "No painel, um badge no topo mostra quantos dias restam (ex: Trial · 5d).",
+          "Na página de Assinatura, você vê a data exata de vencimento e o que acontece ao final.",
+          "O sistema envia notificações diárias avisando sobre o prazo e orientando sobre como assinar.",
+          "Ao final do trial sem assinatura, a conta é movida automaticamente para o plano Free.",
         ],
-        tip: "O sistema avisa automaticamente quando você atingir 80% do limite de qualquer recurso.",
+        tip: "Aproveite o trial para configurar tudo: serviços, profissionais, automações e o link de agendamento online.",
       },
       {
-        title: "Fazer upgrade de plano",
+        title: "Comparação dos planos",
         steps: [
-          "Vá em Assinatura e clique em Ver Planos.",
-          "Escolha o plano desejado: SOLO, PLUS ou PRO.",
-          "Clique em Contratar e siga para o checkout seguro.",
-          "Após o pagamento, o plano é ativado automaticamente.",
+          "Free (grátis): 1 profissional, 15 agendamentos/mês, 50 clientes, 10 notificações WhatsApp.",
+          "Solo (R$ 49/mês): 1 profissional, agendamentos ilimitados, clientes ilimitados, 100 notificações WhatsApp, link personalizado, pacotes, comissões, relatórios e portal do cliente.",
+          "Plus (R$ 149/mês): até 5 profissionais, 400 notificações WhatsApp, múltiplos caixas e IA financeira.",
+          "Pro (R$ 299/mês): até 20 profissionais, 1.000 notificações WhatsApp via API dedicada, IA completa.",
+          "Todos os planos pagos têm opção mensal ou anual (desconto de ~17% no anual).",
+        ],
+        tip: "No plano Pro, o WhatsApp usa uma API dedicada mais robusta — maior estabilidade e sem dependência do celular ligado.",
+      },
+      {
+        title: "Como assinar ou fazer upgrade",
+        steps: [
+          "Clique em Assinatura no menu lateral.",
+          "Clique em Ver Planos ou Fazer Upgrade.",
+          "Escolha o plano e a periodicidade (mensal ou anual).",
+          "Clique em Contratar e conclua o pagamento na tela segura do Stripe.",
+          "O plano é ativado imediatamente após a confirmação do pagamento.",
+        ],
+      },
+      {
+        title: "Cancelar a assinatura",
+        steps: [
+          "Acesse Assinatura no menu lateral.",
+          "Role até a seção de ações e clique em Cancelar assinatura.",
+          "Um diálogo de confirmação aparece explicando o que acontece após o cancelamento.",
+          "Confirme para ser redirecionado ao portal do Stripe e concluir o cancelamento.",
+          "O acesso continua ativo até o fim do período já pago.",
+        ],
+        warning: "Após o cancelamento, não será possível criar novos agendamentos, clientes, profissionais ou lançamentos financeiros. Os dados existentes são mantidos.",
+      },
+      {
+        title: "Reativar após cancelamento",
+        steps: [
+          "Acesse Assinatura no menu lateral.",
+          "Um banner vermelho indica que a assinatura está cancelada.",
+          "Clique em Reativar assinatura para ser levado à página de planos.",
+          "Escolha um plano e conclua o pagamento normalmente.",
+          "O acesso é restaurado imediatamente após a confirmação.",
         ],
       },
       {
@@ -938,9 +997,60 @@ const SECTIONS: Section[] = [
         steps: [
           "Quando você chega a 80% do limite, um alerta aparece no topo da tela.",
           "Ao atingir 100%, não será possível cadastrar novos registros daquele tipo.",
-          "Faça upgrade para ampliar os limites.",
+          "Faça upgrade na página de Planos para ampliar os limites.",
         ],
         warning: "Fique de olho nos alertas! Atingir o limite pode impedir novos cadastros de clientes ou agendamentos.",
+      },
+    ],
+  },
+  {
+    id: "ia-insights",
+    icon: <Brain size={20} />,
+    title: "IA e Insights",
+    subtitle: "Inteligência artificial para clientes e financeiro",
+    color: "oklch(45% 0.20 280)",
+    intro: "O Hubly conta com inteligência artificial integrada para ajudar você a tomar decisões melhores. Disponível nos planos Plus (IA Financeira) e Pro (IA Completa), o módulo de Insights analisa seus dados automaticamente e gera recomendações personalizadas.",
+    topics: [
+      {
+        title: "Insights de Clientes",
+        steps: [
+          "Acesse IA e Insights no menu lateral (visível apenas para administradores).",
+          "A aba Clientes mostra uma análise automática da sua base: clientes fiéis, bons pagadores, inativos e em risco de perda.",
+          "Cada cliente recebe uma classificação: Cliente Fiel, Em Crescimento, Em Risco de Perda, Bom Pagador, etc.",
+          "Clique em um insight para ver o detalhe e marcar como lido.",
+          "Use o botão Marcar todos como lidos para limpar os alertas pendentes.",
+        ],
+        tip: "Os insights são gerados automaticamente com base no histórico de agendamentos. Quanto mais dados no sistema, mais precisas as análises.",
+      },
+      {
+        title: "IA Financeira (Plus e Pro)",
+        steps: [
+          "A aba Financeiro mostra um Score Financeiro de 0 a 100 calculado automaticamente.",
+          "O score é baseado em: regularidade de receita, controle de despesas, crescimento mensal e saúde do fluxo de caixa.",
+          "Abaixo do score, você vê os motivos da pontuação e dicas de melhoria personalizadas.",
+          "Alertas proativos aparecem quando o sistema detecta anomalias: queda de receita, aumento de despesas ou meses abaixo da média.",
+          "Clique em Recalcular análise para atualizar o score com os dados mais recentes.",
+        ],
+        tip: "Leia os alertas proativos com atenção — eles identificam padrões que podem passar despercebidos no dia a dia.",
+      },
+      {
+        title: "Chat com a IA",
+        steps: [
+          "Tanto na aba de Clientes quanto na de Financeiro há um chat integrado com a IA.",
+          "Faça perguntas em português sobre seus dados: Quais clientes não voltam há mais de 60 dias? ou Qual foi meu melhor mês do ano?",
+          "A IA responde com base nos dados reais da sua empresa.",
+          "O histórico do chat é salvo durante a sessão.",
+        ],
+        tip: "Use o chat para explorar os dados de forma conversacional. Exemplos: Quem são meus clientes em risco?, Qual serviço gera mais receita?, Como está meu fluxo de caixa nos últimos 3 meses?",
+      },
+      {
+        title: "Quem pode acessar a IA?",
+        steps: [
+          "O menu de IA e Insights é visível apenas para usuários com perfil de Administrador.",
+          "Plano Plus: acesso à IA Financeira.",
+          "Plano Pro: acesso à IA Financeira e IA de Clientes (IA Completa).",
+          "Planos Free e Solo não têm acesso ao módulo de IA.",
+        ],
       },
     ],
   },
