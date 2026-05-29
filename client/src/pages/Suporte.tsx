@@ -227,7 +227,7 @@ export default function Suporte() {
               <p className="text-sm mt-1">Clique em "Abrir chamado" para criar sua primeira solicitação.</p>
             </div>
           )}
-          {chamadosQuery.data?.map((c) => {
+          {chamadosQuery.data?.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3).map((c) => {
             const StatusIcon = STATUS_ICONS[c.status] ?? AlertCircle;
             return (
               <button
