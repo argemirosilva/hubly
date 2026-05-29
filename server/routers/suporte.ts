@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { invokeOpenAI } from "../openai";
 import { getDb, getEmpresaDoContexto } from "../db";
 import { chamados, chamadoMensagens } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { empresas } from "../../drizzle/schema";
+import { sendPushToUser, sendPushToEmpresa } from "../pushNotifications";
 
 const SYSTEM_PROMPT = `Você é a assistente de suporte do Hubly, um sistema de gestão para salões de beleza, clínicas de estética e barbearias.
 
@@ -183,6 +185,16 @@ export const suporteRouter = router({
         conteudo: input.descricao,
         lido: false,
       });
+      // Notificar o owner da Orizontech (userId do owner da empresa principal)
+      try {
+        const { notifyOwner } = await import('../_core/notification.js');
+        await notifyOwner({
+          title: `🎫 Novo chamado: ${input.titulo}`,
+          content: `Empresa: ${empresa.nome ?? `#${empresa.id}`} · Prioridade: ${input.prioridade}\n${input.descricao.slice(0, 200)}`,
+        });
+      } catch (e) {
+        console.error('[Suporte] Erro ao notificar owner:', e);
+      }
       return { chamadoId };
     }),
 
@@ -244,6 +256,106 @@ export const suporteRouter = router({
         status: "fechado",
         fechadoEm: new Date(),
       }).where(and(eq(chamados.id, input.chamadoId), eq(chamados.empresaId, empresa.id)));
+      return { ok: true };
+    }),
+
+  // ─── Endpoints públicos para painel de atendimento Orizontech ──────────────
+
+  /** Lista todos os chamados (sem autenticação — painel interno Orizontech) */
+  adminListarChamados: publicProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          id: chamados.id,
+          empresaId: chamados.empresaId,
+          titulo: chamados.titulo,
+          status: chamados.status,
+          prioridade: chamados.prioridade,
+          slaVencidoEm: chamados.slaVencidoEm,
+          primeiraRespostaEm: chamados.primeiraRespostaEm,
+          avaliacaoNota: chamados.avaliacaoNota,
+          createdAt: chamados.createdAt,
+          updatedAt: chamados.updatedAt,
+          nomeEmpresa: empresas.nome,
+        })
+        .from(chamados)
+        .leftJoin(empresas, eq(chamados.empresaId, empresas.id))
+        .orderBy(desc(chamados.updatedAt));
+      return rows;
+    }),
+
+  /** Busca mensagens de um chamado (sem autenticação) */
+  adminGetMensagens: publicProcedure
+    .input(z.object({ chamadoId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(chamadoMensagens)
+        .where(eq(chamadoMensagens.chamadoId, input.chamadoId))
+        .orderBy(chamadoMensagens.createdAt);
+    }),
+
+  /** Responde um chamado como agente (sem autenticação) e envia push ao cliente */
+  adminResponderChamado: publicProcedure
+    .input(z.object({
+      chamadoId: z.number(),
+      mensagem: z.string().min(1),
+      agenteNome: z.string().default("Suporte Hubly"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Banco não disponível");
+      const [chamado] = await db.select().from(chamados).where(eq(chamados.id, input.chamadoId));
+      if (!chamado) throw new Error("Chamado não encontrado");
+      await db.insert(chamadoMensagens).values({
+        chamadoId: input.chamadoId,
+        autorTipo: "agente",
+        autorId: null,
+        autorNome: input.agenteNome,
+        conteudo: input.mensagem,
+        lido: false,
+      });
+      // Atualizar status e primeiraRespostaEm
+      if (!chamado.primeiraRespostaEm) {
+        await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date(), primeiraRespostaEm: new Date() }).where(eq(chamados.id, input.chamadoId));
+      } else {
+        await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date() }).where(eq(chamados.id, input.chamadoId));
+      }
+      // Enviar push para todos os usuários da empresa
+      try {
+        await sendPushToEmpresa(chamado.empresaId, {
+          title: "Resposta do suporte Hubly",
+          body: input.mensagem.length > 100 ? input.mensagem.slice(0, 97) + "..." : input.mensagem,
+          tag: `chamado-${input.chamadoId}`,
+          url: "/admin/suporte",
+          data: { chamadoId: input.chamadoId },
+        });
+      } catch (e) {
+        console.error("[Suporte] Erro ao enviar push:", e);
+      }
+      return { ok: true };
+    }),
+
+  /** Altera o status de um chamado (sem autenticação) */
+  adminAtualizarStatus: publicProcedure
+    .input(z.object({
+      chamadoId: z.number(),
+      status: z.enum(["aberto", "em_atendimento", "aguardando_cliente", "resolvido", "fechado"]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Banco não disponível");
+      if (input.status === "resolvido") {
+        await db.update(chamados).set({ status: input.status, updatedAt: new Date(), resolvidoEm: new Date() }).where(eq(chamados.id, input.chamadoId));
+      } else if (input.status === "fechado") {
+        await db.update(chamados).set({ status: input.status, updatedAt: new Date(), fechadoEm: new Date() }).where(eq(chamados.id, input.chamadoId));
+      } else {
+        await db.update(chamados).set({ status: input.status, updatedAt: new Date() }).where(eq(chamados.id, input.chamadoId));
+      }
       return { ok: true };
     }),
 
