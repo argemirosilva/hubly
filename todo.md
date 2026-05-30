@@ -2616,3 +2616,16 @@
 - [x] Créditos em Aberto: grid 2 colunas no mobile com 3º card em linha cheia (não orphan)
 - [x] Filtros de comissões: inputs de data em coluna separada abaixo dos botões de período no mobile
 - [x] Cards de profissional: badges pendente/pago em linha separada no mobile para evitar sobreposição
+
+## Correções de Assinaturas (correcoes-assinaturas.zip)
+- [x] Substituir server/plans.ts (fonte única de limites com campos novos)
+- [x] Substituir server/plan-limits.ts (deriva de plans.ts)
+- [x] Substituir server/db-plans.ts (novos helpers: empresaHasFeature, checkWhatsappLimit)
+- [x] Substituir server/scheduler.ts (teto de WhatsApp antes do envio)
+- [x] Substituir server/stripe-webhook.ts (eventos críticos retornam 500 para retry)
+- [x] Substituir server/routers.ts (seat enforcement + Z-API multi-instância)
+- [x] Substituir server/routers/iaFinanceiro.ts (gate IA Financeira Plus+)
+- [x] Substituir server/routers/iaClientes.ts (gate IA de Clientes Pro)
+- [x] Verificar TypeScript sem erros após substituição
+- [x] Verificar usage_tracker do mês atual no banco
+- [x] Verificar empresas acima do limite de seats por plano

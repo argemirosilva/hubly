@@ -11,6 +11,11 @@ export const PLAN_LIMITS: Record<PlanType, {
   agendamentosMes: number;        // -1 = ilimitado
   notificacoesWhatsappMes: number;
   clientes: number;               // -1 = ilimitado
+  servicos: number;               // -1 = ilimitado
+  pacotes: number;                // -1 = ilimitado (0 = recurso indisponível)
+  automacoes: number;             // -1 = ilimitado
+  usuarios: number;               // -1 = ilimitado (system users / membros de equipe)
+  alertaPercentual: number;       // % de uso que dispara alerta (ex: 80)
   iaMarketing: boolean;
   iaFinanceira: boolean;
   iaTotal: boolean;
@@ -26,6 +31,11 @@ export const PLAN_LIMITS: Record<PlanType, {
     agendamentosMes: 15,
     notificacoesWhatsappMes: 10,
     clientes: 50,
+    servicos: 5,
+    pacotes: 0,
+    automacoes: 0,
+    usuarios: 1,
+    alertaPercentual: 80,
     iaMarketing: false,
     iaFinanceira: false,
     iaTotal: false,
@@ -41,6 +51,11 @@ export const PLAN_LIMITS: Record<PlanType, {
     agendamentosMes: -1,
     notificacoesWhatsappMes: 100,
     clientes: -1,
+    servicos: 20,
+    pacotes: 5,
+    automacoes: 5,
+    usuarios: 1,
+    alertaPercentual: 80,
     iaMarketing: false,
     iaFinanceira: false,
     iaTotal: false,
@@ -56,6 +71,11 @@ export const PLAN_LIMITS: Record<PlanType, {
     agendamentosMes: -1,
     notificacoesWhatsappMes: 400,
     clientes: -1,
+    servicos: 50,
+    pacotes: 20,
+    automacoes: 20,
+    usuarios: 3,
+    alertaPercentual: 80,
     iaMarketing: false,
     iaFinanceira: true,
     iaTotal: false,
@@ -71,6 +91,11 @@ export const PLAN_LIMITS: Record<PlanType, {
     agendamentosMes: -1,
     notificacoesWhatsappMes: 1000,
     clientes: -1,
+    servicos: -1,
+    pacotes: -1,
+    automacoes: -1,
+    usuarios: -1,
+    alertaPercentual: 80,
     iaMarketing: false,
     iaFinanceira: true,
     iaTotal: true,

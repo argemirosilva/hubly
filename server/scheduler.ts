@@ -1723,6 +1723,20 @@ export async function processarFilaPendente() {
         let enviado = false;
         let erroDetalhe: string | null = null;
 
+        // ── Verificar teto de notificações WhatsApp do plano ─────────────────────
+        // Se a empresa atingiu o limite mensal, não envia e registra o motivo.
+        const waLimitErr = await (await import('./db-plans')).checkWhatsappLimit(item.empresaId);
+        if (waLimitErr) {
+          console.warn(`[Fila] Teto de WhatsApp atingido para empresa ${item.empresaId}: ${waLimitErr}`);
+          await db.update(historicoEnviosAutomacao)
+            .set({
+              status: 'falhou',
+              erroDetalhe: 'Limite mensal de notificações WhatsApp do plano atingido',
+            })
+            .where(eq(historicoEnviosAutomacao.id, item.id));
+          continue;
+        }
+
         // Verificar se há mídia para enviar
         if (item.midiaUrl) {
           try {

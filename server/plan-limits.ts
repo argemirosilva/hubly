@@ -1,62 +1,60 @@
 /**
- * Limites de uso por plano
- * Define quantos clientes, profissionais, serviços, etc. cada plano permite
+ * Limites de uso por plano — DERIVADOS de plans.ts (fonte única de verdade).
+ *
+ * IMPORTANTE: Este arquivo NÃO define mais valores próprios. Ele apenas re-expõe,
+ * no formato que db-usage-alerts.ts espera, os limites centralizados em plans.ts.
+ * Assim os números de profissionais/clientes/etc. param de divergir entre os dois
+ * arquivos (bug anterior: FREE tinha 15 agendamentos em plans.ts e 50 aqui).
  */
 
-export const PLAN_LIMITS = {
-  FREE: {
-    clientes: 10,
-    profissionais: 1,
-    servicos: 5,
-    pacotes: 0,
-    agendamentosPoMes: 50,
-    automacoes: 0,
-    usuarios: 1,
-    alertaPercentual: 80, // Alerta quando atingir 80% do limite
-  },
-  SOLO: {
-    clientes: 50,
-    profissionais: 1,
-    servicos: 20,
-    pacotes: 5,
-    agendamentosPoMes: 500,
-    automacoes: 5,
-    usuarios: 1,
-    alertaPercentual: 80,
-  },
-  PLUS: {
-    clientes: 200,
-    profissionais: 5,
-    servicos: 50,
-    pacotes: 20,
-    agendamentosPoMes: 2000,
-    automacoes: 20,
-    usuarios: 3,
-    alertaPercentual: 80,
-  },
-  PRO: {
-    clientes: -1, // Ilimitado
-    profissionais: -1,
-    servicos: -1,
-    pacotes: -1,
-    agendamentosPoMes: -1,
-    automacoes: -1,
-    usuarios: -1,
-    alertaPercentual: 80,
-  },
+import { PLAN_LIMITS as CANONICAL } from "./plans";
+import type { PlanType as CanonicalPlanType } from "./plans";
+
+export type PlanType = CanonicalPlanType;
+
+/** Formato consumido por db-usage-alerts.ts (mantém compatibilidade de campos). */
+export interface PlanLimitsView {
+  clientes: number;
+  profissionais: number;
+  servicos: number;
+  pacotes: number;
+  agendamentosPoMes: number; // alias histórico de agendamentosMes
+  automacoes: number;
+  usuarios: number;
+  alertaPercentual: number;
+}
+
+function toView(plan: CanonicalPlanType): PlanLimitsView {
+  const c = CANONICAL[plan];
+  return {
+    clientes: c.clientes,
+    profissionais: c.profissionais,
+    servicos: c.servicos,
+    pacotes: c.pacotes,
+    agendamentosPoMes: c.agendamentosMes,
+    automacoes: c.automacoes,
+    usuarios: c.usuarios,
+    alertaPercentual: c.alertaPercentual,
+  };
+}
+
+/** Mapa de limites no formato de visualização (derivado de plans.ts). */
+export const PLAN_LIMITS: Record<PlanType, PlanLimitsView> = {
+  FREE: toView("FREE"),
+  SOLO: toView("SOLO"),
+  PLUS: toView("PLUS"),
+  PRO: toView("PRO"),
 };
 
-export type PlanType = keyof typeof PLAN_LIMITS;
-
 /**
- * Obtém os limites de um plano
+ * Obtém os limites de um plano (formato de visualização).
  */
-export function getPlanLimits(plan: PlanType) {
+export function getPlanLimits(plan: PlanType): PlanLimitsView {
   return PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
 }
 
 /**
- * Verifica se um valor atingiu o limite de alerta
+ * Verifica se um valor atingiu o limite de alerta.
  * @param atual Valor atual
  * @param limite Limite máximo (-1 = ilimitado)
  * @param alertaPercentual Percentual para disparar alerta (padrão 80%)
@@ -67,6 +65,7 @@ export function verificarAlerta(
   alertaPercentual: number = 80
 ): boolean {
   if (limite === -1) return false; // Ilimitado, sem alerta
+  if (limite === 0) return false;  // Recurso indisponível, não há "uso" a alertar
   const percentualUsado = (atual / limite) * 100;
   return percentualUsado >= alertaPercentual;
 }
@@ -76,5 +75,6 @@ export function verificarAlerta(
  */
 export function calcularPercentualUso(atual: number, limite: number): number {
   if (limite === -1) return 0; // Ilimitado
+  if (limite === 0) return 100;
   return Math.round((atual / limite) * 100);
 }

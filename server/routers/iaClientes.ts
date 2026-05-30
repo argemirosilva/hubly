@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAI } from "../openai";
+import { empresaHasFeature } from "../db-plans";
 import {
   getEmpresaDoUsuario, getEmpresaDoContexto,
   getClientesByEmpresa,
@@ -249,6 +251,9 @@ export const iaClientesRouter = router({
   analisar: protectedProcedure.mutation(async ({ ctx }) => {
     const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) throw new Error("Empresa não encontrada");
+    if (!(await empresaHasFeature(empresa.id, "iaTotal"))) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "A IA de Clientes está disponível no plano Pro. Faça upgrade para usar este recurso." });
+    }
 
     const { metricas, diasHistorico } = await calcularMetricasClientes(empresa.id);
 
@@ -373,6 +378,9 @@ export const iaClientesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
+      if (!(await empresaHasFeature(empresa.id, "iaTotal"))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "A IA de Clientes está disponível no plano Pro. Faça upgrade para usar este recurso." });
+      }
 
       const analises = await getAnaliseClientesByEmpresa(empresa.id);
       const insights = await getInsightsClientes(empresa.id, false);

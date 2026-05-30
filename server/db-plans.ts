@@ -173,3 +173,43 @@ export async function checkProfissionalLimit(empresaId: number, currentCount: nu
   }
   return null;
 }
+
+// ─── Feature gating ────────────────────────────────────────────────────────────
+
+/** Chaves de feature booleana disponíveis em PLAN_LIMITS. */
+export type FeatureKey =
+  | "iaMarketing"
+  | "iaFinanceira"
+  | "iaTotal"
+  | "linkPersonalizado"
+  | "pacotesServicos"
+  | "comissoes"
+  | "relatoriosAvancados"
+  | "multiplosCaixas"
+  | "portalCliente";
+
+/** Retorna true se o plano EFETIVO da empresa tem a feature liberada. */
+export async function empresaHasFeature(empresaId: number, feature: FeatureKey): Promise<boolean> {
+  const plan = await getEmpresaPlan(empresaId);
+  return !!PLAN_LIMITS[plan][feature];
+}
+
+// ─── Limite de notificações WhatsApp ───────────────────────────────────────────
+
+/**
+ * Verifica se a empresa ainda pode enviar notificações WhatsApp este mês.
+ * Retorna null se OK, ou string de erro padronizada se o teto foi atingido.
+ */
+export async function checkWhatsappLimit(empresaId: number): Promise<string | null> {
+  const plan = await getEmpresaPlan(empresaId);
+  const limit = PLAN_LIMITS[plan].notificacoesWhatsappMes;
+  if (limit === -1) return null; // ilimitado
+
+  const usage = await getOrCreateUsage(empresaId);
+  const count = usage?.notificacoesWhatsappCount ?? 0;
+
+  if (count >= limit) {
+    return `LIMIT_REACHED:whatsapp:${plan}:${count}:${limit}`;
+  }
+  return null;
+}

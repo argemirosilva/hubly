@@ -3,10 +3,11 @@
  *
  * Documentação: https://developer.z-api.io
  *
- * Credenciais necessárias (injetadas via ENV):
- *   ZAPI_INSTANCE_ID  — ID da instância
- *   ZAPI_TOKEN        — Token da instância
- *   ZAPI_CLIENT_TOKEN — Client-Token de segurança (em Segurança no painel Z-API)
+ * Credenciais por empresa (tabela assinaturas):
+ *   zapiInstanceId, zapiToken, zapiAtivo
+ *
+ * Fallback para ENV global (instância única legada):
+ *   ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN
  */
 import { ENV } from "./_core/env";
 
@@ -19,6 +20,12 @@ export interface ZapiSendResult {
   error?: string;
 }
 
+interface ZapiCreds {
+  instanceId: string;
+  token: string;
+  clientToken: string;
+}
+
 // ─── Helpers internos ─────────────────────────────────────────────────────────
 
 /** Normaliza telefone para o formato esperado pela Z-API (DDI + DDD + número, sem +) */
@@ -28,37 +35,68 @@ function normalizarTelefone(telefone: string): string {
   return `55${digits}`;
 }
 
+/** Credenciais globais (ENV) */
+function globalCreds(): ZapiCreds | null {
+  if (ENV.zapiInstanceId && ENV.zapiToken && ENV.zapiClientToken) {
+    return { instanceId: ENV.zapiInstanceId, token: ENV.zapiToken, clientToken: ENV.zapiClientToken };
+  }
+  return null;
+}
+
+/** Busca credenciais Z-API da empresa no banco (multi-instância) */
+async function getEmpresaCreds(empresaId: number): Promise<ZapiCreds | null> {
+  try {
+    const { getDb } = await import("./db");
+    const { assinaturas } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await getDb();
+    if (!db) return null;
+    const [row] = await db
+      .select({ zapiInstanceId: assinaturas.zapiInstanceId, zapiToken: assinaturas.zapiToken, zapiAtivo: assinaturas.zapiAtivo })
+      .from(assinaturas)
+      .where(eq(assinaturas.empresaId, empresaId))
+      .limit(1);
+    if (row?.zapiAtivo && row.zapiInstanceId && row.zapiToken) {
+      const clientToken = ENV.zapiClientToken;
+      if (!clientToken) return null;
+      return { instanceId: row.zapiInstanceId, token: row.zapiToken, clientToken };
+    }
+  } catch (err) {
+    console.error("[Z-API] Erro ao buscar credenciais da empresa:", err);
+  }
+  return null;
+}
+
+/** Resolve credenciais: tenta empresa primeiro, fallback para ENV global */
+async function resolveCreds(empresaId?: number): Promise<ZapiCreds | null> {
+  if (empresaId) {
+    const creds = await getEmpresaCreds(empresaId);
+    if (creds) return creds;
+  }
+  return globalCreds();
+}
+
 /** Headers padrão com Client-Token */
-function zapiHeaders(): Record<string, string> {
+function zapiHeaders(creds: ZapiCreds): Record<string, string> {
   return {
     "Content-Type": "application/json",
-    "Client-Token": ENV.zapiClientToken,
+    "Client-Token": creds.clientToken,
   };
 }
 
 /** URL base da instância */
-function instanceUrl(path: string): string {
-  return `${BASE_URL}/instances/${ENV.zapiInstanceId}/token/${ENV.zapiToken}${path}`;
-}
-
-/** Verifica se as credenciais estão configuradas */
-function credenciaisOk(): boolean {
-  return !!(ENV.zapiInstanceId && ENV.zapiToken && ENV.zapiClientToken);
+function instanceUrl(creds: ZapiCreds, path: string): string {
+  return `${BASE_URL}/instances/${creds.instanceId}/token/${creds.token}${path}`;
 }
 
 /** Faz uma requisição POST para a Z-API */
-async function zapiPost(endpoint: string, body: Record<string, unknown>): Promise<ZapiSendResult> {
-  if (!credenciaisOk()) {
-    console.error("[Z-API] Credenciais não configuradas (ZAPI_INSTANCE_ID / ZAPI_TOKEN / ZAPI_CLIENT_TOKEN)");
-    return { ok: false, error: "Credenciais Z-API não configuradas" };
-  }
-
-  const url = instanceUrl(endpoint);
+async function zapiPost(creds: ZapiCreds, endpoint: string, body: Record<string, unknown>): Promise<ZapiSendResult> {
+  const url = instanceUrl(creds, endpoint);
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: zapiHeaders(),
+      headers: zapiHeaders(creds),
       body: JSON.stringify(body),
     });
 
@@ -84,10 +122,15 @@ async function zapiPost(endpoint: string, body: Record<string, unknown>): Promis
 /**
  * Envia uma mensagem de texto simples via Z-API.
  */
-export async function zapiSendText(telefone: string, mensagem: string): Promise<ZapiSendResult> {
+export async function zapiSendText(telefone: string, mensagem: string, empresaId?: number): Promise<ZapiSendResult> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) {
+    console.error("[Z-API] Credenciais não configuradas");
+    return { ok: false, error: "Credenciais Z-API não configuradas" };
+  }
   const phone = normalizarTelefone(telefone);
   console.log(`[Z-API] Enviando texto para ${phone}`);
-  return zapiPost("/send-text", { phone, message: mensagem });
+  return zapiPost(creds, "/send-text", { phone, message: mensagem });
 }
 
 /**
@@ -98,33 +141,39 @@ export async function zapiSendMedia(
   mediaUrl: string,
   caption?: string,
   mimeType?: string,
+  empresaId?: number,
 ): Promise<ZapiSendResult> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) {
+    return { ok: false, error: "Credenciais Z-API não configuradas" };
+  }
   const phone = normalizarTelefone(telefone);
   const isImage = mimeType?.startsWith("image/") ?? /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl);
   const isPdf = mimeType === "application/pdf" || /\.pdf$/i.test(mediaUrl);
 
   if (isImage) {
-    return zapiPost("/send-image", { phone, image: mediaUrl, caption: caption ?? "" });
+    return zapiPost(creds, "/send-image", { phone, image: mediaUrl, caption: caption ?? "" });
   }
   if (isPdf) {
-    return zapiPost("/send-document/pdf", { phone, document: mediaUrl, fileName: caption ?? "documento.pdf" });
+    return zapiPost(creds, "/send-document/pdf", { phone, document: mediaUrl, fileName: caption ?? "documento.pdf" });
   }
   const msg = caption ? `${caption}\n${mediaUrl}` : mediaUrl;
-  return zapiSendText(phone, msg);
+  return zapiSendText(phone, msg, empresaId);
 }
 
 /**
  * Obtém o QR Code da instância Z-API como imagem base64.
  * Retorna null se já estiver conectada ou se houver erro.
  */
-export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connected: boolean; status: string }> {
-  if (!credenciaisOk()) {
+export async function zapiGetQrCode(empresaId?: number): Promise<{ qrBase64: string | null; connected: boolean; status: string }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) {
     return { qrBase64: null, connected: false, status: "credentials_missing" };
   }
 
   try {
     // Primeiro verifica o status
-    const statusRes = await fetch(instanceUrl("/status"), { headers: zapiHeaders() });
+    const statusRes = await fetch(instanceUrl(creds, "/status"), { headers: zapiHeaders(creds) });
     const statusData = (await statusRes.json()) as Record<string, unknown>;
 
     if (statusData?.connected === true) {
@@ -132,7 +181,7 @@ export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connec
     }
 
     // Busca QR code — Z-API retorna JSON com { value: "data:image/png;base64,..." }
-    const qrRes = await fetch(instanceUrl("/qr-code/image"), { headers: zapiHeaders() });
+    const qrRes = await fetch(instanceUrl(creds, "/qr-code/image"), { headers: zapiHeaders(creds) });
 
     if (!qrRes.ok) {
       const errBody = await qrRes.text();
@@ -166,11 +215,12 @@ export async function zapiGetQrCode(): Promise<{ qrBase64: string | null; connec
 /**
  * Reinicia a instância Z-API.
  */
-export async function zapiRestart(): Promise<{ ok: boolean; error?: string }> {
-  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
+export async function zapiRestart(empresaId?: number): Promise<{ ok: boolean; error?: string }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) return { ok: false, error: "Credenciais não configuradas" };
 
   try {
-    const res = await fetch(instanceUrl("/restart"), { headers: zapiHeaders() });
+    const res = await fetch(instanceUrl(creds, "/restart"), { headers: zapiHeaders(creds) });
     if (!res.ok) {
       const body = await res.text();
       return { ok: false, error: body };
@@ -184,11 +234,12 @@ export async function zapiRestart(): Promise<{ ok: boolean; error?: string }> {
 /**
  * Desconecta a instância Z-API (logout do WhatsApp).
  */
-export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }> {
-  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
+export async function zapiDisconnect(empresaId?: number): Promise<{ ok: boolean; error?: string }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) return { ok: false, error: "Credenciais não configuradas" };
 
   try {
-    const res = await fetch(instanceUrl("/disconnect"), { headers: zapiHeaders() });
+    const res = await fetch(instanceUrl(creds, "/disconnect"), { headers: zapiHeaders(creds) });
     if (!res.ok) {
       const body = await res.text();
       return { ok: false, error: body };
@@ -203,13 +254,14 @@ export async function zapiDisconnect(): Promise<{ ok: boolean; error?: string }>
  * Configura todos os webhooks da instância Z-API para a mesma URL.
  * Chamado automaticamente ao conectar a instância.
  */
-export async function zapiSetWebhook(webhookUrl: string): Promise<{ ok: boolean; error?: string }> {
-  if (!credenciaisOk()) return { ok: false, error: "Credenciais não configuradas" };
+export async function zapiSetWebhook(empresaId: number | undefined, webhookUrl: string): Promise<{ ok: boolean; error?: string }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) return { ok: false, error: "Credenciais não configuradas" };
 
   try {
-    const res = await fetch(instanceUrl("/update-every-webhooks"), {
+    const res = await fetch(instanceUrl(creds, "/update-every-webhooks"), {
       method: "PUT",
-      headers: zapiHeaders(),
+      headers: zapiHeaders(creds),
       body: JSON.stringify({ value: webhookUrl, notifySentByMe: true }),
     });
     const data = (await res.json()) as Record<string, unknown>;
@@ -226,11 +278,12 @@ export async function zapiSetWebhook(webhookUrl: string): Promise<{ ok: boolean;
 /**
  * Obtém o número de telefone conectado à instância Z-API.
  */
-export async function zapiGetConnectedPhone(): Promise<{ phone: string | null; name: string | null }> {
-  if (!credenciaisOk()) return { phone: null, name: null };
+export async function zapiGetConnectedPhone(empresaId?: number): Promise<{ phone: string | null; name: string | null }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) return { phone: null, name: null };
 
   try {
-    const res = await fetch(instanceUrl("/device-properties"), { headers: zapiHeaders() });
+    const res = await fetch(instanceUrl(creds, "/device-properties"), { headers: zapiHeaders(creds) });
     if (!res.ok) return { phone: null, name: null };
     const data = (await res.json()) as Record<string, unknown>;
     const phone = (data?.phone as string) ?? (data?.wid as string) ?? null;
@@ -244,18 +297,19 @@ export async function zapiGetConnectedPhone(): Promise<{ phone: string | null; n
 /**
  * Verifica se a instância Z-API está conectada.
  */
-export async function zapiCheckStatus(): Promise<{ connected: boolean; status: string }> {
-  if (!credenciaisOk()) {
+export async function zapiCheckStatus(empresaId?: number): Promise<{ connected: boolean; status: string }> {
+  const creds = await resolveCreds(empresaId);
+  if (!creds) {
     return { connected: false, status: "credentials_missing" };
   }
 
   try {
-    const res = await fetch(instanceUrl("/status"), { headers: zapiHeaders() });
+    const res = await fetch(instanceUrl(creds, "/status"), { headers: zapiHeaders(creds) });
     const data = (await res.json()) as Record<string, unknown>;
     const connected = data?.connected === true;
     const status = connected ? "connected" : ((data?.status as string) ?? "disconnected");
     return { connected, status };
-  } catch (err) {
+  } catch (_err) {
     return { connected: false, status: "error" };
   }
 }

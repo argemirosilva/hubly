@@ -652,6 +652,18 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisCriar');
+        // ── Verificar limite de profissionais (seats) do plano ──────────────────
+        const profsExistentes = await getProfissionaisByEmpresa(empresa.id);
+        const limitError = await checkProfissionalLimit(empresa.id, profsExistentes.length);
+        if (limitError) {
+          const partes = limitError.split(':'); // LIMIT_REACHED:profissionais:PLANO:atual:limite
+          const planoAtual = partes[2] ?? '';
+          const limite = partes[4] ?? '';
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Limite de ${limite} profissional(is) do plano ${planoAtual} atingido. Faça upgrade para adicionar mais profissionais.`,
+          });
+        }
         const id = await createProfissional({ ...input, empresaId: empresa.id });
         return { id, success: true };
       }),
@@ -4370,10 +4382,10 @@ export const appRouter = router({
               .limit(1);
             if (sub?.planType === 'PRO') {
               const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
-              const zapiStatus = await zapiCheckStatus();
+              const zapiStatus = await zapiCheckStatus(empresa.id);
               let phoneNumber: string | null = null;
               if (zapiStatus.connected) {
-                const phoneInfo = await zapiGetConnectedPhone();
+                const phoneInfo = await zapiGetConnectedPhone(empresa.id);
                 phoneNumber = phoneInfo.phone;
               }
               return {
@@ -4463,30 +4475,23 @@ export const appRouter = router({
     // ─── Z-API (plano Pro) ──────────────────────────────────────────────────────
      /** Status da instância Z-API */
     zapiGetStatus: protectedProcedure.query(async ({ ctx }) => {
-      const { ENV } = await import('./_core/env');
-      // Se credenciais Z-API não estão configuradas no servidor, não é Pro
-      if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
-        return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null, deviceName: null };
-      }
-      // Tenta verificar plano no banco; se banco falhar, assume Pro (credenciais já estão configuradas)
+      // Plano é resolvido por empresa; a instância Z-API é própria de cada empresa.
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null, deviceName: null };
       let isPro = false;
       try {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (empresa) {
-          const plan = await getEmpresaPlan(empresa.id);
-          isPro = plan === 'PRO';
-        }
+        isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
       } catch {
-        // Banco indisponível — credenciais Z-API configuradas, assume Pro
-        isPro = true;
+        // Banco indisponível ao checar plano — não assume Pro silenciosamente
+        return { connected: false, status: 'error', isPro: false, phoneNumber: null, deviceName: null };
       }
       if (!isPro) return { connected: false, status: 'not_pro', isPro: false, phoneNumber: null, deviceName: null };
       const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
-      const result = await zapiCheckStatus();
+      const result = await zapiCheckStatus(empresa.id);
       let phoneNumber: string | null = null;
       let deviceName: string | null = null;
       if (result.connected) {
-        const phoneInfo = await zapiGetConnectedPhone();
+        const phoneInfo = await zapiGetConnectedPhone(empresa.id);
         phoneNumber = phoneInfo.phone;
         deviceName = phoneInfo.name;
       }
@@ -4496,23 +4501,21 @@ export const appRouter = router({
     zapiGetQrCode: protectedProcedure
       .input(z.object({ origin: z.string().optional() }).optional())
       .query(async ({ ctx, input }) => {
-      const { ENV } = await import('./_core/env');
-      if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
-      }
-      // Tenta verificar plano; se banco falhar, assume Pro
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'FORBIDDEN', message: 'Empresa não encontrada' });
       let isPro = false;
       try {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (empresa) isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
-      } catch { isPro = true; }
+        isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
+      } catch {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Não foi possível verificar o plano. Tente novamente.' });
+      }
       if (!isPro) throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
       const { zapiGetQrCode, zapiSetWebhook } = await import('./zapi');
-      const result = await zapiGetQrCode();
+      const result = await zapiGetQrCode(empresa.id);
       // Ao detectar que acabou de conectar, configura o webhook automaticamente
       if (result.connected) {
         const webhookUrl = (input?.origin ?? 'https://hubly.orizontech.com.br') + '/api/zapi/webhook';
-        zapiSetWebhook(webhookUrl).catch((err) =>
+        zapiSetWebhook(empresa.id, webhookUrl).catch((err) =>
           console.error('[Z-API] Falha ao configurar webhook automaticamente:', err)
         );
       }
@@ -4520,33 +4523,31 @@ export const appRouter = router({
     }),
     /** Reinicia a instância Z-API */
     zapiRestart: protectedProcedure.mutation(async ({ ctx }) => {
-      const { ENV } = await import('./_core/env');
-      if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
-      }
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'FORBIDDEN', message: 'Empresa não encontrada' });
       let isPro = false;
       try {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (empresa) isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
-      } catch { isPro = true; }
+        isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
+      } catch {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Não foi possível verificar o plano. Tente novamente.' });
+      }
       if (!isPro) throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
       const { zapiRestart } = await import('./zapi');
-      return zapiRestart();
+      return zapiRestart(empresa.id);
     }),
     /** Desconecta a instância Z-API */
     zapiDisconnect: protectedProcedure.mutation(async ({ ctx }) => {
-      const { ENV } = await import('./_core/env');
-      if (!ENV.zapiInstanceId || !ENV.zapiToken || !ENV.zapiClientToken) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
-      }
+      const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: 'FORBIDDEN', message: 'Empresa não encontrada' });
       let isPro = false;
       try {
-        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
-        if (empresa) isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
-      } catch { isPro = true; }
+        isPro = (await getEmpresaPlan(empresa.id)) === 'PRO';
+      } catch {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Não foi possível verificar o plano. Tente novamente.' });
+      }
       if (!isPro) throw new TRPCError({ code: 'FORBIDDEN', message: 'Recurso exclusivo do plano Pro' });
       const { zapiDisconnect } = await import('./zapi');
-      return zapiDisconnect();
+      return zapiDisconnect(empresa.id);
     }),
   }),
   // ─── PLANOS E ASSINATURAS ────────────────────────────────────────────────────────────────────────────────────────────────────

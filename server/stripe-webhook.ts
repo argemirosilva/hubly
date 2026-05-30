@@ -419,10 +419,21 @@ export function registerStripeWebhook(app: Express) {
         res.json({ received: true });
       } catch (err) {
         console.error("[Stripe Webhook] Erro ao processar evento:", err);
-        // IMPORTANTE: Retornar 200 mesmo em caso de erro de processamento
-        // para que a Stripe não fique reenviando o mesmo evento.
-        // O erro é logado para investigação, mas o evento é marcado como recebido.
-        res.json({ received: true, error: "Internal processing error" });
+        // Eventos CRÍTICOS (mudam estado de assinatura) devem ser reprocessados pela
+        // Stripe em caso de falha transitória (ex.: banco fora do ar). Retornamos 500
+        // para que a Stripe reenvie. Demais eventos retornam 200 para evitar loops.
+        const criticalEvents = [
+          "checkout.session.completed",
+          "customer.subscription.updated",
+          "customer.subscription.deleted",
+          "invoice.paid",
+          "invoice.payment_failed",
+        ];
+        if (criticalEvents.includes(event.type)) {
+          res.status(500).json({ received: false, error: "Internal processing error", willRetry: true });
+        } else {
+          res.json({ received: true, error: "Internal processing error" });
+        }
       }
     }
   );

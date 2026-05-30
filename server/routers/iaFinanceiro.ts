@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAI } from "../openai";
+import { empresaHasFeature } from "../db-plans";
 import {
   getEmpresaDoUsuario, getEmpresaDoContexto,
   getAgendamentosByEmpresa,
@@ -244,6 +246,9 @@ export const iaFinanceiroRouter = router({
   calcularScore: protectedProcedure.mutation(async ({ ctx }) => {
     const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
     if (!empresa) throw new Error("Empresa não encontrada");
+    if (!(await empresaHasFeature(empresa.id, "iaFinanceira"))) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "A IA Financeira está disponível a partir do plano Plus. Faça upgrade para usar este recurso." });
+    }
 
     const scoreAnteriorObj = await getScoreAtual(empresa.id);
     const scoreAnterior = scoreAnteriorObj?.score ?? null;
@@ -308,6 +313,9 @@ export const iaFinanceiroRouter = router({
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
+      if (!(await empresaHasFeature(empresa.id, "iaFinanceira"))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "A IA Financeira está disponível a partir do plano Plus. Faça upgrade para usar este recurso." });
+      }
 
       const score = await getScoreAtual(empresa.id);
       const alertas = await getAlertasFinanceiros(empresa.id, false);
