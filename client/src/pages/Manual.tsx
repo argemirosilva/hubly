@@ -646,6 +646,16 @@ const SECTIONS: Section[] = [
           "Você pode exportar os dados se precisar.",
         ],
       },
+      {
+        title: "Usando o Financeiro no celular",
+        steps: [
+          "A tela de Financeiro é totalmente responsiva para uso em dispositivos móveis.",
+          "Os cards de resumo (Créditos em Aberto, Total devolvido) se reorganizam automaticamente em 2 colunas no mobile.",
+          "Os filtros de período das comissões ficam empilhados: primeiro os botões (Mês atual / Mês anterior / Últimos 30 dias), depois os campos de data em linha separada.",
+          "Nos cards de profissional, os badges de valor pendente e pago ficam em linha própria abaixo do nome, evitando sobreposição com o valor total.",
+        ],
+        tip: "Se algo parecer sobreposto ou cortado no celular, tente girar o dispositivo para paisagem ou use a versão desktop para operações mais complexas.",
+      },
     ],
   },
   {
@@ -893,12 +903,13 @@ const SECTIONS: Section[] = [
       {
         title: "Plano Pro: API dedicada (Z-API)",
         steps: [
-          "No plano Pro, a conexão é feita via API dedicada — mais robusta e estável.",
-          "O processo de conexão também usa QR Code, mas a infraestrutura por trás é diferente.",
-          "Clique em WhatsApp no menu lateral e siga as instruções de conexão exibidas.",
+          "No plano Pro, a conexão é feita via API dedicada (Z-API) — mais robusta e estável.",
+          "Após a confirmação do pagamento, a equipe Hubly recebe uma notificação automática e configura a instância Z-API em até 24h úteis.",
+          "Quando a instância estiver pronta, acesse Configurações → WhatsApp e escaneie o QR Code exibido na tela.",
           "Uma vez conectado, a API mantém a sessão de forma muito mais confiável.",
+          "Se a sessão cair (status session: false), basta escanear o QR Code novamente — o celular pode estar online mesmo sem sessão ativa.",
         ],
-        tip: "A API dedicada do plano Pro oferece maior estabilidade, sem risco de desconexão inesperada e sem dependência do celular ligado o tempo todo.",
+        tip: "A API dedicada do plano Pro oferece maior estabilidade, sem risco de desconexão inesperada e sem dependência do celular ligado o tempo todo. O campo smartphoneConnected indica se o celular está online; session indica se a sessão do WhatsApp Web está ativa.",
       },
       {
         title: "A conexão fica ativa?",
@@ -917,8 +928,9 @@ const SECTIONS: Section[] = [
           "Plus: 400 notificações por mês.",
           "Pro: 1.000 notificações por mês.",
           "O contador de uso aparece na tela de WhatsApp e na página de Assinatura.",
+          "Ao atingir o limite mensal, o sistema para de enviar mensagens automáticas até o início do próximo mês.",
         ],
-        tip: "As notificações são consumidas pelas automações ativas (confirmações, lembretes, aniversários etc.). Acompanhe o uso para não ser surpreendido.",
+        tip: "As notificações são consumidas pelas automações ativas (confirmações, lembretes, aniversários etc.). O sistema verifica o teto antes de cada envio e bloqueia automaticamente quando o limite é atingido. Acompanhe o uso para não ser surpreendido.",
       },
       {
         title: "Enviar mensagem manual para um cliente",
@@ -969,7 +981,20 @@ const SECTIONS: Section[] = [
           "Escolha o plano e a periodicidade (mensal ou anual).",
           "Clique em Contratar e conclua o pagamento na tela segura do Stripe.",
           "O plano é ativado imediatamente após a confirmação do pagamento.",
+          "Após o pagamento, a tela de sucesso exibe os recursos desbloqueados e os próximos passos.",
+          "Para o plano Pro: um card de onboarding WhatsApp aparece na tela de sucesso com os 3 passos para ativar a API dedicada.",
         ],
+        tip: "No plano Pro, a equipe Hubly recebe uma notificação automática ao confirmar o pagamento e configura a instância Z-API em até 24h úteis.",
+      },
+      {
+        title: "Limite de profissionais (seats) por plano",
+        steps: [
+          "Cada plano tem um limite de profissionais ativos: Free (1), Solo (1), Plus (5), Pro (20).",
+          "Ao atingir o limite, o sistema bloqueia o cadastro de novos profissionais até o upgrade.",
+          "O contador de profissionais ativos aparece na página de Assinatura.",
+          "Profissionais inativos não contam para o limite.",
+        ],
+        warning: "Se você precisar adicionar mais profissionais do que o plano permite, faça upgrade antes de tentar o cadastro.",
       },
       {
         title: "Cancelar a assinatura",
@@ -1047,10 +1072,12 @@ const SECTIONS: Section[] = [
         title: "Quem pode acessar a IA?",
         steps: [
           "O menu de IA e Insights é visível apenas para usuários com perfil de Administrador.",
-          "Plano Plus: acesso à IA Financeira.",
-          "Plano Pro: acesso à IA Financeira e IA de Clientes (IA Completa).",
+          "Plano Plus: acesso à IA Financeira (Score Financeiro, alertas e chat financeiro).",
+          "Plano Pro: acesso à IA Financeira e IA de Clientes (IA Completa — insights de clientes + chat de clientes).",
           "Planos Free e Solo não têm acesso ao módulo de IA.",
+          "Ao tentar acessar um recurso de IA fora do plano, o sistema exibe uma mensagem de upgrade em vez de um erro.",
         ],
+        tip: "O bloqueio é feito tanto no servidor quanto na interface. Mesmo que o menu apareça, as análises só são geradas se o plano tiver o recurso habilitado.",
       },
     ],
   },
