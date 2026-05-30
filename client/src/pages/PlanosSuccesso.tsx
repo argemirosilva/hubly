@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
   CheckCircle2, Sparkles, Calendar, Users, MessageCircle,
   ArrowRight, LayoutDashboard, CreditCard, Gem, Zap, Star,
-  Brain, Package, BarChart3, ChevronRight,
+  Brain, Package, BarChart3, ChevronRight, Smartphone, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -280,6 +281,35 @@ export default function PlanosSuccesso() {
           </div>
         </div>
 
+        {/* ── Card de onboarding WhatsApp (exclusivo PRO) ── */}
+        {session?.planType === 'PRO' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Smartphone className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-amber-800">Ativar WhatsApp</h3>
+                <p className="text-sm text-amber-700 mt-0.5">Seu plano PRO inclui envio de notificações via WhatsApp. Siga os passos abaixo para ativar.</p>
+              </div>
+            </div>
+            <div className="space-y-2.5">
+              {([
+                { step: 1, title: 'Aguarde a configuração da instância', desc: 'Nossa equipe receberá uma notificação e configurará sua instância Z-API em até 24h úteis.', icon: Clock },
+                { step: 2, title: 'Conecte seu número', desc: 'Acesse Configurações → WhatsApp e escaneie o QR Code com seu celular.', icon: Smartphone },
+                { step: 3, title: 'Configure as automações', desc: 'Ative os lembretes automáticos de agendamento em Automações.', icon: MessageCircle },
+              ] as Array<{ step: number; title: string; desc: string; icon: LucideIcon }>).map(({ step, title, desc, icon: Icon }) => (
+                <div key={step} className="flex items-start gap-3 p-3 bg-white/70 rounded-xl">
+                  <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{step}</div>
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">{title}</p>
+                    <p className="text-xs text-amber-700 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* ── Card de próximos passos ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <h3 className="font-semibold text-slate-700 mb-4">Próximos passos sugeridos</h3>

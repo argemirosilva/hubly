@@ -2629,3 +2629,10 @@
 - [x] Verificar TypeScript sem erros após substituição
 - [x] Verificar usage_tracker do mês atual no banco
 - [x] Verificar empresas acima do limite de seats por plano
+
+## Notificação Pro + Onboarding Pós-Upgrade
+- [x] stripe-webhook: notifyOwner ao ativar plano PRO (nome empresa, email, data)
+- [x] stripe-webhook: notifyOwner ao ativar plano PLUS (nome empresa, email, data)
+- [x] Tela /onboarding-pro: checklist pós-upgrade (WhatsApp, automações, profissionais)
+- [x] Card de onboarding WhatsApp exibido na tela /admin/planos/sucesso quando planType=PRO
+- [x] Banner de boas-vindas no Dashboard quando onboarding não concluído (card na tela de sucesso)

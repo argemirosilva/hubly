@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { priceIdToPlanType as priceIdToType } from "./stripe-products";
 import { invalidatePlanCache } from "./whatsapp-router";
 import { sendPushToUser } from "./pushNotifications";
+import { notifyOwner } from "./_core/notification";
 
 /**
  * Sincroniza a tabela `assinaturas` (Painel Orizontech) com dados do Stripe.
@@ -212,6 +213,33 @@ export function registerStripeWebhook(app: Express) {
               // Invalida cache de plano para que o roteamento WhatsApp use o novo plano imediatamente
               invalidatePlanCache(empresaId);
               console.log(`[Stripe Webhook] Assinatura ativada para empresa ${empresaId}: ${planType} ${billingCycle}`);
+
+              // Notificar Orizontech sobre novo upgrade
+              if (planType === 'PRO' || planType === 'PLUS') {
+                try {
+                  const dbNotify = await getDb();
+                  let empresaNome = `Empresa #${empresaId}`;
+                  let empresaEmail = '';
+                  if (dbNotify) {
+                    const [emp] = await dbNotify
+                      .select({ nome: empresas.nome, email: empresas.email })
+                      .from(empresas)
+                      .where(eq(empresas.id, empresaId))
+                      .limit(1);
+                    if (emp) { empresaNome = emp.nome; empresaEmail = emp.email ?? ''; }
+                  }
+                  const cicloLabel = billingCycle === 'annual' ? 'Anual' : 'Mensal';
+                  const acaoZapi = planType === 'PRO'
+                    ? '\n\n⚡ **Ação necessária:** configurar instância Z-API no painel Orizontech para ativar o WhatsApp desta empresa.'
+                    : '';
+                  await notifyOwner({
+                    title: `🚀 Nova assinatura ${planType} — ${empresaNome}`,
+                    content: `A empresa **${empresaNome}** (ID: ${empresaId}${empresaEmail ? `, ${empresaEmail}` : ''}) acabou de assinar o plano **${planType} ${cicloLabel}**.${acaoZapi}`,
+                  });
+                } catch (notifyErr) {
+                  console.error('[Stripe Webhook] Erro ao notificar owner sobre upgrade:', notifyErr);
+                }
+              }
 
               // Sincronizar tabela assinaturas (Painel Orizontech)
               await syncAssinatura({
