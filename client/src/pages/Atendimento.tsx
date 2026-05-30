@@ -74,7 +74,7 @@ function TelaLogin({ onSuccess }: { onSuccess: () => void }) {
   const [show, setShow] = useState(false);
   const verificar = trpc.suporte.adminVerificarSenha.useMutation({
     onSuccess: () => {
-      localStorage.setItem("hubly_suporte_auth", "1");
+      sessionStorage.setItem("hubly_suporte_auth", "1");
       onSuccess();
     },
     onError: () => toast.error("Senha incorreta"),
@@ -200,7 +200,7 @@ function usePushAtendente(autenticado: boolean, empresaId: number | null) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Atendimento() {
-  const [autenticado, setAutenticado] = useState(() => localStorage.getItem("hubly_suporte_auth") === "1");
+  const [autenticado, setAutenticado] = useState(() => sessionStorage.getItem("hubly_suporte_auth") === "1");
   const [filaAtiva, setFilaAtiva] = useState<FilaKey>("novos");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [resposta, setResposta] = useState("");
@@ -378,7 +378,7 @@ export default function Atendimento() {
             <RefreshCw className={`w-3.5 h-3.5 ${chamadosQuery.isFetching ? "animate-spin" : ""}`} />
           </Button>
           <button
-            onClick={() => { localStorage.removeItem("hubly_suporte_auth"); setAutenticado(false); }}
+            onClick={() => { sessionStorage.removeItem("hubly_suporte_auth"); setAutenticado(false); }}
             className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             Sair
