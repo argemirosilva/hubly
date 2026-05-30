@@ -1170,6 +1170,7 @@ export const chamados = mysqlTable("chamados", {
   fechadoEm: timestamp("fechadoEm"),
   avaliacaoNota: int("avaliacaoNota"),       // 1-5
   avaliacaoComentario: text("avaliacaoComentario"),
+  produto: varchar("produto", { length: 50 }).default("hubly").notNull(), // produto Orizontech de origem
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

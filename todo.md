@@ -2646,3 +2646,13 @@
 - [x] Procedure getVapidPublicKey pública para o service worker
 - [x] sendPushToAtendentes(empresaId) disparado no abrirChamado junto com push do owner
 - [x] Botão Bell/BellOff no header do Atendimento + hook usePushAtendente (solicita permissão, registra subscription)
+
+## Central de Atendimento Multi-Produto (chamado.orizontech.com.br)
+- [ ] Schema: adicionar campo `produto` (varchar, default 'hubly') na tabela chamados_suporte
+- [ ] Migration: ALTER TABLE chamados_suporte ADD COLUMN produto varchar(50) DEFAULT 'hubly'
+- [ ] Backend: passar produto='hubly' ao criar chamado no abrirChamado
+- [ ] Backend: retornar campo produto na listagem adminListarChamados
+- [ ] Frontend central: badge colorido com ícone+nome do produto em cada chamado na lista
+- [ ] Frontend central: filtro por produto na barra de filas (quando houver mais de 1 produto)
+- [ ] Frontend central: cabeçalho do chat mostra produto do chamado selecionado
+- [ ] Preparar estrutura de PRODUTOS_CONFIG (id, nome, cor, ícone) para futuros produtos

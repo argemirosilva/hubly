@@ -175,6 +175,7 @@ export const suporteRouter = router({
         prioridade: input.prioridade,
         slaHoras,
         slaVencidoEm,
+        produto: "hubly", // produto Orizontech de origem
       });
       const chamadoId = (res as any).insertId as number;
       await db.insert(chamadoMensagens).values({
@@ -312,6 +313,7 @@ export const suporteRouter = router({
           slaVencidoEm: chamados.slaVencidoEm,
           primeiraRespostaEm: chamados.primeiraRespostaEm,
           avaliacaoNota: chamados.avaliacaoNota,
+          produto: chamados.produto,
           createdAt: chamados.createdAt,
           updatedAt: chamados.updatedAt,
           nomeEmpresa: empresas.nome,

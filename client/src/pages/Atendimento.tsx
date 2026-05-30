@@ -544,7 +544,16 @@ export default function Atendimento() {
                     <div className="flex items-center gap-1 text-xs text-zinc-500">
                       <Building2 className="w-3 h-3 shrink-0" />
                       <span className="truncate">{c.nomeEmpresa ?? `Empresa #${c.empresaId}`}</span>
-                      <span className="ml-auto">#{c.id}</span>
+                      <span className="ml-auto flex items-center gap-1">
+                        {c.produto && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ${
+                            c.produto === 'hubly' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {c.produto.charAt(0).toUpperCase() + c.produto.slice(1)}
+                          </span>
+                        )}
+                        #{c.id}
+                      </span>
                     </div>
                     {c.slaVencidoEm && c.status !== "resolvido" && c.status !== "fechado" && (
                       <div className={`text-xs mt-1 ${slaColor(c.slaVencidoEm, c.status)}`}>
@@ -585,6 +594,16 @@ export default function Atendimento() {
                     <span>{chamadoSelecionado?.nomeEmpresa ?? `Empresa #${chamadoSelecionado?.empresaId}`}</span>
                     <span>·</span>
                     <span>Aberto {formatDate(chamadoSelecionado?.createdAt)}</span>
+                    {chamadoSelecionado?.produto && (
+                      <>
+                        <span>·</span>
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
+                          chamadoSelecionado.produto === 'hubly' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {chamadoSelecionado.produto.charAt(0).toUpperCase() + chamadoSelecionado.produto.slice(1)}
+                        </span>
+                      </>
+                    )}
                     {chamadoSelecionado?.avaliacaoNota && (
                       <>
                         <span>·</span>
