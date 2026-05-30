@@ -2636,3 +2636,6 @@
 - [x] Tela /onboarding-pro: checklist pós-upgrade (WhatsApp, automações, profissionais)
 - [x] Card de onboarding WhatsApp exibido na tela /admin/planos/sucesso quando planType=PRO
 - [x] Banner de boas-vindas no Dashboard quando onboarding não concluído (card na tela de sucesso)
+
+## Responsividade Mobile — Clientes (cards de métricas)
+- [x] Cards de métricas no topo da tela de Clientes: labels e valores truncados no mobile (Receita, Ticket, Atendimentos)

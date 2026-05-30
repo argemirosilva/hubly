@@ -185,7 +185,7 @@ export default function Clientes() {
           <div className="h-9 w-28 bg-muted animate-pulse rounded-lg" />
         </div>
         {/* Métricas skeleton */}
-        <div className="grid grid-cols-4 gap-2 lg:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
           {[1,2,3,4].map(i => (
             <div key={i} className="rounded-xl border bg-card px-3 py-2.5 space-y-2">
               <div className="h-4 w-4 bg-muted animate-pulse rounded" />
@@ -233,24 +233,27 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* Cards de métricas — compactos no mobile */}
-      <div className="grid grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4">
+      {/* Cards de métricas — grid 2x2 no mobile, 4 colunas no desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4">
         {[
-          { label: "Ativos", value: String(metricas.ativos), icon: UserCheck, color: "oklch(78.5% 0.075 85)" },
-          { label: "Receita", value: formatCurrency(metricas.totalReceita), icon: DollarSign, color: "oklch(50% 0.16 155)" },
-          { label: "Ticket médio", value: formatCurrency(metricas.ticketMedio), icon: TrendingUp, color: "oklch(60% 0.20 30)" },
-          { label: "Atendimentos", value: String(metricas.totalAtendimentos), icon: Calendar, color: "oklch(55% 0.18 270)" },
+          { label: "Clientes ativos", labelMobile: "Ativos", value: String(metricas.ativos), icon: UserCheck, color: "oklch(78.5% 0.075 85)" },
+          { label: "Receita total", labelMobile: "Receita", value: formatCurrency(metricas.totalReceita), icon: DollarSign, color: "oklch(50% 0.16 155)" },
+          { label: "Ticket médio", labelMobile: "Ticket médio", value: formatCurrency(metricas.ticketMedio), icon: TrendingUp, color: "oklch(60% 0.20 30)" },
+          { label: "Atendimentos", labelMobile: "Atendimentos", value: String(metricas.totalAtendimentos), icon: Calendar, color: "oklch(55% 0.18 270)" },
         ].map(card => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="card-elegant p-2 lg:p-3.5 flex items-center gap-2 lg:gap-3">
-              <div className="w-7 h-7 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
+            <div key={card.label} className="card-elegant p-3 lg:p-3.5 flex items-center gap-2.5 lg:gap-3">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: `${card.color}18` }}>
-                <Icon className="w-3 h-3 lg:w-4 lg:h-4" style={{ color: card.color }} />
+                <Icon className="w-4 h-4" style={{ color: card.color }} />
               </div>
-              <div className="min-w-0">
-                <p className="text-[9px] lg:text-[11px] text-muted-foreground leading-none truncate">{card.label}</p>
-                <p className="text-xs lg:text-lg font-bold tracking-tight mt-0.5 truncate">{card.value}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] lg:text-[11px] text-muted-foreground leading-none">
+                  <span className="sm:hidden">{card.labelMobile}</span>
+                  <span className="hidden sm:inline">{card.label}</span>
+                </p>
+                <p className="text-sm lg:text-lg font-bold tracking-tight mt-0.5 truncate">{card.value}</p>
               </div>
             </div>
           );
