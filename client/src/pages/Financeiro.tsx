@@ -298,7 +298,7 @@ export default function Financeiro() {
               </div>
               <span className="text-xs text-muted-foreground">{resumoCreditos.clientesComCredito} cliente{resumoCreditos.clientesComCredito !== 1 ? 's' : ''}</span>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-2 gap-3 mt-3">
               <div className="stat-card" style={{ background: "oklch(62% 0.18 155 / 6%)", border: "1px solid oklch(62% 0.18 155 / 20%)" }}>
                 <p className="text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.14 155)" }}>
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(resumoCreditos.totalEmAberto)}
@@ -311,7 +311,7 @@ export default function Financeiro() {
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Clientes com crédito</p>
               </div>
-              <div className="stat-card">
+              <div className="stat-card col-span-2 sm:col-span-1">
                 <p className="text-base font-bold tracking-tight text-foreground">
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(resumoCreditos.totalDevolvido)}
                 </p>
@@ -385,36 +385,38 @@ export default function Financeiro() {
             </div>
           </div>
           {/* Linha 2: filtro de período */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-            {/* Atalhos rápidos */}
-            {(["mes", "mes_ant", "30d"] as const).map(tipo => (
-              <button
-                key={tipo}
-                onClick={() => aplicarPeriodo(tipo)}
-                className="text-xs px-2.5 py-1 rounded-md border transition-colors"
-                style={periodoAtivo === tipo
-                  ? { background: "oklch(78.5% 0.075 85 / 14%)", borderColor: "oklch(78.5% 0.075 85 / 50%)", color: "oklch(35% 0.060 55)" }
-                  : { background: "transparent", borderColor: "oklch(89.5% 0.018 80)", color: "oklch(50% 0.040 75)" }
-                }
-              >
-                {tipo === "mes" ? "Mês atual" : tipo === "mes_ant" ? "Mês anterior" : "Últimos 30 dias"}
-              </button>
-            ))}
-            {/* Inputs de data personalizada */}
-            <div className="flex items-center gap-1.5 ml-auto">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              {/* Atalhos rápidos */}
+              {(["mes", "mes_ant", "30d"] as const).map(tipo => (
+                <button
+                  key={tipo}
+                  onClick={() => aplicarPeriodo(tipo)}
+                  className="text-xs px-2.5 py-1 rounded-md border transition-colors"
+                  style={periodoAtivo === tipo
+                    ? { background: "oklch(78.5% 0.075 85 / 14%)", borderColor: "oklch(78.5% 0.075 85 / 50%)", color: "oklch(35% 0.060 55)" }
+                    : { background: "transparent", borderColor: "oklch(89.5% 0.018 80)", color: "oklch(50% 0.040 75)" }
+                  }
+                >
+                  {tipo === "mes" ? "Mês atual" : tipo === "mes_ant" ? "Mês anterior" : "Últimos 30 dias"}
+                </button>
+              ))}
+            </div>
+            {/* Inputs de data personalizada — linha separada no mobile */}
+            <div className="flex items-center gap-1.5">
               <Input
                 type="date"
                 value={dataInicio}
                 onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }}
-                className="h-7 text-xs w-[130px]"
+                className="h-7 text-xs flex-1 min-w-0"
               />
-              <span className="text-xs text-muted-foreground">até</span>
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
               <Input
                 type="date"
                 value={dataFim}
                 onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }}
-                className="h-7 text-xs w-[130px]"
+                className="h-7 text-xs flex-1 min-w-0"
               />
             </div>
           </div>
@@ -445,8 +447,8 @@ export default function Financeiro() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground">{grupo.nome}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-muted-foreground">{grupo.comissoes.length} comissão{grupo.comissoes.length !== 1 ? "ões" : ""}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{grupo.comissoes.length} comissão{grupo.comissoes.length !== 1 ? "ões" : ""}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
                         {grupo.totalPendente > 0 && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                             style={{ background: "oklch(72% 0.16 80 / 14%)", color: "oklch(40% 0.14 75)" }}>

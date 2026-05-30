@@ -2611,3 +2611,8 @@
 - [x] Funções selecionarChamadoMobile, voltarParaLista, voltarParaFilas
 - [x] Métricas compactas no mobile (flex-col em vez de flex-row)
 - [x] Correção de import duplicado de useState
+
+## Responsividade Mobile — Financeiro
+- [x] Créditos em Aberto: grid 2 colunas no mobile com 3º card em linha cheia (não orphan)
+- [x] Filtros de comissões: inputs de data em coluna separada abaixo dos botões de período no mobile
+- [x] Cards de profissional: badges pendente/pago em linha separada no mobile para evitar sobreposição
