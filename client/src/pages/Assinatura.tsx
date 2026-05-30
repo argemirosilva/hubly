@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 import {
   CreditCard, Calendar, CheckCircle2, AlertTriangle, XCircle,
-  Clock, FileText, ExternalLink, Download, ArrowUpRight,
+  Clock, FileText, ExternalLink, Download, ArrowUpRight, ArrowLeftRight,
   Shield, Zap, RefreshCw, ChevronRight, Gem, Loader2, Bell, BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -498,8 +498,8 @@ export default function Assinatura() {
                       size="sm"
                       className="gap-2 text-sm text-violet-600 border-violet-200 hover:bg-violet-50"
                     >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      Fazer upgrade
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                      Alterar assinatura
                     </Button>
                   </Link>
                 )}

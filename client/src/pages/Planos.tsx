@@ -274,8 +274,10 @@ export default function Planos() {
                     onClick={() => handleAssinar(plano.key)}
                     disabled={isLoading || loadingKey !== null}
                   >
-                    {isLoading ? (
+                    {loadingKey === plano.key ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Aguarde...</>
+                    ) : planoAtual && planoAtual !== "FREE" ? (
+                      <>Alterar para {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>
                     ) : (
                       <>Assinar {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>
                     )}
