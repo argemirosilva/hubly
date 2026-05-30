@@ -4361,6 +4361,100 @@ export const appRouter = router({
         await db.update(profTable).set({ passwordHash: hash }).where(eq(profTable.id, ctx.systemUser.id));
         return { success: true };
       }),
+
+    /**
+     * Exclui permanentemente a conta do usuário e todos os dados da empresa.
+     * Obrigatório pela App Store (Diretriz 5.1.1v) e Google Play desde junho de 2022.
+     * Apenas o owner da empresa (usuário OAuth principal) pode executar esta ação.
+     */
+    excluirMinhaConta: protectedProcedure
+      .input(z.object({
+        confirmacao: z.literal('EXCLUIR MINHA CONTA'),
+      }))
+      .mutation(async ({ ctx }) => {
+        // Apenas o owner (usuário OAuth, não systemUser) pode excluir a empresa
+        if (ctx.systemUser) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário da conta pode excluir a empresa. Faça login com a conta principal.' });
+        }
+        const db = await getDb();
+        if (!db) throw new Error('DB not available');
+
+        const empresa = await getEmpresaByOwnerId(ctx.user.id);
+        if (!empresa) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada para este usuário.' });
+        }
+        const empresaId = empresa.id;
+        const s = drizzleSql;
+
+        // Exclusão em cascata — ordem respeita FKs
+        await db.execute(s`DELETE FROM push_subscriptions WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM chamado_mensagens WHERE chamadoId IN (SELECT id FROM chamados WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM chamados WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM base_conhecimento WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM automacoes_excluidas WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM agendamento_pessoas WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM agendamento_pagamentos WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM agendamento_itens WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM comissoes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM agendamentos WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM bloqueios_agenda WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM prontuarios WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM creditos_cliente WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM pacotes_clientes_itens WHERE pacoteId IN (SELECT id FROM pacotes_clientes WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM pacotes_clientes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM clientes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM historico_envios_automacao WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM automacoes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM profissional_tipos WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM profissional_servicos WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM permissoes WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM permissoes_individuais WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM membros_grupo WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM system_users WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM profissionais WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM permissoes_grupo WHERE grupoId IN (SELECT id FROM grupos_permissoes WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM grupos_permissoes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM servicos WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM notificacoes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM cores_status WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM pipeline_cartoes WHERE colunaId IN (SELECT id FROM pipeline_colunas WHERE pipelineId IN (SELECT id FROM pipelines WHERE empresaId = ${empresaId}))`);
+        await db.execute(s`DELETE FROM pipeline_colunas WHERE pipelineId IN (SELECT id FROM pipelines WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM pipeline_snapshots WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM pipelines WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM score_financeiro WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM alertas_financeiros WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM analise_clientes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM insights_clientes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM pacotes_modelos_itens WHERE pacoteId IN (SELECT id FROM pacotes_modelos WHERE empresaId = ${empresaId})`);
+        await db.execute(s`DELETE FROM pacotes_modelos WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM usage_alerts WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM usage_tracker WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM wa_connection_log WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM wa_session WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM contas_pagar WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM contas_receber WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM meios_pagamento WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM taxas_parcela WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM categorias_despesa WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM tipos_profissional WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM dashboard_config WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM tokens_confirmacao WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM notificacoes_pacotes WHERE empresaId = ${empresaId}`);
+        // Cancelar assinatura Stripe se existir
+        try {
+          const { assinaturas: assinaturasTable } = await import('../drizzle/schema');
+          const [assinatura] = await db.select().from(assinaturasTable).where(eq(assinaturasTable.empresaId, empresaId)).limit(1);
+          if (assinatura?.stripeSubscriptionId) {
+            const Stripe = (await import('stripe')).default;
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-03-25.dahlia' });
+            await stripe.subscriptions.cancel(assinatura.stripeSubscriptionId);
+          }
+        } catch (_e) { /* ignorar erros do Stripe na exclusão */ }
+        await db.execute(s`DELETE FROM assinaturas WHERE empresaId = ${empresaId}`);
+        // Excluir a empresa por último
+        await db.execute(s`DELETE FROM empresas WHERE id = ${empresaId}`);
+        return { success: true };
+      }),
   }),
 
   // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────────────────

@@ -198,6 +198,10 @@ export default function PoliticaPrivacidade() {
 
         {/* Rodapé */}
         <div className="mt-14 pt-8 border-t border-gray-100 text-center text-xs text-gray-400">
+          <div className="flex flex-wrap justify-center gap-4 mb-3">
+            <a href="/politica-de-privacidade" className="text-gray-600 hover:text-gray-800 font-medium">Política de Privacidade</a>
+            <a href="/termos-de-uso" className="text-gray-500 hover:text-gray-700">Termos de Uso</a>
+          </div>
           <p>© {new Date().getFullYear()} Hubly — Orizontech. Todos os direitos reservados.</p>
           <p className="mt-1">Esta política está em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018).</p>
         </div>

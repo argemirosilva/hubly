@@ -2656,3 +2656,10 @@
 - [ ] Frontend central: filtro por produto na barra de filas (quando houver mais de 1 produto)
 - [ ] Frontend central: cabeçalho do chat mostra produto do chamado selecionado
 - [ ] Preparar estrutura de PRODUTOS_CONFIG (id, nome, cor, ícone) para futuros produtos
+
+## Auditoria App Store / Google Play — Conformidade
+- [ ] Implementar exclusão de conta no backend (procedure excluirMinhaConta com cascade)
+- [ ] Implementar exclusão de conta no frontend (seção "Zona de Perigo" em Configurações)
+- [ ] Criar página TermosDeUso.tsx com rota /termos-de-uso
+- [ ] Adicionar links legais (Política + Termos) no Onboarding
+- [ ] Adicionar links legais no footer do DashboardLayout

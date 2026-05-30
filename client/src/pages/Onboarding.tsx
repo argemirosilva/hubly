@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -454,8 +454,19 @@ export default function Onboarding() {
             </div>
           )}
 
+          {/* Links legais */}
+          <div className="text-center mt-6">
+            <p className="text-xs text-muted-foreground">
+              Ao continuar, você concorda com os{" "}
+              <Link href="/termos-de-uso" className="text-primary underline underline-offset-2 hover:text-primary/80">Termos de Uso</Link>
+              {" "}e a{" "}
+              <Link href="/politica-de-privacidade" className="text-primary underline underline-offset-2 hover:text-primary/80">Política de Privacidade</Link>
+              {" "}do Hubly.
+            </p>
+          </div>
+
           {/* Navegação */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+          <div className="flex items-center justify-between mt-4 pt-6 border-t border-border">
             <Button
               variant="ghost"
               onClick={() => setStep(s => s - 1)}

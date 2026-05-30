@@ -3,7 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ImageCropEditor } from "@/components/ImageCropEditor";
@@ -22,8 +25,29 @@ const DIAS_SEMANA = [
 export default function Configuracoes() {
   const { pode } = usePermissoes();
   const utils = trpc.useUtils();
+  const [, setLocation] = useLocation();
   const { data: empresa } = trpc.empresa.get.useQuery();
   const [copied, setCopied] = useState(false);
+
+  // ─── Exclusão de conta ─────────────────────────────────────────────────────
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const excluirContaMutation = trpc.perfil.excluirMinhaConta.useMutation({
+    onSuccess: () => {
+      toast.success("Conta excluída com sucesso. Todos os dados foram removidos.");
+      setShowDeleteDialog(false);
+      setTimeout(() => setLocation("/"), 1500);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+  function handleExcluirConta() {
+    if (deleteConfirmText !== "EXCLUIR MINHA CONTA") {
+      toast.error("Digite exatamente: EXCLUIR MINHA CONTA");
+      return;
+    }
+    excluirContaMutation.mutate({ confirmacao: "EXCLUIR MINHA CONTA" });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   // ─── Editor de imagem (crop/zoom/rotação) ─────────────────────────────────
   const [cropEditor, setCropEditor] = useState<{
@@ -748,7 +772,74 @@ export default function Configuracoes() {
         <Save className="w-4 h-4" />
         {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
       </button>
+
+      {/* Zona de Perigo — Exclusão de Conta */}
+      <div className="rounded-xl border-2 border-red-200 dark:border-red-900/50 overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-4 bg-red-50 dark:bg-red-950/30" style={{ borderBottom: "1px solid oklch(89.5% 0.018 0)" }}>
+          <AlertTriangle className="w-4 h-4 text-red-600" />
+          <h3 className="font-semibold text-sm text-red-700 dark:text-red-400">Zona de Perigo</h3>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            A exclusão da conta remove permanentemente todos os dados da empresa, incluindo agendamentos, clientes, profissionais, financeiro e automações. <strong>Esta ação é irreversível.</strong>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Apenas o proprietário da conta pode executar esta ação. Assinaturas ativas serão canceladas automaticamente.
+          </p>
+          <button
+            onClick={() => { setDeleteConfirmText(""); setShowDeleteDialog(true); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Excluir minha conta e todos os dados
+          </button>
+        </div>
+      </div>
     </div>
+
+      {/* Modal de confirmação de exclusão de conta */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Excluir conta permanentemente
+            </DialogTitle>
+            <DialogDescription className="text-sm pt-2">
+              Esta ação <strong>não pode ser desfeita</strong>. Todos os dados da empresa serão excluídos permanentemente:
+              agendamentos, clientes, profissionais, financeiro, automações e assinaturas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm font-medium">Para confirmar, digite exatamente:</p>
+            <p className="font-mono text-sm bg-muted rounded px-3 py-2 select-all">EXCLUIR MINHA CONTA</p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Digite aqui para confirmar"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={excluirContaMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleExcluirConta}
+              disabled={deleteConfirmText !== "EXCLUIR MINHA CONTA" || excluirContaMutation.isPending}
+            >
+              {excluirContaMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Excluindo...</>
+              ) : (
+                <><Trash2 className="w-4 h-4 mr-2" />Excluir permanentemente</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Editor de imagem (crop/zoom/rotação) */}
       {cropEditor && (

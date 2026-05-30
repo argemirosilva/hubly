@@ -45,6 +45,7 @@ import Relatorios from "./pages/Relatorios";
 import FilaAutomacoes from "./pages/FilaAutomacoes";
 import Onboarding from "./pages/Onboarding";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosDeUso from "./pages/TermosDeUso";
 import PainelOrizontech from "./pages/orizontech/PainelOrizontech";
 import Suporte from "./pages/Suporte";
 import SuporteAdmin from "./pages/SuporteAdmin";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/confirmar/:token" component={ConfirmarAgendamento} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/politica-de-privacidade" component={PoliticaPrivacidade} />
+      <Route path="/termos-de-uso" component={TermosDeUso} />
 
       {/* Rotas admin — todas no mesmo Switch para garantir matching correto */}
       <Route path="/admin/clientes/:id">{(p) => <WithAdmin><ClienteDetalhe id={Number(p.id)} /></WithAdmin>}</Route>
