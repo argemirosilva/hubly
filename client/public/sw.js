@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hubly-v2';
+const CACHE_NAME = 'hubly-v3';
 const APP_SHELL = [
   '/',
   '/manifest.json',
@@ -13,17 +13,21 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Ativar: limpar caches antigos e notificar clientes sobre nova versão
+// Ativar: limpar caches antigos e notificar clientes SOMENTE quando havia versão anterior
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => {
-      // Notificar todas as janelas abertas sobre a nova versão
-      self.clients.matchAll({ type: 'window' }).then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
-        });
+    caches.keys().then((keys) => {
+      const oldCaches = keys.filter((k) => k !== CACHE_NAME);
+      const isUpdate = oldCaches.length > 0; // só é atualização real se havia cache anterior
+      return Promise.all(oldCaches.map((k) => caches.delete(k))).then(() => {
+        if (isUpdate) {
+          // Notificar apenas quando há uma versão anterior sendo substituída
+          self.clients.matchAll({ type: 'window' }).then((clients) => {
+            clients.forEach((client) => {
+              client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
+            });
+          });
+        }
       });
     })
   );
