@@ -127,7 +127,7 @@ function Router() {
       <Route path="/suporte-admin">{() => <SuporteAdmin />}</Route>
       <Route path="/atendimento">{() => <Atendimento />}</Route>
       {/* Alias curto para criar atalho no celular: hubly.orizontech.com.br/ca */}
-      <Route path="/ca">{() => { window.location.replace("/atendimento"); return null; }}</Route>
+      <Route path="/ca">{() => <Redirect to="/atendimento" />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
