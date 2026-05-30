@@ -87,6 +87,25 @@
       }, { passive: false });
     </script>
 
+    <!-- Trocar manifest dinamicamente para /atendimento -->
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        if (path === '/atendimento' || path.startsWith('/atendimento/')) {
+          var link = document.querySelector('link[rel="manifest"]');
+          if (link) {
+            link.href = '/manifest-atendimento.json';
+          }
+          // Ajustar theme-color para o dark da central
+          var themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) themeMeta.content = '#09090b';
+          // Ajustar apple-mobile-web-app-title
+          var titleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (titleMeta) titleMeta.content = 'Atendimento';
+        }
+      })();
+    </script>
+
     <!-- Registrar Service Worker (necessário para push notifications) -->
     <script>
       if ('serviceWorker' in navigator) {
