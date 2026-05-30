@@ -123,7 +123,7 @@ self.addEventListener('push', (event) => {
   const {
     title = 'Hubly',
     body = '',
-    icon = '/android-icons/icon-192x192.png',
+    icon = '/manus-storage/icon-192x192_752519b8.png',
     tag,
     sound = false,
     data = {},

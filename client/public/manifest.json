@@ -4,33 +4,63 @@
   "description": "Hubly - Hub de Serviços Inteligentes. Gerencie agendamentos, clientes, financeiro e automações em um único lugar.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#bfa882",
-  "theme_color": "#bfa882",
+  "background_color": "#1a1208",
+  "theme_color": "#b8860b",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/android-icons/icon-192x192.png",
+      "src": "/manus-storage/icon-36x36_2238ece9.png",
+      "sizes": "36x36",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/icon-48x48_8fe70c8a.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/icon-72x72_f1a71e0f.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/icon-96x96_8c23a6dd.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/icon-144x144_8100a5e2.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/icon-192x192_752519b8.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/android-icons/icon-256x256.png",
-      "sizes": "256x256",
+      "src": "/manus-storage/maskable-icon-192x192_3e8193c7.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
-      "src": "/android-icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/android-icons/icon-512x512.png",
+      "src": "/manus-storage/playstore-512x512_b686abe8.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/maskable-icon-512x512_c280c73d.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -39,31 +69,17 @@
       "short_name": "Agendar",
       "description": "Criar um novo agendamento rapidamente",
       "url": "/admin/agendamentos?novo=1",
-      "icons": [{ "src": "/android-icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/manus-storage/icon-192x192_752519b8.png", "sizes": "192x192" }]
     },
     {
       "name": "Agenda do Dia",
       "short_name": "Agenda",
       "description": "Ver a agenda de hoje",
       "url": "/admin/calendario",
-      "icons": [{ "src": "/android-icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/manus-storage/icon-192x192_752519b8.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["business", "productivity"],
   "lang": "pt-BR",
-  "permissions": ["notifications"],
-  "screenshots": [
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-icon-192_c46a0588.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/hubly-icon-512_ed9173df.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ]
+  "permissions": ["notifications"]
 }
