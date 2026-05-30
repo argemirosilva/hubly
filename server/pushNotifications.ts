@@ -6,7 +6,7 @@ import webpush from "web-push";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
 import { pushSubscriptions } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Configurar VAPID
 webpush.setVapidDetails(
@@ -97,6 +97,36 @@ export async function sendPushToUser(
     .select()
     .from(pushSubscriptions)
     .where(eq(pushSubscriptions.userId, userId));
+
+  return sendPushToSubscriptions(subs, payload);
+}
+
+/**
+ * ID especial para subscriptions de atendentes (sem login individual).
+ * Atendentes da central /atendimento são registrados com userId=0.
+ */
+export const ATENDENTE_USER_ID = 0;
+
+/**
+ * Envia uma notificação push para todos os atendentes registrados de uma empresa.
+ * Atendentes são identificados por userId=0 na tabela push_subscriptions.
+ */
+export async function sendPushToAtendentes(
+  empresaId: number,
+  payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+  const db = await getDb();
+  if (!db) return { sent: 0, failed: 0 };
+
+  const subs = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(
+      and(
+        eq(pushSubscriptions.empresaId, empresaId),
+        eq(pushSubscriptions.userId, ATENDENTE_USER_ID)
+      )
+    );
 
   return sendPushToSubscriptions(subs, payload);
 }

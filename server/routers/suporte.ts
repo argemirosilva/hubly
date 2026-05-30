@@ -5,7 +5,7 @@ import { getDb, getEmpresaDoContexto } from "../db";
 import { chamados, chamadoMensagens } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { empresas } from "../../drizzle/schema";
-import { sendPushToUser, sendPushToEmpresa } from "../pushNotifications";
+import { sendPushToUser, sendPushToEmpresa, sendPushToAtendentes, savePushSubscription, removePushSubscription, ATENDENTE_USER_ID } from "../pushNotifications";
 
 const SYSTEM_PROMPT = `Você é a assistente de suporte do Hubly, um sistema de gestão para salões de beleza, clínicas de estética e barbearias.
 
@@ -185,28 +185,32 @@ export const suporteRouter = router({
         conteudo: input.descricao,
         lido: false,
       });
-      // Notificar o owner da Orizontech via push (PWA)
+      // Notificar o owner da Orizontech + todos os atendentes registrados via push (PWA)
       try {
-        const { getDb } = await import('../db.js');
+        const { getDb: getDb2 } = await import('../db.js');
         const { users } = await import('../../drizzle/schema.js');
-        const { eq } = await import('drizzle-orm');
+        const { eq: eq2 } = await import('drizzle-orm');
         const { ENV } = await import('../_core/env.js');
-        const db2 = await getDb();
+        const db2 = await getDb2();
+        const pushPayload = {
+          title: `🎫 Novo chamado: ${input.titulo}`,
+          body: `${empresa.nome ?? `Empresa #${empresa.id}`} · ${input.prioridade.toUpperCase()} · ${input.descricao.slice(0, 120)}`,
+          tag: `chamado-novo-${chamadoId}`,
+          url: '/atendimento',
+          sound: true,
+          data: { chamadoId },
+        };
+        // Push para owner da Orizontech
         if (db2 && ENV.ownerOpenId) {
-          const [ownerUser] = await db2.select({ id: users.id }).from(users).where(eq(users.openId, ENV.ownerOpenId)).limit(1);
+          const [ownerUser] = await db2.select({ id: users.id }).from(users).where(eq2(users.openId, ENV.ownerOpenId)).limit(1);
           if (ownerUser) {
-            await sendPushToUser(ownerUser.id, {
-              title: `🎫 Novo chamado: ${input.titulo}`,
-              body: `${empresa.nome ?? `Empresa #${empresa.id}`} · ${input.prioridade.toUpperCase()} · ${input.descricao.slice(0, 120)}`,
-              tag: `chamado-novo-${chamadoId}`,
-              url: '/atendimento',
-              sound: true,
-              data: { chamadoId },
-            });
+            await sendPushToUser(ownerUser.id, pushPayload);
           }
         }
+        // Push para todos os atendentes registrados (dispositivos da central /atendimento)
+        await sendPushToAtendentes(empresa.id, pushPayload);
       } catch (e) {
-        console.error('[Suporte] Erro ao enviar push para owner:', e);
+        console.error('[Suporte] Erro ao enviar push para owner/atendentes:', e);
       }
       return { chamadoId };
     }),
@@ -459,6 +463,41 @@ export const suporteRouter = router({
         console.error("[Suporte] Erro ao enviar push de encerramento:", e);
       }
       return { ok: true };
+    }),
+
+  /** Registra subscription push de um atendente (sem login — usa senha da central) */
+  adminSubscribePush: publicProcedure
+    .input(z.object({
+      empresaId: z.number(),
+      endpoint: z.string().url(),
+      p256dh: z.string(),
+      auth: z.string(),
+      userAgent: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      await savePushSubscription({
+        userId: ATENDENTE_USER_ID,
+        empresaId: input.empresaId,
+        endpoint: input.endpoint,
+        p256dh: input.p256dh,
+        auth: input.auth,
+        userAgent: input.userAgent,
+      });
+      return { ok: true };
+    }),
+
+  /** Remove subscription push de um atendente */
+  adminUnsubscribePush: publicProcedure
+    .input(z.object({ endpoint: z.string() }))
+    .mutation(async ({ input }) => {
+      await removePushSubscription(input.endpoint);
+      return { ok: true };
+    }),
+
+  /** Retorna a chave VAPID pública para o service worker */
+  getVapidPublicKey: publicProcedure
+    .query(() => {
+      return { publicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY ?? "" };
     }),
 
   /** Verifica senha do painel de atendimento */

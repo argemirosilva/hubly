@@ -2639,3 +2639,10 @@
 
 ## Responsividade Mobile — Clientes (cards de métricas)
 - [x] Cards de métricas no topo da tela de Clientes: labels e valores truncados no mobile (Receita, Ticket, Atendimentos)
+
+## Push Notifications para Atendentes (/atendimento)
+- [x] Reutilizar tabela push_subscriptions com userId=0 para atendentes (sem tabela extra)
+- [x] Procedures públicas adminSubscribePush e adminUnsubscribePush no suporte.ts
+- [x] Procedure getVapidPublicKey pública para o service worker
+- [x] sendPushToAtendentes(empresaId) disparado no abrirChamado junto com push do owner
+- [x] Botão Bell/BellOff no header do Atendimento + hook usePushAtendente (solicita permissão, registra subscription)

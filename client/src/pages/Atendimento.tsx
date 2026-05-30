@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   MessageCircle, Clock, CheckCircle2, AlertTriangle, XCircle,
   RefreshCw, Send, Building2, ChevronRight, Lock, Eye, EyeOff,
-  Inbox, Timer, TrendingUp, ShieldAlert, Zap, Star, User,
+  Inbox, Timer, TrendingUp, ShieldAlert, Zap, Star, User, Bell, BellOff,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -120,8 +120,85 @@ function TelaLogin({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// ─── Hook de push para atendentes ───────────────────────────────────────────
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const arr = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i);
+  return arr.buffer;
+}
 
+function usePushAtendente(autenticado: boolean, empresaId: number | null) {
+  const [pushStatus, setPushStatus] = useState<"idle" | "granted" | "denied" | "loading">("idle");
+  const vapidQuery = trpc.suporte.getVapidPublicKey.useQuery(undefined, { enabled: autenticado });
+  const subscribeMutation = trpc.suporte.adminSubscribePush.useMutation();
+  const unsubscribeMutation = trpc.suporte.adminUnsubscribePush.useMutation();
+
+  // Verificar status atual ao montar
+  useEffect(() => {
+    if (!autenticado || !empresaId) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission === "granted") setPushStatus("granted");
+    else if (Notification.permission === "denied") setPushStatus("denied");
+    else setPushStatus("idle");
+  }, [autenticado, empresaId]);
+
+  async function ativarPush() {
+    if (!empresaId || !vapidQuery.data?.publicKey) {
+      toast.error("Chave VAPID não disponível");
+      return;
+    }
+    try {
+      setPushStatus("loading");
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushStatus("denied");
+        toast.error("Permissão de notificação negada");
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidQuery.data.publicKey),
+      });
+      const json = sub.toJSON();
+      await subscribeMutation.mutateAsync({
+        empresaId,
+        endpoint: json.endpoint!,
+        p256dh: json.keys?.p256dh ?? "",
+        auth: json.keys?.auth ?? "",
+        userAgent: navigator.userAgent,
+      });
+      setPushStatus("granted");
+      toast.success("🔔 Notificações ativadas! Você receberá alertas de novos chamados.");
+    } catch (e) {
+      console.error("[Push] Erro ao ativar:", e);
+      setPushStatus("idle");
+      toast.error("Erro ao ativar notificações");
+    }
+  }
+
+  async function desativarPush() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await unsubscribeMutation.mutateAsync({ endpoint: sub.endpoint });
+        await sub.unsubscribe();
+      }
+      setPushStatus("idle");
+      toast.success("Notificações desativadas.");
+    } catch (e) {
+      toast.error("Erro ao desativar notificações");
+    }
+  }
+
+  return { pushStatus, ativarPush, desativarPush };
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 export default function Atendimento() {
   const [autenticado, setAutenticado] = useState(() => localStorage.getItem("hubly_suporte_auth") === "1");
   const [filaAtiva, setFilaAtiva] = useState<FilaKey>("novos");
@@ -233,6 +310,9 @@ export default function Atendimento() {
   const chamadoSelecionado = chamados.find(c => c.id === selectedId);
   const mensagens = mensagensQuery.data ?? [];
   const metricas = metricasQuery.data;
+  // Obter empresaId do primeiro chamado disponível (todos são da mesma empresa no painel)
+  const primeiroEmpresaId = chamados[0]?.empresaId ?? null;
+  const { pushStatus, ativarPush, desativarPush } = usePushAtendente(autenticado, primeiroEmpresaId);
 
   function handleEnviar() {
     if (!selectedId || !resposta.trim()) return;
@@ -277,6 +357,23 @@ export default function Atendimento() {
               placeholder="Seu nome"
             />
           </div>
+          {/* Botão de notificações push */}
+          {'Notification' in window && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={pushStatus === "granted" ? desativarPush : ativarPush}
+              disabled={pushStatus === "loading" || pushStatus === "denied"}
+              title={pushStatus === "granted" ? "Notificações ativas — clique para desativar" : pushStatus === "denied" ? "Notificações bloqueadas no navegador" : "Ativar notificações de novos chamados"}
+              className={`h-8 w-8 p-0 ${
+                pushStatus === "granted" ? "text-amber-400 hover:text-amber-300" :
+                pushStatus === "denied" ? "text-red-400 cursor-not-allowed" :
+                "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {pushStatus === "granted" ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => chamadosQuery.refetch()} className="text-zinc-400 hover:text-zinc-200 h-8 w-8 p-0">
             <RefreshCw className={`w-3.5 h-3.5 ${chamadosQuery.isFetching ? "animate-spin" : ""}`} />
           </Button>
