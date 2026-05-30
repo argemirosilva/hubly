@@ -1,1 +1,0 @@
-ALTER TABLE `system_users` ADD `profissionalId` int;

@@ -1,1 +1,0 @@
-ALTER TABLE `historico_envios_automacao` ADD `enviarEm` timestamp;

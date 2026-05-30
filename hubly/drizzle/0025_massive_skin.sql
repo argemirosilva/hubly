@@ -1,1 +1,0 @@
-ALTER TABLE `empresas` ADD `portalSlug` varchar(100);

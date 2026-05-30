@@ -1,1 +1,0 @@
-ALTER TABLE `automacoes` ADD `flowJson` text;

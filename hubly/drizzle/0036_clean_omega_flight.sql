@@ -1,1 +1,0 @@
-ALTER TABLE `automacoes` MODIFY COLUMN `tipoGatilho` enum('evento','data_fixa','aniversario_mes','dias_antes_agendamento','horas_antes_agendamento','horas_apos_agendamento') NOT NULL;

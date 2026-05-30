@@ -1,2 +1,0 @@
-ALTER TABLE `contas_pagar` MODIFY COLUMN `recorrencia_tipo` enum('semanal','quinzenal','mensal','bimestral','trimestral','semestral','anual');--> statement-breakpoint
-ALTER TABLE `contas_receber` MODIFY COLUMN `recorrencia_tipo_receber` enum('semanal','quinzenal','mensal','bimestral','trimestral','semestral','anual');

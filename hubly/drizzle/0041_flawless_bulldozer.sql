@@ -1,1 +1,0 @@
-ALTER TABLE `agendamento_pagamentos` ADD `numeroParcelas` int DEFAULT 1;
