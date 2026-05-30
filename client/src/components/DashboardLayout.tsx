@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,6 +141,19 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const push = usePushNotifications();
+
+  // Ativar push automaticamente após login se ainda não estiver inscrito
+  useEffect(() => {
+    if (!user) return;
+    if (push.status === 'default' && 'Notification' in window && Notification.permission === 'default') {
+      // Pequeno delay para não bloquear a renderização inicial
+      const timer = setTimeout(() => {
+        push.subscribe();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, push.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isCollapsed) {

@@ -91,7 +91,7 @@ export function PWAInstallBanner() {
             // Instruções iOS
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                Adicione o Hubly à sua tela inicial para acesso rápido como um app.
+                Instale o Hubly na tela inicial para receber <strong>notificações push</strong> de novos agendamentos e mensagens.
               </p>
               <ol className="space-y-2">
                 {[

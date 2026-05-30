@@ -136,14 +136,29 @@ function usePushAtendente(autenticado: boolean, empresaId: number | null) {
   const subscribeMutation = trpc.suporte.adminSubscribePush.useMutation();
   const unsubscribeMutation = trpc.suporte.adminUnsubscribePush.useMutation();
 
-  // Verificar status atual ao montar
+  // Verificar status atual ao montar e ativar automaticamente se permissão ainda não foi solicitada
+  const ativarPushRef = useRef<(() => Promise<void>) | null>(null);
   useEffect(() => {
     if (!autenticado || !empresaId) return;
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-    if (Notification.permission === "granted") setPushStatus("granted");
-    else if (Notification.permission === "denied") setPushStatus("denied");
-    else setPushStatus("idle");
-  }, [autenticado, empresaId]);
+    if (Notification.permission === "granted") {
+      setPushStatus("granted");
+    } else if (Notification.permission === "denied") {
+      setPushStatus("denied");
+    } else {
+      // Permissão ainda não solicitada — ativar automaticamente após 2s
+      setPushStatus("idle");
+      const timer = setTimeout(() => {
+        if (ativarPushRef.current) ativarPushRef.current();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [autenticado, empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Vincular ref para o auto-trigger
+  useEffect(() => {
+    ativarPushRef.current = ativarPush;
+  });
 
   async function ativarPush() {
     if (!empresaId || !vapidQuery.data?.publicKey) {
