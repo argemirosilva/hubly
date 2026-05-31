@@ -2663,3 +2663,12 @@
 - [ ] Criar página TermosDeUso.tsx com rota /termos-de-uso
 - [ ] Adicionar links legais (Política + Termos) no Onboarding
 - [ ] Adicionar links legais no footer do DashboardLayout
+
+## Plano SUSPENDED (substituição do FREE pós-trial)
+- [ ] Backend: trial expirado → status "suspended" em vez de FREE
+- [ ] Backend: função checkSuspended() em db-plans.ts
+- [ ] Backend: aplicar checkSuspended em criação de clientes, serviços, usuários, pacotes, automações
+- [ ] UX: banner persistente no topo do dashboard quando suspenso
+- [ ] UX: botões de criação bloqueados com cadeado quando suspenso
+- [ ] UX: modal de conta suspensa com CTA de upgrade
+- [ ] UX: tela de Assinatura reformulada (remover card FREE, status suspenso, planos SOLO/PLUS/PRO)

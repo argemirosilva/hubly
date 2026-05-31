@@ -1,8 +1,8 @@
 /**
  * usePlanGuard
- * Hook que verifica se a assinatura está cancelada e bloqueia ações de criação.
- * Quando o plano está cancelado (status "canceled"), redireciona para /admin/assinatura
- * com uma mensagem clara explicando o motivo.
+ * Hook que verifica se a assinatura está cancelada ou suspensa e bloqueia ações de criação.
+ * - "suspended": trial expirou sem assinatura → bloqueia criação, dados preservados para leitura
+ * - "canceled": assinatura cancelada → redireciona para /admin/assinatura
  */
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -13,7 +13,10 @@ export type PlanGuardModule =
   | "cliente"
   | "profissional"
   | "conta_pagar"
-  | "conta_receber";
+  | "conta_receber"
+  | "servico"
+  | "usuario"
+  | "automacao";
 
 const MODULE_LABELS: Record<PlanGuardModule, string> = {
   agendamento: "agendamentos",
@@ -21,6 +24,9 @@ const MODULE_LABELS: Record<PlanGuardModule, string> = {
   profissional: "profissionais",
   conta_pagar: "contas a pagar",
   conta_receber: "contas a receber",
+  servico: "serviços",
+  usuario: "usuários",
+  automacao: "automações",
 };
 
 export function usePlanGuard() {
@@ -32,11 +38,28 @@ export function usePlanGuard() {
 
   /**
    * Verifica se a ação é permitida.
-   * - Se o plano estiver cancelado (status "canceled"), bloqueia e redireciona.
-   * - Caso contrário, executa o callback normalmente.
+   * - Se suspenso: bloqueia e exibe modal de upgrade
+   * - Se cancelado: bloqueia e redireciona para assinatura
+   * - Caso contrário: executa o callback normalmente
    */
   function guard(module: PlanGuardModule, onAllowed: () => void) {
     const status = planStatus?.status;
+
+    if (status === "suspended") {
+      const label = MODULE_LABELS[module];
+      toast.error(
+        `Período de teste encerrado — assine para criar novos ${label}`,
+        {
+          description: "Seus dados estão preservados. Escolha um plano para continuar usando o Hubly.",
+          action: {
+            label: "Ver planos",
+            onClick: () => navigate("/admin/assinatura"),
+          },
+          duration: 8000,
+        }
+      );
+      return;
+    }
 
     if (status === "canceled") {
       const label = MODULE_LABELS[module];
@@ -58,7 +81,9 @@ export function usePlanGuard() {
     onAllowed();
   }
 
+  const isSuspended = planStatus?.status === "suspended";
   const isCanceled = planStatus?.status === "canceled";
+  const isBlocked = isSuspended || isCanceled;
 
-  return { guard, isCanceled, planStatus };
+  return { guard, isCanceled, isSuspended, isBlocked, planStatus };
 }

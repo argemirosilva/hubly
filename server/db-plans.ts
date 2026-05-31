@@ -47,17 +47,16 @@ export async function getEmpresaPlan(empresaId: number): Promise<PlanType> {
   if (sub.length === 0) return "FREE";
   const s = sub[0];
 
-  // Trial expirado → FREE
+  // Trial expirado → SUSPENDED (dados preservados, criação bloqueada)
   if (s.status === "trial" && s.trialEnd && new Date() > s.trialEnd) {
-    // Atualizar para FREE automaticamente
     await db.update(subscriptions)
-      .set({ planType: "FREE", status: "active" })
+      .set({ planType: "SOLO", status: "suspended" })
       .where(eq(subscriptions.empresaId, empresaId));
-    return "FREE";
+    return "SOLO";
   }
 
-  // Plano cancelado ou com pagamento em atraso → FREE
-  if (s.status === "canceled" || s.status === "past_due") return "FREE";
+  // Plano cancelado → mantém plano mas status suspended bloqueia criação
+  if (s.status === "canceled" || s.status === "past_due") return s.planType as PlanType;
 
   return s.planType as PlanType;
 }
@@ -172,6 +171,41 @@ export async function checkProfissionalLimit(empresaId: number, currentCount: nu
     return `LIMIT_REACHED:profissionais:${plan}:${currentCount}:${limit}`;
   }
   return null;
+}
+
+// ─── Suspended check ─────────────────────────────────────────────────────────
+
+/**
+ * Verifica se a empresa está suspensa (trial expirado sem assinatura ou cancelada).
+ * Retorna mensagem de erro se suspensa, null se pode operar normalmente.
+ * Suspenso = pode ler dados existentes, mas NÃO pode criar novos registros.
+ */
+export async function checkSuspended(empresaId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const sub = await db.select().from(subscriptions)
+    .where(eq(subscriptions.empresaId, empresaId))
+    .limit(1);
+
+  if (sub.length === 0) return null;
+  const s = sub[0];
+
+  // Trial expirado sem assinatura
+  if (s.status === "trial" && s.trialEnd && new Date() > s.trialEnd) {
+    return "SUSPENDED:trial_expired";
+  }
+  // Explicitamente suspenso
+  if (s.status === "suspended") {
+    return "SUSPENDED:no_active_plan";
+  }
+  return null;
+}
+
+/** Retorna true se a empresa está suspensa */
+export async function isEmpresaSuspended(empresaId: number): Promise<boolean> {
+  const result = await checkSuspended(empresaId);
+  return result !== null;
 }
 
 // ─── Feature gating ────────────────────────────────────────────────────────────

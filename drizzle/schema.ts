@@ -799,7 +799,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   empresaId: int("empresaId").notNull().unique(),
   planType: mysqlEnum("planType", ["FREE", "SOLO", "PLUS", "PRO"]).default("FREE").notNull(),
   billingCycle: mysqlEnum("billingCycle", ["monthly", "annual"]).default("monthly").notNull(),
-  status: mysqlEnum("status", ["active", "trial", "past_due", "canceled", "paused"]).default("trial").notNull(),
+  status: mysqlEnum("status", ["active", "trial", "past_due", "canceled", "paused", "suspended"]).default("trial").notNull(),
   trialEnd: timestamp("trialEnd"),
   currentPeriodStart: timestamp("currentPeriodStart"),
   currentPeriodEnd: timestamp("currentPeriodEnd"),

@@ -87,7 +87,7 @@ import {
 } from "./db";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
-import { checkAgendamentoLimit, checkProfissionalLimit, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
+import { checkAgendamentoLimit, checkProfissionalLimit, checkSuspended, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
 import { checkAndNotifyUsageLimits } from "./usage-alerts";
 import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
@@ -652,6 +652,8 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         await requirePermissao(ctx, empresa, 'profissionaisCriar');
+        const suspendedErrProf = await checkSuspended(empresa.id);
+        if (suspendedErrProf) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErrProf });
         // ── Verificar limite de profissionais (seats) do plano ──────────────────
         const profsExistentes = await getProfissionaisByEmpresa(empresa.id);
         const limitError = await checkProfissionalLimit(empresa.id, profsExistentes.length);
@@ -744,6 +746,8 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        const suspendedErr = await checkSuspended(empresa.id);
+        if (suspendedErr) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErr });
         // Sincronizar telefone ↔ whatsapp: se um estiver vazio, copiar do outro
         const telefoneSync = input.telefone || input.whatsapp || '';
         const whatsappSync = input.whatsapp || input.telefone || '';
@@ -930,6 +934,8 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
+        const suspendedErr = await checkSuspended(empresa.id);
+        if (suspendedErr) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErr });
         await requirePermissao(ctx, empresa, 'servicosCriar');
         const id = await createServico({ ...input, empresaId: empresa.id });
         return { id, success: true };
@@ -1085,6 +1091,9 @@ export const appRouter = router({
           }
         }
         // ── Verificar limite de agendamentos do plano ──────────────────────────
+        // ── Verificar se empresa está suspensa ────────────────────────────────
+        const suspendedErrAg = await checkSuspended(empresa.id);
+        if (suspendedErrAg) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErrAg });
         const limitError = await checkAgendamentoLimit(empresa.id);
         if (limitError) {
           throw new TRPCError({
@@ -3051,10 +3060,11 @@ export const appRouter = router({
         confirmacaoAutoAtivo: z.boolean().optional(),
         confirmacaoAutoHorasAntes: z.number().optional(),
       }))
-      .mutation(async ({ ctx, input }) => {
+            .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
-
+        const suspendedErr = await checkSuspended(empresa.id);
+        if (suspendedErr) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErr });
         // Verificar duplicidade: mesmos tipoGatilho + evento + canal + timing
         const automacoes = await getAutomacoesByEmpresa(empresa.id);
         const duplicada = automacoes.find((a) => {
@@ -4251,6 +4261,8 @@ export const appRouter = router({
         .mutation(async ({ ctx, input }) => {
           const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
           if (!empresa) throw new Error("Empresa não encontrada");
+          const suspendedErr = await checkSuspended(empresa.id);
+          if (suspendedErr) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErr });
           await requirePermissao(ctx, empresa, 'usuariosEditar');
           return createSystemUser({
             empresaId: empresa.id,

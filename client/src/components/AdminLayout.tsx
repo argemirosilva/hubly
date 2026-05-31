@@ -1043,6 +1043,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             </div>
           )}
+          {/* Banner de conta suspensa */}
+          {planStatus?.status === "suspended" && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5"
+              style={{ background: "oklch(78% 0.12 55)", color: "oklch(15% 0.04 50)" }}>
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Lock className="w-4 h-4 shrink-0" />
+                <span className="leading-snug">Seu período de teste encerrou. Seus dados estão preservados — assine para continuar usando o Hubly.</span>
+              </div>
+              <Link href="/admin/assinatura">
+                <button className="shrink-0 px-3 py-1 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+                  style={{ background: "oklch(22% 0.04 50)", color: "oklch(95% 0.02 80)" }}>
+                  Ver planos
+                </button>
+              </Link>
+            </div>
+          )}
           {children}
         </main>
       </div>

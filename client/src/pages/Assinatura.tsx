@@ -55,6 +55,8 @@ function getStatusConfig(status: string | null | undefined, daysLeft?: number | 
       return { label: "Cancelada", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle, dot: "bg-red-500" };
     case "unpaid":
       return { label: "Inadimplente", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle, dot: "bg-red-500" };
+    case "suspended":
+      return { label: "Conta suspensa", color: "bg-amber-100 text-amber-700 border-amber-200", icon: AlertTriangle, dot: "bg-amber-500" };
     default:
       return { label: "Plano Free", color: "bg-stone-100 text-slate-600 border-slate-200", icon: Shield, dot: "bg-slate-400" };
   }
@@ -129,6 +131,7 @@ export default function Assinatura() {
   const planLabel = planStatus?.planLabel ?? "Free";
   const isOnTrial = planStatus?.status === "trial";
   const isCanceled = planStatus?.status === "canceled";
+  const isSuspended = planStatus?.status === "suspended";
   const trialDaysLeft = isOnTrial && planStatus?.trialEnd
     ? Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
@@ -275,7 +278,12 @@ export default function Assinatura() {
               </div>
               {isOnTrial && (
                 <div className="mt-3 text-xs text-white/80">
-                  Após o trial, você será movido para o plano Free.
+                  Após o trial, assine um plano para continuar usando o Hubly.
+                </div>
+              )}
+              {isSuspended && (
+                <div className="mt-3 text-xs text-white/80">
+                  Seus dados estão preservados. Assine para continuar.
                 </div>
               )}
             </div>
@@ -402,8 +410,28 @@ export default function Assinatura() {
             </div>
           )}
 
-          {/* ── Plano Free: CTA de upgrade ── */}
-          {plan === "FREE" && !isCanceled && (
+          {/* ── Conta suspensa: CTA de upgrade ── */}
+          {isSuspended && (
+            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800">Seu período de teste encerrou</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Seus dados estão preservados. Assine um plano para criar novos agendamentos, clientes e profissionais.</p>
+                </div>
+              </div>
+              <Link href="/admin/planos">
+                <Button className="gap-2 bg-amber-600 hover:bg-amber-700 shrink-0">
+                  Escolher um plano <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {/* ── Plano Free legado: CTA de upgrade (não deve mais aparecer) ── */}
+          {plan === "FREE" && !isCanceled && !isSuspended && (
             <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-blue-50 border border-violet-100 p-6 flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">

@@ -1,0 +1,2 @@
+ALTER TABLE `subscriptions` MODIFY COLUMN `status` enum('active','trial','past_due','canceled','paused','suspended') NOT NULL DEFAULT 'trial';--> statement-breakpoint
+ALTER TABLE `chamados` ADD `produto` varchar(50) DEFAULT 'hubly' NOT NULL;

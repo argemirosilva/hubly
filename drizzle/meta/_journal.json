@@ -484,6 +484,13 @@
       "when": 1779560405120,
       "tag": "0068_round_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "5",
+      "when": 1780257603500,
+      "tag": "0069_sparkling_prodigy",
+      "breakpoints": true
     }
   ]
 }
