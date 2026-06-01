@@ -128,6 +128,8 @@ function DialogContent({
           "bg-background fixed z-50 grid w-full gap-4 border p-6 shadow-lg duration-300",
           // Mobile: ancora na base, largura total, cantos arredondados no topo
           "bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl rounded-b-none",
+          // Mobile: respeita a safe area inferior (home indicator iOS / barra Android)
+          "[padding-bottom:max(1.5rem,env(safe-area-inset-bottom))]",
           // Mobile: animação slide-up
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
