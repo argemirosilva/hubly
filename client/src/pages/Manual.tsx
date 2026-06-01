@@ -923,7 +923,6 @@ const SECTIONS: Section[] = [
       {
         title: "Quantas mensagens posso enviar por mês?",
         steps: [
-          "Free: 10 notificações por mês.",
           "Solo: 100 notificações por mês.",
           "Plus: 400 notificações por mês.",
           "Pro: 1.000 notificações por mês.",
@@ -948,7 +947,7 @@ const SECTIONS: Section[] = [
     title: "Assinatura e Planos",
     subtitle: "Trial, planos, upgrade, cancelamento e reativação",
     color: "oklch(45% 0.060 55)",
-    intro: "O Hubly oferece quatro planos: Free, Solo, Plus e Pro. Toda conta nova começa com 7 dias de trial gratuito no plano Solo. Após o trial, você pode assinar um plano pago ou continuar no Free com recursos limitados.",
+    intro: "O Hubly oferece três planos: Solo, Plus e Pro. Toda conta nova começa com 7 dias de trial gratuito no plano Solo. Após o trial, assine um plano para continuar usando o Hubly com todos os recursos.",
     topics: [
       {
         title: "Período de teste gratuito (Trial)",
@@ -958,15 +957,13 @@ const SECTIONS: Section[] = [
           "No painel, um badge no topo mostra quantos dias restam (ex: Trial · 5d).",
           "Na página de Assinatura, você vê a data exata de vencimento e o que acontece ao final.",
           "O sistema envia notificações diárias avisando sobre o prazo e orientando sobre como assinar.",
-          "Ao final do trial sem assinatura, a conta é movida automaticamente para o plano Free.",
+          "Ao final do trial sem assinatura, a conta é suspensa: seus dados ficam preservados, mas não é possível criar novos registros até assinar um plano.",
         ],
         tip: "Aproveite o trial para configurar tudo: serviços, profissionais, automações e o link de agendamento online.",
       },
       {
         title: "Comparação dos planos",
         steps: [
-          "Free (grátis): 1 profissional, 15 agendamentos/mês, 50 clientes, 10 notificações WhatsApp.",
-          "Solo (R$ 49/mês): 1 profissional, agendamentos ilimitados, clientes ilimitados, 100 notificações WhatsApp, link personalizado, pacotes, comissões, relatórios e portal do cliente.",
           "Plus (R$ 149/mês): até 5 profissionais, 400 notificações WhatsApp, múltiplos caixas e IA financeira.",
           "Pro (R$ 299/mês): até 20 profissionais, 1.000 notificações WhatsApp via API dedicada, IA completa.",
           "Todos os planos pagos têm opção mensal ou anual (desconto de ~17% no anual).",
@@ -989,7 +986,7 @@ const SECTIONS: Section[] = [
       {
         title: "Limite de profissionais (seats) por plano",
         steps: [
-          "Cada plano tem um limite de profissionais ativos: Free (1), Solo (1), Plus (5), Pro (20).",
+          "Cada plano tem um limite de profissionais ativos: Solo (1), Plus (5), Pro (20).",
           "Ao atingir o limite, o sistema bloqueia o cadastro de novos profissionais até o upgrade.",
           "O contador de profissionais ativos aparece na página de Assinatura.",
           "Profissionais inativos não contam para o limite.",
@@ -1074,7 +1071,7 @@ const SECTIONS: Section[] = [
           "O menu de IA e Insights é visível apenas para usuários com perfil de Administrador.",
           "Plano Plus: acesso à IA Financeira (Score Financeiro, alertas e chat financeiro).",
           "Plano Pro: acesso à IA Financeira e IA de Clientes (IA Completa — insights de clientes + chat de clientes).",
-          "Planos Free e Solo não têm acesso ao módulo de IA.",
+          "O plano Solo não tem acesso ao módulo de IA.",
           "Ao tentar acessar um recurso de IA fora do plano, o sistema exibe uma mensagem de upgrade em vez de um erro.",
         ],
         tip: "O bloqueio é feito tanto no servidor quanto na interface. Mesmo que o menu apareça, as análises só são geradas se o plano tiver o recurso habilitado.",

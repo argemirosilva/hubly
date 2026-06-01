@@ -2321,3 +2321,134 @@ export function initScheduler() {
     );
   }, 20_000); // aguarda 20s para o DB estar pronto
 }
+
+// ── Reagendar lembretes para um agendamento específico (após reativação) ──────────────────────
+/**
+ * Chamado quando um agendamento cancelado é reativado (ex: sinal pago fora do prazo).
+ * Remove registros anteriores com status cancelado/falhou e pré-registra novos lembretes futuros.
+ */
+export async function reagendarLembretesAgendamento(agendamentoId: number, empresaId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const agora = new Date();
+  try {
+    const [ag] = await db
+      .select({
+        id: agendamentos.id,
+        empresaId: agendamentos.empresaId,
+        clienteId: agendamentos.clienteId,
+        data: agendamentos.data,
+        horaInicio: agendamentos.horaInicio,
+        horaFim: agendamentos.horaFim,
+        status: agendamentos.status,
+        clienteNome: clientes.nome,
+        clienteTelefone: clientes.telefone,
+        profissionalNome: profissionais.nome,
+        servicoNome: servicos.nome,
+        empresaNome: empresas.nome,
+        empresaPortalSlug: empresas.portalSlug,
+        valorTotal: agendamentos.valorTotal,
+        observacoes: agendamentos.observacoes,
+      })
+      .from(agendamentos)
+      .leftJoin(clientes, eq(agendamentos.clienteId, clientes.id))
+      .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
+      .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+      .leftJoin(empresas, eq(agendamentos.empresaId, empresas.id))
+      .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.empresaId, empresaId)))
+      .limit(1);
+
+    if (!ag) { console.log(`[Reagendar] Agendamento ${agendamentoId} não encontrado.`); return; }
+
+    const dataStr = getDataStr(ag.data);
+    const [hAg, mAg] = ag.horaInicio.split(':');
+    const tzEmpresa = await getEmpresaTimezone(empresaId);
+    const tsAgendamento = localToUtc(dataStr, `${hAg.padStart(2,'0')}:${mAg.padStart(2,'0')}`, tzEmpresa).getTime();
+    if (tsAgendamento <= agora.getTime()) {
+      console.log(`[Reagendar] Agendamento ${agendamentoId} já passou — sem lembretes a agendar.`); return;
+    }
+
+    // Limpar registros cancelados/falhou anteriores
+    await db.delete(historicoEnviosAutomacao).where(and(
+      eq(historicoEnviosAutomacao.empresaId, empresaId),
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      sql`${historicoEnviosAutomacao.status} IN ('cancelado', 'falhou', 'expirado')`,
+    ));
+
+    const todasAutomacoes = await db.select().from(automacoes).where(and(
+      eq(automacoes.empresaId, empresaId),
+      eq(automacoes.ativo, true),
+      sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento')`,
+    ));
+
+    for (const automacao of todasAutomacoes) {
+      let enviarEm: Date | null = null;
+      if (automacao.tipoGatilho === 'dias_antes_agendamento') {
+        const diasAntes = automacao.diasAntesDepois ?? 1;
+        const dataAgDate = new Date(`${dataStr}T12:00:00`);
+        dataAgDate.setDate(dataAgDate.getDate() - diasAntes);
+        const horaEnvio = automacao.horaDisparo ?? '09:00';
+        enviarEm = localToUtc(
+          `${dataAgDate.getFullYear()}-${String(dataAgDate.getMonth()+1).padStart(2,'0')}-${String(dataAgDate.getDate()).padStart(2,'0')}`,
+          horaEnvio, tzEmpresa,
+        );
+      } else if (automacao.tipoGatilho === 'horas_antes_agendamento') {
+        const delayMin = automacao.delayMinutos ?? 60;
+        enviarEm = new Date(tsAgendamento - delayMin * 60 * 1000);
+      }
+      if (!enviarEm || enviarEm.getTime() <= agora.getTime()) continue;
+
+      const jaExiste = await db.select({ id: historicoEnviosAutomacao.id })
+        .from(historicoEnviosAutomacao)
+        .where(and(
+          eq(historicoEnviosAutomacao.empresaId, empresaId),
+          eq(historicoEnviosAutomacao.automacaoId, automacao.id),
+          eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+          sql`${historicoEnviosAutomacao.status} IN ('pendente', 'agendado', 'enviado')`,
+        )).limit(1);
+      if (jaExiste.length > 0) continue;
+
+      const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+      const _link = ag.empresaPortalSlug ? `${_origin}/agendar/${ag.empresaPortalSlug}` : `${_origin}/agendar?e=${ag.empresaId}`;
+      const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
+      const dataFormatada = ag.data
+        ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : '';
+      const templateVars: Record<string, string> = {
+        nome_cliente: ag.clienteNome || 'Cliente',
+        primeiro_nome: (ag.clienteNome || 'Cliente').split(' ')[0],
+        servico: ag.servicoNome ?? '',
+        data: dataFormatada,
+        hora: formatarHora(ag.horaInicio),
+        profissional: ag.profissionalNome ?? '',
+        empresa: ag.empresaNome ?? '',
+        valor: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+        link_agendamento: _link,
+        link_confirmacao: '__LINK_CONFIRMACAO__',
+        observacoes: ag.observacoes ?? '',
+      };
+      if (!automacao.corpoMensagem) continue;
+      const mensagem = automacao.corpoMensagem.replace(/\{\{(\w+)\}\}/g, (_, key) => templateVars[key] ?? '');
+      const midiaUrl = (() => {
+        if (!automacao.flowJson) return undefined;
+        try {
+          const flow = JSON.parse(automacao.flowJson);
+          if (Array.isArray(flow)) { for (const n of flow) { if (n?.data?.midiaUrl) return n.data.midiaUrl; } }
+          else if (flow?.midiaUrl) return flow.midiaUrl;
+        } catch {} return undefined;
+      })();
+
+      await db.insert(historicoEnviosAutomacao).values({
+        empresaId, automacaoId: automacao.id, automacaoNome: automacao.nome,
+        clienteId: ag.clienteId ?? null, clienteNome: ag.clienteNome ?? null,
+        agendamentoId, telefone: ag.clienteTelefone,
+        canal: (automacao.canalEnvio ?? 'whatsapp') as any,
+        mensagem, status: 'agendado', enviarEm, midiaUrl,
+      }).catch(() => {});
+      console.log(`[Reagendar] Lembrete agendado: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
+    }
+    console.log(`[Reagendar] Concluído para agendamento ${agendamentoId}.`);
+  } catch (err) {
+    console.error(`[Reagendar] Erro ao reagendar lembretes para agendamento ${agendamentoId}:`, err);
+  }
+}

@@ -127,6 +127,7 @@ export default function Planos() {
   });
 
   const planoAtual = statusPlano?.plan ?? "FREE";
+  const isSuspendedPlanos = statusPlano?.status === "suspended";
   // Usa preços do Stripe se disponíveis, senão usa os hardcoded
   function getPreco(key: string, cicloLocal: "monthly" | "annual"): number {
     if (stripePrices?.[key]) {
@@ -171,7 +172,7 @@ export default function Planos() {
       <div className="px-6 pt-8 pb-6 text-center max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Escolha seu plano</h1>
         <p className="text-muted-foreground text-base">
-          Comece grátis e faça upgrade quando precisar. Cancele a qualquer momento.
+          Escolha o plano ideal para o seu negócio. Cancele a qualquer momento.
         </p>
 
         {/* Toggle mensal / anual */}
@@ -276,7 +277,7 @@ export default function Planos() {
                   >
                     {loadingKey === plano.key ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Aguarde...</>
-                    ) : planoAtual && planoAtual !== "FREE" ? (
+                    ) : planoAtual && planoAtual !== "FREE" && !isSuspendedPlanos ? (
                       <>Alterar para {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>
                     ) : (
                       <>Assinar {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>
@@ -341,22 +342,7 @@ export default function Planos() {
         })}
       </div>
 
-      {/* Plano Free info */}
-      <div className="px-4 pb-8 max-w-5xl mx-auto">
-        <div className="rounded-xl border bg-muted/30 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <p className="font-semibold text-sm">Plano Gratuito (Free)</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              1 profissional · 15 agendamentos/mês · 50 clientes · 10 notificações WhatsApp
-            </p>
-          </div>
-          {planoAtual === "FREE" && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 shrink-0">
-              <Check className="w-3 h-3 mr-1" /> Plano atual
-            </Badge>
-          )}
-        </div>
-      </div>
+
 
       {/* FAQ rápido */}
       <div className="px-4 pb-12 max-w-3xl mx-auto">

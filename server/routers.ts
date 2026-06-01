@@ -91,6 +91,7 @@ import { checkAgendamentoLimit, checkProfissionalLimit, checkSuspended, getEmpre
 import { checkAndNotifyUsageLimits } from "./usage-alerts";
 import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
+import { reagendarLembretesAgendamento } from "./scheduler";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
@@ -2083,6 +2084,20 @@ export const appRouter = router({
           }
         } catch (e) {
           console.error('[confirmarSinalForaDoPrazo] Erro ao disparar automação:', e);
+        }
+
+        // ── Reagendar lembretes futuros (D-1, horas antes) para o agendamento reativado
+        try {
+          const agReativado = await getAgendamentoById(input.id);
+          if (agReativado?.data && agReativado?.empresaId) {
+            const dataAg = new Date(String(agReativado.data));
+            if (!isNaN(dataAg.getTime()) && dataAg.getTime() > Date.now()) {
+              await reagendarLembretesAgendamento(input.id, agReativado.empresaId);
+              console.log(`[confirmarSinalForaDoPrazo] Lembretes reagendados para ag. ${input.id}`);
+            }
+          }
+        } catch (e) {
+          console.error('[confirmarSinalForaDoPrazo] Erro ao reagendar lembretes:', e);
         }
 
         return { success: true };

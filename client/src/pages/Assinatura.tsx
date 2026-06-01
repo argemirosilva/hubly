@@ -170,7 +170,7 @@ export default function Assinatura() {
           <p className="text-sm text-slate-500 mt-0.5">Gerencie seu plano, pagamentos e histórico de faturas</p>
         </div>
         <div className="flex gap-2">
-          {plan !== "FREE" && (
+              {(plan !== "FREE" && !isSuspended) && (
             <Button
               onClick={handlePortal}
               disabled={loadingPortal}
@@ -302,7 +302,7 @@ export default function Assinatura() {
                         ? formatDate(subDetails.proximaCobranca)
                         : planStatus?.currentPeriodEnd
                           ? formatDate(planStatus.currentPeriodEnd)
-                          : plan === "FREE" ? "Plano gratuito" : "—"}
+                          : "—"}
                   </p>
                   {subDetails?.valorMensal && (
                     <p className="text-sm text-slate-500 mt-0.5">
@@ -344,7 +344,7 @@ export default function Assinatura() {
                     </>
                   ) : (
                     <p className="text-sm text-slate-400 mt-1">
-                      {plan === "FREE" ? "Sem cobrança" : "Nenhum cadastrado"}
+                      {"Nenhum cadastrado"}
                     </p>
                   )}
                 </div>
@@ -352,7 +352,7 @@ export default function Assinatura() {
                   <CreditCard className="w-5 h-5 text-slate-400" />
                 </div>
               </div>
-              {plan !== "FREE" && (
+              {(plan !== "FREE" && !isSuspended) && (
                 <button
                   onClick={handlePortal}
                   disabled={loadingPortal}
@@ -430,25 +430,7 @@ export default function Assinatura() {
             </div>
           )}
 
-          {/* ── Plano Free legado: CTA de upgrade (não deve mais aparecer) ── */}
-          {plan === "FREE" && !isCanceled && !isSuspended && (
-            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-blue-50 border border-violet-100 p-6 flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-violet-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-800">Você está no plano gratuito</p>
-                  <p className="text-sm text-slate-500 mt-0.5">Faça upgrade para desbloquear agendamentos ilimitados, WhatsApp e IA</p>
-                </div>
-              </div>
-              <Link href="/admin/planos">
-                <Button className="gap-2 bg-violet-600 hover:bg-violet-700 shrink-0">
-                  Ver planos <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          )}
+
 
           {/* ── Detalhes da assinatura ── */}
           {subDetails && subDetails.stripeSubId && (
@@ -507,7 +489,7 @@ export default function Assinatura() {
                   )}
                   {loadingPortal ? "Aguarde..." : "Gerenciar no Stripe"}
                 </Button>
-                {!planStatus?.cancelAtPeriodEnd && plan !== "FREE" && (
+                {!planStatus?.cancelAtPeriodEnd && plan !== "FREE" && !isSuspended && (
                   <Button
                     variant="outline"
                     size="sm"
