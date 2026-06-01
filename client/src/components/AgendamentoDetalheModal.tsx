@@ -1997,7 +1997,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
     {/* Modal de Preview de Reenvio de Mensagem */}
     <Dialog open={!!previewEnvioId || !!previewMensagem} onOpenChange={(open) => { if (!open) { setPreviewMensagem(null); setPreviewEnvioId(null); } }}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm flex flex-col max-h-[85dvh]">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm flex flex-col max-h-[85dvh] overflow-hidden">
         <DialogHeader className="shrink-0">
           <DialogTitle className="font-bold tracking-tight flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-green-600" />
@@ -2036,11 +2036,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             <p className="text-[11px] text-muted-foreground shrink-0">A mensagem acima será reenviada via WhatsApp para o cliente.</p>
           </div>
         ) : null}
-        <DialogFooter className="flex flex-col gap-2 shrink-0">
+        <DialogFooter className="flex flex-col gap-2 shrink-0 pt-2">
           <Button
             onClick={() => { if (previewMensagem) { setReenvioId(previewMensagem.id); reenviarMensagemMut.mutate({ envioId: previewMensagem.id }); } }}
             disabled={reenviarMensagemMut.isPending || previewLoading || !previewMensagem}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            className="w-full bg-green-600 hover:bg-green-700 text-white order-first"
           >
             {reenviarMensagemMut.isPending ? 'Enviando...' : 'Confirmar Reenvio'}
           </Button>
