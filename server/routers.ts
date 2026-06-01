@@ -94,6 +94,8 @@ import { zanduRouter } from "./routers/zandu";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
+import { iaMarketingRouter } from "./routers/iaMarketing";
+import { googleCalendarRouter } from "./routers/googleCalendar";
 import { suporteRouter } from "./routers/suporte";
 import { gerarDocumentacaoObsidian } from "./jobs/gerar-documentacao";
 import { portalRouter } from "./routers/portal";
@@ -357,6 +359,8 @@ export const appRouter = router({
   pipeline: pipelineRouter,
   iaFinanceiro: iaFinanceiroRouter,
   iaClientes: iaClientesRouter,
+  iaMarketing: iaMarketingRouter,
+  googleCalendar: googleCalendarRouter,
   suporte: suporteRouter,
   orizontech: orizontechRouter,
   portal: portalRouter,
@@ -2018,7 +2022,7 @@ export const appRouter = router({
           console.error('[confirmarSinalForaDoPrazo] Erro ao mover cartão no Pipeline:', e);
         }
 
-        // Disparar automação de agendamento_reativado
+        // Disparar automação de agendamento_reativado (com fallback para agendamento_confirmado)
         try {
           const agReativado = await getAgendamentoById(input.id);
           if (agReativado && agReativado.clienteId) {
@@ -2032,8 +2036,20 @@ export const appRouter = router({
               const servicoReativado = agReativado.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === agReativado.servicoId) : null;
               const profissionalReativado = agReativado.profissionalId ? await getProfissionalById(agReativado.profissionalId) : null;
               const dataFormatadaReativado = new Date(agReativado.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              const automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
+              // Busca automação de reativado; se não existir, usa fallback de confirmado
+              let automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
+              let eventoUsado = 'agendamento_reativado';
+              if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
+                automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
+                eventoUsado = 'agendamento_confirmado';
+                console.log(`[confirmarSinalForaDoPrazo] Sem automação reativado — usando fallback agendamento_confirmado para ag. ${input.id}`);
+              }
               if (automacaoReativado && automacaoReativado.corpoMensagem) {
+                const portalOriginReativado = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+                const linkAgendamentoReativado = empresa.portalSlug ? `${portalOriginReativado}/agendar/${empresa.portalSlug}` : `${portalOriginReativado}/agendar?e=${empresa.id}`;
+                const percentualReservaReativado = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
+                const valorServicoReativado = parseFloat(String(agReativado.valorTotal ?? '0'));
+                const valorReservaReativado = percentualReservaReativado > 0 ? `R$ ${(valorServicoReativado * percentualReservaReativado).toFixed(2).replace('.', ',')}` : '';
                 const templateVarsReativado = {
                   nome_cliente: clienteReativado.nome || 'Cliente',
                   primeiro_nome: (clienteReativado.nome || 'Cliente').split(' ')[0],
@@ -2042,7 +2058,9 @@ export const appRouter = router({
                   hora: `${String(agReativado.horaInicio ?? '').slice(0, 5)} – ${String(agReativado.horaFim ?? '').slice(0, 5)}`,
                   profissional: profissionalReativado?.nome ?? '',
                   empresa: empresa.nome,
-                  valor: `R$ ${parseFloat(agReativado.valorTotal ?? '0').toFixed(2).replace('.', ',')}`,
+                  valor: `R$ ${valorServicoReativado.toFixed(2).replace('.', ',')}`,
+                  valor_reserva: valorReservaReativado,
+                  link_agendamento: linkAgendamentoReativado,
                 };
                 const mensagemReativado = processarVariaveisTemplate(automacaoReativado.corpoMensagem, templateVarsReativado);
                 await registrarEnvioAutomacao({
@@ -2057,7 +2075,9 @@ export const appRouter = router({
                   midiaUrl: extrairMidiaUrl(automacaoReativado.flowJson) ?? undefined,
                   enviarEm: new Date(),
                 });
-                console.log(`[confirmarSinalForaDoPrazo] Automação agendamento_reativado agendada para ag. ${input.id}`);
+                console.log(`[confirmarSinalForaDoPrazo] Automação '${eventoUsado}' agendada para ag. ${input.id}`);
+              } else {
+                console.warn(`[confirmarSinalForaDoPrazo] Nenhuma automação encontrada (reativado ou confirmado) para empresa ${empresa.id} — ag. ${input.id}`);
               }
             }
           }

@@ -1245,3 +1245,43 @@ export const taxasConfig = mysqlTable("taxas_config", {
 });
 export type TaxaConfig = typeof taxasConfig.$inferSelect;
 export type InsertTaxaConfig = typeof taxasConfig.$inferInsert;
+
+// ─── IA DE MARKETING ─────────────────────────────────────────────────────────
+// Armazena posts gerados pela IA de Marketing para Instagram e outras redes
+export const marketingPosts = mysqlTable("marketing_posts", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  tipo: mysqlEnum("tipo", ["promocao", "servico", "dica", "depoimento", "novidade", "sazonal", "outro"]).default("outro").notNull(),
+  tema: varchar("tema", { length: 255 }),
+  legenda: text("legenda"),
+  hashtags: text("hashtags"),
+  imagemUrl: varchar("imagemUrl", { length: 1000 }),
+  imagemPrompt: text("imagemPrompt"),
+  status: mysqlEnum("status", ["rascunho", "aprovado", "agendado", "publicado", "arquivado"]).default("rascunho").notNull(),
+  agendadoPara: timestamp("agendadoPara"),
+  publicadoEm: timestamp("publicadoEm"),
+  instagramPostId: varchar("instagramPostId", { length: 255 }),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type MarketingPost = typeof marketingPosts.$inferSelect;
+export type InsertMarketingPost = typeof marketingPosts.$inferInsert;
+
+// ─── GOOGLE CALENDAR INTEGRATION ─────────────────────────────────────────────
+// Armazena tokens OAuth2 do Google Calendar por empresa
+export const googleCalendarTokens = mysqlTable("google_calendar_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull().unique(),
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken"),
+  expiresAt: timestamp("expiresAt"),
+  calendarId: varchar("calendarId", { length: 255 }).default("primary"),  // ID do calendário Hubly na conta Google
+  calendarNome: varchar("calendarNome", { length: 255 }),
+  email: varchar("email", { length: 320 }),                               // email da conta Google conectada
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type GoogleCalendarToken = typeof googleCalendarTokens.$inferSelect;
+export type InsertGoogleCalendarToken = typeof googleCalendarTokens.$inferInsert;

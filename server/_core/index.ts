@@ -17,6 +17,7 @@ import { waManager } from "../whatsapp";
 import { registerConfirmacaoRoute } from "../confirmacao";
 import { registerZapiWebhook } from "../zapi-webhook";
 import { trialReminderHandler } from "../trial-reminder";
+import { registerGoogleOAuthCallback } from "../google-oauth-callback";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -57,6 +58,8 @@ async function startServer() {
   registerConfirmacaoRoute(app);
   // Webhook Z-API — status de entrega/leitura de mensagens
   registerZapiWebhook(app);
+  // Google Calendar OAuth2 callback
+  registerGoogleOAuthCallback(app);
   // Cron: lembrete diário de trial para donos sem cartão cadastrado
   app.post("/api/scheduled/trial-reminder", trialReminderHandler);
   // tRPC API

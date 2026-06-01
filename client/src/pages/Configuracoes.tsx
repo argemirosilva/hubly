@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2 } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2, Calendar, Link2, Unlink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -768,6 +768,9 @@ export default function Configuracoes() {
         </div>
       </div>
 
+      {/* Google Calendar Integration */}
+      <GoogleCalendarCard />
+
       <button onClick={handleSave} disabled={updateMutation.isPending || salvarPrefsMutation.isPending} className="btn-primary">
         <Save className="w-4 h-4" />
         {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
@@ -855,5 +858,100 @@ export default function Configuracoes() {
         />
       )}
     </>
+  );
+}
+
+// ─── Google Calendar Card ─────────────────────────────────────────────────────
+function GoogleCalendarCard() {
+  const utils = trpc.useUtils();
+  const { data: status, isLoading } = trpc.googleCalendar.getStatus.useQuery();
+
+  const gerarUrlMut = trpc.googleCalendar.gerarUrlAutorizacao.useMutation({
+    onSuccess: (data) => {
+      // Redirecionar para o Google OAuth
+      window.location.href = data.url;
+    },
+    onError: (err: any) => {
+      import("sonner").then(({ toast }) => toast.error(err.message ?? "Erro ao conectar Google"));
+    },
+  });
+
+  const desconectarMut = trpc.googleCalendar.desconectar.useMutation({
+    onSuccess: () => {
+      utils.googleCalendar.getStatus.invalidate();
+      import("sonner").then(({ toast }) => toast.success("Google Calendar desconectado"));
+    },
+  });
+
+  return (
+    <div className="card-elegant">
+      <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
+        <Calendar className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-semibold text-sm">Google Agenda</h3>
+        <span className="ml-auto text-xs text-muted-foreground">Sincronize agendamentos automaticamente</span>
+      </div>
+      <div className="p-5 space-y-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Verificando conexão...
+          </div>
+        ) : status?.conectado ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-green-800">Google Agenda conectado</p>
+                {status.email && <p className="text-xs text-green-600 truncate">{status.email}</p>}
+                {status.calendarNome && <p className="text-xs text-green-600 truncate">Calendário: {status.calendarNome}</p>}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Novos agendamentos e bloqueios serão sincronizados automaticamente com o Google Agenda.
+              Compromissos pessoais do Google <strong>não</strong> afetam a agenda do Hubly.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+              onClick={() => desconectarMut.mutate()}
+              disabled={desconectarMut.isPending}
+            >
+              {desconectarMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
+              Desconectar Google Agenda
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Conecte sua conta Google para sincronizar agendamentos e bloqueios automaticamente com o Google Agenda.
+              Um calendário dedicado "Hubly" será criado na sua conta.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+              {[
+                "Agendamentos aparecem automaticamente",
+                "Bloqueios sincronizados em tempo real",
+                "Calendário dedicado separado",
+                "Compromissos pessoais não interferem",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-green-500 shrink-0" />
+                  {item}
+                </div>
+              ))}
+            </div>
+            <Button
+              className="gap-2"
+              onClick={() => gerarUrlMut.mutate()}
+              disabled={gerarUrlMut.isPending}
+            >
+              {gerarUrlMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+              Conectar Google Agenda
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

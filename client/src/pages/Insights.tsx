@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Users, DollarSign, Sparkles } from "lucide-react";
+import { Brain, Users, DollarSign, Sparkles, Megaphone } from "lucide-react";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import IAFinanceiro from "./IAFinanceiro";
 import IAClientes from "./IAClientes";
+import IAMarketing from "./IAMarketing";
 
 export default function Insights() {
   const { pode } = usePermissoes();
@@ -39,6 +40,9 @@ export default function Insights() {
           <TabsTrigger value="clientes" className="gap-1.5 text-xs">
             <Users className="w-3.5 h-3.5" /> Clientes
           </TabsTrigger>
+          <TabsTrigger value="marketing" className="gap-1.5 text-xs">
+            <Megaphone className="w-3.5 h-3.5" /> Marketing
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="financeiro" className="-mx-4 lg:-mx-6 -mt-2">
@@ -47,6 +51,10 @@ export default function Insights() {
 
         <TabsContent value="clientes" className="-mx-4 lg:-mx-6 -mt-2">
           <IAClientes />
+        </TabsContent>
+
+        <TabsContent value="marketing" className="-mx-4 lg:-mx-6 -mt-2">
+          <IAMarketing />
         </TabsContent>
       </Tabs>
     </div>
