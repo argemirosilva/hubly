@@ -2672,3 +2672,19 @@
 - [x] UX: botões de criação bloqueados com cadeado quando suspenso
 - [x] UX: modal de conta suspensa com CTA de upgrade
 - [x] UX: tela de Assinatura reformulada (remover card FREE, status suspenso, planos SOLO/PLUS/PRO)
+
+## Google Agenda OAuth (unidirecional Hubly → Google)
+- [ ] Schema: tabela google_calendar_tokens (userId, accessToken, refreshToken, expiresAt, calendarId, googleEmail)
+- [ ] Migration SQL aplicada
+- [ ] Backend: rota GET /api/google/auth (inicia OAuth)
+- [ ] Backend: rota GET /api/google/callback (recebe token, salva no banco)
+- [ ] Backend: rota POST /api/google/disconnect (revoga token e remove do banco)
+- [ ] Backend: tRPC procedure google.status (retorna se conectado + email)
+- [ ] Backend: helper pushEventToGoogle(agendamentoId, userId) — cria/atualiza evento no Google Calendar
+- [ ] Backend: helper deleteEventFromGoogle(googleEventId, userId) — remove evento do Google Calendar
+- [ ] Backend: chamar pushEventToGoogle ao confirmar agendamento
+- [ ] Backend: chamar deleteEventFromGoogle ao cancelar agendamento
+- [ ] Backend: renovação automática de accessToken via refreshToken
+- [ ] Frontend: seção Google Agenda nas Configurações
+- [ ] Frontend: botão "Conectar com Google" quando desconectado
+- [ ] Frontend: status conectado (email + botão Desconectar) quando conectado

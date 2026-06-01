@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getEmpresaDoUsuario } from "../db";
+import { getEmpresaDoContexto } from "../db";
 import {
   gerarUrlAutorizacaoGoogle,
   getStatusConexaoGoogle,
@@ -16,7 +16,7 @@ export const googleCalendarRouter = router({
    */
   getStatus: protectedProcedure
     .query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       return getStatusConexaoGoogle(empresa.id);
@@ -27,7 +27,7 @@ export const googleCalendarRouter = router({
    */
   gerarUrlAutorizacao: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       // Verificar se as credenciais Google estão configuradas
@@ -50,7 +50,7 @@ export const googleCalendarRouter = router({
    */
   desconectar: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       await desconectarGoogle(empresa.id);
@@ -62,7 +62,7 @@ export const googleCalendarRouter = router({
    */
   configurarCalendario: protectedProcedure
     .mutation(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const calendarId = await garantirCalendarioHubly(empresa.id, empresa.nome);
