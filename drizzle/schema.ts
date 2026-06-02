@@ -1285,3 +1285,34 @@ export const googleCalendarTokens = mysqlTable("google_calendar_tokens", {
 });
 export type GoogleCalendarToken = typeof googleCalendarTokens.$inferSelect;
 export type InsertGoogleCalendarToken = typeof googleCalendarTokens.$inferInsert;
+
+// ─── Google Calendar Tokens por Usuário ──────────────────────────────────────
+export const googleCalendarTokensUsuario = mysqlTable("google_calendar_tokens_usuario", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  empresaId: int("empresaId").notNull(),
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken"),
+  expiresAt: timestamp("expiresAt"),
+  calendarId: varchar("calendarId", { length: 255 }).default("primary"),
+  calendarNome: varchar("calendarNome", { length: 255 }),
+  email: varchar("email", { length: 320 }),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type GoogleCalendarTokenUsuario = typeof googleCalendarTokensUsuario.$inferSelect;
+export type InsertGoogleCalendarTokenUsuario = typeof googleCalendarTokensUsuario.$inferInsert;
+
+// Tabela para mapear agendamentos com eventos do Google Calendar por usuário
+export const googleCalendarEventos = mysqlTable("google_calendar_eventos", {
+  id: int("id").autoincrement().primaryKey(),
+  agendamentoId: int("agendamentoId").notNull(),
+  userId: int("userId").notNull(),
+  googleEventId: varchar("googleEventId", { length: 255 }).notNull(),
+  calendarId: varchar("calendarId", { length: 255 }).notNull().default("primary"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type GoogleCalendarEvento = typeof googleCalendarEventos.$inferSelect;
+export type InsertGoogleCalendarEvento = typeof googleCalendarEventos.$inferInsert;

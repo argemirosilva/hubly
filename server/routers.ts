@@ -97,6 +97,8 @@ import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
 import { iaMarketingRouter } from "./routers/iaMarketing";
 import { googleCalendarRouter } from "./routers/googleCalendar";
+import { googleCalendarUsuarioRouter } from "./routers/googleCalendarUsuario";
+import { sincronizarAgendamentoGoogleUsuario, removerEventoGoogleUsuario } from "./google-calendar-usuario";
 import { suporteRouter } from "./routers/suporte";
 import { gerarDocumentacaoObsidian } from "./jobs/gerar-documentacao";
 import { portalRouter } from "./routers/portal";
@@ -106,7 +108,7 @@ import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
 import { nanoid } from "nanoid";
-import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes } from "../drizzle/schema";
+import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
 
 /**
@@ -362,6 +364,7 @@ export const appRouter = router({
   iaClientes: iaClientesRouter,
   iaMarketing: iaMarketingRouter,
   googleCalendar: googleCalendarRouter,
+  googleCalendarUsuario: googleCalendarUsuarioRouter,
   suporte: suporteRouter,
   orizontech: orizontechRouter,
   portal: portalRouter,
@@ -1330,6 +1333,57 @@ export const appRouter = router({
         } catch (e) {
           console.error('[UsageAlert] Erro ao verificar limites:', e);
         }
+        // ── Sincronizar com Google Calendar por usuário (background) ──────────────
+        if (input.profissionalId) {
+          const profId = input.profissionalId;
+          const agId = id;
+          const agData = input.data;
+          const agHoraInicio = (input.horaInicio ?? '').slice(0, 5);
+          const agHoraFim = (input.horaFim ?? '').slice(0, 5);
+          const agStatus = rest.status ?? 'agendado';
+          const agObs = (input as any).observacoes ?? undefined;
+          setImmediate(async () => {
+            try {
+              const db = await getDb();
+              if (!db) return;
+              // Buscar systemUser vinculado ao profissional
+              const [su] = await db.select({ id: systemUsers.id, nome: systemUsers.nome })
+                .from(systemUsers)
+                .where(eq(systemUsers.profissionalId, profId))
+                .limit(1);
+              if (!su) return;
+              // Buscar nomes de cliente e serviço
+              const [clienteRow] = await db.select({ nome: clientes.nome })
+                .from(clientes)
+                .where(eq(clientes.id, input.clienteId))
+                .limit(1);
+              const { getServicosByEmpresa } = await import('./db');
+              const servicos = await getServicosByEmpresa(empresa.id);
+              const servicoRow = servicos.find(s => s.id === input.servicoId);
+              const googleEventId = await sincronizarAgendamentoGoogleUsuario({
+                userId: su.id,
+                agendamentoId: agId,
+                clienteNome: clienteRow?.nome ?? 'Cliente',
+                servicoNome: servicoRow?.nome ?? 'Serviço',
+                profissionalNome: su.nome,
+                data: agData,
+                horaInicio: agHoraInicio,
+                horaFim: agHoraFim,
+                status: agStatus,
+                observacoes: agObs,
+              });
+              if (googleEventId) {
+                await db.insert(googleCalendarEventos).values({
+                  agendamentoId: agId,
+                  userId: su.id,
+                  googleEventId,
+                }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+              }
+            } catch (err) {
+              console.error('[GoogleCalendarUsuario] Erro ao sincronizar no create:', err);
+            }
+          });
+        }
         return { id, success: true };
       }),
     update: protectedProcedure
@@ -1791,12 +1845,60 @@ export const appRouter = router({
                 novoStatus: data.status,
               });
             }
-          } catch (e) {
-            console.error('[Pipeline] Erro ao mover cartão automaticamente:', e);
-          }
-        }
+                     } catch (e) {
+             console.error('[Pipeline] Erro ao mover cartão automaticamente:', e);
+           }
+         }
 
-        return { success: true };
+        // ── Sincronizar com Google Calendar por usuário (background) ──────────────
+        setImmediate(async () => {
+          try {
+            const agAtualizado = await getAgendamentoById(id);
+            if (!agAtualizado || !agAtualizado.profissionalId) return;
+            const db = await getDb();
+            if (!db) return;
+            const [su] = await db.select({ id: systemUsers.id, nome: systemUsers.nome })
+              .from(systemUsers)
+              .where(eq(systemUsers.profissionalId, agAtualizado.profissionalId))
+              .limit(1);
+            if (!su) return;
+            // Buscar googleEventId existente
+            const [eventoRow] = await db.select().from(googleCalendarEventos)
+              .where(and(eq(googleCalendarEventos.agendamentoId, id), eq(googleCalendarEventos.userId, su.id)))
+              .limit(1);
+            const [clienteRow] = await db.select({ nome: clientes.nome })
+              .from(clientes)
+              .where(eq(clientes.id, agAtualizado.clienteId))
+              .limit(1);
+            const { getServicosByEmpresa: getSvcs } = await import('./db');
+            const svcs = await getSvcs(empresa.id);
+            const servicoRow = svcs.find(s => s.id === agAtualizado.servicoId);
+            const googleEventId = await sincronizarAgendamentoGoogleUsuario({
+              userId: su.id,
+              agendamentoId: id,
+              clienteNome: clienteRow?.nome ?? 'Cliente',
+              servicoNome: servicoRow?.nome ?? 'Serviço',
+              profissionalNome: su.nome,
+              data: agAtualizado.data,
+              horaInicio: (agAtualizado.horaInicio ?? '').slice(0, 5),
+              horaFim: (agAtualizado.horaFim ?? '').slice(0, 5),
+              status: agAtualizado.status,
+              observacoes: agAtualizado.observacoes ?? undefined,
+              googleEventId: eventoRow?.googleEventId ?? null,
+            });
+            if (googleEventId) {
+              await db.insert(googleCalendarEventos).values({
+                agendamentoId: id,
+                userId: su.id,
+                googleEventId,
+              }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+            }
+          } catch (err) {
+            console.error('[GoogleCalendarUsuario] Erro ao sincronizar no update:', err);
+          }
+        });
+
+         return { success: true };
       }),
     confirmarReserva: protectedProcedure
       .input(z.object({ id: z.number() }))

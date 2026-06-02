@@ -2688,3 +2688,13 @@
 - [ ] Frontend: seção Google Agenda nas Configurações
 - [ ] Frontend: botão "Conectar com Google" quando desconectado
 - [ ] Frontend: status conectado (email + botão Desconectar) quando conectado
+
+## Google Calendar por Usuário (v10)
+- [ ] Criar tabela google_calendar_tokens_usuario (userId, accessToken, refreshToken, expiresAt, email, calendarId, calendarNome, ativo)
+- [ ] Criar funções backend: salvarTokensGoogleUsuario, getStatusConexaoGoogleUsuario, desconectarGoogleUsuario, getClienteGoogleUsuario
+- [ ] Criar rota OAuth callback por usuário: GET /api/google/user-callback
+- [ ] Criar procedures tRPC: googleCalendarUsuario.getStatus, gerarUrlAutorizacao, desconectar
+- [ ] Adicionar card Google Agenda na página de Perfil com botão conectar/desconectar e aviso sobre tela de verificação
+- [ ] Detectar retorno OAuth (?google_user_success=1) na página de Perfil e atualizar status
+- [ ] Sincronizar agendamento no Google do profissional ao criar/confirmar agendamento
+- [ ] Sincronizar cancelamento/remarcação no Google do profissional

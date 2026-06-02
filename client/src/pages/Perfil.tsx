@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Camera, Eye, EyeOff, Loader2, User, Lock, Mail } from "lucide-react";
+import { Camera, Eye, EyeOff, Loader2, User, Lock, Mail, Calendar, CheckCircle2, AlertTriangle, Unlink } from "lucide-react";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 
 export default function Perfil() {
@@ -107,6 +107,43 @@ export default function Perfil() {
     }
     updateMutation.mutate(updates);
   };
+
+  // ── Google Agenda por usuário ──────────────────────────────────────────────
+  const { data: googleStatus, refetch: refetchGoogle } = trpc.googleCalendarUsuario.getStatus.useQuery(
+    undefined,
+    { enabled: !!systemUser }
+  );
+  const gerarUrlGoogle = trpc.googleCalendarUsuario.gerarUrlAutorizacao.useMutation({
+    onSuccess: ({ url }) => {
+      toast.info("Redirecionando para o Google...");
+      window.open(url, "_blank");
+    },
+    onError: (err) => toast.error(err.message || "Erro ao gerar URL do Google"),
+  });
+  const desconectarGoogle = trpc.googleCalendarUsuario.desconectar.useMutation({
+    onSuccess: () => {
+      toast.success("Google Agenda desconectado");
+      refetchGoogle();
+    },
+    onError: (err) => toast.error(err.message || "Erro ao desconectar"),
+  });
+
+  // Detectar retorno do OAuth Google
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_user_success") === "1") {
+      toast.success("Google Agenda conectado com sucesso!");
+      refetchGoogle();
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google_user_success");
+      window.history.replaceState({}, "", url.toString());
+    } else if (params.get("google_user_error")) {
+      toast.error(`Erro ao conectar Google Agenda: ${params.get("google_user_error")}`);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google_user_error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   const handleAlterarSenha = () => {
     if (!senhaAtual) { toast.error("Informe a senha atual"); return; }
@@ -240,6 +277,74 @@ export default function Perfil() {
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>
             ) : "Salvar alterações"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Google Agenda */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Google Agenda
+          </CardTitle>
+          <CardDescription>
+            Conecte sua conta Google para sincronizar seus agendamentos automaticamente no Google Agenda.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {googleStatus?.conectado ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">Conectado</p>
+                  {googleStatus.email && (
+                    <p className="text-xs text-green-700 dark:text-green-400 truncate">{googleStatus.email}</p>
+                  )}
+                  {googleStatus.calendarNome && (
+                    <p className="text-xs text-muted-foreground truncate">Calendário: {googleStatus.calendarNome}</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => desconectarGoogle.mutate()}
+                disabled={desconectarGoogle.isPending}
+                className="gap-2 text-destructive hover:text-destructive"
+              >
+                {desconectarGoogle.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Desconectando...</>
+                ) : (
+                  <><Unlink className="w-4 h-4" />Desconectar Google Agenda</>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-amber-800 dark:text-amber-300">Aviso sobre verificação do Google</p>
+                  <p className="text-amber-700 dark:text-amber-400 text-xs">
+                    O Google pode exibir a tela <strong>"O Google não verificou este app"</strong>. Isso é normal.
+                    Clique em <strong>"Avançado"</strong> e depois em <strong>"Acessar orizontech.com.br (não seguro)"</strong> para continuar.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => gerarUrlGoogle.mutate()}
+                disabled={gerarUrlGoogle.isPending}
+                className="gap-2"
+              >
+                {gerarUrlGoogle.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Gerando link...</>
+                ) : (
+                  <><Calendar className="w-4 h-4" />Conectar Google Agenda</>
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
