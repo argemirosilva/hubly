@@ -1644,16 +1644,18 @@ export default function Automacoes() {
   const createMutation = trpc.automacoes.create.useMutation({
     onSuccess: () => { toast.success("Automação salva!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
     onError: (e: any) => {
-      // Detectar erro de duplicidade e mostrar modal de aviso
+      // Detectar erro de duplicidade — mostrar modal e MANTER no canvas
       if (e.message?.includes("Já existe uma automação com o mesmo")) {
         setDuplicataInfo({ mensagem: e.message, onConfirm: () => {} });
       } else {
-        toast.error(e.message);
+        toast.error(e.message || "Erro ao salvar automação");
       }
+      // NÃO navegar para a lista em caso de erro
     },
   });
   const updateMutation = trpc.automacoes.update.useMutation({
     onSuccess: () => { toast.success("Automação atualizada!"); utils.automacoes.list.invalidate(); },
+    onError: (e: any) => { toast.error(e.message || "Erro ao atualizar automação"); },
   });
   const deleteMutation = trpc.automacoes.delete.useMutation({
     onSuccess: () => { toast.success("Automação excluída!"); utils.automacoes.list.invalidate(); gerarPipelineAutomatico(); },
@@ -1732,6 +1734,8 @@ export default function Automacoes() {
   const [view, setView] = useState<"list" | "editor">("list");
   const [abaEditor, setAbaEditor] = useState<"canvas" | "jornada">("canvas");
   const [currentFlow, setCurrentFlow] = useState<FlowAutomacao>({ nome: "Nova Automação", ativo: true, nodes: [] });
+  const [temAlteracoesNaoSalvas, setTemAlteracoesNaoSalvas] = useState(false);
+  const [confirmSairSemSalvar, setConfirmSairSemSalvar] = useState(false);
 
   // Auto-save de posições após arrastar um nó (somente para automações já salvas)
   const handleDragEnd = useCallback((updatedNodes: FlowNode[]) => {
@@ -1781,6 +1785,7 @@ export default function Automacoes() {
     if (flow?.id) setCurrentFlow(p => ({ ...p, id: flow.id }));
     setSelectedNodeId(null);
     setAbaEditor("canvas");
+    setTemAlteracoesNaoSalvas(false);
     setView("editor");
   };
 
@@ -1796,6 +1801,19 @@ export default function Automacoes() {
     setSelectedNodeId(id);
     setAddNodeMenu(false);
   };
+
+  // Marcar como alterado quando nodes ou currentFlow mudam (exceto ao abrir o editor)
+  const initialFlowRef = useRef<string>("");
+  useEffect(() => {
+    if (view === "editor") {
+      const current = JSON.stringify({ nodes, nome: currentFlow.nome, ativo: currentFlow.ativo });
+      if (!initialFlowRef.current) {
+        initialFlowRef.current = current;
+      } else if (current !== initialFlowRef.current) {
+        setTemAlteracoesNaoSalvas(true);
+      }
+    }
+  }, [nodes, currentFlow.nome, currentFlow.ativo, view]);
 
   // saveFlow aceita opcionalmente um nó já atualizado (para salvar direto do painel do nó)
   const saveFlow = (updatedNodeData?: { id: string; data: Record<string, any> }) => {
@@ -1882,7 +1900,7 @@ export default function Automacoes() {
         flowJson: flowJsonStr,
         confirmacaoAutoAtivo: currentFlow.confirmacaoAutoAtivo ?? false,
         confirmacaoAutoHorasAntes: currentFlow.confirmacaoAutoHorasAntes ?? 2,
-      }, { onSuccess: () => { toast.success("Automação salva!"); if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
+      }, { onSuccess: () => { toast.success("Automação salva!"); setTemAlteracoesNaoSalvas(false); initialFlowRef.current = ""; if (!updatedNodeData) setView("list"); gerarPipelineAutomatico(); } });
     }
   };
 
@@ -2713,6 +2731,22 @@ export default function Automacoes() {
           </DialogContent>
         </Dialog>
 
+        {/* Modal: Sair sem salvar */}
+        <Dialog open={confirmSairSemSalvar} onOpenChange={setConfirmSairSemSalvar}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle size={17} /> Sair sem salvar?
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600 mt-1">Você tem alterações não salvas nesta automação. Se sair agora, elas serão perdidas.</p>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button size="sm" variant="outline" onClick={() => setConfirmSairSemSalvar(false)}>Continuar editando</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => { setConfirmSairSemSalvar(false); setTemAlteracoesNaoSalvas(false); initialFlowRef.current = ""; setView("list"); }}>Sair sem salvar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Modal: Sincronização inteligente do Pipeline */}
         <Dialog open={showSincModal} onOpenChange={(open) => { if (!sincronizarMutation.isPending) { setShowSincModal(open); if (!open) { setSincPreview(null); setSincPipelineId(null); } } }}>
           <DialogContent className="max-w-md">
@@ -3231,8 +3265,15 @@ export default function Automacoes() {
     <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
         {/* Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shadow-sm z-30 flex-shrink-0 sticky top-0">
-          <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors" onClick={() => setView("list")}>
+          <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors" onClick={() => {
+            if (temAlteracoesNaoSalvas && !currentFlow.id) {
+              setConfirmSairSemSalvar(true);
+            } else {
+              setView("list");
+            }
+          }}>
             <ChevronRight size={14} className="rotate-180" />Automações
+            {temAlteracoesNaoSalvas && !currentFlow.id && <span className="ml-1 w-2 h-2 rounded-full bg-amber-500 inline-block" title="Alterações não salvas" />}
           </button>
           <span className="text-gray-300">/</span>
           <Input

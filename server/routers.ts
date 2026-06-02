@@ -3202,8 +3202,26 @@ export const appRouter = router({
         if (!empresa) throw new Error("Empresa não encontrada");
         const suspendedErr = await checkSuspended(empresa.id);
         if (suspendedErr) throw new TRPCError({ code: 'FORBIDDEN', message: suspendedErr });
-        // Verificar duplicidade: mesmos tipoGatilho + evento + canal + timing
+                // Verificar duplicidade: mesmos tipoGatilho + evento + canal + timing + condições
         const automacoes = await getAutomacoesByEmpresa(empresa.id);
+        // Extrair fingerprint das condições do flowJson para comparação
+        const extrairFingerprintCondicoes = (flowJson?: string | null): string => {
+          if (!flowJson) return '__sem_condicoes__';
+          try {
+            const nodes = JSON.parse(flowJson) as Array<{ type: string; data: Record<string, any> }>;
+            const condNodes = nodes.filter(n => n.type === 'condition');
+            if (condNodes.length === 0) return '__sem_condicoes__';
+            return JSON.stringify(condNodes.map(n => ({
+              tipo: n.data?.tipo ?? null,
+              valor: n.data?.valor ?? null,
+              servicos: Array.isArray(n.data?.servicos) ? [...n.data.servicos].sort() : null,
+              profissional: n.data?.profissional ?? null,
+              tag: n.data?.tag ?? null,
+              operador: n.data?.operador ?? null,
+            })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
+          } catch { return '__sem_condicoes__'; }
+        };
+        const fingerprintNovo = extrairFingerprintCondicoes(input.flowJson);
         const duplicada = automacoes.find((a) => {
           if (a.tipoGatilho !== input.tipoGatilho) return false;
           if (a.canalEnvio !== input.canalEnvio) return false;
@@ -3222,9 +3240,11 @@ export const appRouter = router({
             if (a.dataFixaMes !== input.dataFixaMes) return false;
             if (a.dataFixaHora !== (input.dataFixaHora ?? null)) return false;
           }
+          // Se as condições (filtros) forem diferentes, não é duplicata
+          const fingerprintExistente = extrairFingerprintCondicoes(a.flowJson);
+          if (fingerprintNovo !== fingerprintExistente) return false;
           return true;
         });
-
         if (duplicada) {
           throw new Error(`Já existe uma automação com o mesmo gatilho e canal: "${duplicada.nome}". Edite a automação existente ou escolha configurações diferentes.`);
         }
