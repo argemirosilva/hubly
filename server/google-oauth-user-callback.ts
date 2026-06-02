@@ -9,7 +9,7 @@ import {
   garantirCalendarioHublyUsuario,
 } from "./google-calendar-usuario";
 import { getDb } from "./db";
-import { profissionais } from "../drizzle/schema";
+import { profissionais, empresas } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export function registerGoogleOAuthUserCallback(app: Express) {
@@ -30,6 +30,7 @@ export function registerGoogleOAuthUserCallback(app: Express) {
       const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8")) as {
         userId: number;
         empresaId: number;
+        nomeCalendario?: string;
       };
 
       const tokens = await trocarCodePorTokensUsuario(code);
@@ -49,7 +50,7 @@ export function registerGoogleOAuthUserCallback(app: Express) {
         }
       } catch {}
 
-      // Salvar tokens
+      // Salvar tokens (reseta calendarId para recriar com nome correto)
       await salvarTokensGoogleUsuario({
         userId: stateData.userId,
         empresaId: stateData.empresaId,
@@ -59,19 +60,37 @@ export function registerGoogleOAuthUserCallback(app: Express) {
         email,
       });
 
-      // Criar calendário dedicado Hubly
+      // Criar calendário dedicado Hubly com nome personalizado
       try {
         const db = await getDb();
-        const profRows = db
-          ? await db.select({ nome: profissionais.nome })
-              .from(profissionais)
-              .where(eq(profissionais.id, stateData.userId))
-              .limit(1)
-          : [];
-        const nome = profRows[0]?.nome ?? "Profissional";
-        await garantirCalendarioHublyUsuario(stateData.userId, nome);
+
+        // Determinar o nome do calendário
+        let nomeCalendario = stateData.nomeCalendario;
+        if (!nomeCalendario) {
+          // Fallback: buscar nome do profissional + empresa
+          const profRows = db
+            ? await db.select({ nome: profissionais.nome })
+                .from(profissionais)
+                .where(eq(profissionais.id, stateData.userId))
+                .limit(1)
+            : [];
+          const empresaRows = db
+            ? await db.select({ nome: empresas.nome })
+                .from(empresas)
+                .where(eq(empresas.id, stateData.empresaId))
+                .limit(1)
+            : [];
+          const nomeProfissional = profRows[0]?.nome ?? "Profissional";
+          const nomeEmpresa = empresaRows[0]?.nome ?? "";
+          nomeCalendario = nomeEmpresa
+            ? `Hubly — ${nomeProfissional} (${nomeEmpresa})`
+            : `Hubly — ${nomeProfissional}`;
+        }
+
+        await garantirCalendarioHublyUsuario(stateData.userId, nomeCalendario);
       } catch (calErr) {
         console.error("[GoogleOAuthUser] Erro ao criar calendário Hubly:", calErr);
+        // Não bloquear o fluxo — a conexão foi feita, o calendário pode ser criado depois
       }
 
       console.log(`[GoogleOAuthUser] Google Calendar conectado para userId=${stateData.userId} (${email})`);

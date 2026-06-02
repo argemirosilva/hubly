@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Camera, Eye, EyeOff, Loader2, User, Lock, Mail, Calendar, CheckCircle2, AlertTriangle, Unlink } from "lucide-react";
+import { Camera, Eye, EyeOff, Loader2, User, Lock, Mail, Calendar, CheckCircle2, AlertTriangle, Unlink, Pencil, X } from "lucide-react";
 import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 
 export default function Perfil() {
@@ -113,10 +113,14 @@ export default function Perfil() {
     undefined,
     { enabled: !!systemUser }
   );
+  const [nomeAgenda, setNomeAgenda] = useState("");
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [novoNomeAgenda, setNovoNomeAgenda] = useState("");
+
   const gerarUrlGoogle = trpc.googleCalendarUsuario.gerarUrlAutorizacao.useMutation({
     onSuccess: ({ url }) => {
       toast.info("Redirecionando para o Google...");
-      window.open(url, "_blank");
+      window.location.href = url;
     },
     onError: (err) => toast.error(err.message || "Erro ao gerar URL do Google"),
   });
@@ -126,6 +130,14 @@ export default function Perfil() {
       refetchGoogle();
     },
     onError: (err) => toast.error(err.message || "Erro ao desconectar"),
+  });
+  const renomearAgenda = trpc.googleCalendarUsuario.renomearAgenda.useMutation({
+    onSuccess: () => {
+      toast.success("Nome da agenda atualizado!");
+      refetchGoogle();
+      setEditandoNome(false);
+    },
+    onError: (err) => toast.error(err.message || "Erro ao renomear agenda"),
   });
 
   // Detectar retorno do OAuth Google
@@ -294,24 +306,77 @@ export default function Perfil() {
         <CardContent className="space-y-4">
           {googleStatus?.conectado ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-300">Conectado</p>
-                  {googleStatus.email && (
-                    <p className="text-xs text-green-700 dark:text-green-400 truncate">{googleStatus.email}</p>
-                  )}
-                  {googleStatus.calendarNome && (
-                    <p className="text-xs text-muted-foreground truncate">Calendário: {googleStatus.calendarNome}</p>
-                  )}
+              {/* Conta conectada */}
+              <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 overflow-hidden">
+                <div className="flex items-center gap-3 p-4">
+                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-green-800 dark:text-green-200">Google Agenda conectado</p>
+                    {googleStatus.email && (
+                      <p className="text-xs text-green-700 dark:text-green-400 truncate mt-0.5">{googleStatus.email}</p>
+                    )}
+                  </div>
+                </div>
+                {/* Agenda dedicada */}
+                <div className="border-t border-green-200 dark:border-green-800 px-4 py-3 bg-white/50 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">Agenda no Google</p>
+                      {editandoNome ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            value={novoNomeAgenda}
+                            onChange={(e) => setNovoNomeAgenda(e.target.value)}
+                            className="h-7 text-sm"
+                            placeholder="Nome da agenda"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => renomearAgenda.mutate({ novoNome: novoNomeAgenda })}
+                            disabled={renomearAgenda.isPending || !novoNomeAgenda.trim()}
+                          >
+                            {renomearAgenda.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvar"}
+                          </Button>
+                          <button
+                            onClick={() => setEditandoNome(false)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <p className="text-sm font-medium truncate">
+                            {googleStatus.calendarNome ?? "Agenda principal"}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setNovoNomeAgenda(googleStatus.calendarNome ?? "");
+                              setEditandoNome(true);
+                            }}
+                            className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                            title="Renomear agenda"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Botão desconectar */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => desconectarGoogle.mutate()}
                 disabled={desconectarGoogle.isPending}
-                className="gap-2 text-destructive hover:text-destructive"
+                className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 {desconectarGoogle.isPending ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />Desconectando...</>
@@ -322,6 +387,21 @@ export default function Perfil() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Nome personalizado da agenda */}
+              <div className="space-y-1.5">
+                <Label htmlFor="nomeAgenda">Nome da agenda (opcional)</Label>
+                <Input
+                  id="nomeAgenda"
+                  value={nomeAgenda}
+                  onChange={(e) => setNomeAgenda(e.target.value)}
+                  placeholder={`Hubly — ${perfil?.nome ?? "Profissional"}`}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este será o nome da agenda criada no seu Google Agenda. Deixe em branco para usar o padrão.
+                </p>
+              </div>
+
+              {/* Aviso de verificação */}
               <div className="flex gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -332,13 +412,16 @@ export default function Perfil() {
                   </p>
                 </div>
               </div>
+
               <Button
-                onClick={() => gerarUrlGoogle.mutate()}
+                onClick={() => gerarUrlGoogle.mutate({
+                  nomeCalendario: nomeAgenda.trim() || undefined,
+                })}
                 disabled={gerarUrlGoogle.isPending}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 {gerarUrlGoogle.isPending ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Gerando link...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />Redirecionando...</>
                 ) : (
                   <><Calendar className="w-4 h-4" />Conectar Google Agenda</>
                 )}

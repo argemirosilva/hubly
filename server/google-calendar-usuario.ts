@@ -73,31 +73,75 @@ export async function getClienteAutenticadoUsuario(userId: number) {
 }
 
 // ─── Criar ou garantir calendário dedicado Hubly para o usuário ──────────────
-export async function garantirCalendarioHublyUsuario(userId: number, nomeUsuario: string): Promise<string> {
+// Garante que o calendário exista e esteja visível na lista de agendas do usuário
+export async function garantirCalendarioHublyUsuario(
+  userId: number,
+  nomeCalendario: string
+): Promise<string> {
   const cliente = await getClienteAutenticadoUsuario(userId);
   if (!cliente) throw new Error("Google Calendar não conectado para este usuário");
   const calendar = google.calendar({ version: "v3", auth: cliente.oauth2Client });
   const db = await getDb();
   if (!db) throw new Error("Banco indisponível");
+
   const rows = await db.select().from(googleCalendarTokensUsuario)
     .where(eq(googleCalendarTokensUsuario.userId, userId))
     .limit(1);
   const tokenRow = rows[0];
+
+  // Se já tem um calendarId salvo (que não seja "primary"), verificar se ainda existe
   if (tokenRow?.calendarId && tokenRow.calendarId !== "primary") {
-    return tokenRow.calendarId;
+    try {
+      // Verificar se o calendário ainda existe
+      await calendar.calendars.get({ calendarId: tokenRow.calendarId });
+      // Atualizar nome se mudou
+      if (tokenRow.calendarNome !== nomeCalendario) {
+        await calendar.calendars.update({
+          calendarId: tokenRow.calendarId,
+          requestBody: { summary: nomeCalendario },
+        });
+        await db.update(googleCalendarTokensUsuario)
+          .set({ calendarNome: nomeCalendario, updatedAt: new Date() })
+          .where(eq(googleCalendarTokensUsuario.userId, userId));
+      }
+      return tokenRow.calendarId;
+    } catch {
+      // Calendário não existe mais, criar um novo
+    }
   }
+
   // Criar novo calendário dedicado
   const novoCalendario = await calendar.calendars.insert({
     requestBody: {
-      summary: `Hubly — ${nomeUsuario}`,
+      summary: nomeCalendario,
       description: "Agendamentos sincronizados automaticamente pelo Hubly",
       timeZone: "America/Sao_Paulo",
     },
   });
   const calendarId = novoCalendario.data.id!;
+
+  // Garantir que o calendário apareça na lista de agendas do usuário
+  // (adicionar à lista de calendários do usuário com cor padrão)
+  try {
+    await calendar.calendarList.insert({
+      requestBody: {
+        id: calendarId,
+        backgroundColor: "#039be5", // Azul padrão do Google
+        foregroundColor: "#ffffff",
+        selected: true,
+      },
+    });
+  } catch (err: any) {
+    // Pode já estar na lista — ignorar erro 409
+    if (err?.code !== 409) {
+      console.warn("[GoogleCalendarUsuario] Aviso ao adicionar calendário à lista:", err?.message);
+    }
+  }
+
   await db.update(googleCalendarTokensUsuario)
-    .set({ calendarId, calendarNome: `Hubly — ${nomeUsuario}`, updatedAt: new Date() })
+    .set({ calendarId, calendarNome: nomeCalendario, updatedAt: new Date() })
     .where(eq(googleCalendarTokensUsuario.userId, userId));
+
   return calendarId;
 }
 
@@ -123,6 +167,9 @@ export async function salvarTokensGoogleUsuario(params: {
         expiresAt: params.expiresAt,
         email: params.email,
         ativo: true,
+        // Resetar calendarId para forçar recriação com nome correto
+        calendarId: null,
+        calendarNome: null,
         updatedAt: new Date(),
       })
       .where(eq(googleCalendarTokensUsuario.userId, params.userId));
@@ -144,7 +191,7 @@ export async function desconectarGoogleUsuario(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(googleCalendarTokensUsuario)
-    .set({ ativo: false, updatedAt: new Date() })
+    .set({ ativo: false, calendarId: null, calendarNome: null, updatedAt: new Date() })
     .where(eq(googleCalendarTokensUsuario.userId, userId));
 }
 
@@ -153,6 +200,7 @@ export async function getStatusConexaoGoogleUsuario(userId: number): Promise<{
   conectado: boolean;
   email?: string;
   calendarNome?: string;
+  calendarId?: string;
 }> {
   const db = await getDb();
   if (!db) return { conectado: false };
@@ -165,7 +213,37 @@ export async function getStatusConexaoGoogleUsuario(userId: number): Promise<{
     conectado: true,
     email: row.email ?? undefined,
     calendarNome: row.calendarNome ?? undefined,
+    calendarId: row.calendarId ?? undefined,
   };
+}
+
+// ─── Renomear calendário Hubly do usuário ────────────────────────────────────
+export async function renomearCalendarioHublyUsuario(
+  userId: number,
+  novoNome: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Banco indisponível");
+  const rows = await db.select().from(googleCalendarTokensUsuario)
+    .where(eq(googleCalendarTokensUsuario.userId, userId))
+    .limit(1);
+  const tokenRow = rows[0];
+  if (!tokenRow?.ativo) throw new Error("Google Calendar não conectado");
+
+  const cliente = await getClienteAutenticadoUsuario(userId);
+  if (!cliente) throw new Error("Google Calendar não conectado");
+
+  if (tokenRow.calendarId && tokenRow.calendarId !== "primary") {
+    const calendar = google.calendar({ version: "v3", auth: cliente.oauth2Client });
+    await calendar.calendars.update({
+      calendarId: tokenRow.calendarId,
+      requestBody: { summary: novoNome },
+    });
+  }
+
+  await db.update(googleCalendarTokensUsuario)
+    .set({ calendarNome: novoNome, updatedAt: new Date() })
+    .where(eq(googleCalendarTokensUsuario.userId, userId));
 }
 
 // ─── Sincronizar agendamento no Google do profissional ───────────────────────

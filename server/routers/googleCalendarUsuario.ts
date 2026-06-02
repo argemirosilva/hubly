@@ -1,9 +1,11 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   gerarUrlAutorizacaoGoogleUsuario,
   getStatusConexaoGoogleUsuario,
   desconectarGoogleUsuario,
+  renomearCalendarioHublyUsuario,
 } from "../google-calendar-usuario";
 
 export const googleCalendarUsuarioRouter = router({
@@ -20,9 +22,11 @@ export const googleCalendarUsuarioRouter = router({
 
   /**
    * Gera a URL de autorização OAuth2 do Google para o usuário
+   * Aceita um nome personalizado para a agenda
    */
   gerarUrlAutorizacao: protectedProcedure
-    .mutation(async ({ ctx }) => {
+    .input(z.object({ nomeCalendario: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
       if (!ctx.systemUser) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário não autenticado" });
       }
@@ -33,7 +37,11 @@ export const googleCalendarUsuarioRouter = router({
         });
       }
       const state = Buffer.from(
-        JSON.stringify({ userId: ctx.systemUser.id, empresaId: ctx.systemUser.empresaId })
+        JSON.stringify({
+          userId: ctx.systemUser.id,
+          empresaId: ctx.systemUser.empresaId,
+          nomeCalendario: input.nomeCalendario,
+        })
       ).toString("base64");
       const url = gerarUrlAutorizacaoGoogleUsuario(state);
       return { url };
@@ -48,6 +56,19 @@ export const googleCalendarUsuarioRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário não autenticado" });
       }
       await desconectarGoogleUsuario(ctx.systemUser.id);
+      return { success: true };
+    }),
+
+  /**
+   * Renomeia a agenda Hubly do usuário no Google Calendar
+   */
+  renomearAgenda: protectedProcedure
+    .input(z.object({ novoNome: z.string().min(1).max(100) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.systemUser) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário não autenticado" });
+      }
+      await renomearCalendarioHublyUsuario(ctx.systemUser.id, input.novoNome);
       return { success: true };
     }),
 });
