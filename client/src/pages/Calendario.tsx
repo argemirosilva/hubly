@@ -730,49 +730,90 @@ export default function Calendario() {
                       </div>
                     );
                   })}
-                  {/* Agendamentos */}
-                  {agsNoDia.map((ag, idx) => {
-                    const top = (toMins(ag.horaInicio) - minHour * 60) / 60 * SLOT_H;
-                    const height = Math.max(32, (toMins(ag.horaFim) - toMins(ag.horaInicio)) / 60 * SLOT_H);
-                    const cor = ag.profissionalId != null ? (profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)") : "oklch(50% 0.06 68)";
-                    const { icon: SvcIcon } = getServiceIcon(ag.servicoNome);
-                    const cfg = statusConfig[ag.status];
-                    const isInativo = ag.status === "cancelado" || ag.status === "faltou" || ag.status === "remarcado";
-                    return (
-                      <div key={`ag-${ag.id}-${idx}`}
-                        className="absolute rounded-lg px-2 py-1 cursor-pointer hover:brightness-95 transition-all overflow-hidden"
-                        style={{
-                          top: top + 1,
-                          left: 52,
-                          right: 8,
-                          height: height - 2,
-                          backgroundColor: cor,
-                          opacity: isInativo ? 0.5 : 1,
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                        }}
-                        onClick={() => { setAgendamentoSelecionado(ag.id); setDiaAberto(null); }}
-                      >
-                        <div className="flex items-center gap-1">
-                          <SvcIcon className="w-3 h-3 flex-shrink-0 text-white/90" />
-                          <span className="text-[11px] font-semibold text-white truncate">
-                            {ag.horaInicio.slice(0,5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
-                          </span>
-                          {cfg && (
-                            <span className="ml-auto text-[9px] font-medium px-1 py-0.5 rounded flex-shrink-0"
-                              style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white" }}>
-                              {cfg.label}
+                  {/* Agendamentos — com algoritmo de colunas para evitar sobreposição */}
+                  {(() => {
+                    // Algoritmo: detecta conflitos de horário e distribui em colunas lado a lado
+                    type AgLayout = { ag: typeof agsNoDia[0]; col: number; totalCols: number };
+                    const layout: AgLayout[] = [];
+                    for (const ag of agsNoDia) {
+                      const sA = toMins(ag.horaInicio);
+                      const eA = toMins(ag.horaFim);
+                      const colsUsed = new Set<number>();
+                      for (const prev of layout) {
+                        const sB = toMins(prev.ag.horaInicio);
+                        const eB = toMins(prev.ag.horaFim);
+                        if (sA < eB && eA > sB) colsUsed.add(prev.col);
+                      }
+                      let col = 0;
+                      while (colsUsed.has(col)) col++;
+                      layout.push({ ag, col, totalCols: 1 });
+                    }
+                    // Recalcular totalCols para cada agendamento
+                    for (const item of layout) {
+                      const sA = toMins(item.ag.horaInicio);
+                      const eA = toMins(item.ag.horaFim);
+                      let maxCol = item.col;
+                      for (const other of layout) {
+                        const sB = toMins(other.ag.horaInicio);
+                        const eB = toMins(other.ag.horaFim);
+                        if (sA < eB && eA > sB) maxCol = Math.max(maxCol, other.col);
+                      }
+                      item.totalCols = maxCol + 1;
+                    }
+                    const GUTTER = 3; // px entre colunas
+                    const LEFT_OFFSET = 52;
+                    const RIGHT_MARGIN = 8;
+                    return layout.map(({ ag, col, totalCols }, idx) => {
+                      const top = (toMins(ag.horaInicio) - minHour * 60) / 60 * SLOT_H;
+                      const height = Math.max(32, (toMins(ag.horaFim) - toMins(ag.horaInicio)) / 60 * SLOT_H);
+                      const cor = ag.profissionalId != null ? (profMap[ag.profissionalId]?.cor ?? "oklch(50% 0.06 68)") : "oklch(50% 0.06 68)";
+                      const { icon: SvcIcon } = getServiceIcon(ag.servicoNome);
+                      const cfg = statusConfig[ag.status];
+                      const isInativo = ag.status === "cancelado" || ag.status === "faltou" || ag.status === "remarcado";
+                      // Calcular posição horizontal com base na coluna
+                      const colLeft = totalCols > 1
+                        ? `calc(${LEFT_OFFSET}px + ${col} * ((100% - ${LEFT_OFFSET}px - ${RIGHT_MARGIN}px - ${(totalCols - 1) * GUTTER}px) / ${totalCols} + ${GUTTER}px))`
+                        : LEFT_OFFSET;
+                      const colWidth = totalCols > 1
+                        ? `calc((100% - ${LEFT_OFFSET}px - ${RIGHT_MARGIN}px - ${(totalCols - 1) * GUTTER}px) / ${totalCols})`
+                        : undefined;
+                      return (
+                        <div key={`ag-${ag.id}-${idx}`}
+                          className="absolute rounded-lg px-2 py-1 cursor-pointer hover:brightness-95 transition-all overflow-hidden"
+                          style={{
+                            top: top + 1,
+                            left: colLeft,
+                            right: totalCols > 1 ? undefined : RIGHT_MARGIN,
+                            width: colWidth,
+                            height: height - 2,
+                            backgroundColor: cor,
+                            opacity: isInativo ? 0.5 : 1,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                          }}
+                          onClick={() => { setAgendamentoSelecionado(ag.id); setDiaAberto(null); }}
+                        >
+                          <div className="flex items-center gap-1">
+                            <SvcIcon className="w-3 h-3 flex-shrink-0 text-white/90" />
+                            <span className="text-[11px] font-semibold text-white truncate">
+                              {ag.horaInicio.slice(0,5)} {clienteMap[ag.clienteId]?.split(" ")[0] ?? ""}
                             </span>
+                            {cfg && (
+                              <span className="ml-auto text-[9px] font-medium px-1 py-0.5 rounded flex-shrink-0"
+                                style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white" }}>
+                                {cfg.label}
+                              </span>
+                            )}
+                          </div>
+                          {height > 44 && (
+                            <p className="text-[10px] text-white/80 truncate mt-0.5">{ag.servicoNome}</p>
+                          )}
+                          {height > 60 && ag.profissionalId != null && profMap[ag.profissionalId] && (
+                            <p className="text-[10px] text-white/70 truncate">{profMap[ag.profissionalId]?.nome?.split(" ")[0]}</p>
                           )}
                         </div>
-                        {height > 44 && (
-                          <p className="text-[10px] text-white/80 truncate mt-0.5">{ag.servicoNome}</p>
-                        )}
-                        {height > 60 && ag.profissionalId != null && profMap[ag.profissionalId] && (
-                          <p className="text-[10px] text-white/70 truncate">{profMap[ag.profissionalId]?.nome?.split(" ")[0]}</p>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
