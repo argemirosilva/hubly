@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2, Calendar, Link2, Unlink } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -768,9 +768,6 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {/* Google Calendar Integration */}
-      <GoogleCalendarCard />
-
       <button onClick={handleSave} disabled={updateMutation.isPending || salvarPrefsMutation.isPending} className="btn-primary">
         <Save className="w-4 h-4" />
         {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
@@ -861,120 +858,3 @@ export default function Configuracoes() {
   );
 }
 
-// ─── Google Calendar Card ─────────────────────────────────────────────────────
-function GoogleCalendarCard() {
-  const utils = trpc.useUtils();
-  const { data: status, isLoading, refetch } = trpc.googleCalendar.getStatus.useQuery();
-
-  // Detectar retorno do Google OAuth (?google_success=1) e atualizar o status
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("google_success") === "1") {
-      utils.googleCalendar.getStatus.invalidate().then(() => refetch());
-      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
-      import("sonner").then(({ toast }) => toast.success("Google Agenda conectado com sucesso!"));
-    } else if (params.get("google_error")) {
-      const errMsg = decodeURIComponent(params.get("google_error") ?? "Erro desconhecido");
-      import("sonner").then(({ toast }) => toast.error(`Erro ao conectar Google Agenda: ${errMsg}`));
-      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
-    }
-  }, []);
-
-  const gerarUrlMut = trpc.googleCalendar.gerarUrlAutorizacao.useMutation({
-    onSuccess: (data) => {
-      // Redirecionar para o Google OAuth
-      window.location.href = data.url;
-    },
-    onError: (err: any) => {
-      import("sonner").then(({ toast }) => toast.error(err.message ?? "Erro ao conectar Google"));
-    },
-  });
-
-  const desconectarMut = trpc.googleCalendar.desconectar.useMutation({
-    onSuccess: () => {
-      utils.googleCalendar.getStatus.invalidate();
-      import("sonner").then(({ toast }) => toast.success("Google Calendar desconectado"));
-    },
-  });
-
-  return (
-    <div className="card-elegant">
-      <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
-        <Calendar className="w-4 h-4 text-muted-foreground" />
-        <h3 className="font-semibold text-sm">Google Agenda</h3>
-        <span className="ml-auto text-xs text-muted-foreground">Sincronize agendamentos automaticamente</span>
-      </div>
-      <div className="p-5 space-y-4">
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" /> Verificando conexão...
-          </div>
-        ) : status?.conectado ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="w-4 h-4 text-green-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-green-800">Google Agenda conectado</p>
-                {status.email && <p className="text-xs text-green-600 truncate">{status.email}</p>}
-                {status.calendarNome && <p className="text-xs text-green-600 truncate">Calendário: {status.calendarNome}</p>}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Novos agendamentos e bloqueios serão sincronizados automaticamente com o Google Agenda.
-              Compromissos pessoais do Google <strong>não</strong> afetam a agenda do Hubly.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => desconectarMut.mutate()}
-              disabled={desconectarMut.isPending}
-            >
-              {desconectarMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
-              Desconectar Google Agenda
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Conecte sua conta Google para sincronizar agendamentos e bloqueios automaticamente com o Google Agenda.
-              Um calendário dedicado "Hubly" será criado na sua conta.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
-              {[
-                "Agendamentos aparecem automaticamente",
-                "Bloqueios sincronizados em tempo real",
-                "Calendário dedicado separado",
-                "Compromissos pessoais não interferem",
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-green-500 shrink-0" />
-                  {item}
-                </div>
-              ))}
-            </div>
-            {/* Aviso sobre tela de verificação do Google */}
-            <div className="flex gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-800 space-y-1">
-                <p className="font-semibold">Aviso de segurança do Google</p>
-                <p>Ao clicar em Conectar, o Google pode exibir uma tela dizendo <strong>"O Google não verificou este app"</strong>. Isso é normal — o app Hubly ainda está em processo de verificação pelo Google.</p>
-                <p>Para continuar: clique em <strong>"Avançado"</strong> e depois no link <strong>"Acessar orizontech.com.br (não seguro)"</strong>. Não há risco — você está conectando sua própria conta ao seu sistema.</p>
-              </div>
-            </div>
-            <Button
-              className="gap-2"
-              onClick={() => gerarUrlMut.mutate()}
-              disabled={gerarUrlMut.isPending}
-            >
-              {gerarUrlMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-              Conectar Google Agenda
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
