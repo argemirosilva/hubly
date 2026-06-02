@@ -864,7 +864,21 @@ export default function Configuracoes() {
 // ─── Google Calendar Card ─────────────────────────────────────────────────────
 function GoogleCalendarCard() {
   const utils = trpc.useUtils();
-  const { data: status, isLoading } = trpc.googleCalendar.getStatus.useQuery();
+  const { data: status, isLoading, refetch } = trpc.googleCalendar.getStatus.useQuery();
+
+  // Detectar retorno do Google OAuth (?google_success=1) e atualizar o status
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_success") === "1") {
+      utils.googleCalendar.getStatus.invalidate().then(() => refetch());
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+      import("sonner").then(({ toast }) => toast.success("Google Agenda conectado com sucesso!"));
+    } else if (params.get("google_error")) {
+      const errMsg = decodeURIComponent(params.get("google_error") ?? "Erro desconhecido");
+      import("sonner").then(({ toast }) => toast.error(`Erro ao conectar Google Agenda: ${errMsg}`));
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+    }
+  }, []);
 
   const gerarUrlMut = trpc.googleCalendar.gerarUrlAutorizacao.useMutation({
     onSuccess: (data) => {
