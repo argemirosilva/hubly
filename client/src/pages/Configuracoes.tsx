@@ -961,7 +961,7 @@ function GoogleCalendarCard() {
               <div className="text-xs text-amber-800 space-y-1">
                 <p className="font-semibold">Aviso de segurança do Google</p>
                 <p>Ao clicar em Conectar, o Google pode exibir uma tela dizendo <strong>"O Google não verificou este app"</strong>. Isso é normal — o app Hubly ainda está em processo de verificação pelo Google.</p>
-                <p>Para continuar com segurança: clique em <strong>"Avançado"</strong> (ou "Ocultar avançado") e depois em <strong>"Acessar orizontech.com.br (não seguro)"</strong>. Não há risco — você está conectando sua própria conta ao seu sistema.</p>
+                <p>Para continuar: clique em <strong>"Avançado"</strong> e depois no link <strong>"Acessar orizontech.com.br (não seguro)"</strong>. Não há risco — você está conectando sua própria conta ao seu sistema.</p>
               </div>
             </div>
             <Button
