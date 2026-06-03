@@ -1296,6 +1296,7 @@ export const googleCalendarTokensUsuario = mysqlTable("google_calendar_tokens_us
   expiresAt: timestamp("expiresAt"),
   calendarId: varchar("calendarId", { length: 255 }).default("primary"),
   calendarNome: varchar("calendarNome", { length: 255 }),
+  corEvento: varchar("corEvento", { length: 7 }),  // cor hex livre para eventos no Google Calendar (ex: #8B4513), null = cor por status
   email: varchar("email", { length: 320 }),
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

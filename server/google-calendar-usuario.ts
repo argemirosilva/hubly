@@ -201,6 +201,7 @@ export async function getStatusConexaoGoogleUsuario(userId: number): Promise<{
   email?: string;
   calendarNome?: string;
   calendarId?: string;
+  corEvento?: string;
 }> {
   const db = await getDb();
   if (!db) return { conectado: false };
@@ -214,6 +215,7 @@ export async function getStatusConexaoGoogleUsuario(userId: number): Promise<{
     email: row.email ?? undefined,
     calendarNome: row.calendarNome ?? undefined,
     calendarId: row.calendarId ?? undefined,
+    corEvento: row.corEvento ?? undefined,
   };
 }
 
@@ -259,6 +261,7 @@ export async function sincronizarAgendamentoGoogleUsuario(params: {
   status: string;
   observacoes?: string;
   googleEventId?: string | null;
+  corEvento?: string | null; // cor hex livre (ex: "#8B4513"), se null usa cor por status
 }): Promise<string | null> {
   try {
     const cliente = await getClienteAutenticadoUsuario(params.userId);
@@ -284,6 +287,13 @@ export async function sincronizarAgendamentoGoogleUsuario(params: {
       cancelado: 4,
       pre_agendado: 5,
     };
+
+    // Definir cor do evento: se o usuário configurou uma cor livre, usar colorRgb;
+    // caso contrário, usar colorId baseado no status
+    const corFields = params.corEvento
+      ? { colorRgb: params.corEvento }
+      : { colorId: String(corStatus[params.status] ?? 9) };
+
     const eventBody = {
       summary: `${params.clienteNome} — ${params.servicoNome}`,
       description: [
@@ -294,7 +304,7 @@ export async function sincronizarAgendamentoGoogleUsuario(params: {
       start: { dateTime: startDateTime, timeZone },
       end: { dateTime: endDateTime, timeZone },
       status: statusGoogle[params.status] ?? "confirmed",
-      colorId: String(corStatus[params.status] ?? 9),
+      ...corFields,
       extendedProperties: {
         private: {
           hublyAgendamentoId: String(params.agendamentoId),

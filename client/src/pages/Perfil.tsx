@@ -140,6 +140,24 @@ export default function Perfil() {
     onError: (err) => toast.error(err.message || "Erro ao renomear agenda"),
   });
 
+  // Cor dos eventos no Google Calendar
+  const [corEvento, setCorEvento] = useState<string>("#039be5");
+  const [corEventoInicial, setCorEventoInicial] = useState<string>("#039be5");
+  useEffect(() => {
+    if (googleStatus?.corEvento) {
+      setCorEvento(googleStatus.corEvento);
+      setCorEventoInicial(googleStatus.corEvento);
+    }
+  }, [googleStatus?.corEvento]);
+  const configurarCor = trpc.googleCalendarUsuario.configurarCor.useMutation({
+    onSuccess: () => {
+      toast.success("Cor dos eventos atualizada!");
+      setCorEventoInicial(corEvento);
+      refetchGoogle();
+    },
+    onError: (err) => toast.error(err.message || "Erro ao salvar cor"),
+  });
+
   // Detectar retorno do OAuth Google
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -367,6 +385,36 @@ export default function Perfil() {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Cor dos eventos */}
+              <div className="rounded-xl border px-4 py-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Cor dos eventos no Google Agenda</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={corEvento}
+                      onChange={(e) => setCorEvento(e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-border p-0.5 bg-transparent"
+                      title="Escolher cor"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium" style={{ color: corEvento }}>{corEvento.toUpperCase()}</p>
+                    <p className="text-xs text-muted-foreground">Clique na bolinha para abrir a paleta de cores</p>
+                  </div>
+                  {corEvento !== corEventoInicial && (
+                    <Button
+                      size="sm"
+                      className="h-7 px-3 text-xs flex-shrink-0"
+                      onClick={() => configurarCor.mutate({ cor: corEvento })}
+                      disabled={configurarCor.isPending}
+                    >
+                      {configurarCor.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvar"}
+                    </Button>
+                  )}
                 </div>
               </div>
 

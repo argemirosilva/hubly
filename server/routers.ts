@@ -108,7 +108,7 @@ import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
 import { nanoid } from "nanoid";
-import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos } from "../drizzle/schema";
+import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos, googleCalendarTokensUsuario } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
 
 /**
@@ -1360,6 +1360,11 @@ export const appRouter = router({
               const { getServicosByEmpresa } = await import('./db');
               const servicos = await getServicosByEmpresa(empresa.id);
               const servicoRow = servicos.find(s => s.id === input.servicoId);
+              // Buscar cor configurada pelo usuário para eventos no Google Calendar
+              const [tokenRowCreate] = await db.select({ corEvento: googleCalendarTokensUsuario.corEvento })
+                .from(googleCalendarTokensUsuario)
+                .where(eq(googleCalendarTokensUsuario.userId, su.id))
+                .limit(1);
               const googleEventId = await sincronizarAgendamentoGoogleUsuario({
                 userId: su.id,
                 agendamentoId: agId,
@@ -1371,6 +1376,7 @@ export const appRouter = router({
                 horaFim: agHoraFim,
                 status: agStatus,
                 observacoes: agObs,
+                corEvento: tokenRowCreate?.corEvento ?? null,
               });
               if (googleEventId) {
                 await db.insert(googleCalendarEventos).values({
@@ -1873,6 +1879,11 @@ export const appRouter = router({
             const { getServicosByEmpresa: getSvcs } = await import('./db');
             const svcs = await getSvcs(empresa.id);
             const servicoRow = svcs.find(s => s.id === agAtualizado.servicoId);
+            // Buscar cor configurada pelo usuário para eventos no Google Calendar
+            const [tokenRowUpdate] = await db.select({ corEvento: googleCalendarTokensUsuario.corEvento })
+              .from(googleCalendarTokensUsuario)
+              .where(eq(googleCalendarTokensUsuario.userId, su.id))
+              .limit(1);
             const googleEventId = await sincronizarAgendamentoGoogleUsuario({
               userId: su.id,
               agendamentoId: id,
@@ -1885,6 +1896,7 @@ export const appRouter = router({
               status: agAtualizado.status,
               observacoes: agAtualizado.observacoes ?? undefined,
               googleEventId: eventoRow?.googleEventId ?? null,
+              corEvento: tokenRowUpdate?.corEvento ?? null,
             });
             if (googleEventId) {
               await db.insert(googleCalendarEventos).values({

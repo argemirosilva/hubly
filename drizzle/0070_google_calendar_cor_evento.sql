@@ -1,0 +1,1 @@
+ALTER TABLE `google_calendar_tokens_usuario` ADD COLUMN `corEvento` varchar(7) DEFAULT NULL COMMENT 'Cor hex livre para eventos no Google Calendar (ex: #8B4513), null = cor por status';--> statement-breakpoint
