@@ -245,6 +245,13 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
       setServicosSelecionados(recalculados);
       const ultimo = [...recalculados].reverse().find(i => i.servicoId);
       if (ultimo?.horaFim) setForm(f => ({ ...f, horaFim: ultimo.horaFim! }));
+    } else if (campo === "horaFim" && valor) {
+      // Se mudou horaFim do último serviço com serviço selecionado, sincroniza com form.horaFim
+      setServicosSelecionados(novaLista);
+      const ultimoIdx = [...novaLista].map((item, i) => item.servicoId ? i : -1).filter(i => i >= 0).pop();
+      if (ultimoIdx !== undefined && ultimoIdx === index) {
+        setForm(f => ({ ...f, horaFim: valor }));
+      }
     } else {
       setServicosSelecionados(novaLista);
     }
@@ -483,7 +490,18 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                   <Input
                     type="time"
                     value={form.horaFim}
-                    onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))}
+                    onChange={e => {
+                      const novoFim = e.target.value;
+                      setForm(f => ({ ...f, horaFim: novoFim }));
+                      // Sincroniza o horaFim do último serviço adicionado com serviço selecionado
+                      setServicosSelecionados(prev => {
+                        const ultimoIdx = [...prev].map((item, i) => item.servicoId ? i : -1).filter(i => i >= 0).pop();
+                        if (ultimoIdx === undefined) return prev;
+                        return prev.map((item, i) =>
+                          i === ultimoIdx ? { ...item, horaFim: novoFim } : item
+                        );
+                      });
+                    }}
                     className="h-9 text-sm w-full"
                   />
                 </div>
