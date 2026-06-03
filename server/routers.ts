@@ -2299,47 +2299,38 @@ export const appRouter = router({
                 const dataFormatada = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', {
                   weekday: 'long', day: '2-digit', month: 'long'
                 });
-                // Verificar se existe automação personalizada para este evento
+                // REGRA: só envia se existir automação ATIVA — sem automação, silencia
                 const automacaoProfissional = await getAutomacaoByEvento(empresa.id, 'profissional_atribuido');
-                const templateVarsProfissional = {
-                  nome_cliente: cliente.nome,
-                  primeiro_nome: cliente.nome.split(' ')[0],
-                  servico: servico?.nome ?? '',
-                  data: dataFormatada,
-                  hora: `${String(agAtualizado.horaInicio ?? '').slice(0, 5)} – ${String(agAtualizado.horaFim ?? '').slice(0, 5)}`,
-                  profissional: profissional?.nome ?? '',
-                  empresa: empresa.nome,
-                  valor: `R$ ${parseFloat(String(agAtualizado.valorTotal ?? '0')).toFixed(2).replace('.', ',')}`,
-                };
-                const mensagem = automacaoProfissional?.corpoMensagem
-                  ? processarVariaveisTemplate(automacaoProfissional.corpoMensagem, templateVarsProfissional)
-                  : [
-                      '📋 *Atualização do seu agendamento*',
-                      '',
-                      `Olá, *${cliente.nome}*! Seu agendamento foi atualizado.`,
-                      '',
-                      `📅 *Data:* ${dataFormatada}`,
-                      `⏰ *Horário:* ${agAtualizado.horaInicio.slice(0, 5)}`,
-                      servico ? `✂️ *Serviço:* ${servico.nome}` : null,
-                      profissional ? `👤 *Profissional:* ${profissional.nome}` : null,
-                      '',
-                      `_${empresa.nome}_`,
-                    ].filter(Boolean).join('\n');
-                await registrarEnvioAutomacao({
-                  empresaId: empresa.id,
-                  agendamentoId: input.agendamentoId,
-                  automacaoId: automacaoProfissional?.id,
-                  automacaoNome: automacaoProfissional?.nome ?? 'Profissional Atribuído',
-                  clienteId: cliente.id,
-                  clienteNome: cliente.nome,
-                  telefone,
-                  canal: 'whatsapp',
-                  mensagem,
-                  status: 'pendente',
-                  enviarEm: new Date(),
-                  servicoNome: servico?.nome ?? undefined,
-                });
-                console.log(`[Fila] Profissional atribuído enfileirado para ag. ${input.agendamentoId} (${telefone})`);
+                if (automacaoProfissional?.corpoMensagem) {
+                  const templateVarsProfissional = {
+                    nome_cliente: cliente.nome,
+                    primeiro_nome: cliente.nome.split(' ')[0],
+                    servico: servico?.nome ?? '',
+                    data: dataFormatada,
+                    hora: `${String(agAtualizado.horaInicio ?? '').slice(0, 5)} – ${String(agAtualizado.horaFim ?? '').slice(0, 5)}`,
+                    profissional: profissional?.nome ?? '',
+                    empresa: empresa.nome,
+                    valor: `R$ ${parseFloat(String(agAtualizado.valorTotal ?? '0')).toFixed(2).replace('.', ',')}`,
+                  };
+                  const mensagem = processarVariaveisTemplate(automacaoProfissional.corpoMensagem, templateVarsProfissional);
+                  await registrarEnvioAutomacao({
+                    empresaId: empresa.id,
+                    agendamentoId: input.agendamentoId,
+                    automacaoId: automacaoProfissional.id,
+                    automacaoNome: automacaoProfissional.nome ?? 'Profissional Atribuído',
+                    clienteId: cliente.id,
+                    clienteNome: cliente.nome,
+                    telefone,
+                    canal: 'whatsapp',
+                    mensagem,
+                    status: 'pendente',
+                    enviarEm: new Date(),
+                    servicoNome: servico?.nome ?? undefined,
+                  });
+                  console.log(`[Fila] Profissional atribuído enfileirado para ag. ${input.agendamentoId} (${telefone})`);
+                } else {
+                  console.log(`[Fila] Envio ignorado — sem automação 'profissional_atribuido' ativa para empresa ${empresa.id}`);
+                }
               }
             }
           } catch (e) {

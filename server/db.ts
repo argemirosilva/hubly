@@ -1928,6 +1928,17 @@ export async function registrarEnvioAutomacao(data: {
   const db = await getDb();
   if (!db) return;
 
+  // ╔══════════════════════════════════════════════════════════════════════════╗
+  // ║  GUARD: Bloquear envio sem automação ativa (diretriz ZERO HARDCODED)    ║
+  // ║  Exceções: reenvio manual (automacaoNome contém 'reenvio') e testes     ║
+  // ╚══════════════════════════════════════════════════════════════════════════╝
+  const isReenvio = data.automacaoNome?.toLowerCase().includes('reenvio');
+  const isTeste = data.isTeste === true;
+  if (!data.automacaoId && !isReenvio && !isTeste) {
+    console.warn(`[GUARD] BLOQUEADO: tentativa de envio sem automacaoId. empresaId=${data.empresaId}, telefone=${data.telefone}, msg="${(data.mensagem ?? '').slice(0, 50)}...". Nenhuma mensagem será enviada.`);
+    return;
+  }
+
   // Determinar status automaticamente: se enviarEm for > 60s no futuro → 'agendado'; caso contrário manter o status informado
   const agora = Date.now();
   const limiarFuturo = 60 * 1000; // 60 segundos
