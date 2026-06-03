@@ -364,8 +364,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1 min-w-0">
-          <div className="grid grid-cols-2 gap-4 min-w-0 w-full">
+        <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1 min-w-0 box-border">
+          <div className="grid grid-cols-2 gap-4 min-w-0 w-full overflow-x-hidden">
             {/* Cliente */}
             <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
@@ -469,11 +469,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                   type="date"
                   value={form.data}
                   onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                  className="h-9 text-sm w-full"
+                  className="h-9 text-sm w-full max-w-full box-border"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-3 w-full min-w-0">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs text-muted-foreground block">Início</Label>
                   <Input
                     type="time"
@@ -482,10 +482,10 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                       setForm(f => ({ ...f, horaInicio: e.target.value }));
                       recalcularHoraFim(e.target.value, servicosSelecionados);
                     }}
-                    className="h-9 text-sm w-full"
+                    className="h-9 text-sm w-full max-w-full box-border"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs text-muted-foreground block">Fim <span className="text-[10px] text-muted-foreground/60">(auto)</span></Label>
                   <Input
                     type="time"
@@ -502,7 +502,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                         );
                       });
                     }}
-                    className="h-9 text-sm w-full"
+                    className="h-9 text-sm w-full max-w-full box-border"
                   />
                 </div>
               </div>
@@ -680,23 +680,23 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
 
                       {/* Horário por item (exibido quando há serviço selecionado) */}
                       {item.servicoId && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
+                        <div className="grid grid-cols-2 gap-2 w-full min-w-0">
+                          <div className="min-w-0">
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Início</Label>
                             <Input
                               type="time"
                               value={item.horaInicio ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaInicio", e.target.value)}
-                              className="h-8 text-xs w-full"
+                              className="h-8 text-xs w-full max-w-full box-border"
                             />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Fim</Label>
                             <Input
                               type="time"
                               value={item.horaFim ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaFim", e.target.value)}
-                              className="h-8 text-xs w-full"
+                              className="h-8 text-xs w-full max-w-full box-border"
                             />
                           </div>
                         </div>
