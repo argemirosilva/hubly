@@ -469,11 +469,12 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                   type="date"
                   value={form.data}
                   onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                  className="h-9 text-sm w-full max-w-full box-border"
+                  className="h-9 text-sm w-full box-border"
+                  style={{ maxWidth: '100%', minWidth: 0 }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3 w-full min-w-0">
-                <div className="space-y-1.5 min-w-0">
+              <div className="flex gap-3 w-full" style={{ minWidth: 0 }}>
+                <div className="flex-1 space-y-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
                   <Label className="text-xs text-muted-foreground block">Início</Label>
                   <Input
                     type="time"
@@ -482,10 +483,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                       setForm(f => ({ ...f, horaInicio: e.target.value }));
                       recalcularHoraFim(e.target.value, servicosSelecionados);
                     }}
-                    className="h-9 text-sm w-full max-w-full box-border"
+                    className="h-9 text-sm w-full box-border"
+                    style={{ minWidth: 0 }}
                   />
                 </div>
-                <div className="space-y-1.5 min-w-0">
+                <div className="flex-1 space-y-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
                   <Label className="text-xs text-muted-foreground block">Fim <span className="text-[10px] text-muted-foreground/60">(auto)</span></Label>
                   <Input
                     type="time"
@@ -493,7 +495,6 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                     onChange={e => {
                       const novoFim = e.target.value;
                       setForm(f => ({ ...f, horaFim: novoFim }));
-                      // Sincroniza o horaFim do último serviço adicionado com serviço selecionado
                       setServicosSelecionados(prev => {
                         const ultimoIdx = [...prev].map((item, i) => item.servicoId ? i : -1).filter(i => i >= 0).pop();
                         if (ultimoIdx === undefined) return prev;
@@ -502,7 +503,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                         );
                       });
                     }}
-                    className="h-9 text-sm w-full max-w-full box-border"
+                    className="h-9 text-sm w-full box-border"
+                    style={{ minWidth: 0 }}
                   />
                 </div>
               </div>
@@ -680,23 +682,25 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
 
                       {/* Horário por item (exibido quando há serviço selecionado) */}
                       {item.servicoId && (
-                        <div className="grid grid-cols-2 gap-2 w-full min-w-0">
-                          <div className="min-w-0">
+                        <div className="flex gap-2 w-full" style={{ minWidth: 0 }}>
+                          <div className="flex-1" style={{ minWidth: 0, overflow: 'hidden' }}>
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Início</Label>
                             <Input
                               type="time"
                               value={item.horaInicio ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaInicio", e.target.value)}
-                              className="h-8 text-xs w-full max-w-full box-border"
+                              className="h-8 text-xs w-full box-border"
+                              style={{ minWidth: 0 }}
                             />
                           </div>
-                          <div className="min-w-0">
+                          <div className="flex-1" style={{ minWidth: 0, overflow: 'hidden' }}>
                             <Label className="text-[10px] text-muted-foreground mb-1 block">Fim</Label>
                             <Input
                               type="time"
                               value={item.horaFim ?? ""}
                               onChange={e => handleItemHoraChange(index, "horaFim", e.target.value)}
-                              className="h-8 text-xs w-full max-w-full box-border"
+                              className="h-8 text-xs w-full box-border"
+                              style={{ minWidth: 0 }}
                             />
                           </div>
                         </div>
