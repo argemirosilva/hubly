@@ -357,7 +357,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={inlinePage ? "fixed inset-0 max-w-none max-h-none h-full w-full rounded-none border-0 translate-x-0 translate-y-0 top-0 left-0 bottom-auto sm:inset-auto sm:top-[50%] sm:left-[50%] sm:max-w-lg sm:max-h-[90vh] sm:h-auto sm:w-full sm:rounded-lg sm:translate-x-[-50%] sm:translate-y-[-50%] p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col" : "max-w-lg p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col max-h-[95dvh] sm:max-h-[90vh] w-[calc(100%-1rem)] sm:w-full"}>
+      <DialogContent className={inlinePage ? "fixed inset-0 max-w-none max-h-none h-full w-full rounded-none border-0 translate-x-0 translate-y-0 top-0 left-0 bottom-auto sm:inset-auto sm:top-[50%] sm:left-[50%] sm:max-w-lg sm:max-h-[90vh] sm:h-auto sm:w-full sm:rounded-lg sm:translate-x-[-50%] sm:translate-y-[-50%] p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col" : "p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col max-h-[90dvh] sm:max-h-[90vh] sm:max-w-lg"}>
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
