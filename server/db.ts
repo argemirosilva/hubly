@@ -2240,9 +2240,30 @@ export async function getComissoesPagarDetalhadas(
     let servicoNome: string | null = null;
     if (ag[0]) {
       const cl = await db.select({ nome: clientes.nome }).from(clientes).where(eq(clientes.id, ag[0].clienteId)).limit(1);
-      const sv = await db.select({ nome: servicos.nome }).from(servicos).where(eq(servicos.id, ag[0].servicoId)).limit(1);
       clienteNome = cl[0]?.nome ?? null;
-      servicoNome = sv[0]?.nome ?? null;
+
+      // Buscar serviço(s) específico(s) deste profissional nos itens do agendamento
+      const itensProf = await db.select({ servicoId: agendamentoItens.servicoId })
+        .from(agendamentoItens)
+        .where(and(
+          eq(agendamentoItens.agendamentoId, c.agendamentoId),
+          eq(agendamentoItens.profissionalId, c.profissionalId)
+        ));
+
+      if (itensProf.length > 0) {
+        // Buscar nomes de todos os serviços deste profissional
+        const nomesServicos = await Promise.all(
+          itensProf.map(async (item) => {
+            const sv = await db.select({ nome: servicos.nome }).from(servicos).where(eq(servicos.id, item.servicoId)).limit(1);
+            return sv[0]?.nome ?? null;
+          })
+        );
+        servicoNome = nomesServicos.filter(Boolean).join(' + ') || null;
+      } else {
+        // Fallback: buscar pelo servicoId principal do agendamento (agendamentos antigos sem itens)
+        const sv = await db.select({ nome: servicos.nome }).from(servicos).where(eq(servicos.id, ag[0].servicoId)).limit(1);
+        servicoNome = sv[0]?.nome ?? null;
+      }
     }
     return {
       ...c,
