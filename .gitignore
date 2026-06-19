@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .project-config.json
+
+# Android release signing (never commit)
+android/keystore/
+android/keystore.properties
