@@ -31,7 +31,6 @@ import ContasPagar from "./pages/ContasPagar";
 import ContasReceber from "./pages/ContasReceber";
 import IAClientes from "./pages/IAClientes";
 import IAMarketing from "./pages/IAMarketing";
-import DbConsole from "./pages/DbConsole";
 import Insights from "./pages/Insights";
 import Manual from "./pages/Manual";
 import Pacotes from "./pages/Pacotes";
@@ -111,7 +110,6 @@ function Router() {
       <Route path="/admin/contas-receber">{() => <WithAdmin><ContasReceber /></WithAdmin>}</Route>
       <Route path="/admin/ia-clientes">{() => <Redirect to="/admin/insights" />}</Route>
       <Route path="/admin/ia-marketing">{() => <WithAdmin><IAMarketing /></WithAdmin>}</Route>
-      <Route path="/admin/db-console">{() => <WithAdmin><DbConsole /></WithAdmin>}</Route>
       <Route path="/admin/insights">{() => <WithAdmin><Insights /></WithAdmin>}</Route>
       <Route path="/admin/manual">{() => <WithAdmin><Manual /></WithAdmin>}</Route>
       <Route path="/admin/suporte">{() => <WithAdmin><Suporte /></WithAdmin>}</Route>
