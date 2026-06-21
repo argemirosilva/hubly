@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus, Tag, Megaphone
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus, Tag, Megaphone, Database
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -124,6 +124,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/importacao-inteligente', label: 'Importar Dados', icon: Download, permissao: 'configuracoesEditar' },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings, permissao: "configuracoesVer" },
       { href: "/admin/assinatura", label: "Assinatura", icon: CreditCard, permissao: "__admin__" },
+      { href: "/admin/db-console", label: "Console DB", icon: Database, permissao: "__admin__" },
     ],
   },
 ];

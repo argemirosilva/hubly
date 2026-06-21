@@ -107,6 +107,7 @@ import { pacotesRouter } from "./routers/pacotes";
 import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
+import { dbConsoleRouter } from "./routers/dbConsole";
 import { nanoid } from "nanoid";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos, googleCalendarTokensUsuario } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
@@ -367,6 +368,7 @@ export const appRouter = router({
   googleCalendarUsuario: googleCalendarUsuarioRouter,
   suporte: suporteRouter,
   orizontech: orizontechRouter,
+  dbConsole: dbConsoleRouter,
   portal: portalRouter,
   importacao: importacaoRouter,
   pacotes: pacotesRouter,
