@@ -567,6 +567,113 @@ Retorne um JSON com:
     }),
 
   /**
+   * Gera roteiro detalhado (vídeo) ou conteúdo de texto (post estático) via IA e salva no post
+   */
+  gerarRoteiro: protectedProcedure
+    .input(z.object({
+      postId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      // Buscar o post
+      const [post] = await db.select().from(marketingPosts)
+        .where(and(eq(marketingPosts.id, input.postId), eq(marketingPosts.empresaId, empresa.id)))
+        .limit(1);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post não encontrado" });
+      // Contexto da empresa
+      const servicos = await getServicosByEmpresa(empresa.id);
+      const profissionais = await getProfissionaisByEmpresa(empresa.id);
+      const { pacotesModelos } = await import('../../drizzle/schema');
+      const pacotes = await db.select({ nome: pacotesModelos.nome })
+        .from(pacotesModelos)
+        .where(and(eq(pacotesModelos.empresaId, empresa.id), eq(pacotesModelos.ativo, true)))
+        .limit(6);
+      const pacotesNomes = pacotes.map(p => p.nome);
+      const profAtivos = profissionais.filter(p => p.ativo);
+      const contextEmpresa = [
+        `Empresa: ${empresa.nome} (${empresa.tipo})`,
+        servicos.length > 0 ? `Serviços: ${servicos.slice(0, 8).map(s => `${s.nome} (R$ ${parseFloat(String(s.valor)).toFixed(2).replace('.', ',')})`).join(', ')}` : '',
+        pacotesNomes.length > 0 ? `Pacotes: ${pacotesNomes.join(', ')}` : '',
+        profAtivos.length > 0 ? `Equipe: ${profAtivos.slice(0, 5).map(p => p.nome).join(', ')}` : '',
+      ].filter(Boolean).join('\n');
+      const isVideo = ['reels', 'tiktok', 'stories'].includes(post.formato ?? '');
+      const formatoLabel: Record<string, string> = {
+        feed: 'post de feed (imagem estática)',
+        reels: 'Reels (vídeo curto)',
+        stories: 'Stories (vídeo/imagem vertical)',
+        tiktok: 'TikTok (vídeo curto)',
+        outro: 'post',
+      };
+      const tipoLabel: Record<string, string> = {
+        promocao: 'promoção/oferta',
+        servico: 'divulgação de serviço',
+        dica: 'dica de beleza',
+        depoimento: 'depoimento de cliente',
+        novidade: 'novidade/lançamento',
+        sazonal: 'post sazonal',
+        outro: 'post geral',
+      };
+      let prompt: string;
+      if (isVideo) {
+        prompt = `Você é um especialista em produção de conteúdo para redes sociais, especialmente vídeos curtos para Instagram Reels e TikTok voltados para o setor de beleza e estética.
+
+Crie um ROTEIRO COMPLETO e DETALHADO para um ${formatoLabel[post.formato ?? 'reels']} com as seguintes informações:
+
+${contextEmpresa}
+
+Tema do vídeo: ${post.tema}
+Tipo de conteúdo: ${tipoLabel[post.tipo] ?? post.tipo}
+Plataforma: ${post.plataforma}
+${post.observacoes ? `Observações: ${post.observacoes}` : ''}
+
+O roteiro deve conter:
+1. **Duração sugerida** (ex: 15-30 segundos)
+2. **Gancho de abertura** (primeiros 3 segundos — o que aparece na tela para prender a atenção)
+3. **Cenas detalhadas** (cada cena com: o que mostrar, texto/legenda na tela, ação da pessoa/profissional, duração da cena)
+4. **Áudio/Narrão** (o que falar em cada cena ou sugestão de música/trilha)
+5. **Call to action final** (o que pedir ao espectador no final)
+6. **Dicas de produção** (iluminação, ângulo, figurino, props)
+
+Formate o roteiro de forma clara, usando títulos e numeração para cada cena. Seja específico e prático para que qualquer profissional possa executar sem dúvidas.`;
+      } else {
+        prompt = `Você é um especialista em marketing de conteúdo para redes sociais voltado ao setor de beleza e estética.
+
+Crie o CONTEÚDOM COMPLETO para um ${formatoLabel[post.formato ?? 'feed']} com as seguintes informações:
+
+${contextEmpresa}
+
+Tema: ${post.tema}
+Tipo de conteúdo: ${tipoLabel[post.tipo] ?? post.tipo}
+Plataforma: ${post.plataforma}
+${post.observacoes ? `Observações: ${post.observacoes}` : ''}
+
+O conteúdo deve incluir:
+1. **Conceito visual** (descrição detalhada da imagem/arte: cores, elementos, composição, estilo)
+2. **Texto principal** (copy que irá no corpo da imagem, se houver)
+3. **Legenda completa** (texto para a descrição do post, com emojis e chamada para ação)
+4. **Hashtags** (15-20 hashtags relevantes separadas por espaço)
+5. **Melhor horário para postar** (dia da semana e horário sugerido com justificativa)
+6. **Dicas de design** (fontes, filtros, estilo visual recomendado)
+
+Seja específico, criativo e alinhado com a identidade do negócio.`;
+      }
+      const roteiro = await invokeOpenAIText({
+        messages: [{ role: "user", content: prompt }],
+        model: "gpt-4o",
+        max_tokens: 2000,
+        temperature: 0.8,
+      });
+      // Salvar roteiro no post
+      await db.update(marketingPosts)
+        .set({ roteiro })
+        .where(eq(marketingPosts.id, input.postId));
+      return { roteiro, isVideo };
+    }),
+
+  /**
    * Lista profissionais da empresa (para seleção de responsável)
    */
   listarProfissionais: protectedProcedure

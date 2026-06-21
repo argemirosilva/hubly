@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, Plus, User, Video, Film,
   BookImage, Clapperboard, CheckCircle2, Circle, Edit3, X,
   Camera, Scissors, Play, Eraser, AlertTriangle,
+  FileText, Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -96,12 +97,14 @@ function PostCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onVerRoteiro,
   compact = false,
 }: {
   post: any;
   onStatusChange: (id: number, status: StatusProducao) => void;
   onEdit: (post: any) => void;
   onDelete: (id: number) => void;
+  onVerRoteiro?: (post: any) => void;
   compact?: boolean;
 }) {
   const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
@@ -129,6 +132,7 @@ function PostCard({
             {formatoInfo && <span className="text-muted-foreground">{formatoInfo.label}</span>}
           </div>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onVerRoteiro && <button onClick={() => onVerRoteiro(post)} className="p-0.5 hover:text-primary rounded" title="Ver roteiro/conteúdo"><FileText className="w-2.5 h-2.5" /></button>}
             <button onClick={() => onEdit(post)} className="p-0.5 hover:text-primary rounded"><Edit3 className="w-2.5 h-2.5" /></button>
             <button onClick={() => onDelete(post.id)} className="p-0.5 hover:text-destructive rounded"><X className="w-2.5 h-2.5" /></button>
           </div>
@@ -175,6 +179,11 @@ function PostCard({
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onVerRoteiro && (
+            <button onClick={() => onVerRoteiro(post)} className="p-1 hover:text-primary rounded" title="Ver roteiro/conteúdo">
+              <FileText className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button onClick={() => onEdit(post)} className="p-1 hover:text-primary rounded"><Edit3 className="w-3.5 h-3.5" /></button>
           <button onClick={() => onDelete(post.id)} className="p-1 hover:text-destructive rounded"><X className="w-3.5 h-3.5" /></button>
         </div>
@@ -356,6 +365,7 @@ export default function IAMarketing() {
   const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
   const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string }>({ open: false });
   const [modalLimpar, setModalLimpar] = useState(false);
+  const [modalRoteiro, setModalRoteiro] = useState<{ open: boolean; post?: any; roteiro?: string; isVideo?: boolean }>({ open: false });
   // Mobile: modo lista (true) ou grade (false)
   const [modoLista, setModoLista] = useState(true);
 
@@ -415,6 +425,14 @@ export default function IAMarketing() {
   });
   const atualizarPostLegadoMut = trpc.iaMarketing.atualizarPost.useMutation({
     onSuccess: () => { utils.iaMarketing.listarPosts.invalidate(); toast.success("Post atualizado"); },
+  });
+  const gerarRoteiroMut = trpc.iaMarketing.gerarRoteiro.useMutation({
+    onSuccess: (data) => {
+      setModalRoteiro(prev => ({ ...prev, roteiro: data.roteiro, isVideo: data.isVideo }));
+      refetchCalendario();
+      toast.success(data.isVideo ? "Roteiro gerado com sucesso!" : "Conteúdo gerado com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao gerar roteiro"),
   });
   const limparCalendarioMut = trpc.iaMarketing.limparCalendario.useMutation({
     onSuccess: () => {
@@ -715,6 +733,7 @@ export default function IAMarketing() {
                                 onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
                                 onEdit={p => setModalPost({ open: true, post: p })}
                                 onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
+                                onVerRoteiro={p => setModalRoteiro({ open: true, post: p, roteiro: p.roteiro ?? undefined, isVideo: ['reels','tiktok','stories'].includes(p.formato ?? '') })}
                               />
                             ))}
                           </div>
@@ -764,6 +783,7 @@ export default function IAMarketing() {
                                 onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
                                 onEdit={p => setModalPost({ open: true, post: p })}
                                 onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
+                                onVerRoteiro={p => setModalRoteiro({ open: true, post: p, roteiro: p.roteiro ?? undefined, isVideo: ['reels','tiktok','stories'].includes(p.formato ?? '') })}
                               />
                             ))}
                             {postsNoDia.length === 0 && (
@@ -1024,6 +1044,77 @@ export default function IAMarketing() {
           onClose={() => setModalPost({ open: false })}
           dataDefault={modalPost.dataDefault}
         />
+      </Dialog>
+
+      {/* Modal de Roteiro/Conteúdo */}
+      <Dialog open={modalRoteiro.open} onOpenChange={open => !open && setModalRoteiro({ open: false })}>
+        {modalRoteiro.open && modalRoteiro.post && (
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {modalRoteiro.isVideo ? (
+                  <><Clapperboard className="w-5 h-5 text-primary" /> Roteiro do Vídeo</>
+                ) : (
+                  <><FileText className="w-5 h-5 text-primary" /> Conteúdo do Post</>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-1">
+              <div className="rounded-lg border bg-muted/40 p-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Tema:</span> <strong>{modalRoteiro.post.tema}</strong></p>
+                <p><span className="text-muted-foreground">Formato:</span> {FORMATOS.find(f => f.value === modalRoteiro.post.formato)?.label ?? modalRoteiro.post.formato} · {modalRoteiro.post.plataforma}</p>
+                {modalRoteiro.post.dataPublicacao && <p><span className="text-muted-foreground">Data:</span> {modalRoteiro.post.dataPublicacao}</p>}
+              </div>
+              {modalRoteiro.roteiro ? (
+                <div className="space-y-3">
+                  <div className="rounded-lg border bg-card p-4 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+                    {modalRoteiro.roteiro}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => { navigator.clipboard.writeText(modalRoteiro.roteiro ?? ""); toast.success("Copiado!"); }}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1" /> Copiar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => gerarRoteiroMut.mutate({ postId: modalRoteiro.post!.id })}
+                      disabled={gerarRoteiroMut.isPending}
+                    >
+                      {gerarRoteiroMut.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+                      Regenerar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <p className="text-sm text-muted-foreground text-center">
+                    {modalRoteiro.isVideo
+                      ? "Gere um roteiro completo com cenas, áudio e dicas de produção para este vídeo."
+                      : "Gere o conteúdo completo com conceito visual, legenda, hashtags e dicas de design."
+                    }
+                  </p>
+                  <Button
+                    onClick={() => gerarRoteiroMut.mutate({ postId: modalRoteiro.post!.id })}
+                    disabled={gerarRoteiroMut.isPending}
+                    className="gap-2"
+                  >
+                    {gerarRoteiroMut.isPending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Gerando com IA...</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4" /> Gerar com IA</>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
       </Dialog>
 
       {/* Modal de Limpar Calendário */}

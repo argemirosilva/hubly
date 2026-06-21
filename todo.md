@@ -2704,3 +2704,10 @@
 - [x] Backend: procedure limparCalendario que deleta todos os posts do mês/ano da empresa
 - [x] Sugestões e geração de conteúdo de marketing devem considerar serviços, pacotes e profissionais da empresa
 - [x] Calendário editorial: corrigir responsividade mobile (grade 7 colunas ilegível, cards muito pequenos, controles de cabeçalho empilhados)
+
+## Marketing IA — Modal de Roteiro/Conteúdo
+- [x] Schema: adicionar coluna roteiro (text) na tabela marketing_posts
+- [x] Migration aplicada no banco
+- [x] Backend: procedure gerarRoteiro (gera roteiro para vídeo ou conteúdo para post estático via IA)
+- [x] Frontend: botão em cada card do calendário para abrir modal com roteiro/conteúdo
+- [x] Modal exibe roteiro estruturado (cenas/etapas) para vídeos e texto detalhado para posts estáticos

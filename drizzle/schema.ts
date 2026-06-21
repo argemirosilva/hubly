@@ -1270,6 +1270,7 @@ export const marketingPosts = mysqlTable("marketing_posts", {
   horarioPublicacao: varchar("horarioPublicacao", { length: 5 }), // ex: "19:00"
   responsavelId: int("responsavelId"),                   // profissionalId responsável pela produção
   responsavelNome: varchar("responsavelNome", { length: 120 }),
+  roteiro: longtext("roteiro"),                              // roteiro/conteúdo detalhado gerado pela IA
   // ─────────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
