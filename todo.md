@@ -2698,3 +2698,9 @@
 - [ ] Detectar retorno OAuth (?google_user_success=1) na página de Perfil e atualizar status
 - [ ] Sincronizar agendamento no Google do profissional ao criar/confirmar agendamento
 - [ ] Sincronizar cancelamento/remarcação no Google do profissional
+
+## Marketing IA — Melhorias
+- [x] Botão "Limpar Calendário" visível no cabeçalho do calendário editorial para remover todos os posts do mês
+- [x] Backend: procedure limparCalendario que deleta todos os posts do mês/ano da empresa
+- [x] Sugestões e geração de conteúdo de marketing devem considerar serviços, pacotes e profissionais da empresa
+- [x] Calendário editorial: corrigir responsividade mobile (grade 7 colunas ilegível, cards muito pequenos, controles de cabeçalho empilhados)

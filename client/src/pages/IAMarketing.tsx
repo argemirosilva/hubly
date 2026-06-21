@@ -8,7 +8,7 @@ import {
   Star, Lightbulb, Gift, TrendingUp, Sun, MoreHorizontal,
   ChevronLeft, ChevronRight, Plus, User, Video, Film,
   BookImage, Clapperboard, CheckCircle2, Circle, Edit3, X,
-  Camera, Scissors, Play,
+  Camera, Scissors, Play, Eraser, AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -96,11 +96,13 @@ function PostCard({
   onStatusChange,
   onEdit,
   onDelete,
+  compact = false,
 }: {
   post: any;
   onStatusChange: (id: number, status: StatusProducao) => void;
   onEdit: (post: any) => void;
   onDelete: (id: number) => void;
+  compact?: boolean;
 }) {
   const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
   const statusInfo = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
@@ -111,45 +113,88 @@ function PostCard({
   };
   const proximo = proximoStatus[statusAtual];
 
+  if (compact) {
+    // Versão compacta para grade desktop (células pequenas)
+    return (
+      <div className={`rounded-md border bg-card p-1.5 space-y-0.5 text-[10px] group relative ${statusAtual === "postado" ? "opacity-60" : ""}`}>
+        <div className="flex items-center justify-between gap-0.5">
+          <div className="flex items-center gap-0.5">
+            {post.plataforma === "tiktok" ? (
+              <span className="font-bold text-black bg-black/10 px-1 py-0.5 rounded leading-none">TK</span>
+            ) : post.plataforma === "ambos" ? (
+              <span className="font-bold text-pink-600 bg-pink-50 px-1 py-0.5 rounded leading-none">IG+TK</span>
+            ) : (
+              <span className="font-bold text-pink-600 bg-pink-50 px-1 py-0.5 rounded leading-none">IG</span>
+            )}
+            {formatoInfo && <span className="text-muted-foreground">{formatoInfo.label}</span>}
+          </div>
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => onEdit(post)} className="p-0.5 hover:text-primary rounded"><Edit3 className="w-2.5 h-2.5" /></button>
+            <button onClick={() => onDelete(post.id)} className="p-0.5 hover:text-destructive rounded"><X className="w-2.5 h-2.5" /></button>
+          </div>
+        </div>
+        <p className="font-medium leading-tight line-clamp-2">{post.tema}</p>
+        {tipoInfo && (
+          <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+            {tipoInfo.icon} {tipoInfo.label}
+          </span>
+        )}
+        <div className="flex items-center justify-between">
+          <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full border font-medium ${statusInfo?.bgCor}`}>
+            {statusInfo?.icon} {statusInfo?.label}
+          </span>
+          {proximo && (
+            <button onClick={() => onStatusChange(post.id, proximo)} className="text-primary hover:underline">
+              →
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Versão completa para lista mobile
   return (
-    <div className={`rounded-lg border bg-card p-2 space-y-1 text-xs group relative ${statusAtual === "postado" ? "opacity-60" : ""}`}>
-      <div className="flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1 flex-wrap">
+    <div className={`rounded-xl border bg-card p-3 space-y-2 ${statusAtual === "postado" ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {post.plataforma === "tiktok" ? (
-            <span className="text-[10px] font-bold text-black bg-black/10 px-1.5 py-0.5 rounded">TK</span>
+            <span className="text-xs font-bold text-black bg-black/10 px-2 py-0.5 rounded">TikTok</span>
           ) : post.plataforma === "ambos" ? (
-            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">IG+TK</span>
+            <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded">IG + TK</span>
           ) : (
-            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">IG</span>
+            <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded">Instagram</span>
           )}
           {formatoInfo && (
-            <span className="text-[10px] text-muted-foreground">{formatoInfo.label}</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">{formatoInfo.icon} {formatoInfo.label}</span>
+          )}
+          {tipoInfo && (
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+              {tipoInfo.icon} {tipoInfo.label}
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(post)} className="p-0.5 hover:text-primary rounded"><Edit3 className="w-3 h-3" /></button>
-          <button onClick={() => onDelete(post.id)} className="p-0.5 hover:text-destructive rounded"><X className="w-3 h-3" /></button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={() => onEdit(post)} className="p-1 hover:text-primary rounded"><Edit3 className="w-3.5 h-3.5" /></button>
+          <button onClick={() => onDelete(post.id)} className="p-1 hover:text-destructive rounded"><X className="w-3.5 h-3.5" /></button>
         </div>
       </div>
-      <p className="font-medium leading-tight line-clamp-2">{post.tema}</p>
-      {tipoInfo && (
-        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${tipoInfo.cor}`}>
-          {tipoInfo.icon} {tipoInfo.label}
-        </span>
-      )}
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-        {post.horarioPublicacao && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{post.horarioPublicacao}</span>}
-        {post.responsavelNome && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{post.responsavelNome.split(" ")[0]}</span>}
-      </div>
-      <div className="flex items-center gap-1 pt-0.5">
-        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${statusInfo?.bgCor}`}>
-          {statusInfo?.icon} {statusInfo?.label}
-        </span>
-        {proximo && (
-          <button onClick={() => onStatusChange(post.id, proximo)} className="text-[10px] text-primary hover:underline ml-auto">
-            → {STATUS_PRODUCAO.find(s => s.value === proximo)?.label}
-          </button>
-        )}
+      <p className="text-sm font-medium leading-snug">{post.tema}</p>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          {post.horarioPublicacao && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{post.horarioPublicacao}</span>}
+          {post.responsavelNome && <span className="flex items-center gap-1"><User className="w-3 h-3" />{post.responsavelNome.split(" ")[0]}</span>}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border font-medium ${statusInfo?.bgCor}`}>
+            {statusInfo?.icon} {statusInfo?.label}
+          </span>
+          {proximo && (
+            <button onClick={() => onStatusChange(post.id, proximo)} className="text-xs text-primary hover:underline">
+              → {STATUS_PRODUCAO.find(s => s.value === proximo)?.label}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -259,6 +304,47 @@ function ModalPost({
   );
 }
 
+// ─── Modal de confirmação de limpeza ─────────────────────────────────────────
+function ModalLimpar({
+  mes,
+  ano,
+  total,
+  onConfirm,
+  onClose,
+  loading,
+}: {
+  mes: number;
+  ano: number;
+  total: number;
+  onConfirm: () => void;
+  onClose: () => void;
+  loading: boolean;
+}) {
+  return (
+    <DialogContent className="max-w-sm">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="w-5 h-5" /> Limpar Calendário
+        </DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 pt-1">
+        <p className="text-sm text-muted-foreground">
+          Isso vai remover <strong className="text-foreground">{total} post{total !== 1 ? "s" : ""}</strong> de{" "}
+          <strong className="text-foreground">{MESES[mes - 1]} {ano}</strong> permanentemente.
+        </p>
+        <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>Cancelar</Button>
+          <Button variant="destructive" className="flex-1" onClick={onConfirm} disabled={loading}>
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-1" /> : <Eraser className="w-4 h-4 mr-1" />}
+            Limpar tudo
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function IAMarketing() {
   const utils = trpc.useUtils();
@@ -269,12 +355,16 @@ export default function IAMarketing() {
   const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "posts">("calendario");
   const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
   const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string }>({ open: false });
+  const [modalLimpar, setModalLimpar] = useState(false);
+  // Mobile: modo lista (true) ou grade (false)
+  const [modoLista, setModoLista] = useState(true);
 
   // Form de geração de post avulso
   const [tipo, setTipo] = useState<TipoPost>("promocao");
   const [tema, setTema] = useState("");
   const [tom, setTom] = useState<TomPost>("descontraido");
   const [incluirEmoji, setIncluirEmoji] = useState(true);
+  const [servicoSelecionado, setServicoSelecionado] = useState<string>("");
   const [postGerado, setPostGerado] = useState<{ id: number | null; legenda: string; hashtags: string; imagemPrompt: string } | null>(null);
   const [imagemGerada, setImagemGerada] = useState<string | null>(null);
 
@@ -292,6 +382,7 @@ export default function IAMarketing() {
     { enabled: abaAtiva === "posts" }
   );
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
+  const { data: servicos = [] } = trpc.servicos.list.useQuery();
 
   // ── Mutations ──
   const gerarPostMut = trpc.iaMarketing.gerarPost.useMutation({
@@ -325,6 +416,14 @@ export default function IAMarketing() {
   const atualizarPostLegadoMut = trpc.iaMarketing.atualizarPost.useMutation({
     onSuccess: () => { utils.iaMarketing.listarPosts.invalidate(); toast.success("Post atualizado"); },
   });
+  const limparCalendarioMut = trpc.iaMarketing.limparCalendario.useMutation({
+    onSuccess: () => {
+      toast.success("Calendário limpo!");
+      refetchCalendario();
+      setModalLimpar(false);
+    },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao limpar calendário"),
+  });
 
   // ── Navegação de mês ──
   const irParaMesAnterior = () => {
@@ -342,18 +441,22 @@ export default function IAMarketing() {
     return Array.from({ length: total }, (_, i) => i + 1);
   }, [anoAtual, mesAtual]);
 
+  const postsFiltrados = useMemo(() => {
+    return (calendario ?? []).filter(post =>
+      filtroPlatforma === "todos" || post.plataforma === filtroPlatforma || post.plataforma === "ambos"
+    );
+  }, [calendario, filtroPlatforma]);
+
   const postsPorDia = useMemo(() => {
     const mapa: Record<number, any[]> = {};
-    (calendario ?? []).forEach(post => {
+    postsFiltrados.forEach(post => {
       if (!post.dataPublicacao) return;
       const dia = parseInt(post.dataPublicacao.split("-")[2], 10);
       if (!mapa[dia]) mapa[dia] = [];
-      if (filtroPlatforma === "todos" || post.plataforma === filtroPlatforma || post.plataforma === "ambos") {
-        mapa[dia].push(post);
-      }
+      mapa[dia].push(post);
     });
     return mapa;
-  }, [calendario, filtroPlatforma]);
+  }, [postsFiltrados]);
 
   const stats = useMemo(() => {
     const todos = calendario ?? [];
@@ -372,6 +475,32 @@ export default function IAMarketing() {
   };
 
   const tipoInfo = TIPOS_POST.find(t => t.value === tipo);
+
+  // ── Lista mobile: agrupa por semana ──
+  const semanasDoMes = useMemo(() => {
+    const semanas: { label: string; dias: number[] }[] = [];
+    let semanaAtual: number[] = [];
+    diasDoMes.forEach(dia => {
+      semanaAtual.push(dia);
+      const diaSemana = new Date(anoAtual, mesAtual - 1, dia).getDay();
+      if (diaSemana === 6 || dia === diasDoMes[diasDoMes.length - 1]) {
+        semanas.push({
+          label: semanaAtual.length === 1
+            ? `Dia ${semanaAtual[0]}`
+            : `Dias ${semanaAtual[0]}–${semanaAtual[semanaAtual.length - 1]}`,
+          dias: [...semanaAtual],
+        });
+        semanaAtual = [];
+      }
+    });
+    return semanas;
+  }, [diasDoMes, anoAtual, mesAtual]);
+
+  const diasComPosts = useMemo(() => {
+    return diasDoMes.filter(dia => (postsPorDia[dia] ?? []).length > 0);
+  }, [diasDoMes, postsPorDia]);
+
+  const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
@@ -408,31 +537,68 @@ export default function IAMarketing() {
       {/* ══ ABA: CALENDÁRIO EDITORIAL ══ */}
       {abaAtiva === "calendario" && (
         <div className="space-y-4">
-          {/* Navegação + ações */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Navegação + ações — linha 1 */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <button onClick={irParaMesAnterior} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-semibold min-w-[140px] text-center">
+              <span className="text-sm font-semibold min-w-[130px] text-center">
                 {MESES[mesAtual - 1]} {anoAtual}
               </span>
               <button onClick={irParaProximoMes} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+
+            {/* Ações — agrupadas à direita */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Toggle lista/grade — só aparece em telas médias+ */}
+              <div className="hidden sm:flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setModoLista(false)}
+                  className={`p-1.5 rounded-md transition-all ${!modoLista ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  title="Visualização em grade"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setModoLista(true)}
+                  className={`p-1.5 rounded-md transition-all ${modoLista ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  title="Visualização em lista"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <Select value={filtroPlatforma} onValueChange={v => setFiltroPlatforma(v as any)}>
-                <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs w-[110px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todas</SelectItem>
                   <SelectItem value="instagram">Instagram</SelectItem>
                   <SelectItem value="tiktok">TikTok</SelectItem>
                 </SelectContent>
               </Select>
+
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true })}>
-                <Plus className="w-3.5 h-3.5" /> Novo Post
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Novo Post</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
+
+              {/* Botão Limpar — visível e destacado */}
+              {stats.total > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
+                  onClick={() => setModalLimpar(true)}
+                >
+                  <Eraser className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Limpar</span>
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
@@ -445,7 +611,8 @@ export default function IAMarketing() {
                 disabled={gerarPautaMut.isPending}
               >
                 {gerarPautaMut.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                Gerar Pauta com IA
+                <span className="hidden sm:inline">Gerar Pauta com IA</span>
+                <span className="sm:hidden">Gerar IA</span>
               </Button>
             </div>
           </div>
@@ -467,8 +634,8 @@ export default function IAMarketing() {
             <Input
               value={focoPauta}
               onChange={e => setFocoPauta(e.target.value)}
-              placeholder="Foco especial (ex: Dia das Mães, verão...)"
-              className="h-7 text-xs max-w-[220px]"
+              placeholder="Foco especial (ex: Dia das Mães...)"
+              className="h-7 text-xs flex-1 min-w-[140px] max-w-[220px]"
             />
           </div>
 
@@ -476,73 +643,150 @@ export default function IAMarketing() {
           {stats.total > 0 && (
             <div className="grid grid-cols-4 gap-2">
               {STATUS_PRODUCAO.map(s => (
-                <div key={s.value} className={`rounded-lg border p-2.5 text-center ${s.bgCor}`}>
-                  <div className="text-lg font-bold">{stats[s.value as keyof typeof stats]}</div>
-                  <div className="text-[10px] font-medium flex items-center justify-center gap-1">{s.icon} {s.label}</div>
+                <div key={s.value} className={`rounded-lg border p-2 text-center ${s.bgCor}`}>
+                  <div className="text-base font-bold">{stats[s.value as keyof typeof stats]}</div>
+                  <div className="text-[10px] font-medium flex items-center justify-center gap-0.5">{s.icon} {s.label}</div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Grade do calendário */}
+          {/* Conteúdo do calendário */}
           {loadingCalendario ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Carregando calendário...
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-1">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => (
-                <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground py-1">{d}</div>
-              ))}
-              {Array.from({ length: new Date(anoAtual, mesAtual - 1, 1).getDay() }).map((_, i) => (
-                <div key={`e-${i}`} />
-              ))}
-              {diasDoMes.map(dia => {
-                const postsNoDia = postsPorDia[dia] ?? [];
-                const isHoje = dia === hoje.getDate() && mesAtual === hoje.getMonth() + 1 && anoAtual === hoje.getFullYear();
-                const dataStr = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
-                return (
-                  <div
-                    key={dia}
-                    className={`min-h-[80px] rounded-lg border p-1.5 space-y-1 ${
-                      isHoje ? "border-primary/50 bg-primary/5" : "border-border bg-card"
-                    } transition-colors`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[11px] font-semibold ${isHoje ? "text-primary" : "text-muted-foreground"}`}>{dia}</span>
-                      <button
-                        onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
-                        className="p-0.5 rounded hover:bg-muted transition-all"
+            <>
+              {/* ── MODO LISTA (mobile-first, também disponível em desktop) ── */}
+              {(modoLista) && (
+                <div className="space-y-3">
+                  {diasComPosts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3 border border-dashed rounded-xl">
+                      <Calendar className="w-8 h-8 text-muted-foreground/30" />
+                      <p className="text-sm">Nenhum post planejado para {MESES[mesAtual - 1]}</p>
+                      <Button
+                        size="sm"
+                        onClick={() => gerarPautaMut.mutate({
+                          periodo: periodoPauta,
+                          foco: focoPauta || undefined,
+                          anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
+                          salvarNoCalendario: true,
+                        })}
+                        disabled={gerarPautaMut.isPending}
+                        className="gap-1.5"
                       >
-                        <Plus className="w-3 h-3 text-muted-foreground/50 hover:text-muted-foreground" />
-                      </button>
+                        <Sparkles className="w-3.5 h-3.5" /> Gerar pauta com IA
+                      </Button>
                     </div>
-                    {postsNoDia.map(post => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
-                        onEdit={p => setModalPost({ open: true, post: p })}
-                        onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
-                      />
-                    ))}
-                    {postsNoDia.length === 0 && (
-                      <button
-                        onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
-                        className="w-full h-7 rounded border border-dashed border-border/40 text-[10px] text-muted-foreground/40 hover:text-muted-foreground hover:border-border transition-all flex items-center justify-center gap-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    )}
+                  ) : (
+                    diasComPosts.map(dia => {
+                      const postsNoDia = postsPorDia[dia] ?? [];
+                      const dataObj = new Date(anoAtual, mesAtual - 1, dia);
+                      const nomeDia = DIAS_SEMANA[dataObj.getDay()];
+                      const isHoje = dia === hoje.getDate() && mesAtual === hoje.getMonth() + 1 && anoAtual === hoje.getFullYear();
+                      const dataStr = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+                      return (
+                        <div key={dia}>
+                          {/* Cabeçalho do dia */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 ${
+                              isHoje ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {dia}
+                            </div>
+                            <span className={`text-xs font-medium ${isHoje ? "text-primary" : "text-muted-foreground"}`}>
+                              {nomeDia}{isHoje ? " · Hoje" : ""}
+                            </span>
+                            <button
+                              onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
+                              className="ml-auto p-1 rounded hover:bg-muted transition-colors"
+                              title="Adicionar post neste dia"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                          </div>
+                          {/* Posts do dia */}
+                          <div className="space-y-2 pl-10">
+                            {postsNoDia.map(post => (
+                              <PostCard
+                                key={post.id}
+                                post={post}
+                                onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
+                                onEdit={p => setModalPost({ open: true, post: p })}
+                                onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* ── MODO GRADE (desktop, opt-in) ── */}
+              {!modoLista && (
+                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <div className="min-w-[560px]">
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => (
+                        <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground py-1">{d}</div>
+                      ))}
+                      {Array.from({ length: new Date(anoAtual, mesAtual - 1, 1).getDay() }).map((_, i) => (
+                        <div key={`e-${i}`} />
+                      ))}
+                      {diasDoMes.map(dia => {
+                        const postsNoDia = postsPorDia[dia] ?? [];
+                        const isHoje = dia === hoje.getDate() && mesAtual === hoje.getMonth() + 1 && anoAtual === hoje.getFullYear();
+                        const dataStr = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+                        return (
+                          <div
+                            key={dia}
+                            className={`min-h-[80px] rounded-lg border p-1 space-y-0.5 ${
+                              isHoje ? "border-primary/50 bg-primary/5" : "border-border bg-card"
+                            } transition-colors`}
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className={`text-[11px] font-semibold ${isHoje ? "text-primary" : "text-muted-foreground"}`}>{dia}</span>
+                              <button
+                                onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
+                                className="p-0.5 rounded hover:bg-muted transition-all"
+                              >
+                                <Plus className="w-2.5 h-2.5 text-muted-foreground/50 hover:text-muted-foreground" />
+                              </button>
+                            </div>
+                            {postsNoDia.map(post => (
+                              <PostCard
+                                key={post.id}
+                                post={post}
+                                compact
+                                onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
+                                onEdit={p => setModalPost({ open: true, post: p })}
+                                onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
+                              />
+                            ))}
+                            {postsNoDia.length === 0 && (
+                              <button
+                                onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
+                                className="w-full h-6 rounded border border-dashed border-border/40 text-[10px] text-muted-foreground/40 hover:text-muted-foreground hover:border-border transition-all flex items-center justify-center"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Legenda */}
           <div className="flex items-center gap-3 flex-wrap pt-2 border-t">
-            <span className="text-[11px] text-muted-foreground font-medium">Status de produção:</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Status:</span>
             {STATUS_PRODUCAO.map(s => (
               <span key={s.value} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${s.bgCor}`}>
                 {s.icon} {s.label}
@@ -571,6 +815,27 @@ export default function IAMarketing() {
               ))}
             </div>
           </div>
+
+          {/* Seletor de serviço/pacote — contexto da empresa */}
+          {servicos.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">Serviço em destaque <span className="text-muted-foreground/60">(opcional)</span></p>
+              <Select value={servicoSelecionado} onValueChange={setServicoSelecionado}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Escolher serviço específico..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__nenhum__">Nenhum (geral)</SelectItem>
+                  {servicos.map((s: any) => (
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.nome}{s.valor ? ` — R$ ${parseFloat(String(s.valor)).toFixed(2).replace(".", ",")}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Tema do post *</p>
             <Textarea
@@ -601,15 +866,24 @@ export default function IAMarketing() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIncluirEmoji(!incluirEmoji)}
-              className={`w-8 h-4 rounded-full transition-colors relative ${incluirEmoji ? "bg-primary" : "bg-muted-foreground/30"}`}
+              className={`w-8 h-4 rounded-full transition-colors relative shrink-0 ${incluirEmoji ? "bg-primary" : "bg-muted-foreground/30"}`}
             >
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${incluirEmoji ? "left-4.5" : "left-0.5"}`} style={{ left: incluirEmoji ? "18px" : "2px" }} />
+              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all`} style={{ left: incluirEmoji ? "18px" : "2px" }} />
             </button>
             <span className="text-xs text-muted-foreground">Incluir emojis na legenda</span>
           </div>
           <Button
             className="w-full gap-2"
-            onClick={() => { if (!tema.trim()) { toast.error("Informe o tema do post"); return; } gerarPostMut.mutate({ tipo, tema: tema.trim(), tom, incluirEmoji }); }}
+            onClick={() => {
+              if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
+              gerarPostMut.mutate({
+                tipo,
+                tema: tema.trim(),
+                tom,
+                incluirEmoji,
+                servicoId: servicoSelecionado && servicoSelecionado !== "__nenhum__" ? Number(servicoSelecionado) : undefined,
+              });
+            }}
             disabled={gerarPostMut.isPending}
           >
             {gerarPostMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -659,7 +933,7 @@ export default function IAMarketing() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setPostGerado(null); setImagemGerada(null); setTema(""); }}>
+                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setPostGerado(null); setImagemGerada(null); setTema(""); setServicoSelecionado(""); }}>
                   Novo post
                 </Button>
                 {postGerado.id && (
@@ -749,6 +1023,18 @@ export default function IAMarketing() {
           onSave={handleSalvarPost}
           onClose={() => setModalPost({ open: false })}
           dataDefault={modalPost.dataDefault}
+        />
+      </Dialog>
+
+      {/* Modal de Limpar Calendário */}
+      <Dialog open={modalLimpar} onOpenChange={open => !open && setModalLimpar(false)}>
+        <ModalLimpar
+          mes={mesAtual}
+          ano={anoAtual}
+          total={stats.total}
+          onConfirm={() => limparCalendarioMut.mutate({ ano: anoAtual, mes: mesAtual })}
+          onClose={() => setModalLimpar(false)}
+          loading={limparCalendarioMut.isPending}
         />
       </Dialog>
     </div>

@@ -3,8 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
-import { getEmpresaDoUsuario, getServicosByEmpresa, getProfissionaisByEmpresa } from "../db";
-import { getDb } from "../db";
+import { getEmpresaDoUsuario, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
 import { marketingPosts } from "../../drizzle/schema";
 import { eq, and, desc, gte, lte, isNotNull } from "drizzle-orm";
 import OpenAI from "openai";
@@ -42,9 +41,22 @@ export const iaMarketingRouter = router({
       const empresa = await getEmpresaDoUsuario(ctx.user.id);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
-      // Buscar contexto da empresa e serviços
+      // Buscar contexto completo da empresa: serviços, profissionais e pacotes
       const servicos = await getServicosByEmpresa(empresa.id);
+      const profissionais = await getProfissionaisByEmpresa(empresa.id);
       const servicoSelecionado = input.servicoId ? servicos.find(s => s.id === input.servicoId) : null;
+
+      // Buscar pacotes ativos
+      const dbPost = await getDb();
+      let pacotesNomes: string[] = [];
+      if (dbPost) {
+        const { pacotesModelos } = await import('../../drizzle/schema');
+        const pacotes = await dbPost.select({ nome: pacotesModelos.nome })
+          .from(pacotesModelos)
+          .where(and(eq(pacotesModelos.empresaId, empresa.id), eq(pacotesModelos.ativo, true)))
+          .limit(6);
+        pacotesNomes = pacotes.map(p => p.nome);
+      }
 
       const tipoLabels: Record<string, string> = {
         promocao: "promoção/oferta especial",
@@ -66,8 +78,17 @@ export const iaMarketingRouter = router({
       const contextServico = servicoSelecionado
         ? `\nServiço em destaque: ${servicoSelecionado.nome} — R$ ${parseFloat(String(servicoSelecionado.valor)).toFixed(2).replace('.', ',')} — ${servicoSelecionado.duracaoMinutos} min`
         : servicos.length > 0
-          ? `\nAlguns serviços do estabelecimento: ${servicos.slice(0, 5).map(s => s.nome).join(', ')}`
+          ? `\nServiços oferecidos: ${servicos.slice(0, 8).map(s => s.nome).join(', ')}`
           : '';
+
+      const contextPacotes = pacotesNomes.length > 0
+        ? `\nPacotes disponíveis: ${pacotesNomes.join(', ')}`
+        : '';
+
+      const profissionaisAtivos = profissionais.filter(p => p.ativo);
+      const contextProfissionais = profissionaisAtivos.length > 0
+        ? `\nEquipe: ${profissionaisAtivos.slice(0, 5).map(p => p.nome).join(', ')}`
+        : '';
 
       const prompt = `Você é um especialista em marketing digital para salões de beleza, clínicas de estética e barbearias.
 
@@ -77,7 +98,9 @@ Crie um post para Instagram com as seguintes características:
 - Tema/Assunto: ${input.tema}
 - Tom de voz: ${tomLabels[input.tom] || input.tom}
 - Usar emojis: ${input.incluirEmoji ? 'sim' : 'não'}
-- Idioma: ${input.idioma}${contextServico}
+- Idioma: ${input.idioma}${contextServico}${contextPacotes}${contextProfissionais}
+
+Use o contexto real do estabelecimento (serviços, pacotes e profissionais listados acima) para tornar o post autêntico e específico para este negócio.
 
 Retorne um JSON com:
 {
@@ -86,7 +109,7 @@ Retorne um JSON com:
   "imagemPrompt": "prompt em inglês para gerar a imagem ideal para este post usando DALL-E (seja específico sobre cores, estilo, composição, ambiente de salão/beleza)"
 }
 
-A legenda deve ser envolvente, com chamada para ação (CTA) clara e adequada ao tipo de negócio.`;
+A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços reais, e ter uma chamada para ação (CTA) clara.`;
 
       const resultado = await invokeOpenAIJson<{
         legenda: string;
@@ -372,6 +395,19 @@ A legenda deve ser envolvente, com chamada para ação (CTA) clara e adequada ao
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const servicos = await getServicosByEmpresa(empresa.id);
+      const profissionaisEmpresa = await getProfissionaisByEmpresa(empresa.id);
+
+      // Buscar pacotes ativos para contexto da pauta
+      const dbPauta = await getDb();
+      let pacotesNomesPauta: string[] = [];
+      if (dbPauta) {
+        const { pacotesModelos: pmTable } = await import('../../drizzle/schema');
+        const pacotes = await dbPauta.select({ nome: pmTable.nome })
+          .from(pmTable)
+          .where(and(eq(pmTable.empresaId, empresa.id), eq(pmTable.ativo, true)))
+          .limit(6);
+        pacotesNomesPauta = pacotes.map(p => p.nome);
+      }
 
       // Determinar mês de referência
       const hoje = new Date();
@@ -384,12 +420,18 @@ A legenda deve ser envolvente, com chamada para ação (CTA) clara e adequada ao
 
       const qtdPosts = input.periodo === "semana" ? 5 : 20;
 
+      const profissionaisAtivosPauta = profissionaisEmpresa.filter(p => p.ativo);
+
       const prompt = `Você é um estrategista de marketing digital especializado em salões de beleza, clínicas de estética e barbearias.
 
 Crie uma pauta de conteúdo para ${input.periodo === "semana" ? "1 semana (5 posts)" : "1 mês (20 posts)"} para as redes sociais de ${empresa.nome} (${empresa.tipo}).
 Mês de referência: ${mesRef}/${anoRef}
 ${input.foco ? `Foco especial em: ${input.foco}` : ''}
-${servicos.length > 0 ? `Serviços disponíveis: ${servicos.slice(0, 8).map(s => s.nome).join(', ')}` : ''}
+${servicos.length > 0 ? `Serviços oferecidos: ${servicos.slice(0, 10).map(s => s.nome).join(', ')}` : ''}
+${pacotesNomesPauta.length > 0 ? `Pacotes disponíveis: ${pacotesNomesPauta.join(', ')}` : ''}
+${profissionaisAtivosPauta.length > 0 ? `Equipe: ${profissionaisAtivosPauta.slice(0, 5).map(p => p.nome).join(', ')}` : ''}
+
+IMPORTANTE: Use os serviços, pacotes e profissionais reais listados acima para criar temas de posts específicos e autênticos para este negócio. Varie os temas entre divulgação de serviços, dicas relacionadas ao que a empresa oferece, apresentação da equipe e promoções dos pacotes disponíveis.
 
 Distribua os posts entre Instagram (Feed, Reels, Stories) e TikTok de forma equilibrada.
 
@@ -449,6 +491,39 @@ Retorne um JSON com:
       }
 
       return pauta;
+    }),
+
+  /**
+   * Remove todos os posts do calendário editorial de um mês/ano
+   */
+  limparCalendario: protectedProcedure
+    .input(z.object({
+      ano: z.number().min(2024).max(2030),
+      mes: z.number().min(1).max(12),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+
+      const mesStr = String(input.mes).padStart(2, "0");
+      const primeiroDia = `${input.ano}-${mesStr}-01`;
+      const ultimoDia = new Date(input.ano, input.mes, 0);
+      const ultimoDiaStr = `${input.ano}-${mesStr}-${String(ultimoDia.getDate()).padStart(2, "0")}`;
+
+      await db.delete(marketingPosts)
+        .where(
+          and(
+            eq(marketingPosts.empresaId, empresa.id),
+            isNotNull(marketingPosts.dataPublicacao),
+            gte(marketingPosts.dataPublicacao, primeiroDia),
+            lte(marketingPosts.dataPublicacao, ultimoDiaStr),
+          )
+        );
+
+      return { success: true };
     }),
 
   /**
