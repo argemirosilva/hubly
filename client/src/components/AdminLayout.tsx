@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
   LayoutDashboard, LogOut, Menu, MessageSquare, MessageCircle, Settings,
-  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus, Tag
+  UserCog, Users, X, Lock, Sparkles, Home, Download, KanbanSquare, Brain, BookOpen, Package, Headphones, Eye, EyeOff, UserCircle, ArrowDownCircle, Wallet, DollarSign, BarChart3, Send, Plus, Tag, Megaphone
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -115,6 +115,7 @@ const navGroups: NavGroup[] = [
     label: "IA Inteligente",
     items: [
       { href: "/admin/insights", label: "Insights", icon: Brain, permissao: "__admin__" },
+      { href: "/admin/ia-marketing", label: "Marketing", icon: Megaphone },
     ],
   },
   {

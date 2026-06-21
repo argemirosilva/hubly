@@ -1,25 +1,46 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Megaphone, Sparkles, Image, Calendar, Copy, Check, RefreshCw,
-  Wand2, Hash, Clock, ChevronDown, Trash2, Eye, Instagram,
-  Star, Lightbulb, Gift, TrendingUp, Sun, MoreHorizontal
+  Wand2, Hash, Clock, Trash2, Instagram,
+  Star, Lightbulb, Gift, TrendingUp, Sun, MoreHorizontal,
+  ChevronLeft, ChevronRight, Plus, User, Video, Film,
+  BookImage, Clapperboard, CheckCircle2, Circle, Edit3, X,
+  Camera, Scissors, Play,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type TipoPost = "promocao" | "servico" | "dica" | "depoimento" | "novidade" | "sazonal" | "outro";
 type TomPost = "descontraido" | "profissional" | "emocional" | "urgente";
+type Plataforma = "instagram" | "tiktok" | "ambos";
+type Formato = "feed" | "reels" | "stories" | "tiktok" | "outro";
+type StatusProducao = "planejado" | "gravado" | "editado" | "postado";
 
+// ─── Constantes visuais ───────────────────────────────────────────────────────
 const TIPOS_POST: { value: TipoPost; label: string; icon: React.ReactNode; cor: string }[] = [
-  { value: "promocao", label: "Promoção", icon: <Gift className="w-4 h-4" />, cor: "bg-rose-50 text-rose-600 border-rose-200" },
-  { value: "servico", label: "Serviço", icon: <Star className="w-4 h-4" />, cor: "bg-violet-50 text-violet-600 border-violet-200" },
-  { value: "dica", label: "Dica", icon: <Lightbulb className="w-4 h-4" />, cor: "bg-amber-50 text-amber-600 border-amber-200" },
-  { value: "novidade", label: "Novidade", icon: <TrendingUp className="w-4 h-4" />, cor: "bg-blue-50 text-blue-600 border-blue-200" },
-  { value: "sazonal", label: "Sazonal", icon: <Sun className="w-4 h-4" />, cor: "bg-orange-50 text-orange-600 border-orange-200" },
-  { value: "outro", label: "Outro", icon: <MoreHorizontal className="w-4 h-4" />, cor: "bg-gray-50 text-gray-600 border-gray-200" },
+  { value: "promocao", label: "Promoção", icon: <Gift className="w-3.5 h-3.5" />, cor: "bg-rose-50 text-rose-600 border-rose-200" },
+  { value: "servico", label: "Serviço", icon: <Star className="w-3.5 h-3.5" />, cor: "bg-violet-50 text-violet-600 border-violet-200" },
+  { value: "dica", label: "Dica", icon: <Lightbulb className="w-3.5 h-3.5" />, cor: "bg-amber-50 text-amber-600 border-amber-200" },
+  { value: "novidade", label: "Novidade", icon: <TrendingUp className="w-3.5 h-3.5" />, cor: "bg-blue-50 text-blue-600 border-blue-200" },
+  { value: "sazonal", label: "Sazonal", icon: <Sun className="w-3.5 h-3.5" />, cor: "bg-orange-50 text-orange-600 border-orange-200" },
+  { value: "outro", label: "Outro", icon: <MoreHorizontal className="w-3.5 h-3.5" />, cor: "bg-gray-50 text-gray-600 border-gray-200" },
 ];
 
 const TONS_POST: { value: TomPost; label: string; desc: string }[] = [
@@ -29,7 +50,32 @@ const TONS_POST: { value: TomPost; label: string; desc: string }[] = [
   { value: "urgente", label: "Urgente", desc: "Senso de escassez" },
 ];
 
-// ─── Componente de cópia ──────────────────────────────────────────────────────
+const STATUS_PRODUCAO: {
+  value: StatusProducao;
+  label: string;
+  icon: React.ReactNode;
+  bgCor: string;
+}[] = [
+  { value: "planejado", label: "Planejado", icon: <Circle className="w-3.5 h-3.5" />, bgCor: "bg-slate-100 text-slate-600 border-slate-200" },
+  { value: "gravado", label: "Gravado", icon: <Camera className="w-3.5 h-3.5" />, bgCor: "bg-amber-50 text-amber-700 border-amber-200" },
+  { value: "editado", label: "Editado", icon: <Scissors className="w-3.5 h-3.5" />, bgCor: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "postado", label: "Postado", icon: <CheckCircle2 className="w-3.5 h-3.5" />, bgCor: "bg-green-50 text-green-700 border-green-200" },
+];
+
+const FORMATOS: { value: Formato; label: string; icon: React.ReactNode }[] = [
+  { value: "feed", label: "Feed", icon: <BookImage className="w-3.5 h-3.5" /> },
+  { value: "reels", label: "Reels", icon: <Film className="w-3.5 h-3.5" /> },
+  { value: "stories", label: "Stories", icon: <Play className="w-3.5 h-3.5" /> },
+  { value: "tiktok", label: "TikTok", icon: <Video className="w-3.5 h-3.5" /> },
+  { value: "outro", label: "Outro", icon: <Clapperboard className="w-3.5 h-3.5" /> },
+];
+
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+// ─── CopyButton ───────────────────────────────────────────────────────────────
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -44,112 +90,314 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// ─── PostCard no calendário ───────────────────────────────────────────────────
+function PostCard({
+  post,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}: {
+  post: any;
+  onStatusChange: (id: number, status: StatusProducao) => void;
+  onEdit: (post: any) => void;
+  onDelete: (id: number) => void;
+}) {
+  const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
+  const statusInfo = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
+  const formatoInfo = FORMATOS.find(f => f.value === (post.formato ?? "feed"));
+  const statusAtual = (post.statusProducao ?? "planejado") as StatusProducao;
+  const proximoStatus: Record<StatusProducao, StatusProducao | null> = {
+    planejado: "gravado", gravado: "editado", editado: "postado", postado: null,
+  };
+  const proximo = proximoStatus[statusAtual];
+
+  return (
+    <div className={`rounded-lg border bg-card p-2 space-y-1 text-xs group relative ${statusAtual === "postado" ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
+          {post.plataforma === "tiktok" ? (
+            <span className="text-[10px] font-bold text-black bg-black/10 px-1.5 py-0.5 rounded">TK</span>
+          ) : post.plataforma === "ambos" ? (
+            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">IG+TK</span>
+          ) : (
+            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">IG</span>
+          )}
+          {formatoInfo && (
+            <span className="text-[10px] text-muted-foreground">{formatoInfo.label}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onEdit(post)} className="p-0.5 hover:text-primary rounded"><Edit3 className="w-3 h-3" /></button>
+          <button onClick={() => onDelete(post.id)} className="p-0.5 hover:text-destructive rounded"><X className="w-3 h-3" /></button>
+        </div>
+      </div>
+      <p className="font-medium leading-tight line-clamp-2">{post.tema}</p>
+      {tipoInfo && (
+        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+          {tipoInfo.icon} {tipoInfo.label}
+        </span>
+      )}
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        {post.horarioPublicacao && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{post.horarioPublicacao}</span>}
+        {post.responsavelNome && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{post.responsavelNome.split(" ")[0]}</span>}
+      </div>
+      <div className="flex items-center gap-1 pt-0.5">
+        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${statusInfo?.bgCor}`}>
+          {statusInfo?.icon} {statusInfo?.label}
+        </span>
+        {proximo && (
+          <button onClick={() => onStatusChange(post.id, proximo)} className="text-[10px] text-primary hover:underline ml-auto">
+            → {STATUS_PRODUCAO.find(s => s.value === proximo)?.label}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal de Criar/Editar Post ───────────────────────────────────────────────
+function ModalPost({
+  post,
+  profissionais,
+  onSave,
+  onClose,
+  dataDefault,
+}: {
+  post?: any;
+  profissionais: { id: number; nome: string }[];
+  onSave: (data: any) => void;
+  onClose: () => void;
+  dataDefault?: string;
+}) {
+  const [tema, setTema] = useState(post?.tema ?? "");
+  const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? "instagram");
+  const [formato, setFormato] = useState<Formato>(post?.formato ?? "feed");
+  const [tipo, setTipo] = useState<TipoPost>(post?.tipo ?? "outro");
+  const [data, setData] = useState(post?.dataPublicacao ?? dataDefault ?? "");
+  const [horario, setHorario] = useState(post?.horarioPublicacao ?? "18:00");
+  const [responsavelId, setResponsavelId] = useState<string>(post?.responsavelId ? String(post.responsavelId) : "");
+  const [observacoes, setObservacoes] = useState(post?.observacoes ?? "");
+
+  const handleSave = () => {
+    if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
+    if (!data) { toast.error("Informe a data de publicação"); return; }
+    const resp = profissionais.find(p => p.id === Number(responsavelId));
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: data, horarioPublicacao: horario, responsavelId: resp?.id ?? null, responsavelNome: resp?.nome ?? null, observacoes: observacoes.trim() || null });
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader><DialogTitle>{post ? "Editar Post" : "Novo Post no Calendário"}</DialogTitle></DialogHeader>
+      <div className="space-y-3 pt-1">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tema / Assunto *</label>
+          <Input value={tema} onChange={e => setTema(e.target.value)} placeholder="Ex: Dica de hidratação para o verão" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Plataforma</label>
+            <Select value={plataforma} onValueChange={v => setPlataforma(v as Plataforma)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="tiktok">TikTok</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Formato</label>
+            <Select value={formato} onValueChange={v => setFormato(v as Formato)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FORMATOS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
+            <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
+            <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs" />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de conteúdo</label>
+          <Select value={tipo} onValueChange={v => setTipo(v as TipoPost)}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TIPOS_POST.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {profissionais.length > 0 && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Responsável pela produção</label>
+            <Select value={responsavelId} onValueChange={setResponsavelId}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum</SelectItem>
+                {profissionais.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Observações</label>
+          <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Referências, ideias, detalhes..." rows={2} className="text-xs resize-none" />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
+          <Button className="flex-1" onClick={handleSave}>Salvar</Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function IAMarketing() {
   const utils = trpc.useUtils();
 
-  // Form state
+  const hoje = new Date();
+  const [anoAtual, setAnoAtual] = useState(hoje.getFullYear());
+  const [mesAtual, setMesAtual] = useState(hoje.getMonth() + 1);
+  const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "posts">("calendario");
+  const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
+  const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string }>({ open: false });
+
+  // Form de geração de post avulso
   const [tipo, setTipo] = useState<TipoPost>("promocao");
   const [tema, setTema] = useState("");
   const [tom, setTom] = useState<TomPost>("descontraido");
   const [incluirEmoji, setIncluirEmoji] = useState(true);
-
-  // Resultado gerado
-  const [postGerado, setPostGerado] = useState<{
-    id: number | null;
-    legenda: string;
-    hashtags: string;
-    imagemPrompt: string;
-  } | null>(null);
+  const [postGerado, setPostGerado] = useState<{ id: number | null; legenda: string; hashtags: string; imagemPrompt: string } | null>(null);
   const [imagemGerada, setImagemGerada] = useState<string | null>(null);
-  const [abaAtiva, setAbaAtiva] = useState<"gerar" | "posts" | "pauta">("gerar");
 
-  // Queries
+  // Pauta IA
+  const [focoPauta, setFocoPauta] = useState("");
+  const [periodoPauta, setPeriodoPauta] = useState<"semana" | "mes">("mes");
+
+  // ── Queries ──
+  const { data: calendario, isLoading: loadingCalendario, refetch: refetchCalendario } = trpc.iaMarketing.listarCalendario.useQuery(
+    { ano: anoAtual, mes: mesAtual },
+    { enabled: abaAtiva === "calendario" }
+  );
   const { data: posts, isLoading: loadingPosts } = trpc.iaMarketing.listarPosts.useQuery(
-    { limit: 20 },
+    { limit: 30 },
     { enabled: abaAtiva === "posts" }
   );
-  const { data: servicos } = trpc.iaMarketing.listarPosts.useQuery({ limit: 1 }, { enabled: false }); // placeholder
+  const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
 
-  // Mutations
+  // ── Mutations ──
   const gerarPostMut = trpc.iaMarketing.gerarPost.useMutation({
-    onSuccess: (data) => {
-      setPostGerado(data);
-      setImagemGerada(null);
-      toast.success("Post gerado com sucesso!");
-    },
+    onSuccess: (data) => { setPostGerado(data); setImagemGerada(null); toast.success("Post gerado!"); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao gerar post"),
   });
-
   const gerarImagemMut = trpc.iaMarketing.gerarImagem.useMutation({
-    onSuccess: (data) => {
-      setImagemGerada(data.imagemUrl);
-      toast.success("Imagem gerada!");
-    },
+    onSuccess: (data) => { setImagemGerada(data.imagemUrl); toast.success("Imagem gerada!"); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao gerar imagem"),
   });
-
-  const excluirPostMut = trpc.iaMarketing.excluirPost.useMutation({
-    onSuccess: () => {
-      utils.iaMarketing.listarPosts.invalidate();
-      toast.success("Post excluído");
-    },
-  });
-
-  const atualizarPostMut = trpc.iaMarketing.atualizarPost.useMutation({
-    onSuccess: () => {
-      utils.iaMarketing.listarPosts.invalidate();
-      toast.success("Post atualizado");
-    },
-  });
-
   const gerarPautaMut = trpc.iaMarketing.gerarPauta.useMutation({
-    onSuccess: () => toast.success("Pauta gerada!"),
+    onSuccess: () => { toast.success("Pauta gerada e salva no calendário!"); refetchCalendario(); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao gerar pauta"),
   });
+  const atualizarStatusMut = trpc.iaMarketing.atualizarStatusProducao.useMutation({
+    onSuccess: () => { refetchCalendario(); utils.iaMarketing.listarPosts.invalidate(); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar status"),
+  });
+  const criarPostMut = trpc.iaMarketing.criarPostCalendario.useMutation({
+    onSuccess: () => { toast.success("Post adicionado!"); refetchCalendario(); setModalPost({ open: false }); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao criar post"),
+  });
+  const atualizarPostMut = trpc.iaMarketing.atualizarPostCalendario.useMutation({
+    onSuccess: () => { toast.success("Post atualizado!"); refetchCalendario(); utils.iaMarketing.listarPosts.invalidate(); setModalPost({ open: false }); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar post"),
+  });
+  const excluirPostMut = trpc.iaMarketing.excluirPost.useMutation({
+    onSuccess: () => { toast.success("Post removido"); refetchCalendario(); utils.iaMarketing.listarPosts.invalidate(); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao excluir post"),
+  });
+  const atualizarPostLegadoMut = trpc.iaMarketing.atualizarPost.useMutation({
+    onSuccess: () => { utils.iaMarketing.listarPosts.invalidate(); toast.success("Post atualizado"); },
+  });
 
-  const handleGerarPost = () => {
-    if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
-    gerarPostMut.mutate({ tipo, tema: tema.trim(), tom, incluirEmoji });
+  // ── Navegação de mês ──
+  const irParaMesAnterior = () => {
+    if (mesAtual === 1) { setMesAtual(12); setAnoAtual(a => a - 1); }
+    else setMesAtual(m => m - 1);
+  };
+  const irParaProximoMes = () => {
+    if (mesAtual === 12) { setMesAtual(1); setAnoAtual(a => a + 1); }
+    else setMesAtual(m => m + 1);
   };
 
-  const handleGerarImagem = () => {
-    if (!postGerado?.imagemPrompt) return;
-    gerarImagemMut.mutate({
-      postId: postGerado.id ?? undefined,
-      prompt: postGerado.imagemPrompt,
+  // ── Calendário ──
+  const diasDoMes = useMemo(() => {
+    const total = new Date(anoAtual, mesAtual, 0).getDate();
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }, [anoAtual, mesAtual]);
+
+  const postsPorDia = useMemo(() => {
+    const mapa: Record<number, any[]> = {};
+    (calendario ?? []).forEach(post => {
+      if (!post.dataPublicacao) return;
+      const dia = parseInt(post.dataPublicacao.split("-")[2], 10);
+      if (!mapa[dia]) mapa[dia] = [];
+      if (filtroPlatforma === "todos" || post.plataforma === filtroPlatforma || post.plataforma === "ambos") {
+        mapa[dia].push(post);
+      }
     });
+    return mapa;
+  }, [calendario, filtroPlatforma]);
+
+  const stats = useMemo(() => {
+    const todos = calendario ?? [];
+    return {
+      total: todos.length,
+      planejado: todos.filter(p => (p.statusProducao ?? "planejado") === "planejado").length,
+      gravado: todos.filter(p => p.statusProducao === "gravado").length,
+      editado: todos.filter(p => p.statusProducao === "editado").length,
+      postado: todos.filter(p => p.statusProducao === "postado").length,
+    };
+  }, [calendario]);
+
+  const handleSalvarPost = (data: any) => {
+    if (modalPost.post) atualizarPostMut.mutate({ id: modalPost.post.id, ...data });
+    else criarPostMut.mutate(data);
   };
 
   const tipoInfo = TIPOS_POST.find(t => t.value === tipo);
 
   return (
-    <div className="p-4 lg:p-6 max-w-4xl mx-auto">
+    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-pink-50 border border-pink-100">
-          <Megaphone className="w-5 h-5 text-pink-600" />
+          <Megaphone className="w-5 h-5 text-pink-500" />
         </div>
         <div>
-          <h2 className="font-bold text-lg tracking-tight">IA de Marketing</h2>
-          <p className="text-xs text-muted-foreground">Crie posts incríveis para o Instagram com inteligência artificial</p>
+          <h1 className="text-lg font-semibold">Marketing & Redes Sociais</h1>
+          <p className="text-xs text-muted-foreground">Planeje, produza e acompanhe seu conteúdo</p>
         </div>
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 mb-6 bg-muted/50 rounded-xl p-1">
+      <div className="flex gap-1 mb-5 bg-muted/40 p-1 rounded-xl w-fit">
         {[
-          { id: "gerar", label: "Criar Post", icon: <Wand2 className="w-3.5 h-3.5" /> },
+          { id: "calendario", label: "Calendário", icon: <Calendar className="w-3.5 h-3.5" /> },
+          { id: "gerar", label: "Gerar Post", icon: <Sparkles className="w-3.5 h-3.5" /> },
           { id: "posts", label: "Meus Posts", icon: <Instagram className="w-3.5 h-3.5" /> },
-          { id: "pauta", label: "Pauta", icon: <Calendar className="w-3.5 h-3.5" /> },
         ].map(aba => (
           <button
             key={aba.id}
             onClick={() => setAbaAtiva(aba.id as any)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              abaAtiva === aba.id
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
+              abaAtiva === aba.id ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {aba.icon} {aba.label}
@@ -157,19 +405,165 @@ export default function IAMarketing() {
         ))}
       </div>
 
-      {/* ── ABA: CRIAR POST ── */}
+      {/* ══ ABA: CALENDÁRIO EDITORIAL ══ */}
+      {abaAtiva === "calendario" && (
+        <div className="space-y-4">
+          {/* Navegação + ações */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <button onClick={irParaMesAnterior} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-semibold min-w-[140px] text-center">
+                {MESES[mesAtual - 1]} {anoAtual}
+              </span>
+              <button onClick={irParaProximoMes} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={filtroPlatforma} onValueChange={v => setFiltroPlatforma(v as any)}>
+                <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true })}>
+                <Plus className="w-3.5 h-3.5" /> Novo Post
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => gerarPautaMut.mutate({
+                  periodo: periodoPauta,
+                  foco: focoPauta || undefined,
+                  anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
+                  salvarNoCalendario: true,
+                })}
+                disabled={gerarPautaMut.isPending}
+              >
+                {gerarPautaMut.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Gerar Pauta com IA
+              </Button>
+            </div>
+          </div>
+
+          {/* Opções de pauta */}
+          <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
+            <span className="text-xs text-muted-foreground font-medium">Período:</span>
+            {(["semana", "mes"] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriodoPauta(p)}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+                  periodoPauta === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-background hover:bg-muted"
+                }`}
+              >
+                {p === "semana" ? "1 semana" : "Mês inteiro"}
+              </button>
+            ))}
+            <Input
+              value={focoPauta}
+              onChange={e => setFocoPauta(e.target.value)}
+              placeholder="Foco especial (ex: Dia das Mães, verão...)"
+              className="h-7 text-xs max-w-[220px]"
+            />
+          </div>
+
+          {/* Stats do mês */}
+          {stats.total > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {STATUS_PRODUCAO.map(s => (
+                <div key={s.value} className={`rounded-lg border p-2.5 text-center ${s.bgCor}`}>
+                  <div className="text-lg font-bold">{stats[s.value as keyof typeof stats]}</div>
+                  <div className="text-[10px] font-medium flex items-center justify-center gap-1">{s.icon} {s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Grade do calendário */}
+          {loadingCalendario ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Carregando calendário...
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-1">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => (
+                <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground py-1">{d}</div>
+              ))}
+              {Array.from({ length: new Date(anoAtual, mesAtual - 1, 1).getDay() }).map((_, i) => (
+                <div key={`e-${i}`} />
+              ))}
+              {diasDoMes.map(dia => {
+                const postsNoDia = postsPorDia[dia] ?? [];
+                const isHoje = dia === hoje.getDate() && mesAtual === hoje.getMonth() + 1 && anoAtual === hoje.getFullYear();
+                const dataStr = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+                return (
+                  <div
+                    key={dia}
+                    className={`min-h-[80px] rounded-lg border p-1.5 space-y-1 ${
+                      isHoje ? "border-primary/50 bg-primary/5" : "border-border bg-card"
+                    } transition-colors`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-semibold ${isHoje ? "text-primary" : "text-muted-foreground"}`}>{dia}</span>
+                      <button
+                        onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
+                        className="p-0.5 rounded hover:bg-muted transition-all"
+                      >
+                        <Plus className="w-3 h-3 text-muted-foreground/50 hover:text-muted-foreground" />
+                      </button>
+                    </div>
+                    {postsNoDia.map(post => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onStatusChange={(id, status) => atualizarStatusMut.mutate({ id, statusProducao: status })}
+                        onEdit={p => setModalPost({ open: true, post: p })}
+                        onDelete={id => { if (confirm("Remover este post?")) excluirPostMut.mutate({ id }); }}
+                      />
+                    ))}
+                    {postsNoDia.length === 0 && (
+                      <button
+                        onClick={() => setModalPost({ open: true, dataDefault: dataStr })}
+                        className="w-full h-7 rounded border border-dashed border-border/40 text-[10px] text-muted-foreground/40 hover:text-muted-foreground hover:border-border transition-all flex items-center justify-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Legenda */}
+          <div className="flex items-center gap-3 flex-wrap pt-2 border-t">
+            <span className="text-[11px] text-muted-foreground font-medium">Status de produção:</span>
+            {STATUS_PRODUCAO.map(s => (
+              <span key={s.value} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${s.bgCor}`}>
+                {s.icon} {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══ ABA: GERAR POST COM IA ══ */}
       {abaAtiva === "gerar" && (
-        <div className="space-y-5">
-          {/* Tipo de post */}
+        <div className="space-y-5 max-w-xl">
           <div>
-            <p className="text-sm font-medium mb-2">Tipo de post</p>
-            <div className="grid grid-cols-3 gap-2">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Tipo de post</p>
+            <div className="flex flex-wrap gap-1.5">
               {TIPOS_POST.map(t => (
                 <button
                   key={t.value}
                   onClick={() => setTipo(t.value)}
-                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                    tipo === t.value ? t.cor + " border-current" : "border-border hover:bg-muted/50"
+                  className={`inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-all ${
+                    tipo === t.value ? t.cor + " ring-1 ring-current/30" : "border-border hover:bg-muted"
                   }`}
                 >
                   {t.icon} {t.label}
@@ -177,173 +571,100 @@ export default function IAMarketing() {
               ))}
             </div>
           </div>
-
-          {/* Tema */}
           <div>
-            <p className="text-sm font-medium mb-2">Tema / Assunto</p>
-            <textarea
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Tema do post *</p>
+            <Textarea
               value={tema}
               onChange={e => setTema(e.target.value)}
-              placeholder={
-                tipo === "promocao" ? "Ex: 20% de desconto em coloração este mês" :
-                tipo === "servico" ? "Ex: Hidratação profunda com queratina" :
-                tipo === "dica" ? "Ex: Como manter o cabelo saudável no verão" :
-                tipo === "novidade" ? "Ex: Novo serviço de extensão de cílios" :
-                "Descreva o tema do post..."
-              }
-              rows={3}
-              className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Ex: Promoção de limpeza de pele para o verão, dica de hidratação capilar..."
+              rows={2}
+              className="resize-none text-sm"
             />
           </div>
-
-          {/* Tom de voz */}
           <div>
-            <p className="text-sm font-medium mb-2">Tom de voz</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Tom de voz</p>
+            <div className="grid grid-cols-2 gap-1.5">
               {TONS_POST.map(t => (
                 <button
                   key={t.value}
                   onClick={() => setTom(t.value)}
-                  className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all ${
-                    tom === t.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-muted/50"
+                  className={`text-left p-2.5 rounded-lg border text-xs transition-all ${
+                    tom === t.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted"
                   }`}
                 >
-                  <span className="text-xs font-semibold">{t.label}</span>
-                  <span className="text-[11px] text-muted-foreground">{t.desc}</span>
+                  <span className="font-medium block">{t.label}</span>
+                  <span className="text-muted-foreground">{t.desc}</span>
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Opções */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIncluirEmoji(!incluirEmoji)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                incluirEmoji ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
-              }`}
+              className={`w-8 h-4 rounded-full transition-colors relative ${incluirEmoji ? "bg-primary" : "bg-muted-foreground/30"}`}
             >
-              😊 Incluir emojis
+              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${incluirEmoji ? "left-4.5" : "left-0.5"}`} style={{ left: incluirEmoji ? "18px" : "2px" }} />
             </button>
+            <span className="text-xs text-muted-foreground">Incluir emojis na legenda</span>
           </div>
-
-          {/* Botão gerar */}
           <Button
-            onClick={handleGerarPost}
-            disabled={gerarPostMut.isPending || !tema.trim()}
             className="w-full gap-2"
+            onClick={() => { if (!tema.trim()) { toast.error("Informe o tema do post"); return; } gerarPostMut.mutate({ tipo, tema: tema.trim(), tom, incluirEmoji }); }}
+            disabled={gerarPostMut.isPending}
           >
-            {gerarPostMut.isPending ? (
-              <><RefreshCw className="w-4 h-4 animate-spin" /> Gerando com IA...</>
-            ) : (
-              <><Sparkles className="w-4 h-4" /> Gerar Post com IA</>
-            )}
+            {gerarPostMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Gerar Post com IA
           </Button>
 
-          {/* Resultado */}
           {postGerado && (
-            <div className="space-y-4 pt-2">
-              <div className="h-px bg-border" />
-              <p className="text-sm font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" /> Post gerado!
-              </p>
-
-              {/* Legenda */}
-              <div className="rounded-xl border bg-muted/30 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Legenda</span>
-                  <CopyButton text={postGerado.legenda} />
-                </div>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{postGerado.legenda}</p>
-              </div>
-
-              {/* Hashtags */}
-              <div className="rounded-xl border bg-muted/30 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                    <Hash className="w-3 h-3" /> Hashtags
+            <div className="space-y-3 rounded-xl border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Post gerado!</p>
+                {tipoInfo && (
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+                    {tipoInfo.icon} {tipoInfo.label}
                   </span>
-                  <CopyButton text={postGerado.hashtags} />
-                </div>
-                <p className="text-xs text-blue-600 leading-relaxed">{postGerado.hashtags}</p>
-              </div>
-
-              {/* Imagem */}
-              <div className="rounded-xl border bg-muted/30 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                    <Image className="w-3 h-3" /> Arte do Post
-                  </span>
-                </div>
-                {imagemGerada ? (
-                  <div className="space-y-3">
-                    <img src={imagemGerada} alt="Arte gerada" className="w-full rounded-lg aspect-square object-cover" />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1.5 text-xs"
-                        onClick={handleGerarImagem}
-                        disabled={gerarImagemMut.isPending}
-                      >
-                        <RefreshCw className={`w-3 h-3 ${gerarImagemMut.isPending ? "animate-spin" : ""}`} />
-                        Regerar
-                      </Button>
-                      <a
-                        href={imagemGerada}
-                        download="post-hubly.png"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button size="sm" className="w-full gap-1.5 text-xs">
-                          Baixar imagem
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 text-sm"
-                    onClick={handleGerarImagem}
-                    disabled={gerarImagemMut.isPending}
-                  >
-                    {gerarImagemMut.isPending ? (
-                      <><RefreshCw className="w-4 h-4 animate-spin" /> Gerando imagem com IA...</>
-                    ) : (
-                      <><Wand2 className="w-4 h-4" /> Gerar Arte com IA</>
-                    )}
-                  </Button>
                 )}
               </div>
-
-              {/* Ações */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">Legenda</p>
+                  <CopyButton text={postGerado.legenda} />
+                </div>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/40 rounded-lg p-3">{postGerado.legenda}</p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Hash className="w-3 h-3" /> Hashtags</p>
+                  <CopyButton text={postGerado.hashtags} />
+                </div>
+                <p className="text-xs text-blue-600 leading-relaxed bg-muted/40 rounded-lg p-2">{postGerado.hashtags}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => gerarImagemMut.mutate({ postId: postGerado.id ?? undefined, prompt: postGerado.imagemPrompt })}
+                disabled={gerarImagemMut.isPending}
+              >
+                {gerarImagemMut.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                Gerar Imagem com IA
+              </Button>
+              {imagemGerada && (
+                <div className="space-y-2">
+                  <img src={imagemGerada} alt="Arte gerada" className="w-full rounded-xl aspect-square object-cover" />
+                  <a href={imagemGerada} download="post-hubly.png" target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" className="w-full text-xs">Baixar imagem</Button>
+                  </a>
+                </div>
+              )}
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 gap-1.5 text-xs"
-                  onClick={() => {
-                    setPostGerado(null);
-                    setImagemGerada(null);
-                    setTema("");
-                  }}
-                >
+                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setPostGerado(null); setImagemGerada(null); setTema(""); }}>
                   Novo post
                 </Button>
                 {postGerado.id && (
-                  <Button
-                    size="sm"
-                    className="flex-1 gap-1.5 text-xs"
-                    onClick={() => {
-                      atualizarPostMut.mutate({ id: postGerado.id!, status: "aprovado" });
-                      toast.success("Post salvo como aprovado!");
-                    }}
-                  >
-                    <Check className="w-3 h-3" /> Aprovar post
+                  <Button size="sm" className="flex-1 text-xs" onClick={() => { atualizarPostLegadoMut.mutate({ id: postGerado.id!, status: "aprovado" }); toast.success("Post aprovado!"); }}>
+                    <Check className="w-3 h-3 mr-1" /> Aprovar
                   </Button>
                 )}
               </div>
@@ -352,140 +673,66 @@ export default function IAMarketing() {
         </div>
       )}
 
-      {/* ── ABA: MEUS POSTS ── */}
+      {/* ══ ABA: MEUS POSTS ══ */}
       {abaAtiva === "posts" && (
         <div className="space-y-3">
           {loadingPosts ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Carregando posts...</span>
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Carregando posts...
             </div>
-          ) : !posts?.length ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+          ) : !posts || posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
               <Instagram className="w-10 h-10 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Nenhum post criado ainda.</p>
+              <p className="text-sm">Nenhum post gerado ainda</p>
               <Button size="sm" variant="outline" onClick={() => setAbaAtiva("gerar")}>
-                <Wand2 className="w-3.5 h-3.5 mr-1.5" /> Criar primeiro post
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Gerar primeiro post
               </Button>
             </div>
           ) : (
-            posts.map(post => {
-              const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
-              const statusCor: Record<string, string> = {
-                rascunho: "bg-gray-100 text-gray-600",
-                aprovado: "bg-green-100 text-green-700",
-                agendado: "bg-blue-100 text-blue-700",
-                publicado: "bg-purple-100 text-purple-700",
-                arquivado: "bg-orange-100 text-orange-700",
-              };
-              return (
-                <div key={post.id} className="rounded-xl border bg-card p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo?.cor}`}>
-                        {tipoInfo?.icon} {tipoInfo?.label}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCor[post.status] ?? "bg-gray-100 text-gray-600"}`}>
-                        {post.status}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => excluirPostMut.mutate({ id: post.id })}
-                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {post.tema && <p className="text-xs font-medium text-muted-foreground">{post.tema}</p>}
-                  {post.legenda && (
-                    <p className="text-xs text-foreground line-clamp-3 leading-relaxed">{post.legenda}</p>
-                  )}
-                  {post.imagemUrl && (
-                    <img src={post.imagemUrl} alt="Arte" className="w-full rounded-lg aspect-square object-cover" />
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      {new Date(post.createdAt).toLocaleDateString("pt-BR")}
-                    </span>
-                    {post.status === "rascunho" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-[11px] px-2"
-                        onClick={() => atualizarPostMut.mutate({ id: post.id, status: "aprovado" })}
-                      >
-                        Aprovar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* ── ABA: PAUTA ── */}
-      {abaAtiva === "pauta" && (
-        <div className="space-y-5">
-          <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-            <p className="text-sm font-medium">Gerar pauta de conteúdo com IA</p>
-            <p className="text-xs text-muted-foreground">
-              A IA cria um calendário completo de posts para a semana ou mês, com temas, tipos e melhores horários para publicação.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1 gap-2"
-                variant="outline"
-                onClick={() => gerarPautaMut.mutate({ periodo: "semana" })}
-                disabled={gerarPautaMut.isPending}
-              >
-                {gerarPautaMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-                Pauta da Semana
-              </Button>
-              <Button
-                className="flex-1 gap-2"
-                onClick={() => gerarPautaMut.mutate({ periodo: "mes" })}
-                disabled={gerarPautaMut.isPending}
-              >
-                {gerarPautaMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                Pauta do Mês
-              </Button>
-            </div>
-          </div>
-
-          {gerarPautaMut.data && gerarPautaMut.data.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Pauta gerada ({gerarPautaMut.data.length} posts)</p>
-              {gerarPautaMut.data.map((item, i) => {
-                const tipoInfo = TIPOS_POST.find(t => t.value === item.tipo);
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {posts.map(post => {
+                const tipoInfoPost = TIPOS_POST.find(t => t.value === post.tipo);
+                const statusProd = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
+                const statusCor: Record<string, string> = {
+                  rascunho: "bg-gray-100 text-gray-600",
+                  aprovado: "bg-green-100 text-green-700",
+                  agendado: "bg-blue-100 text-blue-700",
+                  publicado: "bg-purple-100 text-purple-700",
+                  arquivado: "bg-orange-100 text-orange-700",
+                };
                 return (
-                  <div key={i} className="rounded-xl border bg-card p-3 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-muted-foreground">Dia {item.dia}</span>
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo?.cor ?? ""}`}>
-                          {tipoInfo?.icon} {tipoInfo?.label ?? item.tipo}
+                  <div key={post.id} className="rounded-xl border bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {tipoInfoPost && (
+                          <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${tipoInfoPost.cor}`}>
+                            {tipoInfoPost.icon} {tipoInfoPost.label}
+                          </span>
+                        )}
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusCor[post.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {post.status}
                         </span>
+                        {statusProd && (
+                          <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${statusProd.bgCor}`}>
+                            {statusProd.icon} {statusProd.label}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {item.melhorHorario}
-                      </span>
+                      <button onClick={() => excluirPostMut.mutate({ id: post.id })} className="p-1 hover:text-destructive rounded">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <p className="text-sm font-medium">{item.tema}</p>
-                    <p className="text-xs text-muted-foreground">{item.justificativa}</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 text-[11px] px-2 gap-1"
-                      onClick={() => {
-                        setTipo(item.tipo as TipoPost);
-                        setTema(item.tema);
-                        setAbaAtiva("gerar");
-                      }}
-                    >
-                      <Wand2 className="w-3 h-3" /> Criar este post
-                    </Button>
+                    {post.tema && <p className="text-xs font-medium text-muted-foreground">{post.tema}</p>}
+                    {post.legenda && <p className="text-xs text-foreground line-clamp-3 leading-relaxed">{post.legenda}</p>}
+                    {post.imagemUrl && <img src={post.imagemUrl} alt="Arte" className="w-full rounded-lg aspect-square object-cover" />}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">{new Date(post.createdAt).toLocaleDateString("pt-BR")}</span>
+                      {post.status === "rascunho" && (
+                        <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={() => atualizarPostLegadoMut.mutate({ id: post.id, status: "aprovado" })}>
+                          Aprovar
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -493,6 +740,17 @@ export default function IAMarketing() {
           )}
         </div>
       )}
+
+      {/* Modal de Criar/Editar Post */}
+      <Dialog open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
+        <ModalPost
+          post={modalPost.post}
+          profissionais={profissionais}
+          onSave={handleSalvarPost}
+          onClose={() => setModalPost({ open: false })}
+          dataDefault={modalPost.dataDefault}
+        />
+      </Dialog>
     </div>
   );
 }

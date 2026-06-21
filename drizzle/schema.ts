@@ -1262,6 +1262,15 @@ export const marketingPosts = mysqlTable("marketing_posts", {
   publicadoEm: timestamp("publicadoEm"),
   instagramPostId: varchar("instagramPostId", { length: 255 }),
   observacoes: text("observacoes"),
+  // ─── Campos do Calendário Editorial ─────────────────────────────────────────
+  plataforma: mysqlEnum("plataforma", ["instagram", "tiktok", "ambos"]).default("instagram"),
+  formato: mysqlEnum("formato", ["feed", "reels", "stories", "tiktok", "outro"]).default("feed"),
+  statusProducao: mysqlEnum("statusProducao", ["planejado", "gravado", "editado", "postado"]).default("planejado"),
+  dataPublicacao: dateField("dataPublicacao"),           // data planejada para publicação
+  horarioPublicacao: varchar("horarioPublicacao", { length: 5 }), // ex: "19:00"
+  responsavelId: int("responsavelId"),                   // profissionalId responsável pela produção
+  responsavelNome: varchar("responsavelNome", { length: 120 }),
+  // ─────────────────────────────────────────────────────────────────────────────
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
