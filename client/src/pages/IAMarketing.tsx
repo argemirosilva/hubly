@@ -524,11 +524,11 @@ export default function IAMarketing() {
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-pink-50 border border-pink-100">
-          <Megaphone className="w-5 h-5 text-pink-500" />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "oklch(60% 0.100 55 / 12%)" }}>
+          <Megaphone className="w-5 h-5" style={{ color: "oklch(45% 0.060 55)" }} />
         </div>
         <div>
-          <h1 className="text-lg font-semibold">Marketing & Redes Sociais</h1>
+          <h1 className="font-bold text-xl tracking-tight">Marketing & Redes Sociais</h1>
           <p className="text-xs text-muted-foreground">Planeje, produza e acompanhe seu conteúdo</p>
         </div>
       </div>
