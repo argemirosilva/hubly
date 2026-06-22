@@ -2711,3 +2711,8 @@
 - [x] Backend: procedure gerarRoteiro (gera roteiro para vídeo ou conteúdo para post estático via IA)
 - [x] Frontend: botão em cada card do calendário para abrir modal com roteiro/conteúdo
 - [x] Modal exibe roteiro estruturado (cenas/etapas) para vídeos e texto detalhado para posts estáticos
+
+## Bug: Mensagem de confirmação não disparada ao confirmar sinal fora do prazo
+- [x] Investigar por que confirmarSinalForaDoPrazo não disparava a mensagem imediata
+- [x] Causa: deduplicação em registrarEnvioAutomacao encontrava lembrete D-1 (mesmo automacaoId+agendamentoId, status 'agendado') e sobrescrevia sem enviar
+- [x] Correção: passar status 'pendente' explicitamente na chamada de registrarEnvioAutomacao dentro de confirmarSinalForaDoPrazo

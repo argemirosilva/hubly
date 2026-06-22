@@ -2180,6 +2180,11 @@ export const appRouter = router({
                   link_agendamento: linkAgendamentoReativado,
                 };
                 const mensagemReativado = processarVariaveisTemplate(automacaoReativado.corpoMensagem, templateVarsReativado);
+                // IMPORTANTE: status 'pendente' é obrigatório aqui.
+                // Sem ele, o default seria 'enviado', acionando a dedup de registrarEnvioAutomacao:
+                // ela encontraria o lembrete D-1 já na fila (mesmo automacaoId+agendamentoId, status 'agendado')
+                // e o sobrescreveria sem criar novo registro — a mensagem imediata nunca seria enviada.
+                // Com 'pendente' + enviarEm=now(), a dedup não é acionada e a fila processa em até 1 minuto.
                 await registrarEnvioAutomacao({
                   empresaId: empresa.id,
                   automacaoId: automacaoReativado.id,
@@ -2190,9 +2195,10 @@ export const appRouter = router({
                   telefone: telefoneReativado,
                   mensagem: mensagemReativado,
                   midiaUrl: extrairMidiaUrl(automacaoReativado.flowJson) ?? undefined,
+                  status: 'pendente',
                   enviarEm: new Date(),
                 });
-                console.log(`[confirmarSinalForaDoPrazo] Automação '${eventoUsado}' agendada para ag. ${input.id}`);
+                console.log(`[confirmarSinalForaDoPrazo] Automação '${eventoUsado}' enfileirada (pendente/imediato) para ag. ${input.id}`);
               } else {
                 console.warn(`[confirmarSinalForaDoPrazo] Nenhuma automação encontrada (reativado ou confirmado) para empresa ${empresa.id} — ag. ${input.id}`);
               }
