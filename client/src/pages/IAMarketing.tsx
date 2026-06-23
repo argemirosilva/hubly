@@ -235,8 +235,8 @@ function ModalPost({
   const handleSave = () => {
     if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
     if (!data) { toast.error("Informe a data de publicação"); return; }
-    const resp = profissionais.find(p => p.id === Number(responsavelId));
-    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: data, horarioPublicacao: horario, responsavelId: resp?.id ?? null, responsavelNome: resp?.nome ?? null, observacoes: observacoes.trim() || null });
+    const resp = responsavelId && responsavelId !== '__nenhum__' ? profissionais.find(p => p.id === Number(responsavelId)) : undefined;
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined });
   };
 
   return (
@@ -294,7 +294,7 @@ function ModalPost({
             <Select value={responsavelId} onValueChange={setResponsavelId}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="__nenhum__">Nenhum</SelectItem>
                 {profissionais.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}
               </SelectContent>
             </Select>
