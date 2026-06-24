@@ -269,14 +269,14 @@ function ModalPost({
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-[1fr_90px] gap-2">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
-            <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs" />
+            <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs w-full" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
-            <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs" />
+            <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
           </div>
         </div>
         <div>
