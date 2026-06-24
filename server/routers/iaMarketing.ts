@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
-import { getEmpresaDoUsuario, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
+import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
 import { marketingPosts } from "../../drizzle/schema";
 import { eq, and, desc, gte, lte, isNotNull } from "drizzle-orm";
 import OpenAI from "openai";
@@ -38,7 +38,7 @@ export const iaMarketingRouter = router({
       idioma: z.string().default("pt-BR"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       // Buscar contexto completo da empresa: serviços, profissionais e pacotes
@@ -154,7 +154,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       estilo: z.enum(["vivid", "natural"]).default("vivid"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const client = getOpenAIClient();
@@ -197,7 +197,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       offset: z.number().min(0).default(0),
     }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -225,7 +225,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       mes: z.number().min(1).max(12),
     }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -261,7 +261,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       statusProducao: z.enum(statusProducaoEnum),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -303,7 +303,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       status: z.enum(statusPost).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -342,7 +342,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       observacoes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -368,7 +368,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
   excluirPost: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -391,7 +391,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       salvarNoCalendario: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const servicos = await getServicosByEmpresa(empresa.id);
@@ -502,7 +502,7 @@ Retorne um JSON com:
       mes: z.number().min(1).max(12),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -542,7 +542,7 @@ Retorne um JSON com:
       observacoes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const db = await getDb();
@@ -574,7 +574,7 @@ Retorne um JSON com:
       postId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
@@ -678,7 +678,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
    */
   listarProfissionais: protectedProcedure
     .query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
 
       const profissionais = await getProfissionaisByEmpresa(empresa.id);
