@@ -40,7 +40,6 @@ function toView(plan: CanonicalPlanType): PlanLimitsView {
 
 /** Mapa de limites no formato de visualização (derivado de plans.ts). */
 export const PLAN_LIMITS: Record<PlanType, PlanLimitsView> = {
-  FREE: toView("FREE"),
   SOLO: toView("SOLO"),
   PLUS: toView("PLUS"),
   PRO: toView("PRO"),
@@ -50,7 +49,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimitsView> = {
  * Obtém os limites de um plano (formato de visualização).
  */
 export function getPlanLimits(plan: PlanType): PlanLimitsView {
-  return PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+  return PLAN_LIMITS[plan] || PLAN_LIMITS.SOLO;
 }
 
 /**

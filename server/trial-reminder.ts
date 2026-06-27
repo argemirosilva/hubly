@@ -84,7 +84,7 @@ export async function trialReminderHandler(req: Request, res: Response) {
 
       if (diasRestantes <= 1) {
         titulo = "⚠️ Seu trial expira hoje!";
-        corpo = "Cadastre seu cartão agora para não perder o acesso. Após o trial, você será movido para o plano Free.";
+        corpo = "Cadastre seu cartão agora para não perder o acesso. Após o trial, o acesso será suspenso até que um plano seja contratado.";
       } else if (diasRestantes <= 3) {
         titulo = `⏰ Trial expira em ${diasRestantes} dias`;
         corpo = `Faltam apenas ${diasRestantes} dias para o fim do seu período de teste. Cadastre seu cartão para continuar com todos os recursos.`;

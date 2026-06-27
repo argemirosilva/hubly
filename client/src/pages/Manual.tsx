@@ -947,12 +947,12 @@ const SECTIONS: Section[] = [
     title: "Assinatura e Planos",
     subtitle: "Trial, planos, upgrade, cancelamento e reativação",
     color: "oklch(45% 0.060 55)",
-    intro: "O Hubly oferece três planos: Solo, Plus e Pro. Toda conta nova começa com 7 dias de trial gratuito no plano Solo. Após o trial, assine um plano para continuar usando o Hubly com todos os recursos.",
+    intro: "O Hubly oferece três planos: Solo, Plus e Pro. Toda conta nova começa com 7 dias de trial gratuito com acesso completo a todos os recursos (incluindo IA). Após o trial, assine um plano para continuar usando o Hubly.",
     topics: [
       {
         title: "Período de teste gratuito (Trial)",
         steps: [
-          "Toda nova conta começa automaticamente com 7 dias de trial gratuito no plano Solo.",
+          "Toda nova conta começa automaticamente com 7 dias de trial gratuito com acesso total a todos os recursos, incluindo IA Marketing, IA Financeira e IA Clientes.",
           "Não é necessário cadastrar cartão durante o trial.",
           "No painel, um badge no topo mostra quantos dias restam (ex: Trial · 5d).",
           "Na página de Assinatura, você vê a data exata de vencimento e o que acontece ao final.",
@@ -1031,7 +1031,7 @@ const SECTIONS: Section[] = [
     title: "IA e Insights",
     subtitle: "Inteligência artificial para clientes e financeiro",
     color: "oklch(45% 0.20 280)",
-    intro: "O Hubly conta com inteligência artificial integrada para ajudar você a tomar decisões melhores. Disponível nos planos Plus (IA Financeira) e Pro (IA Completa), o módulo de Insights analisa seus dados automaticamente e gera recomendações personalizadas.",
+    intro: "O Hubly conta com inteligência artificial integrada para ajudar você a tomar decisões melhores e criar conteúdo de marketing. Disponível nos planos Plus (IA Financeira) e Pro (IA Completa + IA Marketing), além do trial gratuito com acesso total.",
     topics: [
       {
         title: "Insights de Clientes",
@@ -1069,10 +1069,11 @@ const SECTIONS: Section[] = [
         title: "Quem pode acessar a IA?",
         steps: [
           "O menu de IA e Insights é visível apenas para usuários com perfil de Administrador.",
+          "Trial (7 dias): acesso total a toda a IA — IA Financeira, IA Clientes e IA Marketing.",
+          "Plano Solo: sem acesso a nenhum recurso de IA.",
           "Plano Plus: acesso à IA Financeira (Score Financeiro, alertas e chat financeiro).",
-          "Plano Pro: acesso à IA Financeira e IA de Clientes (IA Completa — insights de clientes + chat de clientes).",
-          "O plano Solo não tem acesso ao módulo de IA.",
-          "Ao tentar acessar um recurso de IA fora do plano, o sistema exibe uma mensagem de upgrade em vez de um erro.",
+          "Plano Pro: acesso completo — IA Financeira + IA Clientes + IA Marketing & Redes Sociais.",
+          "Ao tentar acessar um recurso de IA fora do plano, o sistema exibe um banner de upgrade com link para a página de planos.",
         ],
         tip: "O bloqueio é feito tanto no servidor quanto na interface. Mesmo que o menu apareça, as análises só são geradas se o plano tiver o recurso habilitado.",
       },

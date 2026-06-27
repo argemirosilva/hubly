@@ -40,7 +40,7 @@ const PLANOS = [
       { icon: MessageCircle, text: "100 notificações WhatsApp/mês" },
       { icon: MessageCircle, text: "Conexão WhatsApp via QR Code" },
     ],
-    naoInclui: ["IA Financeira", "IA Clientes", "Múltiplos caixas"],
+    naoInclui: ["IA Financeira", "IA Clientes", "IA Marketing", "Múltiplos caixas"],
   },
   {
     key: "PLUS" as const,
@@ -65,7 +65,7 @@ const PLANOS = [
       { icon: MessageCircle, text: "400 notificações WhatsApp/mês" },
       { icon: MessageCircle, text: "Conexão WhatsApp via QR Code" },
     ],
-    naoInclui: ["IA Clientes"],
+    naoInclui: ["IA Clientes", "IA Marketing"],
   },
   {
     key: "PRO" as const,
@@ -87,6 +87,7 @@ const PLANOS = [
       { icon: Package, text: "Pacotes de serviços" },
       { icon: BarChart3, text: "Relatórios avançados" },
       { icon: Brain, text: "IA Financeira + IA Clientes" },
+      { icon: Brain, text: "IA Marketing & Redes Sociais" },
       { icon: MessageCircle, text: "1.000 notificações WhatsApp/mês" },
       { icon: MessageCircle, text: "WhatsApp via API dedicada e robusta" },
     ],
@@ -126,7 +127,7 @@ export default function Planos() {
     },
   });
 
-  const planoAtual = statusPlano?.plan ?? "FREE";
+  const planoAtual = statusPlano?.plan ?? "SOLO";
   const isSuspendedPlanos = statusPlano?.status === "suspended";
   // Usa preços do Stripe se disponíveis, senão usa os hardcoded
   function getPreco(key: string, cicloLocal: "monthly" | "annual"): number {
@@ -277,7 +278,7 @@ export default function Planos() {
                   >
                     {loadingKey === plano.key ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Aguarde...</>
-                    ) : planoAtual && planoAtual !== "FREE" && !isSuspendedPlanos ? (
+                    ) : planoAtual && !isSuspendedPlanos ? (
                       <>Alterar para {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>
                     ) : (
                       <>Assinar {plano.label} <ArrowRight className="w-4 h-4 ml-1" /></>

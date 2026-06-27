@@ -357,6 +357,8 @@ function ModalLimpar({
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function IAMarketing() {
   const utils = trpc.useUtils();
+  const { data: planStatus } = trpc.planos.getStatus.useQuery(undefined, { staleTime: 60_000 });
+  const temIAMarketing = planStatus?.limits?.iaMarketing ?? true; // default true enquanto carrega
 
   const hoje = new Date();
   const [anoAtual, setAnoAtual] = useState(hoje.getFullYear());
@@ -621,13 +623,16 @@ export default function IAMarketing() {
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
-                onClick={() => gerarPautaMut.mutate({
-                  periodo: periodoPauta,
-                  foco: focoPauta || undefined,
-                  anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
-                  salvarNoCalendario: true,
-                  servicosIds: servicosPauta.length > 0 ? servicosPauta : undefined,
-                })}
+                onClick={() => {
+                  if (!temIAMarketing) { window.location.href = "/admin/assinatura"; return; }
+                  gerarPautaMut.mutate({
+                    periodo: periodoPauta,
+                    foco: focoPauta || undefined,
+                    anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
+                    salvarNoCalendario: true,
+                    servicosIds: servicosPauta.length > 0 ? servicosPauta : undefined,
+                  });
+                }}
                 disabled={gerarPautaMut.isPending}
               >
                 {gerarPautaMut.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -889,6 +894,16 @@ export default function IAMarketing() {
       {/* ══ ABA: GERAR POST COM IA ══ */}
       {abaAtiva === "gerar" && (
         <div className="space-y-5 max-w-xl">
+          {!temIAMarketing && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Recurso exclusivo do plano Pro</p>
+                <p className="text-xs text-amber-700 mt-0.5">A geração de conteúdo com IA está disponível no plano Hubly Pro. Faça upgrade para criar posts, legendas e pautas automaticamente.</p>
+                <a href="/admin/assinatura" className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-amber-800 underline hover:text-amber-900">Ver planos e preços →</a>
+              </div>
+            </div>
+          )}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Tipo de post</p>
             <div className="flex flex-wrap gap-1.5">
@@ -965,6 +980,7 @@ export default function IAMarketing() {
           <Button
             className="w-full gap-2"
             onClick={() => {
+              if (!temIAMarketing) { window.location.href = "/admin/assinatura"; return; }
               if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
               gerarPostMut.mutate({
                 tipo,

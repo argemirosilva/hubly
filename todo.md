@@ -2717,3 +2717,13 @@
 - [x] Causa: deduplicação em registrarEnvioAutomacao encontrava lembrete D-1 (mesmo automacaoId+agendamentoId, status 'agendado') e sobrescrevia sem enviar
 - [x] Correção: passar status 'pendente' explicitamente na chamada de registrarEnvioAutomacao dentro de confirmarSinalForaDoPrazo
 - [x] Gerar Pauta IA: adicionar seletor múltiplo de serviços para filtrar quais serviços incluir na geração
+
+## Remoção do Plano FREE e Gates de IA por Plano
+- [x] Remover plano FREE do plans.ts (PLAN_LIMITS e PLAN_PRICES)
+- [x] Ajustar trial para acesso total (como PRO) durante 7 dias
+- [x] Corrigir PLAN_LIMITS: SOLO sem IA, PLUS com iaFinanceira, PRO com IA completa (iaMarketing + iaFinanceira + iaTotal)
+- [x] Backend: gates de IA nos routers (iaMarketing, iaClientes, iaFinanceiro) verificando plano
+- [x] Frontend: tela de upgrade quando plano não permite acesso à IA
+- [x] Atualizar tela de assinatura com features corretas por plano
+- [x] Atualizar manual/documentação com novas regras de planos
+- [x] Remover referências ao plano FREE em todo o código

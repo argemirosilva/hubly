@@ -1,9 +1,12 @@
 /**
  * Definição dos planos, limites e feature gating do Hubly.
  * Altere os preços e limites aqui para refletir em todo o sistema.
+ *
+ * Fluxo: Trial (7 dias, acesso total como PRO) → Plano pago (SOLO, PLUS, PRO)
+ * O plano FREE foi removido. Novas empresas entram em trial.
  */
 
-export type PlanType = "FREE" | "SOLO" | "PLUS" | "PRO";
+export type PlanType = "SOLO" | "PLUS" | "PRO";
 
 // ─── Limites por plano ────────────────────────────────────────────────────────
 export const PLAN_LIMITS: Record<PlanType, {
@@ -26,26 +29,6 @@ export const PLAN_LIMITS: Record<PlanType, {
   multiplosCaixas: boolean;
   portalCliente: boolean;
 }> = {
-  FREE: {
-    profissionais: 1,
-    agendamentosMes: 15,
-    notificacoesWhatsappMes: 10,
-    clientes: 50,
-    servicos: 5,
-    pacotes: 0,
-    automacoes: 0,
-    usuarios: 1,
-    alertaPercentual: 80,
-    iaMarketing: false,
-    iaFinanceira: false,
-    iaTotal: false,
-    linkPersonalizado: false,
-    pacotesServicos: false,
-    comissoes: false,
-    relatoriosAvancados: false,
-    multiplosCaixas: false,
-    portalCliente: false,
-  },
   SOLO: {
     profissionais: 1,
     agendamentosMes: -1,
@@ -96,7 +79,7 @@ export const PLAN_LIMITS: Record<PlanType, {
     automacoes: -1,
     usuarios: -1,
     alertaPercentual: 80,
-    iaMarketing: false,
+    iaMarketing: true,
     iaFinanceira: true,
     iaTotal: true,
     linkPersonalizado: true,
@@ -108,6 +91,11 @@ export const PLAN_LIMITS: Record<PlanType, {
   },
 };
 
+// ─── Trial ────────────────────────────────────────────────────────────────────
+/** Durante o trial, o acesso é equivalente ao PRO (tudo liberado) */
+export const TRIAL_PLAN: PlanType = "PRO";
+export const TRIAL_DURATION_DAYS = 7;
+
 // ─── Preços ───────────────────────────────────────────────────────────────────
 export const PLAN_PRICES: Record<PlanType, {
   monthly: number;
@@ -116,13 +104,6 @@ export const PLAN_PRICES: Record<PlanType, {
   label: string;
   description: string;
 }> = {
-  FREE: {
-    monthly: 0,
-    annual: 0,
-    annualTotal: 0,
-    label: "Free",
-    description: "Para começar sem compromisso",
-  },
   SOLO: {
     monthly: 49.00,
     annual: 40.83,
@@ -155,27 +136,27 @@ export function getMesAnoAtual(): string {
 }
 
 /** Verifica se um plano tem acesso a uma feature */
-export function hasFeature(plan: PlanType, feature: keyof typeof PLAN_LIMITS.FREE): boolean {
-  return !!PLAN_LIMITS[plan][feature];
+export function hasFeature(plan: PlanType, feature: keyof typeof PLAN_LIMITS.SOLO): boolean {
+  return !!PLAN_LIMITS[plan]?.[feature];
 }
 
 /** Verifica se o limite de agendamentos foi atingido */
 export function isAgendamentosLimitReached(plan: PlanType, count: number): boolean {
-  const limit = PLAN_LIMITS[plan].agendamentosMes;
+  const limit = PLAN_LIMITS[plan]?.agendamentosMes ?? 0;
   if (limit === -1) return false;
   return count >= limit;
 }
 
 /** Verifica se o limite de profissionais foi atingido */
 export function isProfissionaisLimitReached(plan: PlanType, count: number): boolean {
-  const limit = PLAN_LIMITS[plan].profissionais;
+  const limit = PLAN_LIMITS[plan]?.profissionais ?? 0;
   if (limit === -1) return false;
   return count >= limit;
 }
 
 /** Retorna a porcentagem de uso de agendamentos (0-100) */
 export function getAgendamentosUsagePercent(plan: PlanType, count: number): number {
-  const limit = PLAN_LIMITS[plan].agendamentosMes;
+  const limit = PLAN_LIMITS[plan]?.agendamentosMes ?? 0;
   if (limit === -1) return 0;
   return Math.min(100, Math.round((count / limit) * 100));
 }
@@ -183,9 +164,9 @@ export function getAgendamentosUsagePercent(plan: PlanType, count: number): numb
 /** Mensagem de erro amigável ao atingir limite */
 export function getLimitReachedMessage(plan: PlanType, resource: "agendamentos" | "profissionais"): string {
   if (resource === "agendamentos") {
-    const limit = PLAN_LIMITS[plan].agendamentosMes;
-    return `Você atingiu o limite de ${limit} agendamentos este mês no plano ${PLAN_PRICES[plan].label}. Faça upgrade para continuar agendando sem limites.`;
+    const limit = PLAN_LIMITS[plan]?.agendamentosMes ?? 0;
+    return `Você atingiu o limite de ${limit} agendamentos este mês no plano ${PLAN_PRICES[plan]?.label ?? plan}. Faça upgrade para continuar agendando sem limites.`;
   }
-  const limit = PLAN_LIMITS[plan].profissionais;
-  return `Você atingiu o limite de ${limit} profissional(is) no plano ${PLAN_PRICES[plan].label}. Faça upgrade para adicionar mais profissionais.`;
+  const limit = PLAN_LIMITS[plan]?.profissionais ?? 0;
+  return `Você atingiu o limite de ${limit} profissional(is) no plano ${PLAN_PRICES[plan]?.label ?? plan}. Faça upgrade para adicionar mais profissionais.`;
 }

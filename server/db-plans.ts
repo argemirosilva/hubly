@@ -6,7 +6,7 @@ import { getMesAnoAtual, PLAN_LIMITS } from "./plans";
 
 // ─── Subscription helpers ─────────────────────────────────────────────────────
 
-/** Busca ou cria a subscription de uma empresa. Novas empresas entram em trial de 7 dias no SOLO. */
+/** Busca ou cria a subscription de uma empresa. Novas empresas entram em trial de 7 dias com acesso PRO. */
 export async function getOrCreateSubscription(empresaId: number) {
   const db = await getDb();
   if (!db) throw new Error("DB indisponível");
@@ -17,11 +17,11 @@ export async function getOrCreateSubscription(empresaId: number) {
 
   if (existing.length > 0) return existing[0];
 
-  // Criar subscription de trial (7 dias no SOLO)
+  // Criar subscription de trial (7 dias com acesso total = PRO)
   const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await db.insert(subscriptions).values({
     empresaId,
-    planType: "SOLO",
+    planType: "PRO",
     billingCycle: "monthly",
     status: "trial",
     trialEnd,
@@ -38,14 +38,19 @@ export async function getOrCreateSubscription(empresaId: number) {
 /** Retorna o plano efetivo da empresa (considera expiração do trial) */
 export async function getEmpresaPlan(empresaId: number): Promise<PlanType> {
   const db = await getDb();
-  if (!db) return "FREE";
+  if (!db) return "SOLO";
 
   const sub = await db.select().from(subscriptions)
     .where(eq(subscriptions.empresaId, empresaId))
     .limit(1);
 
-  if (sub.length === 0) return "FREE";
+  if (sub.length === 0) return "SOLO";
   const s = sub[0];
+
+  // Trial ativo → acesso PRO (tudo liberado)
+  if (s.status === "trial" && s.trialEnd && new Date() <= s.trialEnd) {
+    return "PRO";
+  }
 
   // Trial expirado → SUSPENDED (dados preservados, criação bloqueada)
   if (s.status === "trial" && s.trialEnd && new Date() > s.trialEnd) {
@@ -59,6 +64,20 @@ export async function getEmpresaPlan(empresaId: number): Promise<PlanType> {
   if (s.status === "canceled" || s.status === "past_due") return s.planType as PlanType;
 
   return s.planType as PlanType;
+}
+
+/** Verifica se a empresa está em trial ativo */
+export async function isTrialAtivo(empresaId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const sub = await db.select().from(subscriptions)
+    .where(eq(subscriptions.empresaId, empresaId))
+    .limit(1);
+
+  if (sub.length === 0) return false;
+  const s = sub[0];
+  return s.status === "trial" && !!s.trialEnd && new Date() <= s.trialEnd;
 }
 
 /** Retorna os dados completos da subscription */

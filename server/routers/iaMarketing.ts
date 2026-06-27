@@ -40,6 +40,7 @@ export const iaMarketingRouter = router({
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      if (!(await empresaHasFeature(empresa.id, "iaMarketing"))) throw new TRPCError({ code: "FORBIDDEN", message: "UPGRADE_REQUIRED:iaMarketing" });
 
       // Buscar contexto completo da empresa: serviços, profissionais e pacotes
       const servicos = await getServicosByEmpresa(empresa.id);
@@ -156,6 +157,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      if (!(await empresaHasFeature(empresa.id, "iaMarketing"))) throw new TRPCError({ code: "FORBIDDEN", message: "UPGRADE_REQUIRED:iaMarketing" });
 
       const client = getOpenAIClient();
 
@@ -394,6 +396,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      if (!(await empresaHasFeature(empresa.id, "iaMarketing"))) throw new TRPCError({ code: "FORBIDDEN", message: "UPGRADE_REQUIRED:iaMarketing" });
 
       const servicos = await getServicosByEmpresa(empresa.id);
       const profissionaisEmpresa = await getProfissionaisByEmpresa(empresa.id);
@@ -577,6 +580,7 @@ Retorne um JSON com:
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      if (!(await empresaHasFeature(empresa.id, "iaMarketing"))) throw new TRPCError({ code: "FORBIDDEN", message: "UPGRADE_REQUIRED:iaMarketing" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
       // Buscar o post

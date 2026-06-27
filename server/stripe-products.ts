@@ -56,7 +56,7 @@ export function planTypeToStripeKey(planType: string): string | null {
 }
 
 /** Converte um Price ID do Stripe para o plan_type do banco */
-export function priceIdToPlanType(priceId: string): "FREE" | "SOLO" | "PLUS" | "PRO" {
+export function priceIdToPlanType(priceId: string): "SOLO" | "PLUS" | "PRO" {
   if (priceId === PLANOS_STRIPE.SOLO.mensal.priceId) return "SOLO";
   if (priceId === PLANOS_STRIPE.SOLO.anual.priceId) return "SOLO";
   if (priceId === PLANOS_STRIPE.PLUS.mensal.priceId) return "PLUS";

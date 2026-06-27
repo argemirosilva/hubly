@@ -127,8 +127,8 @@ export default function Assinatura() {
     handlePortal();
   };
 
-  const plan = planStatus?.plan ?? "FREE";
-  const planLabel = planStatus?.planLabel ?? "Free";
+  const plan = planStatus?.plan ?? "SOLO";
+  const planLabel = planStatus?.planLabel ?? "Solo";
   const isOnTrial = planStatus?.status === "trial";
   const isCanceled = planStatus?.status === "canceled";
   const isSuspended = planStatus?.status === "suspended";
@@ -149,7 +149,7 @@ export default function Assinatura() {
   const diasParaRenovacao = renovacaoDate
     ? Math.ceil((new Date(renovacaoDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
-  const renovacaoProxima = diasParaRenovacao !== null && diasParaRenovacao >= 0 && diasParaRenovacao <= 3 && plan !== "FREE";
+  const renovacaoProxima = diasParaRenovacao !== null && diasParaRenovacao >= 0 && diasParaRenovacao <= 3 && true;
 
   // Guarda: apenas administradores podem acessar
   if (!isAdmin) {
@@ -170,7 +170,7 @@ export default function Assinatura() {
           <p className="text-sm text-slate-500 mt-0.5">Gerencie seu plano, pagamentos e histórico de faturas</p>
         </div>
         <div className="flex gap-2">
-              {(plan !== "FREE" && !isSuspended) && (
+              {(!isSuspended) && (
             <Button
               onClick={handlePortal}
               disabled={loadingPortal}
@@ -260,7 +260,7 @@ export default function Assinatura() {
                     <p className="text-xs text-white/90 mt-0.5 font-medium">
                       {trialDaysLeft === 0 ? "Expira hoje!" : `${trialDaysLeft} dia${trialDaysLeft !== 1 ? "s" : ""} restante${trialDaysLeft !== 1 ? "s" : ""}`}
                     </p>
-                  ) : planStatus?.billingCycle && plan !== "FREE" ? (
+                  ) : planStatus?.billingCycle && true ? (
                     <p className="text-xs text-white/70 mt-0.5">
                       {planStatus.billingCycle === "annual" ? "Cobrança anual" : "Cobrança mensal"}
                     </p>
@@ -352,7 +352,7 @@ export default function Assinatura() {
                   <CreditCard className="w-5 h-5 text-slate-400" />
                 </div>
               </div>
-              {(plan !== "FREE" && !isSuspended) && (
+              {(!isSuspended) && (
                 <button
                   onClick={handlePortal}
                   disabled={loadingPortal}
@@ -489,7 +489,7 @@ export default function Assinatura() {
                   )}
                   {loadingPortal ? "Aguarde..." : "Gerenciar no Stripe"}
                 </Button>
-                {!planStatus?.cancelAtPeriodEnd && plan !== "FREE" && !isSuspended && (
+                {!planStatus?.cancelAtPeriodEnd && !isSuspended && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -501,7 +501,7 @@ export default function Assinatura() {
                     Cancelar assinatura
                   </Button>
                 )}
-                {plan !== "FREE" && !planStatus?.cancelAtPeriodEnd && (
+                {!planStatus?.cancelAtPeriodEnd && (
                   <Link href="/admin/planos">
                     <Button
                       variant="outline"
@@ -538,8 +538,8 @@ export default function Assinatura() {
                 </div>
                 <p className="text-slate-500 font-medium text-sm">Nenhuma fatura encontrada</p>
                 <p className="text-xs text-slate-400">
-                  {plan === "FREE"
-                    ? "Faça upgrade para um plano pago para ver seu histórico de faturas"
+                  {false
+                    ? "As faturas aparecerão aqui após o primeiro pagamento"
                     : "As faturas aparecerão aqui após o primeiro pagamento"}
                 </p>
               </div>

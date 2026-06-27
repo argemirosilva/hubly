@@ -350,7 +350,7 @@ export function registerStripeWebhook(app: Express) {
               await db3
                 .update(subscriptions)
                 .set({
-                  planType: "FREE",
+                  planType: "SOLO",
                   billingCycle: "monthly",
                   status: "canceled",
                   stripeSubscriptionId: null,
@@ -363,7 +363,7 @@ export function registerStripeWebhook(app: Express) {
             // Invalida cache de plano
             if (canceledEmpresaId) invalidatePlanCache(canceledEmpresaId);
 
-            console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para FREE`);
+            console.log(`[Stripe Webhook] Assinatura cancelada: ${sub.id} → migrado para SOLO (suspenso)`);
 
             // Sincronizar tabela assinaturas (Painel Orizontech) — marcar como cancelada
             if (db3) {
@@ -471,6 +471,6 @@ export function registerStripeWebhook(app: Express) {
  * Converte um Price ID do Stripe para o plan_type do banco.
  * Usa os Price IDs definidos em stripe-products.ts.
  */
-function priceIdToPlanType(priceId: string): "FREE" | "SOLO" | "PLUS" | "PRO" {
+function priceIdToPlanType(priceId: string): "SOLO" | "PLUS" | "PRO" {
   return priceIdToType(priceId);
 }
