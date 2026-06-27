@@ -389,6 +389,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       foco: z.string().optional(),
       anoMes: z.string().optional(), // "YYYY-MM" — se não informado, usa mês atual
       salvarNoCalendario: z.boolean().default(true),
+      servicosIds: z.array(z.number()).optional(), // filtrar por serviços específicos
     }))
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
@@ -427,7 +428,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
 Crie uma pauta de conteúdo para ${input.periodo === "semana" ? "1 semana (5 posts)" : "1 mês (20 posts)"} para as redes sociais de ${empresa.nome} (${empresa.tipo}).
 Mês de referência: ${mesRef}/${anoRef}
 ${input.foco ? `Foco especial em: ${input.foco}` : ''}
-${servicos.length > 0 ? `Serviços oferecidos: ${servicos.slice(0, 10).map(s => s.nome).join(', ')}` : ''}
+${(() => { const lista = (input.servicosIds && input.servicosIds.length > 0 ? servicos.filter(s => input.servicosIds!.includes(s.id)) : servicos); return lista.length > 0 ? `Serviços oferecidos (FOQUE NESTES): ${lista.slice(0, 10).map(s => s.nome).join(', ')}` : ''; })()}
 ${pacotesNomesPauta.length > 0 ? `Pacotes disponíveis: ${pacotesNomesPauta.join(', ')}` : ''}
 ${profissionaisAtivosPauta.length > 0 ? `Equipe: ${profissionaisAtivosPauta.slice(0, 5).map(p => p.nome).join(', ')}` : ''}
 

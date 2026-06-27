@@ -381,6 +381,7 @@ export default function IAMarketing() {
   // Pauta IA
   const [focoPauta, setFocoPauta] = useState("");
   const [periodoPauta, setPeriodoPauta] = useState<"semana" | "mes">("mes");
+  const [servicosPauta, setServicosPauta] = useState<number[]>([]);
 
   // ── Queries ──
   const { data: calendario, isLoading: loadingCalendario, refetch: refetchCalendario } = trpc.iaMarketing.listarCalendario.useQuery(
@@ -625,6 +626,7 @@ export default function IAMarketing() {
                   foco: focoPauta || undefined,
                   anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
                   salvarNoCalendario: true,
+                  servicosIds: servicosPauta.length > 0 ? servicosPauta : undefined,
                 })}
                 disabled={gerarPautaMut.isPending}
               >
@@ -656,6 +658,36 @@ export default function IAMarketing() {
               className="h-7 text-xs flex-1 min-w-[140px] max-w-[220px]"
             />
           </div>
+
+          {/* Seletor de serviços para a pauta */}
+          {servicos.length > 0 && (
+            <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Serviços (selecione para focar):</span>
+                {servicosPauta.length > 0 && (
+                  <button onClick={() => setServicosPauta([])} className="text-[10px] text-muted-foreground hover:text-foreground underline">Limpar</button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {servicos.map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setServicosPauta(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                    className={`text-[11px] px-2 py-0.5 rounded-full border transition-all ${
+                      servicosPauta.includes(s.id)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {s.nome}
+                  </button>
+                ))}
+              </div>
+              {servicosPauta.length === 0 && (
+                <p className="text-[10px] text-muted-foreground/70">Nenhum selecionado = todos os serviços serão considerados</p>
+              )}
+            </div>
+          )}
 
           {/* Stats do mês */}
           {stats.total > 0 && (
@@ -690,6 +722,7 @@ export default function IAMarketing() {
                           foco: focoPauta || undefined,
                           anoMes: `${anoAtual}-${String(mesAtual).padStart(2, "0")}`,
                           salvarNoCalendario: true,
+                          servicosIds: servicosPauta.length > 0 ? servicosPauta : undefined,
                         })}
                         disabled={gerarPautaMut.isPending}
                         className="gap-1.5"

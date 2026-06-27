@@ -2716,3 +2716,4 @@
 - [x] Investigar por que confirmarSinalForaDoPrazo não disparava a mensagem imediata
 - [x] Causa: deduplicação em registrarEnvioAutomacao encontrava lembrete D-1 (mesmo automacaoId+agendamentoId, status 'agendado') e sobrescrevia sem enviar
 - [x] Correção: passar status 'pendente' explicitamente na chamada de registrarEnvioAutomacao dentro de confirmarSinalForaDoPrazo
+- [x] Gerar Pauta IA: adicionar seletor múltiplo de serviços para filtrar quais serviços incluir na geração
