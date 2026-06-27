@@ -659,35 +659,72 @@ export default function IAMarketing() {
             />
           </div>
 
-          {/* Seletor de serviços para a pauta */}
-          {servicos.length > 0 && (
-            <div className="bg-muted/30 rounded-lg p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium">Serviços (selecione para focar):</span>
-                {servicosPauta.length > 0 && (
-                  <button onClick={() => setServicosPauta([])} className="text-[10px] text-muted-foreground hover:text-foreground underline">Limpar</button>
+          {/* Seletor de serviços para a pauta (agrupado por categoria) */}
+          {servicos.length > 0 && (() => {
+            const porCategoria = servicos.reduce((acc: Record<string, any[]>, s: any) => {
+              const cat = s.categoria || "Outros";
+              if (!acc[cat]) acc[cat] = [];
+              acc[cat].push(s);
+              return acc;
+            }, {} as Record<string, any[]>);
+            const categorias = Object.keys(porCategoria).sort();
+            return (
+              <div className="bg-muted/30 rounded-lg p-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Serviços {servicosPauta.length > 0 && <span className="text-primary">({servicosPauta.length} selecionados)</span>}
+                  </span>
+                  <div className="flex gap-2">
+                    {servicosPauta.length > 0 && (
+                      <button onClick={() => setServicosPauta([])} className="text-[10px] text-muted-foreground hover:text-foreground underline">Limpar</button>
+                    )}
+                    <button
+                      onClick={() => setServicosPauta(servicos.map((s: any) => s.id))}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >Todos</button>
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                  {categorias.map(cat => (
+                    <div key={cat}>
+                      <button
+                        onClick={() => {
+                          const ids = porCategoria[cat].map((s: any) => s.id);
+                          const todosJaSelecionados = ids.every((id: number) => servicosPauta.includes(id));
+                          if (todosJaSelecionados) {
+                            setServicosPauta(prev => prev.filter(id => !ids.includes(id)));
+                          } else {
+                            setServicosPauta(prev => [...new Set([...prev, ...ids])]);
+                          }
+                        }}
+                        className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5 hover:text-foreground transition-colors"
+                      >
+                        {cat} ({porCategoria[cat].length})
+                      </button>
+                      <div className="flex flex-wrap gap-1">
+                        {porCategoria[cat].map((s: any) => (
+                          <button
+                            key={s.id}
+                            onClick={() => setServicosPauta(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                            className={`text-[11px] px-2 py-0.5 rounded-full border transition-all ${
+                              servicosPauta.includes(s.id)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border bg-background hover:bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {s.nome}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {servicosPauta.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground/70">Nenhum selecionado = todos os serviços serão considerados</p>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {servicos.map((s: any) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setServicosPauta(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                    className={`text-[11px] px-2 py-0.5 rounded-full border transition-all ${
-                      servicosPauta.includes(s.id)
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {s.nome}
-                  </button>
-                ))}
-              </div>
-              {servicosPauta.length === 0 && (
-                <p className="text-[10px] text-muted-foreground/70">Nenhum selecionado = todos os serviços serão considerados</p>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Stats do mês */}
           {stats.total > 0 && (
