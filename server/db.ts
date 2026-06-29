@@ -431,41 +431,66 @@ export async function createBloqueio(data: typeof bloqueiosAgenda.$inferInsert) 
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
-export async function createBloqueioRecorrente(data: typeof bloqueiosAgenda.$inferInsert & { recorrencia: string; dataFimRecorrencia?: string }) {
+export async function createBloqueioRecorrente(data: typeof bloqueiosAgenda.$inferInsert & { recorrencia: string; dataFimRecorrencia?: string; diaInteiro?: boolean }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  
-  if (data.recorrencia === "nenhuma" || !data.dataFimRecorrencia) {
-    // Sem recorrência: criar apenas um bloqueio
-    return createBloqueio(data);
+
+  // Normalizar horas para dia inteiro
+  const horaInicio = data.diaInteiro ? "00:00" : (data.horaInicio ?? "00:00");
+  const horaFim = data.diaInteiro ? "23:59" : (data.horaFim ?? "23:59");
+
+  // Bloqueio de período sem recorrência: criar um bloqueio por dia do intervalo
+  if (data.recorrencia === "nenhuma") {
+    const startDate = new Date((data.dataInicio as string) + "T12:00:00");
+    const endDate = new Date(((data.dataFim ?? data.dataInicio) as string) + "T12:00:00");
+
+    if (startDate >= endDate) {
+      // Mesmo dia: criar apenas um bloqueio
+      return createBloqueio({ ...data, horaInicio, horaFim });
+    }
+
+    // Período: criar um bloqueio para cada dia do intervalo
+    const bloqueios: number[] = [];
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split("T")[0];
+      const id = await createBloqueio({
+        ...data,
+        dataInicio: dateStr,
+        dataFim: dateStr,
+        horaInicio,
+        horaFim,
+        recorrencia: "nenhuma",
+        dataFimRecorrencia: undefined,
+      } as any);
+      bloqueios.push(id);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    return bloqueios[0];
   }
 
-  const bloqueios = [];
-  let currentDate = new Date(data.dataInicio);
-  const endDate = new Date(data.dataFimRecorrencia);
-  const increment = data.recorrencia === "semanal" ? 7 : 30; // dias
+  // Recorrência semanal ou mensal
+  const bloqueios: number[] = [];
+  let currentDate = new Date((data.dataInicio as string) + "T12:00:00");
+  const recEndDate = new Date(((data.dataFimRecorrencia ?? data.dataInicio) as string) + "T12:00:00");
+  const increment = data.recorrencia === "semanal" ? 7 : 30;
 
-  while (currentDate <= endDate) {
+  while (currentDate <= recEndDate) {
     const dateStr = currentDate.toISOString().split("T")[0];
-    const nextDate = new Date(currentDate);
-    nextDate.setDate(nextDate.getDate() + (data.recorrencia === "semanal" ? 1 : 1)); // duração do bloqueio
-    const nextDateStr = nextDate.toISOString().split("T")[0];
-
-    const bloqueioData = {
+    const id = await createBloqueio({
       ...data,
       dataInicio: dateStr,
-      dataFim: nextDateStr,
-      recorrencia: "nenhuma", // Cada instância é armazenada como "nenhuma"
+      dataFim: dateStr,
+      horaInicio,
+      horaFim,
+      recorrencia: "nenhuma",
       dataFimRecorrencia: undefined,
-    };
-
-    const id = await createBloqueio(bloqueioData as any);
+    } as any);
     bloqueios.push(id);
-
     currentDate.setDate(currentDate.getDate() + increment);
   }
 
-  return bloqueios[0]; // Retorna o ID do primeiro bloqueio criado
+  return bloqueios[0];
 }
 
 export async function updateBloqueio(id: number, data: Partial<typeof bloqueiosAgenda.$inferInsert>) {

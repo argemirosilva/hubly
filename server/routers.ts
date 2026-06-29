@@ -2817,12 +2817,13 @@ export const appRouter = router({
       .input(z.object({
         profissionalId: z.number().optional(), // opcional: usa o profissional logado como fallback
         dataInicio: z.string(),
-        horaInicio: z.string(),
+        horaInicio: z.string().optional().default("00:00"),
         dataFim: z.string(),
-        horaFim: z.string(),
+        horaFim: z.string().optional().default("23:59"),
         motivo: z.string().optional(),
         recorrencia: z.enum(["nenhuma", "semanal", "mensal"]).default("nenhuma"),
         dataFimRecorrencia: z.string().optional(),
+        diaInteiro: z.boolean().optional().default(false),
       }))
       .mutation(async ({ ctx, input }) => {
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);

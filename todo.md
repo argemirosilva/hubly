@@ -2727,3 +2727,8 @@
 - [x] Atualizar tela de assinatura com features corretas por plano
 - [x] Atualizar manual/documentação com novas regras de planos
 - [x] Remover referências ao plano FREE em todo o código
+
+## Bug e Melhoria: Bloqueios de Período
+- [x] Bug: bloqueio de período (data início → data fim) só criava o primeiro dia em vez de criar um bloqueio para cada dia do intervalo
+- [x] Melhoria: ao criar bloqueio, perguntar se é dia inteiro ou horário específico
+- [x] Melhoria: quando período de múltiplos dias, aplicar a mesma escolha (dia inteiro ou horário) para todos os dias do intervalo

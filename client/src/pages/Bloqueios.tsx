@@ -1,11 +1,11 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock } from "lucide-react";
+import { Lock, CheckCircle, XCircle, Plus, Calendar, Clock, Sun } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { trpc } from "@/lib/trpc";
@@ -19,7 +19,16 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
 export default function Bloqueios() {
   const utils = trpc.useUtils();
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ dataInicio: "", dataFim: "", horaInicio: "08:00", horaFim: "18:00", motivo: "", recorrencia: "nenhuma", dataFimRecorrencia: "" });
+  const [form, setForm] = useState({
+    dataInicio: "",
+    dataFim: "",
+    horaInicio: "08:00",
+    horaFim: "18:00",
+    motivo: "",
+    recorrencia: "nenhuma",
+    dataFimRecorrencia: "",
+    diaInteiro: true,
+  });
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedBloqueio, setSelectedBloqueio] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
@@ -59,6 +68,17 @@ export default function Bloqueios() {
   const profMap: Record<number, string> = {};
   profissionais?.forEach(p => { profMap[p.id] = p.nome; });
 
+  // Calcular quantos dias o período abrange
+  const diasNoPeriodo = useMemo(() => {
+    if (!form.dataInicio || !form.dataFim) return 1;
+    const start = new Date(form.dataInicio + "T12:00:00");
+    const end = new Date(form.dataFim + "T12:00:00");
+    const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return diff + 1;
+  }, [form.dataInicio, form.dataFim]);
+
+  const isPeriodo = diasNoPeriodo > 1 && form.recorrencia === "nenhuma";
+
   // Filtrar bloqueios baseado na seleção
   const bloqueiosFiltrados = (bloqueios ?? []).filter(b => {
     if (filtro === "meus") return b.profissionalId === profissionalId;
@@ -68,6 +88,19 @@ export default function Bloqueios() {
   });
 
   const bloqueiosPendentes = (bloqueios ?? []).filter(b => b.status === "pendente" && isAdmin && b.profissionalId !== profissionalId).length;
+
+  const handleSubmit = () => {
+    criarMutation.mutate({
+      dataInicio: form.dataInicio,
+      dataFim: form.dataFim,
+      horaInicio: form.diaInteiro ? "00:00" : form.horaInicio,
+      horaFim: form.diaInteiro ? "23:59" : form.horaFim,
+      motivo: form.motivo || undefined,
+      recorrencia: form.recorrencia as any,
+      dataFimRecorrencia: form.dataFimRecorrencia || undefined,
+      diaInteiro: form.diaInteiro,
+    });
+  };
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto animate-in-up">
@@ -153,6 +186,7 @@ export default function Bloqueios() {
           <div className="divide-y" style={{ borderColor: "oklch(94% 0.010 75)" }}>
             {bloqueiosFiltrados.map(b => {
               const cfg = statusConfig[b.status] ?? statusConfig.pendente;
+              const isDiaInteiro = b.horaInicio === "00:00" && (b.horaFim === "23:59" || b.horaFim === "23:59:00");
               return (
                 <div key={b.id} className="px-4 py-3.5">
                   <div className="flex items-start gap-3">
@@ -167,19 +201,28 @@ export default function Bloqueios() {
                           style={{ background: cfg.bg, color: cfg.color }}>
                           {cfg.label}
                         </span>
+                        {isDiaInteiro && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 flex items-center gap-1"
+                            style={{ background: "oklch(72% 0.16 80 / 10%)", color: "oklch(40% 0.14 75)" }}>
+                            <Sun className="w-2.5 h-2.5" /> Dia inteiro
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 mt-1">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3 flex-shrink-0" />
-                          {b.dataInicio?.split("-").reverse().join("/")} → {b.dataFim?.split("-").reverse().join("/")}
+                          {b.dataInicio?.split("-").reverse().join("/")}
+                          {b.dataFim && b.dataFim !== b.dataInicio && ` → ${b.dataFim.split("-").reverse().join("/")}`}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3 flex-shrink-0" />
-                          {b.horaInicio?.slice(0, 5)} – {b.horaFim?.slice(0, 5)}
-                        </span>
+                        {!isDiaInteiro && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            {b.horaInicio?.slice(0, 5)} – {b.horaFim?.slice(0, 5)}
+                          </span>
+                        )}
                       </div>
                       {b.motivo && (
-                        <p className="text-xs text-muted-foreground mt-0.5 italic truncate">\"{ b.motivo}\"</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 italic truncate">"{b.motivo}"</p>
                       )}
                       {b.status === "recusado" && b.motivoRecusa && (
                         <p className="text-xs text-red-600 mt-0.5 italic">Motivo da recusa: {b.motivoRecusa}</p>
@@ -227,13 +270,16 @@ export default function Bloqueios() {
         )}
       </div>
 
+      {/* Modal de criação */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-bold tracking-tight">Solicitar Bloqueio</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            {/* Datas */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Data início *</Label>
                 <Input type="date" value={form.dataInicio} onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} />
@@ -242,19 +288,67 @@ export default function Bloqueios() {
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Data fim *</Label>
                 <Input type="date" value={form.dataFim} onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))} />
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Hora início</Label>
-                <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
+            </div>
+
+            {/* Aviso de período */}
+            {isPeriodo && (
+              <div className="rounded-lg px-3 py-2.5 text-xs flex items-center gap-2"
+                style={{ background: "oklch(72% 0.16 80 / 10%)", color: "oklch(40% 0.14 75)" }}>
+                <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Período de <strong>{diasNoPeriodo} dias</strong> — será criado um bloqueio para cada dia.</span>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Hora fim</Label>
-                <Input type="time" value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} />
+            )}
+
+            {/* Opção dia inteiro vs horário específico */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Tipo de bloqueio</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, diaInteiro: true }))}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all ${
+                    form.diaInteiro
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{isPeriodo ? "Dias inteiros" : "Dia inteiro"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, diaInteiro: false }))}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-all ${
+                    !form.diaInteiro
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Horário específico</span>
+                </button>
               </div>
             </div>
+
+            {/* Horários — só aparece quando não é dia inteiro */}
+            {!form.diaInteiro && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Hora início</Label>
+                  <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Hora fim</Label>
+                  <Input type="time" value={form.horaFim} onChange={e => setForm(f => ({ ...f, horaFim: e.target.value }))} />
+                </div>
+              </div>
+            )}
+
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Motivo</Label>
               <Input value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Férias, consulta médica..." />
             </div>
+
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Recorrência</Label>
               <Select value={form.recorrencia} onValueChange={v => setForm(f => ({ ...f, recorrencia: v }))}>
@@ -268,6 +362,7 @@ export default function Bloqueios() {
                 </SelectContent>
               </Select>
             </div>
+
             {form.recorrencia !== "nenhuma" && (
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Recorrência até *</Label>
@@ -277,13 +372,17 @@ export default function Bloqueios() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => criarMutation.mutate(form as any)} disabled={!form.dataInicio || !form.dataFim || criarMutation.isPending}>
+            <Button
+              onClick={handleSubmit}
+              disabled={!form.dataInicio || !form.dataFim || criarMutation.isPending}
+            >
               {criarMutation.isPending ? "Enviando..." : "Solicitar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Modal de recusa */}
       <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -299,7 +398,7 @@ export default function Bloqueios() {
                 {selectedBloqueio.motivo && (
                   <>
                     <p className="text-xs text-muted-foreground mt-2 mb-1">Motivo</p>
-                    <p className="text-sm italic">\"{selectedBloqueio.motivo}\"</p>
+                    <p className="text-sm italic">"{selectedBloqueio.motivo}"</p>
                   </>
                 )}
               </div>
