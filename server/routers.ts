@@ -2806,12 +2806,18 @@ export const appRouter = router({
         await requirePermissao(ctx, empresa, 'agendamentosVer');
         const bloqueios = await getBloqueiosByEmpresa(empresa.id);
         // Filtrar por data e profissional se fornecidos
-        return bloqueios.filter(b => {
+        const filtrados = bloqueios.filter(b => {
           if (input.dataInicio && b.dataInicio < input.dataInicio) return false;
           if (input.dataFim && b.dataInicio > input.dataFim) return false;
           if (input.profissionalId && b.profissionalId !== input.profissionalId) return false;
           return true;
         });
+        // Normalizar horaInicio/horaFim para HH:MM (MySQL time retorna HH:MM:SS)
+        return filtrados.map(b => ({
+          ...b,
+          horaInicio: String(b.horaInicio ?? '').slice(0, 5),
+          horaFim: String(b.horaFim ?? '').slice(0, 5),
+        }));
       }),
     create: protectedProcedure
       .input(z.object({
