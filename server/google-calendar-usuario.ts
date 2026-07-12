@@ -8,6 +8,32 @@ import { getDb } from "./db";
 import { googleCalendarTokensUsuario } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+// ─── Helper: calcular offset UTC de America/Sao_Paulo para uma data/hora ────────
+// Retorna o datetime no formato RFC3339 com offset explícito (ex: 2026-07-12T14:00:00-03:00)
+// Isso evita que o Google Calendar re-interprete o horário ao mudar de timezone
+function formatDateTimeWithSaoPauloOffset(dateStr: string, timeStr: string): string {
+  // Criar uma data UTC e verificar qual é o offset de Sao Paulo naquele instante
+  // (leva em conta horário de verão automaticamente)
+  const dt = new Date(`${dateStr}T${timeStr}:00Z`);
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(dt);
+  const local: Record<string, string> = {};
+  parts.forEach(p => { local[p.type] = p.value; });
+  const localDate = new Date(`${local.year}-${local.month}-${local.day}T${local.hour}:${local.minute}:${local.second}Z`);
+  const offsetMs = localDate.getTime() - dt.getTime();
+  const offsetHours = offsetMs / (1000 * 60 * 60);
+  const sign = offsetHours >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offsetHours);
+  const hh = String(Math.floor(absOffset)).padStart(2, '0');
+  const mm = String(Math.round((absOffset % 1) * 60)).padStart(2, '0');
+  return `${dateStr}T${timeStr}:00${sign}${hh}:${mm}`;
+}
+
 // ─── Configuração OAuth2 ──────────────────────────────────────────────────────
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -267,8 +293,8 @@ export async function sincronizarAgendamentoGoogleUsuario(params: {
     const cliente = await getClienteAutenticadoUsuario(params.userId);
     if (!cliente) return null;
     const calendar = google.calendar({ version: "v3", auth: cliente.oauth2Client });
-    const startDateTime = `${params.data}T${params.horaInicio}:00`;
-    const endDateTime = `${params.data}T${params.horaFim}:00`;
+    const startDateTime = formatDateTimeWithSaoPauloOffset(params.data, params.horaInicio);
+    const endDateTime = formatDateTimeWithSaoPauloOffset(params.data, params.horaFim);
     const timeZone = "America/Sao_Paulo";
     const statusGoogle: Record<string, string> = {
       agendado: "confirmed",

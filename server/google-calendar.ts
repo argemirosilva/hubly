@@ -15,6 +15,29 @@ import { getDb } from "./db";
 import { googleCalendarTokens } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+// ─── Helper: calcular offset UTC de America/Sao_Paulo para uma data/hora ────────
+// Retorna o datetime no formato RFC3339 com offset explícito (ex: 2026-07-12T14:00:00-03:00)
+function formatDateTimeWithSaoPauloOffset(dateStr: string, timeStr: string): string {
+  const dt = new Date(`${dateStr}T${timeStr}:00Z`);
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(dt);
+  const local: Record<string, string> = {};
+  parts.forEach(p => { local[p.type] = p.value; });
+  const localDate = new Date(`${local.year}-${local.month}-${local.day}T${local.hour}:${local.minute}:${local.second}Z`);
+  const offsetMs = localDate.getTime() - dt.getTime();
+  const offsetHours = offsetMs / (1000 * 60 * 60);
+  const sign = offsetHours >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offsetHours);
+  const hh = String(Math.floor(absOffset)).padStart(2, '0');
+  const mm = String(Math.round((absOffset % 1) * 60)).padStart(2, '0');
+  return `${dateStr}T${timeStr}:00${sign}${hh}:${mm}`;
+}
+
 // ─── Configuração OAuth2 ──────────────────────────────────────────────────────
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -144,8 +167,8 @@ export async function sincronizarAgendamentoGoogle(params: {
 
     const calendar = google.calendar({ version: "v3", auth: cliente.oauth2Client });
 
-    const startDateTime = `${params.data}T${params.horaInicio}:00`;
-    const endDateTime = `${params.data}T${params.horaFim}:00`;
+    const startDateTime = formatDateTimeWithSaoPauloOffset(params.data, params.horaInicio);
+    const endDateTime = formatDateTimeWithSaoPauloOffset(params.data, params.horaFim);
     const timeZone = "America/Sao_Paulo";
 
     const statusGoogle: Record<string, string> = {
@@ -233,8 +256,8 @@ export async function sincronizarBloqueioGoogle(params: {
         params.motivo ? `Motivo: ${params.motivo}` : "Bloqueio de agenda",
         `\nSincronizado pelo Hubly (Bloqueio ID: ${params.bloqueioId})`,
       ].filter(Boolean).join("\n"),
-      start: { dateTime: `${params.dataInicio}T${params.horaInicio}:00`, timeZone },
-      end: { dateTime: `${params.dataFim}T${params.horaFim}:00`, timeZone },
+      start: { dateTime: formatDateTimeWithSaoPauloOffset(params.dataInicio, params.horaInicio), timeZone },
+      end: { dateTime: formatDateTimeWithSaoPauloOffset(params.dataFim, params.horaFim), timeZone },
       status: "confirmed" as const,
       colorId: "8", // grafite
       extendedProperties: {
