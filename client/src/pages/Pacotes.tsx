@@ -308,7 +308,7 @@ function ModalModelo({
             <Label>Descrição</Label>
             <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descreva o pacote..." rows={2} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Preço (R$) *</Label>
               <Input type="number" min="0" step="0.01" value={preco} onChange={e => setPreco(e.target.value)} placeholder="0,00" />
@@ -566,7 +566,7 @@ function ModalAbrirPacote({
             <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Pacote Manicure 4x" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Valor total (R$) *</Label>
               <Input type="number" min="0" step="0.01" value={valorPago} onChange={e => setValorPago(e.target.value)} />
@@ -584,7 +584,7 @@ function ModalAbrirPacote({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Número de parcelas</Label>
               <Select value={numeroParcelas} onValueChange={setNumeroParcelas}>
@@ -1166,7 +1166,7 @@ export default function Pacotes() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Número de parcelas</Label>
                 <Input type="number" min="1" max="24"
@@ -1236,7 +1236,7 @@ export default function Pacotes() {
                 placeholder="Ex: Pacote Manicure 4x"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Valor pago (R$)</Label>
                 <Input
@@ -1262,7 +1262,7 @@ export default function Pacotes() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Número de parcelas</Label>
                 <Input

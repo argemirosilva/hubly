@@ -2732,3 +2732,30 @@
 - [x] Bug: bloqueio de período (data início → data fim) só criava o primeiro dia em vez de criar um bloqueio para cada dia do intervalo
 - [x] Melhoria: ao criar bloqueio, perguntar se é dia inteiro ou horário específico
 - [x] Melhoria: quando período de múltiplos dias, aplicar a mesma escolha (dia inteiro ou horário) para todos os dias do intervalo
+
+## Mobile PWA - Realinhamento Interface e Conformidade Lojas (v12)
+- [ ] DashboardLayout: reduzir padding do main em mobile (p-4 mobile, p-6 tablet, p-10 desktop)
+- [ ] DashboardLayout: adicionar barra de navegação inferior (bottom nav) para mobile com atalhos principais
+- [ ] DashboardLayout: padding-bottom no main para não sobrepor a bottom nav
+- [ ] Bloqueios.tsx: campos data início/fim e hora início/fim → empilhar em mobile (grid-cols-1 sm:grid-cols-2)
+- [ ] ContasPagar.tsx: campos valor/vencimento → empilhar em mobile
+- [ ] ContasReceber.tsx: múltiplos grid-cols-2 em formulários → empilhar em mobile
+- [ ] Financeiro.tsx: grid-cols-3 de métricas → grid-cols-2 em mobile
+- [ ] Automacoes.tsx: múltiplos grid-cols-2/3 em formulários → empilhar em mobile
+- [ ] Equipe.tsx: grid-cols-3 → empilhar em mobile
+- [ ] ClienteDetalhe.tsx: múltiplos grid-cols-2 → empilhar em mobile
+- [ ] Onboarding.tsx: grid-cols-2 de horários → empilhar em mobile
+- [ ] IAMarketing.tsx: grid-cols-2 de data/hora → empilhar em mobile
+- [ ] index.css: safe-area-inset-bottom para bottom nav e min-height 100dvh
+- [ ] manifest.json: adicionar screenshots, display_override, id field
+- [ ] index.html: adicionar splash screens para iOS (apple-touch-startup-image múltiplos tamanhos)
+- [ ] Garantir touch targets mínimos 44x44px em botões mobile
+- [ ] Inputs type=date e type=time com altura mínima 44px em mobile
+
+## Mobile PWA - Realinhamento Concluido (v12b)
+- [x] Corrigir todos os grid-cols-2 sem responsividade nos formularios (Bloqueios, ContasPagar, ContasReceber, Servicos, Pacotes, Pipeline, ClienteDetalhe, Equipe, Financeiro, MeiosPagamento, Automacoes)
+- [x] Corrigir campos de data/hora no NovaAgendaModal (grid-cols-2 com w-full em vez de flex com width fixo)
+- [x] Corrigir grid-cols-2 nos componentes modais (AgendamentoDetalheModal, ModalAbrirPacote)
+- [x] Atualizar manifest.json com campos obrigatorios para lojas (id, scope, display_override, prefer_related_applications, dir)
+- [x] Adicionar apple-touch-icons adicionais (152x152, 120x120) para compatibilidade iOS
+- [x] Adicionar classe .pb-safe e .touch-target no index.css para safe-area-inset-bottom e touch targets minimos

@@ -1,9 +1,12 @@
 {
+  "id": "/",
   "name": "Hubly - Hub de Serviços Inteligentes",
   "short_name": "Hubly",
   "description": "Hubly - Hub de Serviços Inteligentes. Gerencie agendamentos, clientes, financeiro e automações em um único lugar.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "background_color": "#1a1208",
   "theme_color": "#b8860b",
   "orientation": "portrait-primary",
@@ -81,5 +84,6 @@
   ],
   "categories": ["business", "productivity"],
   "lang": "pt-BR",
-  "permissions": ["notifications"]
+  "dir": "ltr",
+  "prefer_related_applications": false
 }

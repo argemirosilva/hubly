@@ -1494,7 +1494,7 @@ export default function Equipe() {
       </div>
 
       {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="rounded-xl border bg-card p-3 text-center">
           <p className="text-2xl font-bold">{totalAtivos}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Ativos</p>

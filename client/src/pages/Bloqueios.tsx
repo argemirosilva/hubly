@@ -279,7 +279,7 @@ export default function Bloqueios() {
           <div className="space-y-4 py-2">
 
             {/* Datas */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Data início *</Label>
                 <Input type="date" value={form.dataInicio} onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} />
@@ -302,7 +302,7 @@ export default function Bloqueios() {
             {/* Opção dia inteiro vs horário específico */}
             <div>
               <Label className="text-xs text-muted-foreground mb-2 block">Tipo de bloqueio</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, diaInteiro: true }))}
@@ -332,7 +332,7 @@ export default function Bloqueios() {
 
             {/* Horários — só aparece quando não é dia inteiro */}
             {!form.diaInteiro && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Hora início</Label>
                   <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />

@@ -365,7 +365,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
         </DialogHeader>
 
         <div className="space-y-4 py-2 px-5 overflow-y-auto overflow-x-hidden flex-1 min-w-0 box-border">
-          <div className="grid grid-cols-2 gap-4 min-w-0 w-full overflow-x-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0 w-full overflow-x-hidden">
             {/* Cliente */}
             <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Cliente *</Label>
@@ -461,7 +461,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
               )}
             </div>
 
-            {/* Data e Horários */}
+              {/* Data e Horários */}
             <div className="col-span-2 space-y-2">
               {/* Data */}
               <div className="space-y-1">
@@ -470,12 +470,11 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                   type="date"
                   value={form.data}
                   onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                  className="h-8 text-xs box-border px-2"
-                  style={{ width: '160px' }}
+                  className="h-9 text-sm w-full"
                 />
               </div>
               {/* Início e Fim */}
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground block">Início</Label>
                   <Input
@@ -485,8 +484,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                       setForm(f => ({ ...f, horaInicio: e.target.value }));
                       recalcularHoraFim(e.target.value, servicosSelecionados);
                     }}
-                    className="h-8 text-xs box-border px-2"
-                    style={{ width: '100px' }}
+                    className="h-9 text-sm w-full"
                   />
                 </div>
                 <div className="space-y-1">
@@ -505,8 +503,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
                         );
                       });
                     }}
-                    className="h-8 text-xs box-border px-2"
-                    style={{ width: '100px' }}
+                    className="h-9 text-sm w-full"
                   />
                 </div>
               </div>

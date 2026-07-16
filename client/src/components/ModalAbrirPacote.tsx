@@ -296,7 +296,7 @@ export default function ModalAbrirPacote({
           </div>
 
           {/* Valor + Forma de pagamento */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Valor total (R$) *</Label>
               <Input type="number" min="0" step="0.01" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
@@ -317,7 +317,7 @@ export default function ModalAbrirPacote({
           </div>
 
           {/* Parcelas + Validade */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Número de parcelas</Label>
               <Select value={numeroParcelas} onValueChange={setNumeroParcelas}>

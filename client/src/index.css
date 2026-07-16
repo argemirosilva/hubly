@@ -307,6 +307,15 @@
     padding-right: env(safe-area-inset-right);
   }
 }
+/* Classe utilitaria para areas de seguranca iOS */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Touch targets minimos (44x44px conforme diretrizes Apple/Google) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
 
 /* ─── Transição suave entre páginas ────────────────────────────────────────── */
 @keyframes pageEnter {

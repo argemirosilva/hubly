@@ -1104,7 +1104,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Número de parcelas</Label>
                 <Input
@@ -1182,7 +1182,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                 placeholder="Ex: Pacote Manicure 4x"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Valor pago (R$)</Label>
                 <Input
@@ -1208,7 +1208,7 @@ export default function ClienteDetalhe({ id: propId }: { id?: number } = {}) {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Número de parcelas</Label>
                 <Input

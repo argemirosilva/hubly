@@ -202,7 +202,7 @@ function ModalConta({
           </div>
 
           {/* Valor + Vencimento */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Valor (R$) *</Label>
               <Input
@@ -225,7 +225,7 @@ function ModalConta({
           </div>
 
           {/* Status + Origem */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={v => set("status", v)}>
@@ -252,7 +252,7 @@ function ModalConta({
           </div>
 
           {/* Data de recebimento + Forma de pagamento */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Data de Recebimento</Label>
               <Input
@@ -296,7 +296,7 @@ function ModalConta({
           )}
 
           {/* Cliente + Profissional */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Cliente</Label>
               <Select value={form.clienteId || "nenhum"} onValueChange={v => set("clienteId", v === "nenhum" ? "" : v)}>

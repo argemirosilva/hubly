@@ -2915,7 +2915,7 @@ export default function Automacoes() {
                     <p className="text-xs text-green-600 mt-0.5">{pipelineGerado.nomePipeline}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="bg-stone-50 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-purple-600">{pipelineGerado.totalColunas}</p>
                     <p className="text-xs text-gray-500 mt-0.5">Colunas criadas</p>

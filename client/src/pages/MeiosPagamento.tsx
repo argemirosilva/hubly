@@ -389,7 +389,7 @@ export default function MeiosPagamento() {
             {form.tipo === "credito" && form.taxasParcela.length > 0 && (
               <div className="space-y-2">
                 <Label>Taxas por parcela (%)</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {form.taxasParcela.map((t, idx) => (
                     <div key={t.parcela} className="flex items-center gap-2">
                       <span className="text-sm text-gray-500 w-8 shrink-0">{t.parcela}x</span>

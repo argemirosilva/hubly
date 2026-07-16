@@ -178,7 +178,7 @@ export default function Financeiro() {
           <h2 className="text-sm font-semibold">Fluxo de Caixa — Mês Atual</h2>
         </div>
         {/* 3 números principais */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
               <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
@@ -298,7 +298,7 @@ export default function Financeiro() {
               </div>
               <span className="text-xs text-muted-foreground">{resumoCreditos.clientesComCredito} cliente{resumoCreditos.clientesComCredito !== 1 ? 's' : ''}</span>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               <div className="stat-card" style={{ background: "oklch(62% 0.18 155 / 6%)", border: "1px solid oklch(62% 0.18 155 / 20%)" }}>
                 <p className="text-base font-bold tracking-tight" style={{ color: "oklch(35% 0.14 155)" }}>
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(resumoCreditos.totalEmAberto)}

@@ -1182,7 +1182,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                   </div>
                 </div>
                 <div className="px-4 py-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-[10px] text-muted-foreground mb-1 block">
                         % Comissão
@@ -1742,7 +1742,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
             <p><strong>{servico?.nome}</strong> · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(String(ag?.valorTotal ?? 0)))}</p>
             <p className="mt-0.5">Profissional: <strong>{profissional?.nome}</strong></p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">
                 % Comissão
