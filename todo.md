@@ -2763,3 +2763,7 @@
 ## Melhorias Agendamento com Serviços Picados (v13)
 - [x] Conflito de horário inteligente: verificar sobreposição por serviço individual (horaInicio/horaFim de cada servico), nao pelo periodo total do agendamento
 - [x] Google Agenda: quando agendamento tem servicos nao sequenciais (gap > 0 min entre fim de um e inicio do proximo), criar um evento separado por servico em vez de um evento unico cobrindo todo o periodo
+
+## Bug: Automação errada na reativação de agendamento (v14)
+- [x] Remover fallback agendamento_confirmado do confirmarSinalForaDoPrazo — se não houver automação agendamento_reativado, não enviar nada
+- [x] Garantir que o template agendamento_reativado está provisionado para todas as empresas

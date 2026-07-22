@@ -2190,13 +2190,12 @@ export const appRouter = router({
               const servicoReativado = agReativado.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === agReativado.servicoId) : null;
               const profissionalReativado = agReativado.profissionalId ? await getProfissionalById(agReativado.profissionalId) : null;
               const dataFormatadaReativado = new Date(agReativado.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              // Busca automação de reativado; se não existir, usa fallback de confirmado
-              let automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
-              let eventoUsado = 'agendamento_reativado';
+              // Busca automação de reativado — SEM fallback para agendamento_confirmado
+              // (agendamento_confirmado pode ser o cardápio/lembrete D-1 e não deve ser enviado imediatamente)
+              const automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
+              const eventoUsado = 'agendamento_reativado';
               if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
-                automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
-                eventoUsado = 'agendamento_confirmado';
-                console.log(`[confirmarSinalForaDoPrazo] Sem automação reativado — usando fallback agendamento_confirmado para ag. ${input.id}`);
+                console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_reativado' — envio ignorado para ag. ${input.id}`);
               }
               if (automacaoReativado && automacaoReativado.corpoMensagem) {
                 const portalOriginReativado = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
