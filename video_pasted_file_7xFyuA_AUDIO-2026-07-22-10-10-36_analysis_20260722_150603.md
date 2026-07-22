@@ -1,0 +1,1 @@
+Então, tá vendo que ele foi tipo, como se a Gabi tivesse das nove até as três da tarde.

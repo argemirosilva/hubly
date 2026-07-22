@@ -2759,3 +2759,7 @@
 - [x] Atualizar manifest.json com campos obrigatorios para lojas (id, scope, display_override, prefer_related_applications, dir)
 - [x] Adicionar apple-touch-icons adicionais (152x152, 120x120) para compatibilidade iOS
 - [x] Adicionar classe .pb-safe e .touch-target no index.css para safe-area-inset-bottom e touch targets minimos
+
+## Melhorias Agendamento com Serviços Picados (v13)
+- [x] Conflito de horário inteligente: verificar sobreposição por serviço individual (horaInicio/horaFim de cada servico), nao pelo periodo total do agendamento
+- [x] Google Agenda: quando agendamento tem servicos nao sequenciais (gap > 0 min entre fim de um e inicio do proximo), criar um evento separado por servico em vez de um evento unico cobrindo todo o periodo

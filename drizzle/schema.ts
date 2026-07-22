@@ -1321,6 +1321,7 @@ export const googleCalendarEventos = mysqlTable("google_calendar_eventos", {
   agendamentoId: int("agendamentoId").notNull(),
   userId: int("userId").notNull(),
   googleEventId: varchar("googleEventId", { length: 255 }).notNull(),
+  itemIndex: int("itemIndex").notNull().default(0), // 0 = evento único/principal; 1+ = serviços picados
   calendarId: varchar("calendarId", { length: 255 }).notNull().default("primary"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

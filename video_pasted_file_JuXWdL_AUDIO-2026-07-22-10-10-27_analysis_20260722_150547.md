@@ -1,0 +1,1 @@
+Aí a única coisa que você teria que arrumar é que quando ele vai pro Google Agenda, ele vai como se fosse um agendamento só.

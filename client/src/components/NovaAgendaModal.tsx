@@ -120,8 +120,18 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
     return primeiro?.profissionalId ? parseInt(primeiro.profissionalId) : null;
   }, [servicosSelecionados]);
 
+  // Detectar se há serviços com horários picados (não sequenciais — gap entre serviços)
+  const intervalosServicos = useMemo(() => {
+    const itens = servicosSelecionados.filter(s => s.servicoId && s.horaInicio && s.horaFim && s.horaFim > s.horaInicio);
+    if (itens.length < 2) return null;
+    const sorted = [...itens].sort((a, b) => (a.horaInicio! > b.horaInicio! ? 1 : -1));
+    const temGap = sorted.some((item, i) => i > 0 && item.horaInicio! > sorted[i - 1].horaFim!);
+    if (!temGap) return null;
+    return sorted.map(s => ({ horaInicio: s.horaInicio!, horaFim: s.horaFim! }));
+  }, [servicosSelecionados]);
   // Verificar conflito de horário em tempo real
-  const { data: conflito } = trpc.agendamentos.verificarConflito.useQuery(
+  // Se há serviços picados, verifica cada intervalo individualmente; caso contrário usa o período total
+  const { data: conflitoSimples } = trpc.agendamentos.verificarConflito.useQuery(
     {
       profissionalId: profissionalPrincipalId!,
       data: form.data,
@@ -129,9 +139,20 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
       horaFim: form.horaFim,
     },
     {
-      enabled: !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
+      enabled: !intervalosServicos && !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
     }
   );
+  const { data: conflitoServicos } = trpc.agendamentos.verificarConflitoServicos.useQuery(
+    {
+      profissionalId: profissionalPrincipalId!,
+      data: form.data,
+      intervalos: intervalosServicos ?? [],
+    },
+    {
+      enabled: !!intervalosServicos && !!profissionalPrincipalId && !!form.data,
+    }
+  );
+  const conflito = intervalosServicos ? conflitoServicos : conflitoSimples;
 
   const adicionarPessoaMutation = trpc.reservaPessoas.adicionar.useMutation();
 

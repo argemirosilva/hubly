@@ -1335,7 +1335,7 @@ export const appRouter = router({
         } catch (e) {
           console.error('[UsageAlert] Erro ao verificar limites:', e);
         }
-        // ── Sincronizar com Google Calendar por usuário (background) ──────────────
+        // ── Sincronizar com Google Calendar por usuário (background) ────────────
         if (input.profissionalId) {
           const profId = input.profissionalId;
           const agId = id;
@@ -1344,6 +1344,7 @@ export const appRouter = router({
           const agHoraFim = (input.horaFim ?? '').slice(0, 5);
           const agStatus = rest.status ?? 'agendado';
           const agObs = (input as any).observacoes ?? undefined;
+          const servicosInputGcal = input.servicos ?? [];
           setImmediate(async () => {
             try {
               const db = await getDb();
@@ -1360,32 +1361,68 @@ export const appRouter = router({
                 .where(eq(clientes.id, input.clienteId))
                 .limit(1);
               const { getServicosByEmpresa } = await import('./db');
-              const servicos = await getServicosByEmpresa(empresa.id);
-              const servicoRow = servicos.find(s => s.id === input.servicoId);
+              const todosServicosGcal = await getServicosByEmpresa(empresa.id);
+              const servicoRow = todosServicosGcal.find(s => s.id === input.servicoId);
               // Buscar cor configurada pelo usuário para eventos no Google Calendar
               const [tokenRowCreate] = await db.select({ corEvento: googleCalendarTokensUsuario.corEvento })
                 .from(googleCalendarTokensUsuario)
                 .where(eq(googleCalendarTokensUsuario.userId, su.id))
                 .limit(1);
-              const googleEventId = await sincronizarAgendamentoGoogleUsuario({
-                userId: su.id,
-                agendamentoId: agId,
-                clienteNome: clienteRow?.nome ?? 'Cliente',
-                servicoNome: servicoRow?.nome ?? 'Serviço',
-                profissionalNome: su.nome,
-                data: agData,
-                horaInicio: agHoraInicio,
-                horaFim: agHoraFim,
-                status: agStatus,
-                observacoes: agObs,
-                corEvento: tokenRowCreate?.corEvento ?? null,
-              });
-              if (googleEventId) {
-                await db.insert(googleCalendarEventos).values({
-                  agendamentoId: agId,
+              const corEvento = tokenRowCreate?.corEvento ?? null;
+              // Detectar serviços picados (não sequenciais): gap entre fim de um e início do próximo
+              const itensComHora = servicosInputGcal.filter((s: any) => s.horaInicio && s.horaFim && s.horaFim > s.horaInicio);
+              const sortedGcal = [...itensComHora].sort((a: any, b: any) => (a.horaInicio > b.horaInicio ? 1 : -1));
+              const temGapGcal = sortedGcal.length >= 2 && sortedGcal.some((item: any, i: number) => i > 0 && item.horaInicio > (sortedGcal[i - 1] as any).horaFim);
+              if (temGapGcal && sortedGcal.length >= 2) {
+                // Criar um evento separado no Google Calendar para cada serviço picado
+                for (let idx = 0; idx < sortedGcal.length; idx++) {
+                  const item = sortedGcal[idx] as any;
+                  const svcRow = todosServicosGcal.find((s: any) => s.id === item.servicoId);
+                  const googleEventId = await sincronizarAgendamentoGoogleUsuario({
+                    userId: su.id,
+                    agendamentoId: agId,
+                    clienteNome: clienteRow?.nome ?? 'Cliente',
+                    servicoNome: svcRow?.nome ?? servicoRow?.nome ?? 'Serviço',
+                    profissionalNome: su.nome,
+                    data: agData,
+                    horaInicio: item.horaInicio.slice(0, 5),
+                    horaFim: item.horaFim.slice(0, 5),
+                    status: agStatus,
+                    observacoes: agObs,
+                    corEvento,
+                  });
+                  if (googleEventId) {
+                    await db.insert(googleCalendarEventos).values({
+                      agendamentoId: agId,
+                      userId: su.id,
+                      googleEventId,
+                      itemIndex: idx + 1,
+                    }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+                  }
+                }
+              } else {
+                // Agendamento sequencial normal: um único evento cobrindo todo o período
+                const googleEventId = await sincronizarAgendamentoGoogleUsuario({
                   userId: su.id,
-                  googleEventId,
-                }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+                  agendamentoId: agId,
+                  clienteNome: clienteRow?.nome ?? 'Cliente',
+                  servicoNome: servicoRow?.nome ?? 'Serviço',
+                  profissionalNome: su.nome,
+                  data: agData,
+                  horaInicio: agHoraInicio,
+                  horaFim: agHoraFim,
+                  status: agStatus,
+                  observacoes: agObs,
+                  corEvento,
+                });
+                if (googleEventId) {
+                  await db.insert(googleCalendarEventos).values({
+                    agendamentoId: agId,
+                    userId: su.id,
+                    googleEventId,
+                    itemIndex: 0,
+                  }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+                }
               }
             } catch (err) {
               console.error('[GoogleCalendarUsuario] Erro ao sincronizar no create:', err);
@@ -2780,6 +2817,63 @@ export const appRouter = router({
           .leftJoin(clTable, eq(agTable.clienteId, clTable.id))
           .where(and(...conditions));
 
+        return {
+          conflito: conflitantes.length > 0,
+          agendamentos: conflitantes.map(a => ({
+            id: a.id,
+            horaInicio: String(a.horaInicio).slice(0, 5),
+            horaFim: String(a.horaFim).slice(0, 5),
+            clienteNome: a.clienteNome ?? 'Cliente',
+          })),
+        };
+      }),
+    // Verifica conflito para múltiplos intervalos de horário (serviços picados/não sequenciais)
+    verificarConflitoServicos: protectedProcedure
+      .input(z.object({
+        profissionalId: z.number(),
+        data: z.string(),
+        intervalos: z.array(z.object({
+          horaInicio: z.string(),
+          horaFim: z.string(),
+        })),
+        excluirAgendamentoId: z.number().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) return { conflito: false, agendamentos: [] };
+        const db = await getDb();
+        if (!db) return { conflito: false, agendamentos: [] };
+        const { agendamentos: agTable, clientes: clTable } = await import('../drizzle/schema.js');
+        const { and, eq, ne, sql } = await import('drizzle-orm');
+        const baseConditions: any[] = [
+          eq(agTable.empresaId, empresa.id),
+          eq(agTable.profissionalId, input.profissionalId),
+          eq(agTable.data, input.data),
+          sql`${agTable.status} NOT IN ('cancelado', 'cancelado_pelo_cliente')`,
+        ];
+        if (input.excluirAgendamentoId) {
+          baseConditions.push(ne(agTable.id, input.excluirAgendamentoId));
+        }
+        const agendamentosNoDia = await db
+          .select({
+            id: agTable.id,
+            horaInicio: agTable.horaInicio,
+            horaFim: agTable.horaFim,
+            clienteNome: clTable.nome,
+          })
+          .from(agTable)
+          .leftJoin(clTable, eq(agTable.clienteId, clTable.id))
+          .where(and(...baseConditions));
+        // Verifica se algum agendamento existente conflita com QUALQUER dos intervalos fornecidos
+        const conflitantes = agendamentosNoDia.filter(ag => {
+          const agInicio = String(ag.horaInicio);
+          const agFim = String(ag.horaFim);
+          return input.intervalos.some(intervalo => {
+            const ini = intervalo.horaInicio.length === 5 ? intervalo.horaInicio + ':00' : intervalo.horaInicio;
+            const fim = intervalo.horaFim.length === 5 ? intervalo.horaFim + ':00' : intervalo.horaFim;
+            return agInicio < fim && agFim > ini;
+          });
+        });
         return {
           conflito: conflitantes.length > 0,
           agendamentos: conflitantes.map(a => ({
