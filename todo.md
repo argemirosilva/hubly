@@ -2770,3 +2770,7 @@
 
 ## Bug: confirmarSinalForaDoPrazo deve usar agendamento_confirmado (v15)
 - [x] Alterar confirmarSinalForaDoPrazo para disparar agendamento_confirmado (mesma mensagem de criação de agendamento) em vez de agendamento_reativado
+
+## Melhoria: Modais de agendamento full-screen (v16)
+- [x] NovaAgendaModal: converter para tela cheia (full-screen) em vez de modal flutuante
+- [x] EditarAgendamentoModal: converter para tela cheia (full-screen) em vez de modal flutuante
