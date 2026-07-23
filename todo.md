@@ -2767,3 +2767,6 @@
 ## Bug: Automação errada na reativação de agendamento (v14)
 - [x] Remover fallback agendamento_confirmado do confirmarSinalForaDoPrazo — se não houver automação agendamento_reativado, não enviar nada
 - [x] Garantir que o template agendamento_reativado está provisionado para todas as empresas
+
+## Bug: confirmarSinalForaDoPrazo deve usar agendamento_confirmado (v15)
+- [x] Alterar confirmarSinalForaDoPrazo para disparar agendamento_confirmado (mesma mensagem de criação de agendamento) em vez de agendamento_reativado

@@ -2190,12 +2190,17 @@ export const appRouter = router({
               const servicoReativado = agReativado.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === agReativado.servicoId) : null;
               const profissionalReativado = agReativado.profissionalId ? await getProfissionalById(agReativado.profissionalId) : null;
               const dataFormatadaReativado = new Date(agReativado.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              // Busca automação de reativado — SEM fallback para agendamento_confirmado
-              // (agendamento_confirmado pode ser o cardápio/lembrete D-1 e não deve ser enviado imediatamente)
-              const automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
-              const eventoUsado = 'agendamento_reativado';
+              // Usa agendamento_confirmado — mesma mensagem de quando o agendamento é criado normalmente.
+              // A cliente pediu que o fluxo de reativação seja idêntico ao de criação.
+              // Fallback: agendamento_reativado (para quem quiser mensagem diferente).
+              let automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
+              let eventoUsado = 'agendamento_confirmado';
               if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
-                console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_reativado' — envio ignorado para ag. ${input.id}`);
+                automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
+                eventoUsado = 'agendamento_reativado';
+              }
+              if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
+                console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_confirmado' nem 'agendamento_reativado' — envio ignorado para ag. ${input.id}`);
               }
               if (automacaoReativado && automacaoReativado.corpoMensagem) {
                 const portalOriginReativado = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
