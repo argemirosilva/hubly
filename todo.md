@@ -2777,3 +2777,8 @@
 
 ## Melhoria: Agendamentos do Dashboard clicáveis (v17)
 - [x] Dashboard: agendamentos do dia clicáveis — ao clicar abre o modal AgendamentoDetalheModal
+
+## Melhorias widget Agenda de Hoje no Dashboard (v18)
+- [x] Ocultar agendamentos com status cancelado/faltou no widget Agenda de Hoje
+- [x] Mostrar valor a pagar (saldo devedor) visível em cada card de agendamento no widget
+- [x] Adicionar botão de ação rápida (ex: registrar pagamento ou abrir detalhe) em cada card

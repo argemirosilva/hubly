@@ -395,7 +395,9 @@ export default function Dashboard() {
   }, [servicos]);
 
   const agendamentosOrdenados = useMemo(() =>
-    [...(agendamentosHoje ?? [])].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
+    [...(agendamentosHoje ?? [])]
+      .filter(ag => ag.status !== "cancelado" && ag.status !== "faltou")
+      .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
     [agendamentosHoje]
   );
 
@@ -542,7 +544,14 @@ export default function Dashboard() {
                         <p className="text-sm font-semibold truncate">{clienteMap[ag.clienteId] ?? "Cliente"}</p>
                         <p className="text-xs text-muted-foreground truncate">{(ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "Serviço"}{prof ? ` · ${prof.nome.split(" ")[0]}` : <span className="italic text-muted-foreground/70"> · Sem profissional</span>}</p>
                       </div>
-                      <span className="badge text-[10px] flex-shrink-0" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                        {(ag as any).emAberto > 0 && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "oklch(58% 0.22 25 / 12%)", color: "oklch(38% 0.18 25)" }}>
+                            {formatCurrency((ag as any).emAberto)}
+                          </span>
+                        )}
+                        <span className="badge text-[10px]" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      </div>
                     </div>
                   );
                 })}
