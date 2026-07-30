@@ -534,7 +534,7 @@ export default function Dashboard() {
                   const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
                   const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
                   return (
-                    <div key={ag.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => setDetalheAgendamentoId(ag.id)}>
+                    <div key={ag.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 select-none hover:bg-primary/8 active:bg-primary/12 active:scale-[0.99]" style={{ borderLeft: '3px solid transparent' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = prof?.cor ?? 'var(--primary)'; (e.currentTarget as HTMLElement).style.paddingLeft = '13px'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'transparent'; (e.currentTarget as HTMLElement).style.paddingLeft = '16px'; }} onClick={() => setDetalheAgendamentoId(ag.id)}>
                       <div className="text-center flex-shrink-0 w-10">
                         <p className="text-sm font-bold tracking-tight text-foreground">{ag.horaInicio.slice(0, 5)}</p>
                         <p className="text-[10px] text-muted-foreground">{ag.horaFim.slice(0, 5)}</p>
