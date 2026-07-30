@@ -12,6 +12,7 @@ import {
 import { useState, useMemo, useEffect, useCallback } from "react";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import ReceitaDetalheModal from "@/components/ReceitaDetalheModal";
+import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { getLocalDateString } from "@/lib/utils";
 import {
@@ -257,6 +258,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [novaAgendaOpen, setNovaAgendaOpen] = useState(false);
   const [receitaDetalheOpen, setReceitaDetalheOpen] = useState(false);
+  const [detalheAgendamentoId, setDetalheAgendamentoId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [layout, setLayout] = useState<WidgetConfig[]>(DEFAULT_LAYOUT);
   const [layoutDirty, setLayoutDirty] = useState(false);
@@ -530,7 +532,7 @@ export default function Dashboard() {
                   const cfg = statusConfig[ag.status] ?? statusConfig.agendado;
                   const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
                   return (
-                    <div key={ag.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+                    <div key={ag.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => setDetalheAgendamentoId(ag.id)}>
                       <div className="text-center flex-shrink-0 w-10">
                         <p className="text-sm font-bold tracking-tight text-foreground">{ag.horaInicio.slice(0, 5)}</p>
                         <p className="text-[10px] text-muted-foreground">{ag.horaFim.slice(0, 5)}</p>
@@ -1015,6 +1017,7 @@ export default function Dashboard() {
 
       {novaAgendaOpen && <NovaAgendaModal open={novaAgendaOpen} onClose={() => setNovaAgendaOpen(false)} />}
       {receitaDetalheOpen && <ReceitaDetalheModal open={receitaDetalheOpen} onClose={() => setReceitaDetalheOpen(false)} />}
+      {detalheAgendamentoId && <AgendamentoDetalheModal agendamentoId={detalheAgendamentoId} open={!!detalheAgendamentoId} onClose={() => setDetalheAgendamentoId(null)} />}
     </div>
   );
 }

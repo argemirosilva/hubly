@@ -2774,3 +2774,6 @@
 ## Melhoria: Modais de agendamento full-screen (v16)
 - [x] NovaAgendaModal: converter para tela cheia (full-screen) em vez de modal flutuante
 - [x] EditarAgendamentoModal: converter para tela cheia (full-screen) em vez de modal flutuante
+
+## Melhoria: Agendamentos do Dashboard clicáveis (v17)
+- [x] Dashboard: agendamentos do dia clicáveis — ao clicar abre o modal AgendamentoDetalheModal
