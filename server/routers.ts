@@ -2708,7 +2708,6 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const { agendamentos: agTable, clientes: clTable, profissionais: profTable, servicos: svcTable } = await import('../drizzle/schema.js');
-      const hoje = new Date().toISOString().slice(0, 10);
       const rows = await db
         .select({
           id: agTable.id,
@@ -2734,26 +2733,23 @@ export const appRouter = router({
         .where(and(
           eq(agTable.empresaId, empresa.id),
           eq(agTable.status, 'pre_agendado'),
-          drizzleSql`${agTable.data} >= ${hoje}`,
         ))
         .orderBy(agTable.data, agTable.horaInicio);
       return rows;
     }),
-    // Contar pré-agendamentos pendentes (status pre_agendado, data >= hoje) — badge bottom nav
+    // Contar pré-agendamentos pendentes (status pre_agendado) — badge bottom nav
     contarPreAgendamentosPendentes: protectedProcedure.query(async ({ ctx }) => {
       const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) return { total: 0 };
       const db = await getDb();
       if (!db) return { total: 0 };
       const { agendamentos: agTable } = await import('../drizzle/schema.js');
-      const hoje = new Date().toISOString().slice(0, 10);
       const rows = await db
         .select({ id: agTable.id })
         .from(agTable)
         .where(and(
           eq(agTable.empresaId, empresa.id),
           eq(agTable.status, 'pre_agendado'),
-          drizzleSql`${agTable.data} >= ${hoje}`,
         ));
       return { total: rows.length };
     }),
