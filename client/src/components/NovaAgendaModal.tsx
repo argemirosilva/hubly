@@ -378,7 +378,7 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="fixed inset-0 max-w-none max-h-none h-[100dvh] w-full rounded-none border-0 translate-x-0 translate-y-0 top-0 left-0 p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col">
+      <DialogContent className="fixed inset-0 max-w-none max-h-none h-[100dvh] w-full rounded-none border-0 translate-x-0 translate-y-0 top-0 left-0 p-0 overflow-hidden overflow-x-hidden gap-0 flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 pr-12">
           <DialogTitle className="font-bold tracking-tight">
             Novo Agendamento
