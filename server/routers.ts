@@ -2176,7 +2176,9 @@ export const appRouter = router({
           console.error('[confirmarSinalForaDoPrazo] Erro ao mover cartão no Pipeline:', e);
         }
 
-        // Disparar automação de agendamento_reativado (com fallback para agendamento_confirmado)
+        // Disparar automação de sinal recebido fora do prazo:
+        // Ordem de prioridade: agendamento_criado → agendamento_reativado → agendamento_confirmado
+        // O objetivo é enviar o cardápio/mensagem de boas-vindas (igual à criação normal), não a mensagem de confirmação.
         try {
           const agReativado = await getAgendamentoById(input.id);
           if (agReativado && agReativado.clienteId) {
@@ -2190,17 +2192,21 @@ export const appRouter = router({
               const servicoReativado = agReativado.servicoId ? (await getServicosByEmpresa(empresa.id)).find(s => s.id === agReativado.servicoId) : null;
               const profissionalReativado = agReativado.profissionalId ? await getProfissionalById(agReativado.profissionalId) : null;
               const dataFormatadaReativado = new Date(agReativado.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-              // Usa agendamento_confirmado — mesma mensagem de quando o agendamento é criado normalmente.
-              // A cliente pediu que o fluxo de reativação seja idêntico ao de criação.
-              // Fallback: agendamento_reativado (para quem quiser mensagem diferente).
-              let automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
-              let eventoUsado = 'agendamento_confirmado';
+              // 1ª opção: agendamento_criado (cardápio/boas-vindas — comportamento correto para reativação)
+              let automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
+              let eventoUsado = 'agendamento_criado';
+              // 2ª opção: agendamento_reativado (template específico de reativação, se configurado)
               if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
                 automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_reativado');
                 eventoUsado = 'agendamento_reativado';
               }
+              // 3ª opção: agendamento_confirmado (último recurso)
               if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
-                console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_confirmado' nem 'agendamento_reativado' — envio ignorado para ag. ${input.id}`);
+                automacaoReativado = await getAutomacaoByEvento(empresa.id, 'agendamento_confirmado');
+                eventoUsado = 'agendamento_confirmado';
+              }
+              if (!automacaoReativado || !automacaoReativado.corpoMensagem) {
+                console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_criado', 'agendamento_reativado' nem 'agendamento_confirmado' — envio ignorado para ag. ${input.id}`);
               }
               if (automacaoReativado && automacaoReativado.corpoMensagem) {
                 const portalOriginReativado = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
