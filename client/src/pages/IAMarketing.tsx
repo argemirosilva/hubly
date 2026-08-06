@@ -293,7 +293,7 @@ function ModalPost({
 
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>{post ? "Editar Post" : modoIdeia ? "Nova Ideia (sem data)" : "Novo Post no Calendário"}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{post ? (modoIdeia ? "Editar Ideia" : "Editar Post") : modoIdeia ? "Nova Ideia (sem data)" : "Novo Post no Calendário"}</DialogTitle></DialogHeader>
       <div className="space-y-3 pt-1">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Tema / Assunto *</label>
@@ -1515,7 +1515,7 @@ export default function IAMarketing() {
                             <span className="text-[11px] text-muted-foreground">{ideia.plataforma} · {ideia.formato}</span>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <button onClick={() => { setModalBancoIdeias({ open: false }); setModalPost({ open: true, post: ideia }); }} className="p-1 hover:text-primary rounded" title="Editar">
+                            <button onClick={() => { setModalBancoIdeias({ open: false }); setModalPost({ open: true, post: ideia, modoIdeia: true }); }} className="p-1 hover:text-primary rounded" title="Editar">
                               <Edit3 className="w-3 h-3" />
                             </button>
                             <button onClick={() => { if (confirm("Excluir esta ideia?")) excluirPostMut.mutate({ id: ideia.id }); }} className="p-1 hover:text-destructive rounded" title="Excluir">
