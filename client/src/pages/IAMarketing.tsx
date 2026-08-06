@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Plus, User, Video, Film,
   BookImage, Clapperboard, CheckCircle2, Circle, Edit3, X,
   Camera, Scissors, Play, Eraser, AlertTriangle,
-  FileText, Loader2,
+  FileText, Loader2, Archive, CheckSquare, Square,
 } from "lucide-react";
 import {
   Dialog,
@@ -114,7 +114,11 @@ function PostCard({
   const proximoStatus: Record<StatusProducao, StatusProducao | null> = {
     planejado: "gravado", gravado: "editado", editado: "postado", postado: null,
   };
+  const anteriorStatus: Record<StatusProducao, StatusProducao | null> = {
+    planejado: null, gravado: "planejado", editado: "gravado", postado: "editado",
+  };
   const proximo = proximoStatus[statusAtual];
+  const anterior = anteriorStatus[statusAtual];
 
   if (compact) {
     // Versão compacta para grade desktop (células pequenas)
@@ -148,8 +152,13 @@ function PostCard({
             {statusInfo?.icon} {statusInfo?.label}
           </span>
           {proximo && (
-            <button onClick={() => onStatusChange(post.id, proximo)} className="text-primary hover:underline">
+            <button onClick={() => onStatusChange(post.id, proximo)} className="text-primary hover:underline" title="Avançar status">
               →
+            </button>
+          )}
+          {anterior && (
+            <button onClick={() => onStatusChange(post.id, anterior)} className="text-muted-foreground hover:underline" title="Voltar status">
+              ←
             </button>
           )}
         </div>
@@ -203,6 +212,11 @@ function PostCard({
               → {STATUS_PRODUCAO.find(s => s.value === proximo)?.label}
             </button>
           )}
+          {anterior && (
+            <button onClick={() => onStatusChange(post.id, anterior)} className="text-xs text-muted-foreground hover:underline" title="Voltar status">
+              ← {STATUS_PRODUCAO.find(s => s.value === anterior)?.label}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -216,32 +230,47 @@ function ModalPost({
   onSave,
   onClose,
   dataDefault,
+  modoIdeia,
+  ideias,
+  onEncaixarIdeia,
 }: {
   post?: any;
   profissionais: { id: number; nome: string }[];
   onSave: (data: any) => void;
   onClose: () => void;
   dataDefault?: string;
+  modoIdeia?: boolean;
+  ideias?: any[];
+  onEncaixarIdeia?: (ideiaId: number, data: string, horario: string) => void;
 }) {
   const [tema, setTema] = useState(post?.tema ?? "");
   const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? "instagram");
   const [formato, setFormato] = useState<Formato>(post?.formato ?? "feed");
   const [tipo, setTipo] = useState<TipoPost>(post?.tipo ?? "outro");
-  const [data, setData] = useState(post?.dataPublicacao ?? dataDefault ?? "");
+  const [data, setData] = useState(() => {
+    const raw = post?.dataPublicacao ?? dataDefault ?? "";
+    // Normalize to YYYY-MM-DD string (handles Date objects from DB)
+    if (raw && typeof raw === 'string' && raw.length > 10) {
+      return raw.slice(0, 10); // Extract YYYY-MM-DD from ISO string
+    }
+    return String(raw ?? "");
+  });
   const [horario, setHorario] = useState(post?.horarioPublicacao ?? "18:00");
   const [responsavelId, setResponsavelId] = useState<string>(post?.responsavelId ? String(post.responsavelId) : "");
   const [observacoes, setObservacoes] = useState(post?.observacoes ?? "");
+  const [roteiro, setRoteiro] = useState(post?.roteiro ?? "");
+  const [roteiroAberto, setRoteiroAberto] = useState(false);
 
   const handleSave = () => {
     if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
-    if (!data) { toast.error("Informe a data de publicação"); return; }
+    if (!modoIdeia && !data) { toast.error("Informe a data de publicação"); return; }
     const resp = responsavelId && responsavelId !== '__nenhum__' ? profissionais.find(p => p.id === Number(responsavelId)) : undefined;
-    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined });
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined });
   };
 
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>{post ? "Editar Post" : "Novo Post no Calendário"}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{post ? "Editar Post" : modoIdeia ? "Nova Ideia (sem data)" : "Novo Post no Calendário"}</DialogTitle></DialogHeader>
       <div className="space-y-3 pt-1">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Tema / Assunto *</label>
@@ -269,16 +298,18 @@ function ModalPost({
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-[1fr_90px] gap-2">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
-            <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs w-full" />
+        {!modoIdeia && (
+          <div className="grid grid-cols-[1fr_90px] gap-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
+              <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
+              <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
-            <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
-          </div>
-        </div>
+        )}
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de conteúdo</label>
           <Select value={tipo} onValueChange={v => setTipo(v as TipoPost)}>
@@ -304,11 +335,49 @@ function ModalPost({
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Observações</label>
           <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Referências, ideias, detalhes..." rows={2} className="text-xs resize-none" />
         </div>
+        {/* Campo de roteiro com modal expansível */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-medium text-muted-foreground">Roteiro / Script</label>
+            {roteiro && (
+              <button type="button" onClick={() => setRoteiroAberto(true)} className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
+                <FileText className="w-3 h-3" /> Expandir
+              </button>
+            )}
+          </div>
+          <Textarea
+            value={roteiro}
+            onChange={e => setRoteiro(e.target.value)}
+            placeholder="Escreva o roteiro ou script... (duplo clique para expandir)"
+            rows={2}
+            className="text-xs resize-none"
+            onDoubleClick={() => setRoteiroAberto(true)}
+          />
+        </div>
         <div className="flex gap-2 pt-1">
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
           <Button className="flex-1" onClick={handleSave}>Salvar</Button>
         </div>
       </div>
+      {/* Modal de roteiro expandido */}
+      <Dialog open={roteiroAberto} onOpenChange={setRoteiroAberto}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" /> Roteiro / Script</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={roteiro}
+            onChange={e => setRoteiro(e.target.value)}
+            placeholder="Escreva o roteiro completo aqui..."
+            className="min-h-[300px] text-sm resize-none"
+            autoFocus
+          />
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setRoteiroAberto(false)}>Fechar</Button>
+            <Button className="flex-1" onClick={() => setRoteiroAberto(false)}>Salvar roteiro</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DialogContent>
   );
 }
@@ -365,11 +434,14 @@ export default function IAMarketing() {
   const [mesAtual, setMesAtual] = useState(hoje.getMonth() + 1);
   const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "posts">("calendario");
   const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
-  const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string }>({ open: false });
+  const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string; modoIdeia?: boolean }>({ open: false });
   const [modalLimpar, setModalLimpar] = useState(false);
   const [modalRoteiro, setModalRoteiro] = useState<{ open: boolean; post?: any; roteiro?: string; isVideo?: boolean }>({ open: false });
   // Mobile: modo lista (true) ou grade (false)
   const [modoLista, setModoLista] = useState(true);
+  // Seleção múltipla em Meus Posts
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<number[]>([]);
 
   // Form de geração de post avulso
   const [tipo, setTipo] = useState<TipoPost>("promocao");
@@ -394,6 +466,7 @@ export default function IAMarketing() {
     { limit: 30 },
     { enabled: abaAtiva === "posts" }
   );
+  const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { staleTime: 30_000 });
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
   const { data: servicos = [] } = trpc.servicos.list.useQuery();
 
@@ -445,6 +518,18 @@ export default function IAMarketing() {
     },
     onError: (err: any) => toast.error(err.message ?? "Erro ao limpar calendário"),
   });
+  const criarIdeiasMut = trpc.iaMarketing.criarIdeia.useMutation({
+    onSuccess: () => { toast.success("Ideia salva!"); refetchIdeias(); setModalPost({ open: false }); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao salvar ideia"),
+  });
+  const encaixarIdeiasMut = trpc.iaMarketing.encaixarIdeiaNoCalendario.useMutation({
+    onSuccess: () => { toast.success("Ideia encaixada no calendário!"); refetchCalendario(); refetchIdeias(); setModalPost({ open: false }); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao encaixar ideia"),
+  });
+  const excluirVariosMut = trpc.iaMarketing.excluirVarios.useMutation({
+    onSuccess: (data) => { toast.success(`${data.count} post${data.count !== 1 ? "s" : ""} excluído${data.count !== 1 ? "s" : ""}!`); utils.iaMarketing.listarPosts.invalidate(); setSelecionados([]); setModoSelecao(false); },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao excluir posts"),
+  });
 
   // ── Navegação de mês ──
   const irParaMesAnterior = () => {
@@ -492,7 +577,11 @@ export default function IAMarketing() {
 
   const handleSalvarPost = (data: any) => {
     if (modalPost.post) atualizarPostMut.mutate({ id: modalPost.post.id, ...data });
+    else if (modalPost.modoIdeia) criarIdeiasMut.mutate(data);
     else criarPostMut.mutate(data);
+  };
+  const handleEncaixarIdeia = (ideiaId: number, dataPublicacao: string, horarioPublicacao: string) => {
+    encaixarIdeiasMut.mutate({ id: ideiaId, dataPublicacao, horarioPublicacao });
   };
 
   const tipoInfo = TIPOS_POST.find(t => t.value === tipo);
@@ -605,6 +694,12 @@ export default function IAMarketing() {
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Novo Post</span>
                 <span className="sm:hidden">Novo</span>
+              </Button>
+
+              {/* Botão Banco de Ideias */}
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+                <Archive className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ideia {ideias.length > 0 && `(${ideias.length})`}</span>
               </Button>
 
               {/* Botão Limpar — visível e destacado */}
@@ -1056,6 +1151,47 @@ export default function IAMarketing() {
       {/* ══ ABA: MEUS POSTS ══ */}
       {abaAtiva === "posts" && (
         <div className="space-y-3">
+          {/* Barra de ações de seleção múltipla */}
+          {posts && posts.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant={modoSelecao ? "default" : "outline"}
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => { setModoSelecao(v => !v); setSelecionados([]); }}
+              >
+                {modoSelecao ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                {modoSelecao ? "Cancelar seleção" : "Selecionar"}
+              </Button>
+              {modoSelecao && selecionados.length > 0 && (
+                <>
+                  <span className="text-xs text-muted-foreground">{selecionados.length} selecionado{selecionados.length !== 1 ? "s" : ""}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setSelecionados(posts.map(p => p.id))}
+                  >
+                    Selecionar todos
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/5"
+                    onClick={() => {
+                      if (confirm(`Excluir ${selecionados.length} post${selecionados.length !== 1 ? "s" : ""}?`)) {
+                        excluirVariosMut.mutate({ ids: selecionados });
+                      }
+                    }}
+                    disabled={excluirVariosMut.isPending}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir selecionados
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {loadingPosts ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Carregando posts...
@@ -1080,10 +1216,20 @@ export default function IAMarketing() {
                   publicado: "bg-purple-100 text-purple-700",
                   arquivado: "bg-orange-100 text-orange-700",
                 };
+                const isSelecionado = selecionados.includes(post.id);
                 return (
-                  <div key={post.id} className="rounded-xl border bg-card p-3 space-y-2">
+                  <div
+                    key={post.id}
+                    className={`rounded-xl border bg-card p-3 space-y-2 transition-all ${modoSelecao ? "cursor-pointer" : ""} ${isSelecionado ? "border-primary ring-1 ring-primary/30" : ""}`}
+                    onClick={modoSelecao ? () => setSelecionados(prev => isSelecionado ? prev.filter(id => id !== post.id) : [...prev, post.id]) : undefined}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
+                        {modoSelecao && (
+                          <span className="shrink-0">
+                            {isSelecionado ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                          </span>
+                        )}
                         {tipoInfoPost && (
                           <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${tipoInfoPost.cor}`}>
                             {tipoInfoPost.icon} {tipoInfoPost.label}
@@ -1098,16 +1244,18 @@ export default function IAMarketing() {
                           </span>
                         )}
                       </div>
-                      <button onClick={() => excluirPostMut.mutate({ id: post.id })} className="p-1 hover:text-destructive rounded">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {!modoSelecao && (
+                        <button onClick={() => excluirPostMut.mutate({ id: post.id })} className="p-1 hover:text-destructive rounded">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                     {post.tema && <p className="text-xs font-medium text-muted-foreground">{post.tema}</p>}
                     {post.legenda && <p className="text-xs text-foreground line-clamp-3 leading-relaxed">{post.legenda}</p>}
                     {post.imagemUrl && <img src={post.imagemUrl} alt="Arte" className="w-full rounded-lg aspect-square object-cover" />}
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground">{new Date(post.createdAt).toLocaleDateString("pt-BR")}</span>
-                      {post.status === "rascunho" && (
+                      {!modoSelecao && post.status === "rascunho" && (
                         <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={() => atualizarPostLegadoMut.mutate({ id: post.id, status: "aprovado" })}>
                           Aprovar
                         </Button>
@@ -1120,8 +1268,7 @@ export default function IAMarketing() {
           )}
         </div>
       )}
-
-      {/* Modal de Criar/Editar Post */}
+            {/* Modal de Criar/Editar Post */}
       <Dialog open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
         <ModalPost
           post={modalPost.post}
@@ -1129,6 +1276,9 @@ export default function IAMarketing() {
           onSave={handleSalvarPost}
           onClose={() => setModalPost({ open: false })}
           dataDefault={modalPost.dataDefault}
+          modoIdeia={modalPost.modoIdeia}
+          ideias={ideias}
+          onEncaixarIdeia={handleEncaixarIdeia}
         />
       </Dialog>
 

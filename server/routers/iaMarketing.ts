@@ -5,7 +5,7 @@ import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
 import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
 import { marketingPosts } from "../../drizzle/schema";
-import { eq, and, desc, gte, lte, isNotNull } from "drizzle-orm";
+import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -688,5 +688,104 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
 
       const profissionais = await getProfissionaisByEmpresa(empresa.id);
       return profissionais.filter(p => p.ativo).map(p => ({ id: p.id, nome: p.nome }));
+    }),
+
+  /**
+   * Cria uma ideia de post sem data (banco de ideias)
+   */
+  criarIdeia: protectedProcedure
+    .input(z.object({
+      tema: z.string().min(1).max(500),
+      tipo: z.enum(tiposPost).default("outro"),
+      plataforma: z.enum(plataformas).default("instagram"),
+      formato: z.enum(formatos).default("feed"),
+      observacoes: z.string().optional(),
+      roteiro: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const [inserted] = await db.insert(marketingPosts).values({
+        empresaId: empresa.id,
+        tipo: input.tipo,
+        tema: input.tema,
+        plataforma: input.plataforma,
+        formato: input.formato,
+        statusProducao: "planejado",
+        observacoes: input.observacoes,
+        roteiro: input.roteiro,
+        status: "rascunho",
+      });
+      return { id: (inserted as any)?.insertId ?? null, success: true };
+    }),
+
+  /**
+   * Lista ideias sem data (banco de ideias)
+   */
+  listarIdeias: protectedProcedure
+    .query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) return [];
+      const posts = await db.select()
+        .from(marketingPosts)
+        .where(and(
+          eq(marketingPosts.empresaId, empresa.id),
+          isNull(marketingPosts.dataPublicacao),
+        ))
+        .orderBy(desc(marketingPosts.createdAt));
+      return posts;
+    }),
+
+  /**
+   * Encaixa uma ideia no calendário (atribui data a um post sem data)
+   */
+  encaixarIdeiaNoCalendario: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      dataPublicacao: z.string(),
+      horarioPublicacao: z.string().optional(),
+      responsavelId: z.number().optional(),
+      responsavelNome: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const updates: Record<string, unknown> = {
+        dataPublicacao: input.dataPublicacao,
+        horarioPublicacao: input.horarioPublicacao ?? "18:00",
+        updatedAt: new Date(),
+      };
+      if (input.responsavelId !== undefined) updates.responsavelId = input.responsavelId;
+      if (input.responsavelNome !== undefined) updates.responsavelNome = input.responsavelNome;
+      await db.update(marketingPosts)
+        .set(updates as any)
+        .where(and(eq(marketingPosts.id, input.id), eq(marketingPosts.empresaId, empresa.id)));
+      return { success: true };
+    }),
+
+  /**
+   * Exclui múltiplos posts de uma vez (bulk delete)
+   */
+  excluirVarios: protectedProcedure
+    .input(z.object({
+      ids: z.array(z.number()).min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      await db.delete(marketingPosts)
+        .where(and(
+          eq(marketingPosts.empresaId, empresa.id),
+          inArray(marketingPosts.id, input.ids),
+        ));
+      return { success: true, count: input.ids.length };
     }),
 });

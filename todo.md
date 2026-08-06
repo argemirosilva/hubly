@@ -2782,3 +2782,10 @@
 - [x] Ocultar agendamentos com status cancelado/faltou no widget Agenda de Hoje
 - [x] Mostrar valor a pagar (saldo devedor) visível em cada card de agendamento no widget
 - [x] Adicionar botão de ação rápida (ex: registrar pagamento ou abrir detalhe) em cada card
+
+## Marketing/Posts — Melhorias (v-posts)
+- [x] Marketing/Posts: banco de ideias (posts sem data) com opção de encaixar no calendário depois
+- [x] Marketing/Posts: campo de roteiro separado com modal grande ao clicar para escrever/ler confortavelmente
+- [x] Marketing/Posts: corrigir data errada no pop-up ao clicar em um dia do calendário
+- [x] Marketing/Posts: permitir voltar o status (ex: Gravado → Planejado) além de só avançar
+- [x] Marketing/Meus Posts: seleção múltipla com checkbox para apagar/aprovar vários posts de uma vez
