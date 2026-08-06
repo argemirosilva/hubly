@@ -1272,6 +1272,7 @@ export const marketingPosts = mysqlTable("marketing_posts", {
   responsavelNome: varchar("responsavelNome", { length: 120 }),
   roteiro: longtext("roteiro"),                              // roteiro/conteúdo detalhado gerado pela IA
   // ─────────────────────────────────────────────────────────────────────────────
+  tags: varchar("tags", { length: 500 }),                    // tags separadas por vírgula, ex: "noiva,casamento,social"
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

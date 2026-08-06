@@ -303,6 +303,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       responsavelNome: z.string().nullable().optional(),
       observacoes: z.string().optional(),
       status: z.enum(statusPost).optional(),
+      tags: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
@@ -323,6 +324,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       if (input.responsavelNome !== undefined) updates.responsavelNome = input.responsavelNome;
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
       if (input.status !== undefined) updates.status = input.status;
+      if (input.tags !== undefined) updates.tags = input.tags;
 
       await db.update(marketingPosts)
         .set(updates as any)
@@ -701,6 +703,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
       formato: z.enum(formatos).default("feed"),
       observacoes: z.string().optional(),
       roteiro: z.string().optional(),
+      tags: z.string().optional(), // tags separadas por vírgula
     }))
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
@@ -716,6 +719,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
         statusProducao: "planejado",
         observacoes: input.observacoes,
         roteiro: input.roteiro,
+        tags: input.tags,
         status: "rascunho",
       });
       return { id: (inserted as any)?.insertId ?? null, success: true };
@@ -725,7 +729,10 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
    * Lista ideias sem data (banco de ideias)
    */
   listarIdeias: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({
+      tag: z.string().optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
       const db = await getDb();
@@ -737,6 +744,14 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
           isNull(marketingPosts.dataPublicacao),
         ))
         .orderBy(desc(marketingPosts.createdAt));
+      // Filtrar por tag
+      if (input?.tag) {
+        const tagFiltro = input.tag.toLowerCase().trim();
+        return posts.filter(p => {
+          if (!p.tags) return false;
+          return p.tags.split(",").map(t => t.trim().toLowerCase()).includes(tagFiltro);
+        });
+      }
       return posts;
     }),
 

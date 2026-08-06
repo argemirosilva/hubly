@@ -260,12 +260,30 @@ function ModalPost({
   const [observacoes, setObservacoes] = useState(post?.observacoes ?? "");
   const [roteiro, setRoteiro] = useState(post?.roteiro ?? "");
   const [roteiroAberto, setRoteiroAberto] = useState(false);
+  const [tags, setTags] = useState<string[]>(() => {
+    if (!post?.tags) return [];
+    return post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+  });
+  const [tagInput, setTagInput] = useState("");
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+      e.preventDefault();
+      const nova = tagInput.trim().toLowerCase().replace(/[^a-z0-9áàâãéèêíïóôõöúüçñ\s-]/gi, "");
+      if (nova && !tags.includes(nova)) setTags(prev => [...prev, nova]);
+      setTagInput("");
+    }
+    if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags(prev => prev.slice(0, -1));
+    }
+  };
 
   const handleSave = () => {
     if (!tema.trim()) { toast.error("Informe o tema do post"); return; }
     if (!modoIdeia && !data) { toast.error("Informe a data de publicação"); return; }
     const resp = responsavelId && responsavelId !== '__nenhum__' ? profissionais.find(p => p.id === Number(responsavelId)) : undefined;
-    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined });
+    const tagsStr = tags.length > 0 ? tags.join(",") : undefined;
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined, tags: tagsStr });
   };
 
   return (
@@ -334,6 +352,28 @@ function ModalPost({
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Observações</label>
           <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Referências, ideias, detalhes..." rows={2} className="text-xs resize-none" />
+        </div>
+        {/* Campo de Tags */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tags</label>
+          <div className="flex flex-wrap gap-1 min-h-[32px] px-2 py-1 rounded-md border bg-background focus-within:ring-1 focus-within:ring-ring cursor-text" onClick={() => document.getElementById("tag-input-modal")?.focus()}>
+            {tags.map(tag => (
+              <span key={tag} className="inline-flex items-center gap-0.5 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                #{tag}
+                <button type="button" onClick={e => { e.stopPropagation(); setTags(prev => prev.filter(t => t !== tag)); }} className="ml-0.5 hover:text-destructive">×</button>
+              </span>
+            ))}
+            <input
+              id="tag-input-modal"
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              onBlur={() => { if (tagInput.trim()) { const nova = tagInput.trim().toLowerCase(); if (!tags.includes(nova)) setTags(prev => [...prev, nova]); setTagInput(""); } }}
+              placeholder={tags.length === 0 ? "noiva, casamento, social... (Enter para adicionar)" : ""}
+              className="flex-1 min-w-[120px] text-xs bg-transparent outline-none border-none"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Pressione Enter ou vírgula para adicionar uma tag</p>
         </div>
         {/* Campo de roteiro com modal expansível */}
         <div>
@@ -442,6 +482,9 @@ export default function IAMarketing() {
   // Seleção múltipla em Meus Posts
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<number[]>([]);
+  // Banco de Ideias
+  const [modalBancoIdeias, setModalBancoIdeias] = useState<{ open: boolean; dataDefault?: string }>({ open: false });
+  const [filtroTag, setFiltroTag] = useState<string>("");
 
   // Form de geração de post avulso
   const [tipo, setTipo] = useState<TipoPost>("promocao");
@@ -697,9 +740,9 @@ export default function IAMarketing() {
               </Button>
 
               {/* Botão Banco de Ideias */}
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalBancoIdeias({ open: true })}>
                 <Archive className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ideia {ideias.length > 0 && `(${ideias.length})`}</span>
+                <span className="hidden sm:inline">Ideias {ideias.length > 0 && `(${ideias.length})`}</span>
               </Button>
 
               {/* Botão Limpar — visível e destacado */}
@@ -1351,6 +1394,111 @@ export default function IAMarketing() {
             </div>
           </DialogContent>
         )}
+      </Dialog>
+
+
+      {/* ── Modal Banco de Ideias ── */}
+      <Dialog open={modalBancoIdeias.open} onOpenChange={open => !open && setModalBancoIdeias({ open: false })}>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="w-4 h-4 text-primary" /> Banco de Ideias
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
+            {/* Barra de ações */}
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => { setModalBancoIdeias({ open: false }); setModalPost({ open: true, modoIdeia: true }); }}>
+                <Plus className="w-3.5 h-3.5" /> Nova ideia
+              </Button>
+              <span className="text-xs text-muted-foreground ml-auto">{ideias.length} ideia{ideias.length !== 1 ? "s" : ""}</span>
+            </div>
+            {/* Filtro por tags */}
+            {(() => {
+              const todasTags = Array.from(new Set(ideias.flatMap(i => i.tags ? i.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [])));
+              return todasTags.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    onClick={() => setFiltroTag("")}
+                    className={`text-[11px] px-2 py-0.5 rounded-full border font-medium transition-all ${!filtroTag ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                  >
+                    Todas
+                  </button>
+                  {todasTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => setFiltroTag(filtroTag === tag ? "" : tag)}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border font-medium transition-all ${filtroTag === tag ? "bg-primary text-primary-foreground border-primary" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"}`}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              ) : null;
+            })()}
+            {/* Lista de ideias */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {ideias.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                  <Archive className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-sm">Nenhuma ideia salva ainda</p>
+                  <Button size="sm" variant="outline" onClick={() => { setModalBancoIdeias({ open: false }); setModalPost({ open: true, modoIdeia: true }); }}>
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Criar primeira ideia
+                  </Button>
+                </div>
+              ) : (
+                ideias
+                  .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                  .map(ideia => {
+                    const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
+                    const tagsIdeia = ideia.tags ? ideia.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
+                    return (
+                      <div key={ideia.id} className="rounded-xl border bg-card p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {tipoInfo && (
+                              <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+                                {tipoInfo.icon} {tipoInfo.label}
+                              </span>
+                            )}
+                            <span className="text-[11px] text-muted-foreground">{ideia.plataforma} · {ideia.formato}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => { setModalBancoIdeias({ open: false }); setModalPost({ open: true, post: ideia }); }} className="p-1 hover:text-primary rounded" title="Editar">
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button onClick={() => { if (confirm("Excluir esta ideia?")) excluirPostMut.mutate({ id: ideia.id }); }} className="p-1 hover:text-destructive rounded" title="Excluir">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium leading-snug">{ideia.tema}</p>
+                        {tagsIdeia.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {tagsIdeia.map(tag => (
+                              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                        {ideia.observacoes && <p className="text-[11px] text-muted-foreground line-clamp-2">{ideia.observacoes}</p>}
+                        <Button
+                          size="sm"
+                          className="w-full h-7 text-xs gap-1"
+                          onClick={() => {
+                            const dataHoje = new Date().toISOString().slice(0, 10);
+                            setModalBancoIdeias({ open: false });
+                            setModalPost({ open: true, post: { ...ideia, dataPublicacao: undefined }, dataDefault: dataHoje });
+                          }}
+                        >
+                          <Calendar className="w-3 h-3" /> Encaixar no calendário
+                        </Button>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
 
       {/* Modal de Limpar Calendário */}
