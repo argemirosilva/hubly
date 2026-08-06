@@ -519,7 +519,7 @@ export default function IAMarketing() {
     { limit: 30 },
     { enabled: abaAtiva === "posts" }
   );
-  const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { staleTime: 30_000, enabled: abaAtiva === 'ideias' || abaAtiva === 'calendario' });
+  const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { enabled: abaAtiva === 'ideias' || abaAtiva === 'calendario' });
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
   const { data: servicos = [] } = trpc.servicos.list.useQuery();
 
@@ -545,11 +545,11 @@ export default function IAMarketing() {
     onError: (err: any) => toast.error(err.message ?? "Erro ao criar post"),
   });
   const atualizarPostMut = trpc.iaMarketing.atualizarPostCalendario.useMutation({
-    onSuccess: () => { toast.success("Post atualizado!"); refetchCalendario(); utils.iaMarketing.listarPosts.invalidate(); setModalPost({ open: false }); },
+    onSuccess: () => { toast.success("Post atualizado!"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); utils.iaMarketing.listarPosts.invalidate(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar post"),
   });
   const excluirPostMut = trpc.iaMarketing.excluirPost.useMutation({
-    onSuccess: () => { toast.success("Post removido"); refetchCalendario(); refetchIdeias(); utils.iaMarketing.listarPosts.invalidate(); },
+    onSuccess: () => { toast.success("Post removido"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); utils.iaMarketing.listarPosts.invalidate(); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao excluir post"),
   });
   const atualizarPostLegadoMut = trpc.iaMarketing.atualizarPost.useMutation({
@@ -572,11 +572,11 @@ export default function IAMarketing() {
     onError: (err: any) => toast.error(err.message ?? "Erro ao limpar calendário"),
   });
   const criarIdeiasMut = trpc.iaMarketing.criarIdeia.useMutation({
-    onSuccess: () => { toast.success("Ideia salva!"); refetchIdeias(); setModalPost({ open: false }); },
+    onSuccess: () => { toast.success("Ideia salva!"); utils.iaMarketing.listarIdeias.invalidate(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao salvar ideia"),
   });
   const encaixarIdeiasMut = trpc.iaMarketing.encaixarIdeiaNoCalendario.useMutation({
-    onSuccess: () => { toast.success("Ideia encaixada no calendário!"); refetchCalendario(); refetchIdeias(); setModalPost({ open: false }); },
+    onSuccess: () => { toast.success("Ideia encaixada no calendário!"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao encaixar ideia"),
   });
   const excluirVariosMut = trpc.iaMarketing.excluirVarios.useMutation({
