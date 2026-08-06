@@ -549,7 +549,7 @@ export default function IAMarketing() {
     onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar post"),
   });
   const excluirPostMut = trpc.iaMarketing.excluirPost.useMutation({
-    onSuccess: () => { toast.success("Post removido"); refetchCalendario(); utils.iaMarketing.listarPosts.invalidate(); },
+    onSuccess: () => { toast.success("Post removido"); refetchCalendario(); refetchIdeias(); utils.iaMarketing.listarPosts.invalidate(); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao excluir post"),
   });
   const atualizarPostLegadoMut = trpc.iaMarketing.atualizarPost.useMutation({
