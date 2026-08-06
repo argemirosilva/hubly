@@ -477,7 +477,7 @@ export default function IAMarketing() {
   const hoje = new Date();
   const [anoAtual, setAnoAtual] = useState(hoje.getFullYear());
   const [mesAtual, setMesAtual] = useState(hoje.getMonth() + 1);
-  const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "posts">("calendario");
+  const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "ideias" | "posts">("calendario");
   const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
   const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string; modoIdeia?: boolean }>({ open: false });
   const [modalLimpar, setModalLimpar] = useState(false);
@@ -519,7 +519,7 @@ export default function IAMarketing() {
     { limit: 30 },
     { enabled: abaAtiva === "posts" }
   );
-  const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { staleTime: 30_000 });
+  const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { staleTime: 30_000, enabled: abaAtiva === 'ideias' || abaAtiva === 'calendario' });
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
   const { data: servicos = [] } = trpc.servicos.list.useQuery();
 
@@ -683,6 +683,7 @@ export default function IAMarketing() {
         {[
           { id: "calendario", label: "Calendário", icon: <Calendar className="w-3.5 h-3.5" /> },
           { id: "gerar", label: "Gerar Post", icon: <Sparkles className="w-3.5 h-3.5" /> },
+          { id: "ideias", label: "Ideias", icon: <Archive className="w-3.5 h-3.5" /> },
           { id: "posts", label: "Meus Posts", icon: <Instagram className="w-3.5 h-3.5" /> },
         ].map(aba => (
           <button
@@ -749,11 +750,7 @@ export default function IAMarketing() {
                 <span className="sm:hidden">Novo</span>
               </Button>
 
-              {/* Botão Banco de Ideias */}
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setModalBancoIdeias({ open: true })}>
-                <Archive className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ideias {ideias.length > 0 && `(${ideias.length})`}</span>
-              </Button>
+
 
               {/* Botão Limpar — visível e destacado */}
               {stats.total > 0 && (
@@ -1196,6 +1193,109 @@ export default function IAMarketing() {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ ABA: BANCO DE IDEIAS ══ */}
+      {abaAtiva === "ideias" && (
+        <div className="space-y-3">
+          {/* Barra de ações */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+              <Plus className="w-3.5 h-3.5" /> Nova ideia
+            </Button>
+            <span className="text-xs text-muted-foreground ml-auto">{ideias.length} ideia{ideias.length !== 1 ? "s" : ""}</span>
+          </div>
+          {/* Filtro por tags */}
+          {(() => {
+            const todasTags = Array.from(new Set(ideias.flatMap(i => i.tags ? i.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [])));
+            return todasTags.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                <button
+                  onClick={() => setFiltroTag("")}
+                  className={`text-[11px] px-2 py-0.5 rounded-full border font-medium transition-all ${!filtroTag ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  Todas
+                </button>
+                {todasTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setFiltroTag(filtroTag === tag ? "" : tag)}
+                    className={`text-[11px] px-2 py-0.5 rounded-full border font-medium transition-all ${filtroTag === tag ? "bg-primary text-primary-foreground border-primary" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"}`}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            ) : null;
+          })()}
+          {/* Grid de ideias */}
+          {ideias.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+              <Archive className="w-10 h-10 text-muted-foreground/30" />
+              <p className="text-sm font-medium">Nenhuma ideia salva ainda</p>
+              <p className="text-xs text-center max-w-xs">Guarde aqui temas e conceitos de posts antes de programar no calendário</p>
+              <Button size="sm" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Criar primeira ideia
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ideias
+                .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                .map(ideia => {
+                  const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
+                  const tagsIdeia = ideia.tags ? ideia.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
+                  return (
+                    <div key={ideia.id} className="rounded-xl border bg-card p-3 space-y-2 hover:border-primary/30 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {tipoInfo && (
+                            <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${tipoInfo.cor}`}>
+                              {tipoInfo.icon} {tipoInfo.label}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">{ideia.plataforma} · {ideia.formato}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => setModalPost({ open: true, post: ideia, modoIdeia: true })} className="p-1 hover:text-primary rounded" title="Editar">
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button onClick={() => { if (confirm("Excluir esta ideia?")) excluirPostMut.mutate({ id: ideia.id }); }} className="p-1 hover:text-destructive rounded" title="Excluir">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium leading-snug">{ideia.tema}</p>
+                      {tagsIdeia.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {tagsIdeia.map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">#{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      {ideia.observacoes && <p className="text-[11px] text-muted-foreground line-clamp-2">{ideia.observacoes}</p>}
+                      {ideia.roteiro && (
+                        <p className="text-[11px] text-muted-foreground line-clamp-1 italic">
+                          <span className="font-medium not-italic">Roteiro:</span> {ideia.roteiro}
+                        </p>
+                      )}
+                      <Button
+                        size="sm"
+                        className="w-full h-7 text-xs gap-1"
+                        onClick={() => {
+                          const dataHoje = new Date().toISOString().slice(0, 10);
+                          setIdeiaTemplate({ tema: ideia.tema, tipo: ideia.tipo, plataforma: ideia.plataforma, formato: ideia.formato, observacoes: ideia.observacoes, roteiro: ideia.roteiro, tags: ideia.tags });
+                          setModalPost({ open: true, post: undefined, dataDefault: dataHoje });
+                        }}
+                      >
+                        <Calendar className="w-3 h-3" /> Encaixar no calendário
+                      </Button>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>

@@ -2791,3 +2791,6 @@
 - [x] Marketing/Meus Posts: seleção múltipla com checkbox para apagar/aprovar vários posts de uma vez
 - [x] Marketing/Banco de Ideias: sistema de tags/categorias para organização e filtro
 - [x] Marketing/Meus Posts: filtros por status de produção (Planejado/Gravado/Editado/Postado) e plataforma
+- [x] Marketing: Banco de Ideias vira aba separada (Calendário / Gerar Post / Ideias / Meus Posts)
+- [x] Marketing: Ideias não aparecem em Meus Posts (listarPosts deve filtrar só posts com dataPublicacao)
+- [x] Marketing: Filtros em Meus Posts por status de produção e plataforma funcionando

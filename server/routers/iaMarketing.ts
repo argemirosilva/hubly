@@ -205,7 +205,10 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       const db = await getDb();
       if (!db) return [];
 
-      const conditions = [eq(marketingPosts.empresaId, empresa.id)];
+      const conditions: any[] = [
+        eq(marketingPosts.empresaId, empresa.id),
+        isNotNull(marketingPosts.dataPublicacao), // só posts com data (não ideias)
+      ];
       if (input.status) conditions.push(eq(marketingPosts.status, input.status));
 
       const posts = await db.select()
