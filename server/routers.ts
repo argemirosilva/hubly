@@ -2108,6 +2108,22 @@ export const appRouter = router({
           console.error('[confirmarReserva] Erro ao enfileirar automação de reserva paga:', e);
         }
 
+        // ── Mover cartão no Pipeline para "Agendamento Criado" (status agendado) ─────────────
+        if (agParaConfirmar?.status === 'pre_agendado') {
+          try {
+            const { moverCartaoPorStatusInterno } = await import('./routers/pipeline');
+            await moverCartaoPorStatusInterno({
+              empresaId: empresa.id,
+              agendamentoId: input.id,
+              clienteId: agParaConfirmar.clienteId ?? undefined,
+              novoStatus: 'agendado',
+            });
+            console.log(`[confirmarReserva] Cartão movido para Agendamento Criado (ag. ${input.id})`);
+          } catch (e) {
+            console.error('[confirmarReserva] Erro ao mover cartão no Pipeline:', e);
+          }
+        }
+
         return { success: true };
       }),
 
