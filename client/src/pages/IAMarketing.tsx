@@ -487,6 +487,9 @@ export default function IAMarketing() {
   // Seleção múltipla em Meus Posts
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<number[]>([]);
+  // Filtros de Meus Posts
+  const [filtroStatusProd, setFiltroStatusProd] = useState<string>("todos");
+  const [filtroPlatformaPosts, setFiltroPlatformaPosts] = useState<string>("todos");
   // Banco de Ideias
   const [modalBancoIdeias, setModalBancoIdeias] = useState<{ open: boolean; dataDefault?: string }>({ open: false });
   const [filtroTag, setFiltroTag] = useState<string>("");
@@ -1201,6 +1204,43 @@ export default function IAMarketing() {
       {/* ══ ABA: MEUS POSTS ══ */}
       {abaAtiva === "posts" && (
         <div className="space-y-3">
+          {/* Barra de filtros */}
+          {posts && posts.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtro por status de produção */}
+              {[
+                { value: "todos", label: "Todos" },
+                { value: "planejado", label: "Planejado" },
+                { value: "gravado", label: "Gravado" },
+                { value: "editado", label: "Editado" },
+                { value: "postado", label: "Postado" },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFiltroStatusProd(opt.value)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroStatusProd === opt.value ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <div className="w-px h-4 bg-border mx-1" />
+              {/* Filtro por plataforma */}
+              {[
+                { value: "todos", label: "Plataforma" },
+                { value: "instagram", label: "Instagram" },
+                { value: "tiktok", label: "TikTok" },
+                { value: "ambos", label: "IG+TK" },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFiltroPlatformaPosts(opt.value)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroPlatformaPosts === opt.value ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Barra de ações de seleção múltipla */}
           {posts && posts.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
@@ -1256,7 +1296,10 @@ export default function IAMarketing() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {posts.map(post => {
+              {posts
+                  .filter(p => filtroStatusProd === "todos" || (p.statusProducao ?? "planejado") === filtroStatusProd)
+                  .filter(p => filtroPlatformaPosts === "todos" || p.plataforma === filtroPlatformaPosts)
+                  .map(post => {
                 const tipoInfoPost = TIPOS_POST.find(t => t.value === post.tipo);
                 const statusProd = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
                 const statusCor: Record<string, string> = {

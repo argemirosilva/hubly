@@ -2790,3 +2790,4 @@
 - [x] Marketing/Posts: permitir voltar o status (ex: Gravado → Planejado) além de só avançar
 - [x] Marketing/Meus Posts: seleção múltipla com checkbox para apagar/aprovar vários posts de uma vez
 - [x] Marketing/Banco de Ideias: sistema de tags/categorias para organização e filtro
+- [x] Marketing/Meus Posts: filtros por status de produção (Planejado/Gravado/Editado/Postado) e plataforma
