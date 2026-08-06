@@ -233,6 +233,7 @@ function ModalPost({
   modoIdeia,
   ideias,
   onEncaixarIdeia,
+  template,
 }: {
   post?: any;
   profissionais: { id: number; nome: string }[];
@@ -242,11 +243,12 @@ function ModalPost({
   modoIdeia?: boolean;
   ideias?: any[];
   onEncaixarIdeia?: (ideiaId: number, data: string, horario: string) => void;
+  template?: any;
 }) {
-  const [tema, setTema] = useState(post?.tema ?? "");
-  const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? "instagram");
-  const [formato, setFormato] = useState<Formato>(post?.formato ?? "feed");
-  const [tipo, setTipo] = useState<TipoPost>(post?.tipo ?? "outro");
+  const [tema, setTema] = useState(post?.tema ?? template?.tema ?? "");
+  const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? template?.plataforma ?? "instagram");
+  const [formato, setFormato] = useState<Formato>(post?.formato ?? template?.formato ?? "feed");
+  const [tipo, setTipo] = useState<TipoPost>(post?.tipo ?? template?.tipo ?? "outro");
   const normalizeDate = (raw: any): string => {
     if (!raw) return "";
     if (typeof raw === 'string' && raw.length > 10) return raw.slice(0, 10);
@@ -259,12 +261,13 @@ function ModalPost({
   }, [dataDefault, post?.id]);
   const [horario, setHorario] = useState(post?.horarioPublicacao ?? "18:00");
   const [responsavelId, setResponsavelId] = useState<string>(post?.responsavelId ? String(post.responsavelId) : "");
-  const [observacoes, setObservacoes] = useState(post?.observacoes ?? "");
-  const [roteiro, setRoteiro] = useState(post?.roteiro ?? "");
+  const [observacoes, setObservacoes] = useState(post?.observacoes ?? template?.observacoes ?? "");
+  const [roteiro, setRoteiro] = useState(post?.roteiro ?? template?.roteiro ?? "");
   const [roteiroAberto, setRoteiroAberto] = useState(false);
   const [tags, setTags] = useState<string[]>(() => {
-    if (!post?.tags) return [];
-    return post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+    const src = post?.tags ?? template?.tags;
+    if (!src) return [];
+    return src.split(",").map((t: string) => t.trim()).filter(Boolean);
   });
   const [tagInput, setTagInput] = useState("");
 
@@ -487,6 +490,8 @@ export default function IAMarketing() {
   // Banco de Ideias
   const [modalBancoIdeias, setModalBancoIdeias] = useState<{ open: boolean; dataDefault?: string }>({ open: false });
   const [filtroTag, setFiltroTag] = useState<string>("");
+  // Template de ideia para pré-preencher o modal sem sobrescrever a ideia original
+  const [ideiaTemplate, setIdeiaTemplate] = useState<any>(null);
 
   // Form de geração de post avulso
   const [tipo, setTipo] = useState<TipoPost>("promocao");
@@ -1314,16 +1319,17 @@ export default function IAMarketing() {
         </div>
       )}
             {/* Modal de Criar/Editar Post */}
-      <Dialog open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
+      <Dialog key={`modal-post-${modalPost.dataDefault ?? "edit"}-${modalPost.post?.id ?? "new"}`} open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
         <ModalPost
           post={modalPost.post}
           profissionais={profissionais}
-          onSave={handleSalvarPost}
-          onClose={() => setModalPost({ open: false })}
+          onSave={(data) => { handleSalvarPost(data); setIdeiaTemplate(null); }}
+          onClose={() => { setModalPost({ open: false }); setIdeiaTemplate(null); }}
           dataDefault={modalPost.dataDefault}
           modoIdeia={modalPost.modoIdeia}
           ideias={ideias}
           onEncaixarIdeia={handleEncaixarIdeia}
+          template={ideiaTemplate}
         />
       </Dialog>
 
@@ -1489,7 +1495,9 @@ export default function IAMarketing() {
                           onClick={() => {
                             const dataHoje = new Date().toISOString().slice(0, 10);
                             setModalBancoIdeias({ open: false });
-                            setModalPost({ open: true, post: { ...ideia, dataPublicacao: undefined }, dataDefault: dataHoje });
+                            // Pré-preenche o modal com dados da ideia, mas NÃO passa post (cria novo)
+                            setIdeiaTemplate({ tema: ideia.tema, tipo: ideia.tipo, plataforma: ideia.plataforma, formato: ideia.formato, observacoes: ideia.observacoes, roteiro: ideia.roteiro, tags: ideia.tags });
+                            setModalPost({ open: true, post: undefined, dataDefault: dataHoje });
                           }}
                         >
                           <Calendar className="w-3 h-3" /> Encaixar no calendário
