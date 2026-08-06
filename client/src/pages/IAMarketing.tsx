@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -247,14 +247,16 @@ function ModalPost({
   const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? "instagram");
   const [formato, setFormato] = useState<Formato>(post?.formato ?? "feed");
   const [tipo, setTipo] = useState<TipoPost>(post?.tipo ?? "outro");
-  const [data, setData] = useState(() => {
-    const raw = post?.dataPublicacao ?? dataDefault ?? "";
-    // Normalize to YYYY-MM-DD string (handles Date objects from DB)
-    if (raw && typeof raw === 'string' && raw.length > 10) {
-      return raw.slice(0, 10); // Extract YYYY-MM-DD from ISO string
-    }
+  const normalizeDate = (raw: any): string => {
+    if (!raw) return "";
+    if (typeof raw === 'string' && raw.length > 10) return raw.slice(0, 10);
     return String(raw ?? "");
-  });
+  };
+  const [data, setData] = useState(() => normalizeDate(post?.dataPublicacao ?? dataDefault));
+  // Sync data when dataDefault changes (e.g., clicking a different day)
+  useEffect(() => {
+    setData(normalizeDate(post?.dataPublicacao ?? dataDefault));
+  }, [dataDefault, post?.id]);
   const [horario, setHorario] = useState(post?.horarioPublicacao ?? "18:00");
   const [responsavelId, setResponsavelId] = useState<string>(post?.responsavelId ? String(post.responsavelId) : "");
   const [observacoes, setObservacoes] = useState(post?.observacoes ?? "");
