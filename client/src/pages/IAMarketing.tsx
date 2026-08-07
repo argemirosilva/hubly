@@ -310,7 +310,7 @@ function ModalPost({
   ideias?: any[];
   onEncaixarIdeia?: (ideiaId: number, data: string, horario: string) => void;
   template?: any;
-  tiposCustom?: { id: number; nome: string; cor: string }[];
+  tiposCustom?: { id: number; nome: string; cor: string | null }[];
 }) {
   const [tema, setTema] = useState(post?.tema ?? template?.tema ?? "");
   const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? template?.plataforma ?? "instagram");
@@ -322,6 +322,7 @@ function ModalPost({
     return String(raw ?? "");
   };
   const [data, setData] = useState(() => normalizeDate(post?.dataPublicacao ?? dataDefault));
+  const [datasExtras, setDatasExtras] = useState<string[]>([]);
   // Sync data when dataDefault changes (e.g., clicking a different day)
   useEffect(() => {
     setData(normalizeDate(post?.dataPublicacao ?? dataDefault));
@@ -355,7 +356,7 @@ function ModalPost({
     if (!modoIdeia && !data) { toast.error("Informe a data de publicação"); return; }
     const resp = responsavelId && responsavelId !== '__nenhum__' ? profissionais.find(p => p.id === Number(responsavelId)) : undefined;
     const tagsStr = tags.length > 0 ? tags.join(",") : undefined;
-    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined, tags: tagsStr });
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined, tags: tagsStr, datasExtras: datasExtras.filter(Boolean) });
   };
 
   return (
@@ -389,15 +390,31 @@ function ModalPost({
           </div>
         </div>
         {!modoIdeia && (
-          <div className="grid grid-cols-[1fr_90px] gap-2">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
-              <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs w-full" />
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_90px] gap-2">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Data *</label>
+                <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-xs w-full" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
+                <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Horário</label>
-              <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
-            </div>
+            {/* Datas extras */}
+            {datasExtras.map((de, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <Input type="date" value={de} onChange={e => setDatasExtras(prev => prev.map((d, i) => i === idx ? e.target.value : d))} className="h-7 text-xs flex-1" />
+                <button onClick={() => setDatasExtras(prev => prev.filter((_, i) => i !== idx))} className="p-1 hover:text-destructive rounded"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setDatasExtras(prev => [...prev, ""])}
+              className="text-[11px] text-primary hover:underline flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Adicionar outra data de publicação
+            </button>
           </div>
         )}
         <div>
@@ -719,7 +736,16 @@ export default function IAMarketing() {
   const handleSalvarPost = (data: any) => {
     if (modalPost.post) atualizarPostMut.mutate({ id: modalPost.post.id, ...data });
     else if (modalPost.modoIdeia) criarIdeiasMut.mutate(data);
-    else criarPostMut.mutate(data);
+    else {
+      const { datasExtras, ...dadosPrincipais } = data;
+      criarPostMut.mutate(dadosPrincipais);
+      // Criar posts adicionais para cada data extra
+      if (datasExtras && datasExtras.length > 0) {
+        datasExtras.forEach((dataExtra: string) => {
+          if (dataExtra) criarPostMut.mutate({ ...dadosPrincipais, dataPublicacao: dataExtra });
+        });
+      }
+    }
   };
   const handleEncaixarIdeia = (ideiaId: number, dataPublicacao: string, horarioPublicacao: string) => {
     encaixarIdeiasMut.mutate({ id: ideiaId, dataPublicacao, horarioPublicacao });
