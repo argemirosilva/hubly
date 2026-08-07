@@ -2794,3 +2794,4 @@
 - [x] Marketing: Banco de Ideias vira aba separada (Calendário / Gerar Post / Ideias / Meus Posts)
 - [x] Marketing: Ideias não aparecem em Meus Posts (listarPosts deve filtrar só posts com dataPublicacao)
 - [x] Marketing: Filtros em Meus Posts por status de produção e plataforma funcionando
+- [x] Fix: worker de fila bloqueia envio de mensagens para agendamentos cancelados/faltou

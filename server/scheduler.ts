@@ -1697,6 +1697,20 @@ export async function processarFilaPendente() {
           .where(eq(historicoEnviosAutomacao.id, item.id));
         continue;
       }
+      // ── Verificar se o agendamento vinculado foi cancelado ou faltou ─────────
+      if (item.agendamentoId) {
+        const [agStatus] = await db.select({ status: agendamentos.status })
+          .from(agendamentos)
+          .where(eq(agendamentos.id, item.agendamentoId))
+          .limit(1);
+        if (agStatus && (agStatus.status === 'cancelado' || agStatus.status === 'faltou')) {
+          await db.update(historicoEnviosAutomacao)
+            .set({ status: 'cancelado', erroDetalhe: `Agendamento ${agStatus.status} — envio bloqueado` })
+            .where(eq(historicoEnviosAutomacao.id, item.id));
+          console.log(`[Fila] Envio ${item.id} bloqueado — agendamento ${item.agendamentoId} está ${agStatus.status}`);
+          continue;
+        }
+      }
 
       // Substituir placeholder __LINK_CONFIRMACAO__ pelo token fresco gerado agora.
       // O token é gerado apenas no momento do envio para evitar expiração prematura.
