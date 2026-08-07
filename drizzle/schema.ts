@@ -1329,3 +1329,31 @@ export const googleCalendarEventos = mysqlTable("google_calendar_eventos", {
 });
 export type GoogleCalendarEvento = typeof googleCalendarEventos.$inferSelect;
 export type InsertGoogleCalendarEvento = typeof googleCalendarEventos.$inferInsert;
+
+// ─── MARKETING TIPOS DE CONTEÚDO PERSONALIZADOS ───────────────────────────────
+export const marketingTiposConteudo = mysqlTable("marketing_tipos_conteudo", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  cor: varchar("cor", { length: 50 }).default("bg-gray-50 text-gray-600 border-gray-200"),
+  ordem: int("ordem").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MarketingTipoConteudo = typeof marketingTiposConteudo.$inferSelect;
+
+// ─── MARKETING MÉTRICAS DE DESEMPENHO ─────────────────────────────────────────
+export const marketingMetricas = mysqlTable("marketing_metricas", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  visualizacoes: int("visualizacoes").default(0),
+  curtidas: int("curtidas").default(0),
+  comentarios: int("comentarios").default(0),
+  compartilhamentos: int("compartilhamentos").default(0),
+  republicacoes: int("republicacoes").default(0),
+  salvamentos: int("salvamentos").default(0),
+  alcance: int("alcance").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type MarketingMetrica = typeof marketingMetricas.$inferSelect;

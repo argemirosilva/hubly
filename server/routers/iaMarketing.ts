@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
 import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
-import { marketingPosts } from "../../drizzle/schema";
+import { marketingPosts, marketingTiposConteudo, marketingMetricas } from "../../drizzle/schema";
 import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -805,5 +805,105 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
           inArray(marketingPosts.id, input.ids),
         ));
       return { success: true, count: input.ids.length };
+    }),
+
+  // ─── Tipos de Conteúdo Personalizados ────────────────────────────────────────
+  listarTiposConteudo: protectedProcedure
+    .query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(marketingTiposConteudo)
+        .where(eq(marketingTiposConteudo.empresaId, empresa.id))
+        .orderBy(marketingTiposConteudo.ordem, marketingTiposConteudo.createdAt);
+    }),
+
+  criarTipoConteudo: protectedProcedure
+    .input(z.object({ nome: z.string().min(1).max(100), cor: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      await db.insert(marketingTiposConteudo).values({
+        empresaId: empresa.id,
+        nome: input.nome.trim(),
+        cor: input.cor ?? "bg-gray-50 text-gray-600 border-gray-200",
+      });
+      return { success: true };
+    }),
+
+  excluirTipoConteudo: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      await db.delete(marketingTiposConteudo)
+        .where(and(eq(marketingTiposConteudo.id, input.id), eq(marketingTiposConteudo.empresaId, empresa.id)));
+      return { success: true };
+    }),
+
+  // ─── Métricas de Desempenho ───────────────────────────────────────────────────
+  salvarMetricas: protectedProcedure
+    .input(z.object({
+      postId: z.number(),
+      visualizacoes: z.number().min(0).default(0),
+      curtidas: z.number().min(0).default(0),
+      comentarios: z.number().min(0).default(0),
+      compartilhamentos: z.number().min(0).default(0),
+      republicacoes: z.number().min(0).default(0),
+      salvamentos: z.number().min(0).default(0),
+      alcance: z.number().min(0).default(0),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const [post] = await db.select({ id: marketingPosts.id }).from(marketingPosts)
+        .where(and(eq(marketingPosts.id, input.postId), eq(marketingPosts.empresaId, empresa.id))).limit(1);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post não encontrado" });
+      const [existente] = await db.select({ id: marketingMetricas.id }).from(marketingMetricas)
+        .where(and(eq(marketingMetricas.postId, input.postId), eq(marketingMetricas.empresaId, empresa.id))).limit(1);
+      if (existente) {
+        await db.update(marketingMetricas).set({
+          visualizacoes: input.visualizacoes, curtidas: input.curtidas, comentarios: input.comentarios,
+          compartilhamentos: input.compartilhamentos, republicacoes: input.republicacoes,
+          salvamentos: input.salvamentos, alcance: input.alcance, updatedAt: new Date(),
+        }).where(eq(marketingMetricas.id, existente.id));
+      } else {
+        await db.insert(marketingMetricas).values({ ...input, empresaId: empresa.id });
+      }
+      return { success: true };
+    }),
+
+  listarMetricas: protectedProcedure
+    .query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) return [];
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          id: marketingMetricas.id,
+          postId: marketingMetricas.postId,
+          tema: marketingPosts.tema,
+          tipo: marketingPosts.tipo,
+          dataPublicacao: marketingPosts.dataPublicacao,
+          visualizacoes: marketingMetricas.visualizacoes,
+          curtidas: marketingMetricas.curtidas,
+          comentarios: marketingMetricas.comentarios,
+          compartilhamentos: marketingMetricas.compartilhamentos,
+          republicacoes: marketingMetricas.republicacoes,
+          salvamentos: marketingMetricas.salvamentos,
+          alcance: marketingMetricas.alcance,
+        })
+        .from(marketingMetricas)
+        .leftJoin(marketingPosts, eq(marketingMetricas.postId, marketingPosts.id))
+        .where(eq(marketingMetricas.empresaId, empresa.id));
+      return rows;
     }),
 });

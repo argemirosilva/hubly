@@ -2795,3 +2795,11 @@
 - [x] Marketing: Ideias não aparecem em Meus Posts (listarPosts deve filtrar só posts com dataPublicacao)
 - [x] Marketing: Filtros em Meus Posts por status de produção e plataforma funcionando
 - [x] Fix: worker de fila bloqueia envio de mensagens para agendamentos cancelados/faltou
+
+## Marketing - Melhorias (07/08/2026)
+- [ ] Marketing: múltiplas datas de publicação para o mesmo post (mesmo vídeo, datas/plataformas diferentes)
+- [x] Marketing: nova ideia sempre abre em branco (campo tema não deve vir preenchido com última ideia)
+- [x] Marketing: barra de pesquisa em Ideias e Meus Posts (buscar por título/tema)
+- [x] Marketing: métricas de desempenho por post (visualizações, curtidas, compartilhamentos, republicações)
+- [x] Marketing: tipos de conteúdo personalizáveis (usuário define seus próprios tipos)
+- [x] Marketing: gráfico de desempenho por tipo de conteúdo

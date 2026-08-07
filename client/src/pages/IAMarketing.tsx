@@ -106,6 +106,7 @@ function PostCard({
   onDelete: (id: number) => void;
   onVerRoteiro?: (post: any) => void;
   compact?: boolean;
+  onMetricas?: (post: any) => void;
 }) {
   const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
   const statusInfo = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
@@ -194,6 +195,11 @@ function PostCard({
             </button>
           )}
           <button onClick={() => onEdit(post)} className="p-1 hover:text-primary rounded"><Edit3 className="w-3.5 h-3.5" /></button>
+          {onMetricas && (
+            <button onClick={() => onMetricas(post)} className="p-1 hover:text-primary rounded" title="Registrar métricas">
+              <TrendingUp className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button onClick={() => onDelete(post.id)} className="p-1 hover:text-destructive rounded"><X className="w-3.5 h-3.5" /></button>
         </div>
       </div>
@@ -223,6 +229,65 @@ function PostCard({
   );
 }
 
+
+// ─── MetricasForm ─────────────────────────────────────────────────────────────
+function MetricasForm({
+  post,
+  metricas,
+  onSave,
+  onClose,
+}: {
+  post: any;
+  metricas: any[];
+  onSave: (data: any) => void;
+  onClose: () => void;
+}) {
+  const existente = metricas.find((m: any) => m.postId === post.id);
+  const [visualizacoes, setVisualizacoes] = useState(existente?.visualizacoes ?? 0);
+  const [curtidas, setCurtidas] = useState(existente?.curtidas ?? 0);
+  const [comentarios, setComentarios] = useState(existente?.comentarios ?? 0);
+  const [compartilhamentos, setCompartilhamentos] = useState(existente?.compartilhamentos ?? 0);
+  const [republicacoes, setRepublicacoes] = useState(existente?.republicacoes ?? 0);
+  const [salvamentos, setSalvamentos] = useState(existente?.salvamentos ?? 0);
+  const [alcance, setAlcance] = useState(existente?.alcance ?? 0);
+
+  const campos = [
+    { label: "Visualizações", value: visualizacoes, set: setVisualizacoes },
+    { label: "Curtidas", value: curtidas, set: setCurtidas },
+    { label: "Comentários", value: comentarios, set: setComentarios },
+    { label: "Compartilhamentos", value: compartilhamentos, set: setCompartilhamentos },
+    { label: "Republicações", value: republicacoes, set: setRepublicacoes },
+    { label: "Salvamentos", value: salvamentos, set: setSalvamentos },
+    { label: "Alcance", value: alcance, set: setAlcance },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground font-medium truncate">{post.tema}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {campos.map(campo => (
+          <div key={campo.label}>
+            <label className="text-[11px] text-muted-foreground">{campo.label}</label>
+            <input
+              type="number"
+              min={0}
+              value={campo.value}
+              onChange={e => campo.set(Number(e.target.value))}
+              className="w-full h-7 px-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => onSave({ postId: post.id, visualizacoes, curtidas, comentarios, compartilhamentos, republicacoes, salvamentos, alcance })}>
+          Salvar métricas
+        </Button>
+        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={onClose}>Cancelar</Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Modal de Criar/Editar Post ───────────────────────────────────────────────
 function ModalPost({
   post,
@@ -234,6 +299,7 @@ function ModalPost({
   ideias,
   onEncaixarIdeia,
   template,
+  tiposCustom = [],
 }: {
   post?: any;
   profissionais: { id: number; nome: string }[];
@@ -244,6 +310,7 @@ function ModalPost({
   ideias?: any[];
   onEncaixarIdeia?: (ideiaId: number, data: string, horario: string) => void;
   template?: any;
+  tiposCustom?: { id: number; nome: string; cor: string }[];
 }) {
   const [tema, setTema] = useState(post?.tema ?? template?.tema ?? "");
   const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? template?.plataforma ?? "instagram");
@@ -339,6 +406,9 @@ function ModalPost({
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {TIPOS_POST.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              {tiposCustom.length > 0 && tiposCustom.map(tc => (
+                <SelectItem key={`custom_${tc.id}`} value={`custom_${tc.id}`}>{tc.nome}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -479,7 +549,7 @@ export default function IAMarketing() {
   const [mesAtual, setMesAtual] = useState(hoje.getMonth() + 1);
   const [abaAtiva, setAbaAtiva] = useState<"calendario" | "gerar" | "ideias" | "posts">("calendario");
   const [filtroPlatforma, setFiltroPlatforma] = useState<"todos" | Plataforma>("todos");
-  const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string; modoIdeia?: boolean }>({ open: false });
+  const [modalPost, setModalPost] = useState<{ open: boolean; post?: any; dataDefault?: string; modoIdeia?: boolean; openKey?: number }>({ open: false });
   const [modalLimpar, setModalLimpar] = useState(false);
   const [modalRoteiro, setModalRoteiro] = useState<{ open: boolean; post?: any; roteiro?: string; isVideo?: boolean }>({ open: false });
   // Mobile: modo lista (true) ou grade (false)
@@ -490,6 +560,13 @@ export default function IAMarketing() {
   // Filtros de Meus Posts
   const [filtroStatusProd, setFiltroStatusProd] = useState<string>("todos");
   const [filtroPlatformaPosts, setFiltroPlatformaPosts] = useState<string>("todos");
+  // Busca por título
+  const [buscaIdeias, setBuscaIdeias] = useState("");
+  const [buscaPosts, setBuscaPosts] = useState("");
+  // Modal de métricas
+  const [modalMetricas, setModalMetricas] = useState<{ open: boolean; post?: any }>({ open: false });
+  const [novoTipoNome, setNovoTipoNome] = useState("");
+  const [mostrarGerenciarTipos, setMostrarGerenciarTipos] = useState(false);
   // Banco de Ideias
   const [modalBancoIdeias, setModalBancoIdeias] = useState<{ open: boolean; dataDefault?: string }>({ open: false });
   const [filtroTag, setFiltroTag] = useState<string>("");
@@ -520,6 +597,8 @@ export default function IAMarketing() {
     { enabled: abaAtiva === "posts" }
   );
   const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { enabled: abaAtiva === 'ideias' || abaAtiva === 'calendario' });
+  const { data: tiposCustom = [], refetch: refetchTipos } = trpc.iaMarketing.listarTiposConteudo.useQuery(undefined);
+  const { data: metricas = [], refetch: refetchMetricas } = trpc.iaMarketing.listarMetricas.useQuery(undefined, { enabled: abaAtiva === 'posts' });
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
   const { data: servicos = [] } = trpc.servicos.list.useQuery();
 
@@ -547,6 +626,15 @@ export default function IAMarketing() {
   const atualizarPostMut = trpc.iaMarketing.atualizarPostCalendario.useMutation({
     onSuccess: () => { toast.success("Post atualizado!"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); utils.iaMarketing.listarPosts.invalidate(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar post"),
+  });
+  const criarTipoMut = trpc.iaMarketing.criarTipoConteudo.useMutation({
+    onSuccess: () => { toast.success("Tipo criado!"); refetchTipos(); },
+  });
+  const excluirTipoMut = trpc.iaMarketing.excluirTipoConteudo.useMutation({
+    onSuccess: () => { toast.success("Tipo removido!"); refetchTipos(); },
+  });
+  const salvarMetricasMut = trpc.iaMarketing.salvarMetricas.useMutation({
+    onSuccess: () => { toast.success("Métricas salvas!"); refetchMetricas(); setModalMetricas({ open: false }); },
   });
   const excluirPostMut = trpc.iaMarketing.excluirPost.useMutation({
     onSuccess: () => { toast.success("Post removido"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); utils.iaMarketing.listarPosts.invalidate(); },
@@ -1203,10 +1291,20 @@ export default function IAMarketing() {
         <div className="space-y-3">
           {/* Barra de ações */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setModalPost({ open: true, modoIdeia: true, openKey: Date.now() })}>
               <Plus className="w-3.5 h-3.5" /> Nova ideia
             </Button>
-            <span className="text-xs text-muted-foreground ml-auto">{ideias.length} ideia{ideias.length !== 1 ? "s" : ""}</span>
+            <div className="relative flex-1 min-w-[160px]">
+              <input
+                type="text"
+                value={buscaIdeias}
+                onChange={e => setBuscaIdeias(e.target.value)}
+                placeholder="Buscar por título..."
+                className="w-full h-8 pl-7 pr-3 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <svg className="absolute left-2 top-2 w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <span className="text-xs text-muted-foreground">{ideias.length} ideia{ideias.length !== 1 ? "s" : ""}</span>
           </div>
           {/* Filtro por tags */}
           {(() => {
@@ -1237,7 +1335,7 @@ export default function IAMarketing() {
               <Archive className="w-10 h-10 text-muted-foreground/30" />
               <p className="text-sm font-medium">Nenhuma ideia salva ainda</p>
               <p className="text-xs text-center max-w-xs">Guarde aqui temas e conceitos de posts antes de programar no calendário</p>
-              <Button size="sm" onClick={() => setModalPost({ open: true, modoIdeia: true })}>
+              <Button size="sm" onClick={() => setModalPost({ open: true, modoIdeia: true, openKey: Date.now() })}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Criar primeira ideia
               </Button>
             </div>
@@ -1245,6 +1343,7 @@ export default function IAMarketing() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {ideias
                 .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                .filter(i => !buscaIdeias || (i.tema ?? "").toLowerCase().includes(buscaIdeias.toLowerCase()))
                 .map(ideia => {
                   const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
                   const tagsIdeia = ideia.tags ? ideia.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
@@ -1304,6 +1403,38 @@ export default function IAMarketing() {
       {/* ══ ABA: MEUS POSTS ══ */}
       {abaAtiva === "posts" && (
         <div className="space-y-3">
+          {/* Gerenciar tipos de conteúdo */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMostrarGerenciarTipos(v => !v)}
+              className="text-[11px] px-2 py-1 rounded border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-all flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Gerenciar tipos
+            </button>
+            {tiposCustom.map(tc => (
+              <span key={tc.id} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border bg-muted/50 text-muted-foreground">
+                {tc.nome}
+                <button onClick={() => excluirTipoMut.mutate({ id: tc.id })} className="hover:text-destructive ml-0.5">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+          {mostrarGerenciarTipos && (
+            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed">
+              <input
+                type="text"
+                value={novoTipoNome}
+                onChange={e => setNovoTipoNome(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); } }}
+                placeholder="Nome do tipo (ex: Tutorial, Vídeo falado...)"
+                className="flex-1 h-7 px-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <Button size="sm" className="h-7 text-xs" onClick={() => { if (novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); } }}>
+                Adicionar
+              </Button>
+            </div>
+          )}
           {/* Barra de filtros */}
           {posts && posts.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
@@ -1353,6 +1484,16 @@ export default function IAMarketing() {
                 {modoSelecao ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
                 {modoSelecao ? "Cancelar seleção" : "Selecionar"}
               </Button>
+              <div className="relative flex-1 min-w-[160px]">
+                <input
+                  type="text"
+                  value={buscaPosts}
+                  onChange={e => setBuscaPosts(e.target.value)}
+                  placeholder="Buscar por título..."
+                  className="w-full h-8 pl-7 pr-3 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <svg className="absolute left-2 top-2 w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
               {modoSelecao && selecionados.length > 0 && (
                 <>
                   <span className="text-xs text-muted-foreground">{selecionados.length} selecionado{selecionados.length !== 1 ? "s" : ""}</span>
@@ -1399,6 +1540,7 @@ export default function IAMarketing() {
               {posts
                   .filter(p => filtroStatusProd === "todos" || (p.statusProducao ?? "planejado") === filtroStatusProd)
                   .filter(p => filtroPlatformaPosts === "todos" || p.plataforma === filtroPlatformaPosts)
+                  .filter(p => !buscaPosts || (p.tema ?? "").toLowerCase().includes(buscaPosts.toLowerCase()))
                   .map(post => {
                 const tipoInfoPost = TIPOS_POST.find(t => t.value === post.tipo);
                 const statusProd = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
@@ -1438,8 +1580,13 @@ export default function IAMarketing() {
                         )}
                       </div>
                       {!modoSelecao && (
-                        <button onClick={() => excluirPostMut.mutate({ id: post.id })} className="p-1 hover:text-destructive rounded">
-                          <Trash2 className="w-3.5 h-3.5" />
+                       <button onClick={() => excluirPostMut.mutate({ id: post.id })} className="p-1 hover:text-destructive rounded">
+                         <Trash2 className="w-3.5 h-3.5" />
+                       </button>
+                     )}
+                      {!modoSelecao && (
+                        <button onClick={() => setModalMetricas({ open: true, post })} className="p-1 hover:text-primary rounded" title="Registrar métricas">
+                          <TrendingUp className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -1461,8 +1608,59 @@ export default function IAMarketing() {
           )}
         </div>
       )}
-            {/* Modal de Criar/Editar Post */}
-      <Dialog key={`modal-post-${modalPost.dataDefault ?? "edit"}-${modalPost.post?.id ?? "new"}`} open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
+      {/* Gráfico de desempenho por tipo */}
+      {abaAtiva === "posts" && metricas.length > 0 && (
+        <div className="mt-4 p-4 rounded-xl border bg-card space-y-3">
+          <h3 className="text-sm font-semibold">Desempenho por tipo de conteúdo</h3>
+          <div className="space-y-2">
+            {(() => {
+              const porTipo: Record<string, { curtidas: number; visualizacoes: number; count: number }> = {};
+              metricas.forEach((m: any) => {
+                const tipo = m.tipo ?? "outro";
+                if (!porTipo[tipo]) porTipo[tipo] = { curtidas: 0, visualizacoes: 0, count: 0 };
+                porTipo[tipo].curtidas += m.curtidas ?? 0;
+                porTipo[tipo].visualizacoes += m.visualizacoes ?? 0;
+                porTipo[tipo].count += 1;
+              });
+              const maxViews = Math.max(...Object.values(porTipo).map(v => v.visualizacoes), 1);
+              return Object.entries(porTipo).map(([tipo, dados]) => {
+                const tipoInfo = TIPOS_POST.find(t => t.value === tipo);
+                const label = tipoInfo?.label ?? tipo;
+                const pct = Math.round((dados.visualizacoes / maxViews) * 100);
+                return (
+                  <div key={tipo} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{label}</span>
+                      <span className="text-muted-foreground">{dados.visualizacoes.toLocaleString("pt-BR")} views · {dados.curtidas.toLocaleString("pt-BR")} curtidas · {dados.count} post{dados.count !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
+      {/* Modal de Criar/Editar Post */}
+      {/* Modal de Métricas */}
+      <Dialog open={modalMetricas.open} onOpenChange={open => !open && setModalMetricas({ open: false })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Registrar Métricas</DialogTitle>
+          </DialogHeader>
+          {modalMetricas.post && (
+            <MetricasForm
+              post={modalMetricas.post}
+              metricas={metricas}
+              onSave={(data) => salvarMetricasMut.mutate(data)}
+              onClose={() => setModalMetricas({ open: false })}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog key={`modal-post-${modalPost.dataDefault ?? "edit"}-${modalPost.post?.id ?? "new"}-${modalPost.openKey ?? 0}`} open={modalPost.open} onOpenChange={open => !open && setModalPost({ open: false })}>
         <ModalPost
           post={modalPost.post}
           profissionais={profissionais}
@@ -1473,6 +1671,7 @@ export default function IAMarketing() {
           ideias={ideias}
           onEncaixarIdeia={handleEncaixarIdeia}
           template={ideiaTemplate}
+          tiposCustom={tiposCustom}
         />
       </Dialog>
 
@@ -1600,6 +1799,7 @@ export default function IAMarketing() {
               ) : (
                 ideias
                   .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                .filter(i => !buscaIdeias || (i.tema ?? "").toLowerCase().includes(buscaIdeias.toLowerCase()))
                   .map(ideia => {
                     const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
                     const tagsIdeia = ideia.tags ? ideia.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
