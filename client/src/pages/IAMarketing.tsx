@@ -98,6 +98,7 @@ function PostCard({
   onEdit,
   onDelete,
   onVerRoteiro,
+  onMetricas,
   compact = false,
 }: {
   post: any;
@@ -105,8 +106,8 @@ function PostCard({
   onEdit: (post: any) => void;
   onDelete: (id: number) => void;
   onVerRoteiro?: (post: any) => void;
-  compact?: boolean;
   onMetricas?: (post: any) => void;
+  compact?: boolean;
 }) {
   const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
   const statusInfo = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
