@@ -588,6 +588,8 @@ export default function IAMarketing() {
   // Banco de Ideias
   const [modalBancoIdeias, setModalBancoIdeias] = useState<{ open: boolean; dataDefault?: string }>({ open: false });
   const [filtroTag, setFiltroTag] = useState<string>("");
+  const [filtroTipoIdeia, setFiltroTipoIdeia] = useState<string>("todos");
+  const [filtroTipoPosts, setFiltroTipoPosts] = useState<string>("todos");
   // Template de ideia para pré-preencher o modal sem sobrescrever a ideia original
   const [ideiaTemplate, setIdeiaTemplate] = useState<any>(null);
 
@@ -1356,6 +1358,35 @@ export default function IAMarketing() {
               </div>
             ) : null;
           })()}
+          {/* Filtro por tipo de conteúdo */}
+          {(TIPOS_POST.length > 0 || tiposCustom.length > 0) && (
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setFiltroTipoIdeia("todos")}
+                className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === "todos" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+              >
+                Todos os tipos
+              </button>
+              {TIPOS_POST.map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === t.value ? "todos" : t.value)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === t.value ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+              {tiposCustom.map(tc => (
+                <button
+                  key={`custom_${tc.id}`}
+                  onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === `custom_${tc.id}` ? "todos" : `custom_${tc.id}`)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === `custom_${tc.id}` ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                >
+                  {tc.nome}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Grid de ideias */}
           {ideias.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
@@ -1370,6 +1401,7 @@ export default function IAMarketing() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {ideias
                 .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                .filter(i => filtroTipoIdeia === "todos" || i.tipo === filtroTipoIdeia)
                 .filter(i => !buscaIdeias || (i.tema ?? "").toLowerCase().includes(buscaIdeias.toLowerCase()))
                 .map(ideia => {
                   const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
@@ -1567,6 +1599,7 @@ export default function IAMarketing() {
               {posts
                   .filter(p => filtroStatusProd === "todos" || (p.statusProducao ?? "planejado") === filtroStatusProd)
                   .filter(p => filtroPlatformaPosts === "todos" || p.plataforma === filtroPlatformaPosts)
+                  .filter(p => filtroTipoPosts === "todos" || p.tipo === filtroTipoPosts)
                   .filter(p => !buscaPosts || (p.tema ?? "").toLowerCase().includes(buscaPosts.toLowerCase()))
                   .map(post => {
                 const tipoInfoPost = TIPOS_POST.find(t => t.value === post.tipo);
@@ -1826,6 +1859,7 @@ export default function IAMarketing() {
               ) : (
                 ideias
                   .filter(i => !filtroTag || (i.tags && i.tags.split(",").map((t: string) => t.trim().toLowerCase()).includes(filtroTag.toLowerCase())))
+                .filter(i => filtroTipoIdeia === "todos" || i.tipo === filtroTipoIdeia)
                 .filter(i => !buscaIdeias || (i.tema ?? "").toLowerCase().includes(buscaIdeias.toLowerCase()))
                   .map(ideia => {
                     const tipoInfo = TIPOS_POST.find(t => t.value === ideia.tipo);
