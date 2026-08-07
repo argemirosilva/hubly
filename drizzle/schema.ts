@@ -1357,3 +1357,12 @@ export const marketingMetricas = mysqlTable("marketing_metricas", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type MarketingMetrica = typeof marketingMetricas.$inferSelect;
+
+// ─── MARKETING TIPOS OCULTOS (tipos padrão desativados por empresa) ────────────
+export const marketingTiposOcultos = mysqlTable("marketing_tipos_ocultos", {
+  id: int("id").autoincrement().primaryKey(),
+  empresaId: int("empresaId").notNull(),
+  tipoValor: varchar("tipoValor", { length: 50 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MarketingTipoOculto = typeof marketingTiposOcultos.$inferSelect;

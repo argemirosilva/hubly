@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
 import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
-import { marketingPosts, marketingTiposConteudo, marketingMetricas } from "../../drizzle/schema";
+import { marketingPosts, marketingTiposConteudo, marketingMetricas, marketingTiposOcultos } from "../../drizzle/schema";
 import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -905,5 +905,42 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
         .leftJoin(marketingPosts, eq(marketingMetricas.postId, marketingPosts.id))
         .where(eq(marketingMetricas.empresaId, empresa.id));
       return rows;
+    }),
+
+  // ─── Tipos ocultos (tipos padrão desativados por empresa) ─────────────────
+  listarTiposOcultos: protectedProcedure
+    .query(async ({ ctx }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select().from(marketingTiposOcultos)
+        .where(eq(marketingTiposOcultos.empresaId, empresa.id));
+      return rows.map(r => r.tipoValor);
+    }),
+
+  ocultarTipoPadrao: protectedProcedure
+    .input(z.object({ tipoValor: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      await db.insert(marketingTiposOcultos)
+        .values({ empresaId: empresa.id, tipoValor: input.tipoValor })
+        .onDuplicateKeyUpdate({ set: { tipoValor: input.tipoValor } });
+      return { success: true };
+    }),
+
+  restaurarTipoPadrao: protectedProcedure
+    .input(z.object({ tipoValor: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      await db.delete(marketingTiposOcultos)
+        .where(and(eq(marketingTiposOcultos.empresaId, empresa.id), eq(marketingTiposOcultos.tipoValor, input.tipoValor)));
+      return { success: true };
     }),
 });

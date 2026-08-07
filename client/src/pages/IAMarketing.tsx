@@ -301,6 +301,7 @@ function ModalPost({
   onEncaixarIdeia,
   template,
   tiposCustom = [],
+  tiposOcultos = [],
 }: {
   post?: any;
   profissionais: { id: number; nome: string }[];
@@ -312,6 +313,7 @@ function ModalPost({
   onEncaixarIdeia?: (ideiaId: number, data: string, horario: string) => void;
   template?: any;
   tiposCustom?: { id: number; nome: string; cor: string | null }[];
+  tiposOcultos?: string[];
 }) {
   const [tema, setTema] = useState(post?.tema ?? template?.tema ?? "");
   const [plataforma, setPlataforma] = useState<Plataforma>(post?.plataforma ?? template?.plataforma ?? "instagram");
@@ -423,7 +425,7 @@ function ModalPost({
           <Select value={tipo} onValueChange={v => setTipo(v as TipoPost)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {TIPOS_POST.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              {TIPOS_POST.filter(t => !tiposOcultos.includes(t.value)).map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               {tiposCustom.length > 0 && tiposCustom.map(tc => (
                 <SelectItem key={`custom_${tc.id}`} value={`custom_${tc.id}`}>{tc.nome}</SelectItem>
               ))}
@@ -618,6 +620,9 @@ export default function IAMarketing() {
   );
   const { data: ideias = [], refetch: refetchIdeias } = trpc.iaMarketing.listarIdeias.useQuery(undefined, { enabled: abaAtiva === 'ideias' || abaAtiva === 'calendario' });
   const { data: tiposCustom = [], refetch: refetchTipos } = trpc.iaMarketing.listarTiposConteudo.useQuery(undefined);
+  const { data: tiposOcultos = [], refetch: refetchTiposOcultos } = trpc.iaMarketing.listarTiposOcultos.useQuery(undefined);
+  const ocultarTipoMut = trpc.iaMarketing.ocultarTipoPadrao.useMutation({ onSuccess: () => { refetchTiposOcultos(); } });
+  const restaurarTipoMut = trpc.iaMarketing.restaurarTipoPadrao.useMutation({ onSuccess: () => { refetchTiposOcultos(); } });
   const { data: metricas = [], refetch: refetchMetricas } = trpc.iaMarketing.listarMetricas.useQuery(undefined, { enabled: abaAtiva === 'posts' });
   const { data: profissionais = [] } = trpc.iaMarketing.listarProfissionais.useQuery();
   const { data: servicos = [] } = trpc.servicos.list.useQuery();
@@ -1359,34 +1364,80 @@ export default function IAMarketing() {
             ) : null;
           })()}
           {/* Filtro por tipo de conteúdo */}
-          {(TIPOS_POST.length > 0 || tiposCustom.length > 0) && (
-            <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 items-center">
               <button
                 onClick={() => setFiltroTipoIdeia("todos")}
                 className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === "todos" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
               >
-                Todos os tipos
+                Todos
               </button>
-              {TIPOS_POST.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === t.value ? "todos" : t.value)}
-                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === t.value ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
-                >
-                  {t.label}
-                </button>
+              {TIPOS_POST.filter(t => !tiposOcultos.includes(t.value)).map(t => (
+                <span key={t.value} className="inline-flex items-center gap-0.5">
+                  <button
+                    onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === t.value ? "todos" : t.value)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === t.value ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                  >
+                    {t.label}
+                  </button>
+                  <button onClick={() => ocultarTipoMut.mutate({ tipoValor: t.value })} className="p-0.5 text-muted-foreground hover:text-destructive rounded" title="Ocultar tipo">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
               ))}
               {tiposCustom.map(tc => (
-                <button
-                  key={`custom_${tc.id}`}
-                  onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === `custom_${tc.id}` ? "todos" : `custom_${tc.id}`)}
-                  className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === `custom_${tc.id}` ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
-                >
-                  {tc.nome}
-                </button>
+                <span key={`custom_${tc.id}`} className="inline-flex items-center gap-0.5">
+                  <button
+                    onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === `custom_${tc.id}` ? "todos" : `custom_${tc.id}`)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === `custom_${tc.id}` ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                  >
+                    {tc.nome}
+                  </button>
+                  <button onClick={() => excluirTipoMut.mutate({ id: tc.id })} className="p-0.5 text-muted-foreground hover:text-destructive rounded" title="Excluir tipo">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
               ))}
+              {/* Botão para criar novo tipo */}
+              <button
+                onClick={() => setMostrarGerenciarTipos(v => !v)}
+                className="text-[11px] px-2 py-1 rounded-full border border-dashed border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center gap-1"
+                title="Adicionar novo tipo"
+              >
+                <Plus className="w-3 h-3" /> Novo tipo
+              </button>
+              {/* Tipos ocultos: botão para restaurar */}
+              {tiposOcultos.length > 0 && (
+                <details className="text-[10px] text-muted-foreground">
+                  <summary className="cursor-pointer hover:text-foreground">+{tiposOcultos.length} oculto{tiposOcultos.length !== 1 ? "s" : ""}</summary>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {tiposOcultos.map(tv => {
+                      const t = TIPOS_POST.find(x => x.value === tv);
+                      return t ? (
+                        <button key={tv} onClick={() => restaurarTipoMut.mutate({ tipoValor: tv })} className="text-[10px] px-2 py-0.5 rounded-full border border-dashed text-muted-foreground hover:text-primary hover:border-primary transition-all">
+                          ↩ {t.label}
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                </details>
+              )}
             </div>
-          )}
+            {mostrarGerenciarTipos && (
+              <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed">
+                <input
+                  type="text"
+                  value={novoTipoNome}
+                  onChange={e => setNovoTipoNome(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); setMostrarGerenciarTipos(false); } }}
+                  placeholder="Nome do tipo (ex: Tutorial, Vídeo falado...)"
+                  className="flex-1 h-7 px-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+                <Button size="sm" className="h-7 text-xs" onClick={() => { if (novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); setMostrarGerenciarTipos(false); } }}>
+                  Adicionar
+                </Button>
+              </div>
+            )}
           {/* Grid de ideias */}
           {ideias.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
@@ -1462,38 +1513,7 @@ export default function IAMarketing() {
       {/* ══ ABA: MEUS POSTS ══ */}
       {abaAtiva === "posts" && (
         <div className="space-y-3">
-          {/* Gerenciar tipos de conteúdo */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMostrarGerenciarTipos(v => !v)}
-              className="text-[11px] px-2 py-1 rounded border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-all flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" /> Gerenciar tipos
-            </button>
-            {tiposCustom.map(tc => (
-              <span key={tc.id} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border bg-muted/50 text-muted-foreground">
-                {tc.nome}
-                <button onClick={() => excluirTipoMut.mutate({ id: tc.id })} className="hover:text-destructive ml-0.5">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-          </div>
-          {mostrarGerenciarTipos && (
-            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed">
-              <input
-                type="text"
-                value={novoTipoNome}
-                onChange={e => setNovoTipoNome(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); } }}
-                placeholder="Nome do tipo (ex: Tutorial, Vídeo falado...)"
-                className="flex-1 h-7 px-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <Button size="sm" className="h-7 text-xs" onClick={() => { if (novoTipoNome.trim()) { criarTipoMut.mutate({ nome: novoTipoNome }); setNovoTipoNome(""); } }}>
-                Adicionar
-              </Button>
-            </div>
-          )}
+
           {/* Barra de filtros */}
           {posts && posts.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
@@ -1732,6 +1752,7 @@ export default function IAMarketing() {
           onEncaixarIdeia={handleEncaixarIdeia}
           template={ideiaTemplate}
           tiposCustom={tiposCustom}
+          tiposOcultos={tiposOcultos}
         />
       </Dialog>
 
