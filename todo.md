@@ -2807,3 +2807,7 @@
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
+
+## Exportação de dados (12/08/2026)
+- [x] Criar exportação SQL administrativa com estrutura e dados da empresa para importação em MySQL compatível
+- [x] Garantir que a exportação seja restrita à empresa atual e não inclua dados de outras empresas ou segredos operacionais

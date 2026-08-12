@@ -360,6 +360,7 @@ import { getUsageWithAlerts } from "./db-usage-alerts";
 import { getDb } from "./db";
 import { sql } from "drizzle-orm";
 import { isSystemOwner } from "./access-control";
+import { gerarExportacaoSqlEmpresa } from "./sqlExport";
 
 
 export const appRouter = router({
@@ -633,6 +634,26 @@ export const appRouter = router({
         const { url } = await storagePut(key, buffer, input.mimeType);
         await updateEmpresa(empresa.id, { portalHeaderUrl: url } as any);
         return { success: true, url };
+      }),
+    exportarSql: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        const { isAdmin } = await resolveAdminContext(ctx, empresa, "configuracoesEditar");
+        if (!isAdmin) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem exportar os dados" });
+        }
+        const exportacao = await gerarExportacaoSqlEmpresa(empresa.id);
+        const nomeEmpresa = empresa.nome
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .toLowerCase() || "empresa";
+        return {
+          ...exportacao,
+          arquivo: `hubly-${nomeEmpresa}-${new Date().toISOString().slice(0, 10)}.sql`,
+        };
       }),
   }),
 

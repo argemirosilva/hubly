@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2 } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2, DatabaseBackup, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -23,7 +23,7 @@ const DIAS_SEMANA = [
 ];
 
 export default function Configuracoes() {
-  const { pode } = usePermissoes();
+  const { pode, isAdmin } = usePermissoes();
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const { data: empresa } = trpc.empresa.get.useQuery();
@@ -39,6 +39,21 @@ export default function Configuracoes() {
       setTimeout(() => setLocation("/"), 1500);
     },
     onError: (err: any) => toast.error(err.message),
+  });
+  const exportarSqlMutation = trpc.empresa.exportarSql.useMutation({
+    onSuccess: (resultado) => {
+      const blob = new Blob([resultado.conteudo], { type: "application/sql;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = resultado.arquivo;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Exportação SQL baixada com sucesso", { description: `${resultado.registros} registros preparados para importação.` });
+    },
+    onError: (erro: any) => toast.error("Não foi possível gerar a exportação", { description: erro.message }),
   });
   function handleExcluirConta() {
     if (deleteConfirmText !== "EXCLUIR MINHA CONTA") {
@@ -773,6 +788,33 @@ export default function Configuracoes() {
         {(updateMutation.isPending || salvarPrefsMutation.isPending) ? "Salvando..." : "Salvar configurações"}
       </button>
 
+      {isAdmin && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-4 bg-amber-50/70 dark:bg-amber-950/20" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
+            <DatabaseBackup className="w-4 h-4 text-amber-700" />
+            <h3 className="font-semibold text-sm text-amber-900 dark:text-amber-200">Exportação de dados</h3>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Baixe um arquivo <strong>.sql</strong> com a estrutura completa do Hubly e os dados desta empresa, pronto para importar em outra base MySQL compatível.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Por segurança, o arquivo não inclui credenciais, sessões, tokens de integração, usuários de outras empresas nem dados de cobrança Stripe.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              disabled={exportarSqlMutation.isPending}
+              onClick={() => exportarSqlMutation.mutate()}
+            >
+              {exportarSqlMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {exportarSqlMutation.isPending ? "Preparando arquivo..." : "Baixar exportação SQL"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Zona de Perigo — Exclusão de Conta */}
       <div className="rounded-xl border-2 border-red-200 dark:border-red-900/50 overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-4 bg-red-50 dark:bg-red-950/30" style={{ borderBottom: "1px solid oklch(89.5% 0.018 0)" }}>
@@ -857,4 +899,3 @@ export default function Configuracoes() {
     </>
   );
 }
-
