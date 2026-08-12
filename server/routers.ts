@@ -330,12 +330,16 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
  * - SystemUser sem permissão verTodos: isAdmin=false, profId=systemUser.id
  */
 async function resolveAdminContext(
-  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null } | null },
+  ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null; isOwner?: boolean } | null },
   empresa: { id: number; ownerId: number },
   permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" | "agendaAprovarBloqueio" = "agendamentosVerTodos"
 ): Promise<{ isAdmin: boolean; profId: number | null }> {
   // Owner OAuth: sempre admin
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
+    return { isAdmin: true, profId: null };
+  }
+  // Proprietária logada por e-mail/senha: acesso total independe do grupo.
+  if (ctx.systemUser && isSystemOwner(ctx.systemUser.id, ctx.systemUser.isOwner, empresa.ownerId)) {
     return { isAdmin: true, profId: null };
   }
   // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
@@ -355,6 +359,7 @@ async function resolveAdminContext(
 import { getUsageWithAlerts } from "./db-usage-alerts";
 import { getDb } from "./db";
 import { sql } from "drizzle-orm";
+import { isSystemOwner } from "./access-control";
 
 
 export const appRouter = router({
@@ -477,11 +482,15 @@ export const appRouter = router({
       } else {
         // SystemUser: verificar permissões do grupo (tabela permissoes_grupo via grupoId do profissional)
         const perms = await getPermissoesGrupoByProfissional(opts.ctx.systemUser.profissionalId ?? opts.ctx.systemUser.id);
+        const systemOwner = opts.ctx.systemUser.isOwner === true;
         // Verificar se o grupo é isAdmin (supergrupo) — bypass total
         // Também aceitar valor 1 (inteiro do MySQL) além de boolean true
         const grupoIsAdmin = (perms as any)?.__grupoIsAdmin === true;
-        isAdmin = grupoIsAdmin || (perms ? !!(perms as any).agendamentosVerTodos : false);
-        if (perms) {
+        isAdmin = systemOwner || grupoIsAdmin || (perms ? !!(perms as any).agendamentosVerTodos : false);
+        if (systemOwner) {
+          // Proprietárias possuem acesso integral, como a dona autenticada por OAuth.
+          permissoes = null;
+        } else if (perms) {
           // Extrair apenas os campos booleanos de permissão (sem id, grupoId, timestamps)
           const { id: _id, grupoId: _g, createdAt: _c, updatedAt: _u, ...boolPerms } = perms as any;
           permissoes = boolPerms as Record<string, boolean>;

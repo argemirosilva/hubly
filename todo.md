@@ -2803,3 +2803,7 @@
 - [x] Marketing: métricas de desempenho por post (visualizações, curtidas, compartilhamentos, republicações)
 - [x] Marketing: tipos de conteúdo personalizáveis (usuário define seus próprios tipos)
 - [x] Marketing: gráfico de desempenho por tipo de conteúdo
+
+## Acesso e planos — investigação (07/08/2026)
+- [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
+- [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador

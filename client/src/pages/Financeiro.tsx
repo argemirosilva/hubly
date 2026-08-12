@@ -44,7 +44,7 @@ export default function Financeiro() {
     else if (tipo === "30d") { setDataInicio(getUltimos30()); setDataFim(new Date().toISOString().slice(0, 10)); }
   }
 
-  const { pode, isAdmin } = usePermissoes();
+  const { pode, isAdmin, isLoading: carregandoPermissoes } = usePermissoes();
   const podeMarcarPaga = pode("financeiroMarcarPago");
 
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
@@ -133,6 +133,16 @@ export default function Financeiro() {
   const toggleExpand = (profId: number) => {
     setExpandidos(prev => ({ ...prev, [profId]: !prev[profId] }));
   };
+
+  // Evita falso bloqueio enquanto auth.me ainda está carregando.
+  if (carregandoPermissoes) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center p-8">
+        <DollarSign className="w-10 h-10 text-muted-foreground/30 animate-pulse" />
+        <p className="text-sm text-muted-foreground">Carregando permissões...</p>
+      </div>
+    );
+  }
 
   if (!pode("financeiroVer")) {
     return (

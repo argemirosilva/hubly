@@ -18,6 +18,7 @@ export type TrpcContext = {
     nome: string;
     email: string;
     empresaId: number;
+    isOwner: boolean;
     isProfissional: boolean;
     // profissionalId = id do próprio registro (o usuário É o profissional)
     profissionalId: number | null;
@@ -75,6 +76,7 @@ export async function createContext(
           nome: profissionais.nome,
           email: profissionais.email,
           empresaId: profissionais.empresaId,
+          isOwner: profissionais.isOwner,
           isProfissional: profissionais.isProfissional,
           ativo: profissionais.ativo,
         }).from(profissionais).where(eq(profissionais.id, systemSession.systemUserId)).limit(1);
@@ -115,6 +117,7 @@ export async function createContext(
                 nome: su.nome,
                 email: su.email ?? "",
                 empresaId: su.empresaId,
+                isOwner: su.isOwner ?? false,
                 isProfissional: su.isProfissional ?? false,
                 // No modelo unificado: profissionalId = id do próprio registro se isProfissional=true
                 profissionalId: su.isProfissional ? su.id : null,

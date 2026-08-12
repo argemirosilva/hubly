@@ -98,7 +98,7 @@ function getPlanColor(plan: string | null | undefined) {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function Assinatura() {
-  const { isAdmin } = usePermissoes();
+  const { isAdmin, isLoading: carregandoPermissoes } = usePermissoes();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
@@ -150,6 +150,16 @@ export default function Assinatura() {
     ? Math.ceil((new Date(renovacaoDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
   const renovacaoProxima = diasParaRenovacao !== null && diasParaRenovacao >= 0 && diasParaRenovacao <= 3 && true;
+
+  // Evita falso bloqueio enquanto auth.me ainda está carregando.
+  if (carregandoPermissoes) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground">
+        <Shield className="w-10 h-10 text-muted-foreground/30 animate-pulse" />
+        <p className="text-sm">Carregando permissões...</p>
+      </div>
+    );
+  }
 
   // Guarda: apenas administradores podem acessar
   if (!isAdmin) {

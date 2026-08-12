@@ -108,7 +108,7 @@ function PlanoBadgeAtual() {
 }
 
 export default function Planos() {
-  const { isAdmin } = usePermissoes();
+  const { isAdmin, isLoading: carregandoPermissoes } = usePermissoes();
   const [ciclo, setCiclo] = useState<"monthly" | "annual">("monthly");
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const { data: statusPlano } = trpc.planos.getStatus.useQuery();
@@ -155,6 +155,16 @@ export default function Planos() {
   function handleAssinar(planKey: "SOLO" | "PLUS" | "PRO") {
     setLoadingKey(planKey);
     checkoutMutation.mutate({ planType: planKey, billingCycle: ciclo });
+  }
+
+  // Evita falso bloqueio enquanto auth.me ainda está carregando.
+  if (carregandoPermissoes) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground">
+        <Loader2 className="w-7 h-7 animate-spin" />
+        <p className="text-sm">Carregando permissões...</p>
+      </div>
+    );
   }
 
   // Guarda: apenas administradores podem acessar
