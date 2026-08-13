@@ -2815,3 +2815,6 @@
 - [x] Gerar arquivo SQL completo de migração com estrutura e dados de todas as empresas cadastradas
 - [x] Corrigir detecção de conflito para ignorar agendamentos cancelados e faltas
 - [x] Investigar e corrigir pacotes que deixam de aparecer após serem criados
+- [ ] Definir e implementar criação de múltiplos agendamentos com data e horário ao abrir pacote
+- [ ] Adicionar escolha de automação consolidada ou individual para agendamentos criados por pacote
+- [x] Gerar PDF explicativo para cliente sobre agenda de pacotes e opções de notificações
