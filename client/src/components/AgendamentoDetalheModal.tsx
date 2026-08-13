@@ -290,6 +290,8 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
         utils.agendamentos.getById.invalidate({ id: agendamentoId }),
         utils.agendamentos.getPagamentos.invalidate({ agendamentoId }),
         utils.agendamentos.list.invalidate(),
+        utils.agendamentos.verificarConflito.invalidate(),
+        utils.agendamentos.verificarConflitoServicos.invalidate(),
       ]);
     },
     onError: (err: { message: string }) => toast.error(err.message),

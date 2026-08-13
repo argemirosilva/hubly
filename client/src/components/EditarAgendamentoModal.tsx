@@ -82,6 +82,8 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
     },
     {
       enabled: open && !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
+      staleTime: 0,
+      refetchOnMount: "always",
     }
   );
 

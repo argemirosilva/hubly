@@ -361,6 +361,7 @@ import { getDb } from "./db";
 import { sql } from "drizzle-orm";
 import { isSystemOwner } from "./access-control";
 import { gerarExportacaoSqlEmpresa } from "./sqlExport";
+import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "./agenda-conflitos";
 
 
 export const appRouter = router({
@@ -2849,7 +2850,7 @@ export const appRouter = router({
           eq(agTable.empresaId, empresa.id),
           eq(agTable.profissionalId, input.profissionalId),
           eq(agTable.data, input.data),
-          sql`${agTable.status} NOT IN ('cancelado', 'cancelado_pelo_cliente')`,
+          sql`${agTable.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
           lt(agTable.horaInicio, fim),
           gt(agTable.horaFim, inicio),
         ];
@@ -2901,7 +2902,7 @@ export const appRouter = router({
           eq(agTable.empresaId, empresa.id),
           eq(agTable.profissionalId, input.profissionalId),
           eq(agTable.data, input.data),
-          sql`${agTable.status} NOT IN ('cancelado', 'cancelado_pelo_cliente')`,
+          sql`${agTable.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
         ];
         if (input.excluirAgendamentoId) {
           baseConditions.push(ne(agTable.id, input.excluirAgendamentoId));

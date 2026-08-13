@@ -12,6 +12,7 @@ import {
 import { eq, and, sql } from "drizzle-orm";
 import { checkAgendamentoLimit, incrementAgendamentosCount } from "../db-plans";
 import { checkAndNotifyUsageLimits } from "../usage-alerts";
+import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 
 // ─── Rate limiting simples em memória ────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -219,7 +220,7 @@ export const portalRouter = router({
             eq(agendamentos.empresaId, input.empresaId),
             eq(agendamentos.profissionalId, input.profissionalId),
             sql`DATE(${agendamentos.data}) = ${input.data}`,
-            sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+            sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
           ));
 
         // Verificar bloqueios
@@ -249,7 +250,7 @@ export const portalRouter = router({
               eq(agendamentos.empresaId, input.empresaId),
               eq(agendamentos.profissionalId, prof.id),
               sql`DATE(${agendamentos.data}) = ${input.data}`,
-              sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+              sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
             ));
 
           // Verificar bloqueios
@@ -339,7 +340,7 @@ export const portalRouter = router({
         eq(agendamentos.empresaId, input.empresaId),
         sql`${agendamentos.data} >= ${primeiraDt}`,
         sql`${agendamentos.data} <= ${ultimaDt}`,
-        sql`${agendamentos.status} NOT IN ('cancelado', 'faltou', 'remarcado')`,
+        sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
       )) : [];
 
       const todosBloqueios = profsIds.length > 0 ? await db.select({
@@ -450,7 +451,7 @@ export const portalRouter = router({
           .where(and(
             eq(agendamentos.profissionalId, input.profissionalId),
             sql`${agendamentos.data} = ${input.data}`,
-            sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+            sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
             sql`${agendamentos.horaInicio} < ${horaFim}`,
             sql`${agendamentos.horaFim} > ${input.horaInicio}`,
           )).limit(1);
@@ -821,7 +822,7 @@ export const portalRouter = router({
         .where(and(
           eq(agendamentos.empresaId, input.empresaId),
           eq(agendamentos.clienteId, clienteId),
-          sql`${agendamentos.status} NOT IN ('cancelado', 'faltou')`,
+          sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
         ))
         .orderBy(sql`${agendamentos.data} DESC, ${agendamentos.horaInicio} DESC`)
         .limit(10);

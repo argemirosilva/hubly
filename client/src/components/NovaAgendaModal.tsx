@@ -140,6 +140,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
     },
     {
       enabled: !intervalosServicos && !!profissionalPrincipalId && !!form.data && !!form.horaInicio && !!form.horaFim && form.horaFim > form.horaInicio,
+      staleTime: 0,
+      refetchOnMount: "always",
     }
   );
   const { data: conflitoServicos } = trpc.agendamentos.verificarConflitoServicos.useQuery(
@@ -150,6 +152,8 @@ export default function NovaAgendaModal({ open, onClose, dataInicial, horaInicia
     },
     {
       enabled: !!intervalosServicos && !!profissionalPrincipalId && !!form.data,
+      staleTime: 0,
+      refetchOnMount: "always",
     }
   );
   const conflito = intervalosServicos ? conflitoServicos : conflitoSimples;

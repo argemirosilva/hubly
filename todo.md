@@ -2811,3 +2811,6 @@
 ## Exportação de dados (12/08/2026)
 - [x] Criar exportação SQL administrativa com estrutura e dados da empresa para importação em MySQL compatível
 - [x] Garantir que a exportação seja restrita à empresa atual e não inclua dados de outras empresas ou segredos operacionais
+- [x] Gerar arquivo SQL independente com a estrutura completa do Hubly para criação de base MySQL
+- [x] Gerar arquivo SQL completo de migração com estrutura e dados de todas as empresas cadastradas
+- [x] Corrigir detecção de conflito para ignorar agendamentos cancelados e faltas
