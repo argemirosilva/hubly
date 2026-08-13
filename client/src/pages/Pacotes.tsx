@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { FILTRO_STATUS_PACOTES_PADRAO, type FiltroStatusPacote } from "../../../shared/pacotes";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
@@ -764,7 +765,9 @@ export default function Pacotes() {
   const [modalModelo, setModalModelo] = useState(false);
   const [editandoModelo, setEditandoModelo] = useState<any>(null);
   const [modalAbrirPacote, setModalAbrirPacote] = useState(false);
-  const [filtroStatus, setFiltroStatus] = useState<"ativo" | "concluido" | "vencido" | "cancelado" | "todos">("ativo");
+  // Exibir o histórico completo por padrão: pacotes concluídos, vencidos ou cancelados
+  // continuam acessíveis e não parecem ter desaparecido após uma alteração de status.
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatusPacote>(FILTRO_STATUS_PACOTES_PADRAO);
   const [buscaCliente, setBuscaCliente] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
   const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);

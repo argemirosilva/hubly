@@ -2814,3 +2814,4 @@
 - [x] Gerar arquivo SQL independente com a estrutura completa do Hubly para criação de base MySQL
 - [x] Gerar arquivo SQL completo de migração com estrutura e dados de todas as empresas cadastradas
 - [x] Corrigir detecção de conflito para ignorar agendamentos cancelados e faltas
+- [x] Investigar e corrigir pacotes que deixam de aparecer após serem criados
