@@ -191,6 +191,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   id: int("id").autoincrement().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
+  pacoteClienteId: int("pacoteClienteId"), // preenchido quando o agendamento foi criado dentro de um pacote
   profissionalId: int("profissionalId"),
   servicoId: int("servicoId").notNull(),
   data: dateField("data").notNull(),
@@ -774,6 +775,7 @@ export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
   servicoId: int("servicoId").notNull(),
   quantidadeTotal: int("quantidadeTotal").notNull().default(1),
   quantidadeUsada: int("quantidadeUsada").notNull().default(0),
+  quantidadeReservada: int("quantidadeReservada").notNull().default(0), // sessões já agendadas para o futuro
 });
 export type PacoteClienteItem = typeof pacotesClientesItens.$inferSelect;
 

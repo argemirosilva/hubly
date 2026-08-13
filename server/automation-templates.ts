@@ -55,6 +55,24 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
     ),
   },
 
+  // Agenda do pacote (uma mensagem consolidada)
+  {
+    nome: "Agenda do pacote",
+    descricao: "Envia uma única mensagem com todas as sessões agendadas dentro de um pacote",
+    tipoGatilho: "evento",
+    evento: "pacote_agendado",
+    canalEnvio: "whatsapp",
+    corpoMensagem:
+      "✅ *Seu pacote foi agendado! *\n\n" +
+      "Olá, *{{nome_cliente}}*! Organizamos o pacote *{{nome_pacote}}* para você.\n\n" +
+      "📅 *Datas e horários:*\n{{agenda_pacote}}\n\n" +
+      "_{{empresa}}_",
+    flowJson: buildFlowJson(
+      { id: "t1", tipo: "evento_pacote_agendado", label: "Agenda do pacote" },
+      { id: "a1", label: "Enviar agenda do pacote", tipo: "enviar_whatsapp", mensagem: "✅ *Seu pacote foi agendado! *\n\nOlá, *{{nome_cliente}}*! Organizamos o pacote *{{nome_pacote}}* para você.\n\n📅 *Datas e horários:*\n{{agenda_pacote}}\n\n_{{empresa}}_" },
+    ),
+  },
+
   // 2. Lembrete 1 dia antes
   {
     nome: "Lembrete 1 dia antes",

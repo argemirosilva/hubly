@@ -1185,27 +1185,14 @@ export const appRouter = router({
             valorUnitario: s.valorUnitario,
             pacoteClienteItemId: s.pacoteClienteItemId,
           })));
-          // Descontar sessões de pacote para itens vinculados
+          // Reservar sessões de pacote para itens vinculados. O consumo ocorre só ao concluir o atendimento.
           const db = await getDb();
           if (db) {
-            for (const s of servicosInput) {
-              if (s.pacoteClienteItemId) {
+            for (const itemId of [...new Set(servicosInput.map(s => s.pacoteClienteItemId).filter(Boolean))]) {
+              if (itemId) {
                 await db.update(pacotesClientesItens)
-                  .set({ quantidadeUsada: drizzleSql`quantidadeUsada + 1` })
-                  .where(eq(pacotesClientesItens.id, s.pacoteClienteItemId));
-                // Verificar se o pacote foi concluído
-                const [item] = await db.select().from(pacotesClientesItens)
-                  .where(eq(pacotesClientesItens.id, s.pacoteClienteItemId)).limit(1);
-                if (item) {
-                  const todosItens = await db.select().from(pacotesClientesItens)
-                    .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteClienteId));
-                  const pacoteConcluido = todosItens.every(i => i.quantidadeUsada >= i.quantidadeTotal);
-                  if (pacoteConcluido) {
-                    await db.update(pacotesClientes)
-                      .set({ status: "concluido" })
-                      .where(eq(pacotesClientes.id, item.pacoteClienteId));
-                  }
-                }
+                  .set({ quantidadeReservada: drizzleSql`quantidadeReservada + 1` })
+                  .where(eq(pacotesClientesItens.id, itemId as number));
               }
             }
           }
@@ -1217,26 +1204,13 @@ export const appRouter = router({
             valorUnitario: rest.valorTotal,
             pacoteClienteItemId: rest.pacoteClienteItemId,
           }]);
-          // Descontar sessão de pacote se vinculado
+          // Reservar sessão de pacote se vinculada; o uso só é contabilizado no atendimento concluído.
           if (rest.pacoteClienteItemId) {
             const db = await getDb();
             if (db) {
               await db.update(pacotesClientesItens)
-                .set({ quantidadeUsada: drizzleSql`quantidadeUsada + 1` })
+                .set({ quantidadeReservada: drizzleSql`quantidadeReservada + 1` })
                 .where(eq(pacotesClientesItens.id, rest.pacoteClienteItemId));
-              // Verificar se o pacote foi concluído
-              const [item] = await db.select().from(pacotesClientesItens)
-                .where(eq(pacotesClientesItens.id, rest.pacoteClienteItemId)).limit(1);
-              if (item) {
-                const todosItens = await db.select().from(pacotesClientesItens)
-                  .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteClienteId));
-                const pacoteConcluido = todosItens.every(i => i.quantidadeUsada >= i.quantidadeTotal);
-                if (pacoteConcluido) {
-                  await db.update(pacotesClientes)
-                    .set({ status: "concluido" })
-                    .where(eq(pacotesClientes.id, item.pacoteClienteId));
-                }
-              }
             }
           }
         }
@@ -1480,20 +1454,42 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const { id, ...data } = input;
+        const agendamentoAnterior = await getAgendamentoById(id);
         const updates: Record<string, any> = { ...data };
         if (data.status === "confirmado") updates.confirmadoEm = new Date();
         if (data.status === "concluido") updates.concluidoEm = new Date();
         if (data.reservaPaga) updates.reservaPagaEm = new Date();
         await updateAgendamento(id, updates);
 
-        // ── Abatimento automático de pacote ao concluir ──────────────────────
-        if (data.status === "concluido") {
-          // Verificar se o agendamento já possui vínculo com pacote (via agendamentoItens.pacoteClienteItemId)
-          // Se sim, a sessão já foi decrementada na criação — pular abatimento automático
+        // ── Sessões de pacote: consumir na conclusão e liberar na alteração ──
+        const statusLiberaReserva = ["cancelado", "faltou", "remarcado"].includes(data.status ?? "");
+        if (data.status === "concluido" && agendamentoAnterior?.status !== "concluido") {
           const itensDoAgendamento = await getItensByAgendamento(id);
           const jaVinculadoAPacote = itensDoAgendamento.some(item => item.pacoteClienteItemId != null);
 
-          if (!jaVinculadoAPacote) {
+          if (jaVinculadoAPacote) {
+            const db = await getDb();
+            if (db) {
+              const itemIds = [...new Set(itensDoAgendamento.map(item => item.pacoteClienteItemId).filter(Boolean))] as number[];
+              const pacoteIds = new Set<number>();
+              for (const itemId of itemIds) {
+                const [itemPacote] = await db.select({ pacoteClienteId: pacotesClientesItens.pacoteClienteId })
+                  .from(pacotesClientesItens).where(eq(pacotesClientesItens.id, itemId)).limit(1);
+                if (!itemPacote) continue;
+                pacoteIds.add(itemPacote.pacoteClienteId);
+                await db.update(pacotesClientesItens).set({
+                  quantidadeReservada: drizzleSql`GREATEST(quantidadeReservada - 1, 0)`,
+                  quantidadeUsada: drizzleSql`quantidadeUsada + 1`,
+                }).where(eq(pacotesClientesItens.id, itemId));
+              }
+              for (const pacoteId of pacoteIds) {
+                const itensPacote = await db.select().from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacoteId));
+                if (itensPacote.every(item => item.quantidadeUsada >= item.quantidadeTotal && item.quantidadeReservada === 0)) {
+                  await db.update(pacotesClientes).set({ status: "concluido" }).where(eq(pacotesClientes.id, pacoteId));
+                }
+              }
+            }
+          } else {
           try {
             // Buscar o agendamento para obter clienteId e servicoId
             const agendamento = await getAgendamentoById(id);
@@ -2674,12 +2670,25 @@ export const appRouter = router({
                     if (prof && cliente) {
                       // Aqui integraria com sistema de push notifications do profissional
                       console.log(`[Notificação] Profissional ${prof.nome} notificado sobre agendamento de ${cliente.nome}`);
-                    }
-                  } catch (e) {
-                    console.error('[Notificação] Erro ao notificar profissional:', e);
-                  }
-                }
-              }
+            }
+          } catch (err) {
+            console.error("[Pacote] Erro ao consumir sessão:", err);
+          }
+          }
+        }
+
+        if (statusLiberaReserva && agendamentoAnterior?.status !== "concluido") {
+          const itensDoAgendamento = await getItensByAgendamento(id);
+          const itemIds = [...new Set(itensDoAgendamento.map(item => item.pacoteClienteItemId).filter(Boolean))] as number[];
+          const db = await getDb();
+          if (db) {
+            for (const itemId of itemIds) {
+              await db.update(pacotesClientesItens)
+                .set({ quantidadeReservada: drizzleSql`GREATEST(quantidadeReservada - 1, 0)` })
+                .where(eq(pacotesClientesItens.id, itemId));
+            }
+          }
+        }
             } else {
               falhas++;
             }

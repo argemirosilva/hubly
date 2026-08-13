@@ -19,6 +19,8 @@ import { notifyOwner } from "../_core/notification";
 import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
+import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
+import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
 
 /**
  * Verifica se o usuário tem permissão de pacotes.
@@ -230,6 +232,7 @@ export const pacotesRouter = router({
         servicoId: pacotesClientesItens.servicoId,
         quantidadeTotal: pacotesClientesItens.quantidadeTotal,
         quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        quantidadeReservada: pacotesClientesItens.quantidadeReservada,
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
@@ -263,6 +266,7 @@ export const pacotesRouter = router({
         servicoId: pacotesClientesItens.servicoId,
         quantidadeTotal: pacotesClientesItens.quantidadeTotal,
         quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        quantidadeReservada: pacotesClientesItens.quantidadeReservada,
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
@@ -307,6 +311,7 @@ export const pacotesRouter = router({
         servicoId: pacotesClientesItens.servicoId,
         quantidadeTotal: pacotesClientesItens.quantidadeTotal,
         quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        quantidadeReservada: pacotesClientesItens.quantidadeReservada,
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
@@ -317,7 +322,7 @@ export const pacotesRouter = router({
       for (const pacote of pacotes) {
         const itensDoPacote = itens.filter(i => i.pacoteClienteId === pacote.id);
         for (const item of itensDoPacote) {
-          const disponivel = item.quantidadeTotal - item.quantidadeUsada;
+          const disponivel = item.quantidadeTotal - item.quantidadeUsada - item.quantidadeReservada;
           if (disponivel <= 0) continue;
           if (input.servicoId && item.servicoId !== input.servicoId) continue;
           resultado.push({
@@ -329,6 +334,7 @@ export const pacotesRouter = router({
             sessoesDisponiveis: disponivel,
             sessoesTotal: item.quantidadeTotal,
             sessoesUsadas: item.quantidadeUsada,
+            sessoesReservadas: item.quantidadeReservada,
             dataVencimento: pacote.dataVencimento,
           });
         }
@@ -353,6 +359,13 @@ export const pacotesRouter = router({
         servicoId: z.number(),
         quantidadeTotal: z.number().min(1),
       })).min(1),
+      sessoes: z.array(z.object({
+        data: z.string().min(10),
+        horaInicio: z.string().regex(/^\d{2}:\d{2}$/),
+        profissionalId: z.number(),
+        servicoIds: z.array(z.number()).min(1),
+      })).optional().default([]),
+      modoNotificacao: z.enum(["consolidada", "individual", "nenhuma"]).optional().default("nenhuma"),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -370,30 +383,168 @@ export const pacotesRouter = router({
       const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
       await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
       const empId = empresa.id;
-      const [result] = await db.insert(pacotesClientes).values({
-        empresaId: empId,
-        clienteId: input.clienteId,
-        modeloId: input.modeloId,
-        nome: input.nome,
-        valorPago: String(input.valorPago),
-        formaPagamento: input.formaPagamento,
-        numeroParcelas,
-        valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
-        dataVencimento,
-        observacoes: input.observacoes,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...(({ automacaoRenovacao: input.automacaoRenovacao ?? false, dataValidade: input.dataValidade ? input.dataValidade.substring(0, 10) : undefined }) as any),
-      } as any);
-      const pacoteId = (result as any).insertId as number;
+      const idsServicos = [...new Set(input.itens.map(i => i.servicoId))];
+      const catalogo = await db.select({
+        id: servicos.id,
+        nome: servicos.nome,
+        valor: servicos.valor,
+        duracaoMinutos: servicos.duracaoMinutos,
+      }).from(servicos).where(and(eq(servicos.empresaId, empId), inArray(servicos.id, idsServicos)));
+      if (catalogo.length !== idsServicos.length) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Um dos serviços do pacote não foi encontrado.' });
 
-      await db.insert(pacotesClientesItens).values(
-        input.itens.map(i => ({
+      const erroReserva = validarReservasDePacote(
+        input.itens.map(i => ({ ...i, quantidadeUsada: 0, quantidadeReservada: 0 })),
+        input.sessoes,
+      );
+      if (erroReserva) throw new TRPCError({ code: 'BAD_REQUEST', message: erroReserva });
+
+      const servicosPorId = new Map(catalogo.map(servico => [servico.id, servico]));
+      const sessoesPreparadas = input.sessoes.map((sessao, indice) => {
+        if (sessao.servicoIds.some(servicoId => !idsServicos.includes(servicoId))) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `A sessão ${indice + 1} contém um serviço que não pertence ao pacote.` });
+        }
+        const duracao = sessao.servicoIds.reduce((total, servicoId) => total + (servicosPorId.get(servicoId)?.duracaoMinutos ?? 60), 0);
+        const valor = sessao.servicoIds.reduce((total, servicoId) => total + Number(servicosPorId.get(servicoId)?.valor ?? 0), 0);
+        return { ...sessao, duracao, valor, horaFim: somarMinutosAoHorario(sessao.horaInicio, duracao) };
+      });
+
+      for (const sessao of sessoesPreparadas) {
+        const [conflito] = await db.select({ id: agendamentos.id }).from(agendamentos).where(and(
+          eq(agendamentos.empresaId, empId),
+          eq(agendamentos.profissionalId, sessao.profissionalId),
+          eq(agendamentos.data, sessao.data),
+          sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
+          sql`${agendamentos.horaInicio} < ${sessao.horaFim}`,
+          sql`${agendamentos.horaFim} > ${sessao.horaInicio}`,
+        )).limit(1);
+        if (conflito) throw new TRPCError({ code: 'CONFLICT', message: `Há conflito no dia ${sessao.data} às ${sessao.horaInicio}. Ajuste essa sessão antes de salvar.` });
+      }
+
+      const criado = await db.transaction(async (tx) => {
+        const [result] = await tx.insert(pacotesClientes).values({
+          empresaId: empId,
+          clienteId: input.clienteId,
+          modeloId: input.modeloId,
+          nome: input.nome,
+          valorPago: String(input.valorPago),
+          formaPagamento: input.formaPagamento,
+          numeroParcelas,
+          valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
+          dataVencimento,
+          observacoes: input.observacoes,
+          ...(({ automacaoRenovacao: input.automacaoRenovacao ?? false, dataValidade: input.dataValidade ? input.dataValidade.substring(0, 10) : undefined }) as any),
+        } as any);
+        const pacoteId = (result as any).insertId as number;
+        await tx.insert(pacotesClientesItens).values(input.itens.map(i => ({
           pacoteClienteId: pacoteId,
           servicoId: i.servicoId,
           quantidadeTotal: i.quantidadeTotal,
           quantidadeUsada: 0,
-        }))
-      );
+          quantidadeReservada: 0,
+        })));
+        const itensCriados = await tx.select().from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacoteId));
+        const itemPorServico = new Map(itensCriados.map(item => [item.servicoId, item]));
+        const agendamentoIds: number[] = [];
+
+        for (const sessao of sessoesPreparadas) {
+          const primeiroServico = servicosPorId.get(sessao.servicoIds[0])!;
+          const [agendamentoResult] = await tx.insert(agendamentos).values({
+            empresaId: empId,
+            clienteId: input.clienteId,
+            pacoteClienteId: pacoteId,
+            profissionalId: sessao.profissionalId,
+            servicoId: primeiroServico.id,
+            data: sessao.data,
+            horaInicio: sessao.horaInicio,
+            horaFim: sessao.horaFim,
+            status: 'agendado',
+            valorTotal: String(sessao.valor),
+            reservaPaga: true,
+            observacoesInternas: `Sessão agendada pelo pacote: ${input.nome}`,
+          });
+          const agendamentoId = (agendamentoResult as any).insertId as number;
+          agendamentoIds.push(agendamentoId);
+          let horaItem = sessao.horaInicio;
+          await tx.insert(agendamentoItens).values(sessao.servicoIds.map(servicoId => {
+            const servico = servicosPorId.get(servicoId)!;
+            const horaFimItem = somarMinutosAoHorario(horaItem, servico.duracaoMinutos ?? 60);
+            const item = itemPorServico.get(servicoId)!;
+            const valor = {
+              agendamentoId,
+              servicoId,
+              profissionalId: sessao.profissionalId,
+              horaInicio: horaItem,
+              horaFim: horaFimItem,
+              valorUnitario: String(servico.valor),
+              pacoteClienteItemId: item.id,
+            };
+            horaItem = horaFimItem;
+            return valor;
+          }));
+          for (const servicoId of sessao.servicoIds) {
+            const item = itemPorServico.get(servicoId)!;
+            await tx.update(pacotesClientesItens).set({ quantidadeReservada: sql`${pacotesClientesItens.quantidadeReservada} + 1` }).where(eq(pacotesClientesItens.id, item.id));
+          }
+        }
+        return { pacoteId, agendamentoIds };
+      });
+      const pacoteId = criado.pacoteId;
+
+      // A comunicação inicial respeita a escolha do pacote. Os lembretes próximos
+      // de cada sessão continuam sendo processados normalmente pelo agendador.
+      if (input.modoNotificacao !== 'nenhuma' && sessoesPreparadas.length > 0) {
+        try {
+          const [cliente] = await db.select({ id: clientes.id, nome: clientes.nome, telefone: clientes.telefone, whatsapp: clientes.whatsapp })
+            .from(clientes).where(eq(clientes.id, input.clienteId)).limit(1);
+          const telefone = cliente?.whatsapp || cliente?.telefone;
+          if (telefone) {
+            const idsProfissionais = [...new Set(sessoesPreparadas.map(sessao => sessao.profissionalId))];
+            const profissionaisDaAgenda = await db.select({ id: profissionais.id, nome: profissionais.nome })
+              .from(profissionais).where(inArray(profissionais.id, idsProfissionais));
+            const profissionalPorId = new Map(profissionaisDaAgenda.map(profissional => [profissional.id, profissional.nome]));
+            const formatarData = (data: string) => new Date(`${data}T12:00:00`).toLocaleDateString('pt-BR');
+            const agendaFormatada = sessoesPreparadas.map(sessao => {
+              const nomesServicos = sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ');
+              return `• ${formatarData(sessao.data)} — ${sessao.horaInicio} às ${sessao.horaFim}: ${nomesServicos}`;
+            }).join('\n');
+            const evento = input.modoNotificacao === 'consolidada' ? 'pacote_agendado' : 'agendamento_criado';
+            const automacao = await getAutomacaoByEvento(empId, evento);
+            if (automacao?.canalEnvio === 'whatsapp') {
+              const renderizar = (mensagem: string, sessao?: typeof sessoesPreparadas[number]) => mensagem
+                .replace(/\{\{nome_cliente\}\}/g, cliente.nome)
+                .replace(/\{\{primeiro_nome\}\}/g, cliente.nome.split(' ')[0] ?? cliente.nome)
+                .replace(/\{\{empresa\}\}/g, empresa.nome ?? '')
+                .replace(/\{\{nome_pacote\}\}/g, input.nome)
+                .replace(/\{\{agenda_pacote\}\}/g, agendaFormatada)
+                .replace(/\{\{data\}\}/g, sessao ? formatarData(sessao.data) : '')
+                .replace(/\{\{hora\}\}/g, sessao ? `${sessao.horaInicio} às ${sessao.horaFim}` : '')
+                .replace(/\{\{servico\}\}/g, sessao ? sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ') : '')
+                .replace(/\{\{profissional\}\}/g, sessao ? (profissionalPorId.get(sessao.profissionalId) ?? '') : '');
+              const mensagens = input.modoNotificacao === 'consolidada'
+                ? [{ mensagem: renderizar(automacao.corpoMensagem), agendamentoId: undefined, servicoNome: input.nome }]
+                : sessoesPreparadas.map((sessao, indice) => ({ mensagem: renderizar(automacao.corpoMensagem, sessao), agendamentoId: criado.agendamentoIds[indice], servicoNome: sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ') }));
+              for (const envio of mensagens) {
+                await registrarEnvioAutomacao({
+                  empresaId: empId,
+                  automacaoId: automacao.id,
+                  automacaoNome: automacao.nome,
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem: envio.mensagem,
+                  agendamentoId: envio.agendamentoId,
+                  servicoNome: envio.servicoNome,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                });
+              }
+            }
+          }
+        } catch (erro) {
+          console.error('[abrirPacote] Erro ao enfileirar automação da agenda do pacote:', erro);
+        }
+      }
 
       // Notificar dono
       const clienteRow = await db.select({ nome: clientes.nome })
@@ -403,7 +554,7 @@ export const pacotesRouter = router({
         content: `Pacote "${input.nome}" aberto para ${clienteRow[0]?.nome ?? "cliente"} — R$ ${input.valorPago.toFixed(2)}`,
       });
 
-      return { id: pacoteId };
+      return { id: pacoteId, agendamentoIds: criado.agendamentoIds, modoNotificacao: input.modoNotificacao };
     }),
 
   // ── Consumir sessão manualmente ───────────────────────────────────────────

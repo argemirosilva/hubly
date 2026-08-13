@@ -434,6 +434,10 @@ function ModalAbrirPacote({
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<{ servicoId: number; quantidadeTotal: number }[]>([{ servicoId: 0, quantidadeTotal: 1 }]);
+  const [agendarSessoes, setAgendarSessoes] = useState(false);
+  const [sessoes, setSessoes] = useState<{ data: string; horaInicio: string; profissionalId: number; servicoIds: number[] }[]>([]);
+  const [modoNotificacao, setModoNotificacao] = useState<"consolidada" | "individual" | "nenhuma">("consolidada");
+  const { data: profissionais = [] } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const numParcelas = parseInt(numeroParcelas) || 1;
   const valorTotal = parseFloat(valorPago) || 0;
@@ -462,6 +466,9 @@ function ModalAbrirPacote({
     if (!clienteId || !nome || !valorPago || itens.some(i => !i.servicoId)) {
       toast.error("Preencha todos os campos obrigatórios"); return;
     }
+    if (agendarSessoes && (!sessoes.length || sessoes.some(s => !s.data || !s.horaInicio || !s.profissionalId || !s.servicoIds.length))) {
+      toast.error("Preencha data, horário, profissional e serviço em cada sessão programada"); return;
+    }
     abrirMutation.mutate({
       clienteId: parseInt(clienteId),
       modeloId: modeloId ? parseInt(modeloId) : undefined,
@@ -471,6 +478,8 @@ function ModalAbrirPacote({
       numeroParcelas: parseInt(numeroParcelas) || 1,
       observacoes: observacoes || undefined,
       itens: itens.filter(i => i.servicoId > 0),
+      sessoes: agendarSessoes ? sessoes : [],
+      modoNotificacao: agendarSessoes ? modoNotificacao : "nenhuma",
     });
   }
 
@@ -651,6 +660,70 @@ function ModalAbrirPacote({
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} placeholder="Notas sobre o pacote..." />
           </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agendarSessoes}
+                onChange={e => {
+                  setAgendarSessoes(e.target.checked);
+                  if (e.target.checked && sessoes.length === 0) {
+                    setSessoes([{ data: "", horaInicio: "", profissionalId: profissionais[0]?.id ?? 0, servicoIds: [itens.find(i => i.servicoId)?.servicoId ?? 0].filter(Boolean) }]);
+                  }
+                }}
+                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-primary"
+              />
+              <span>
+                <span className="text-sm font-semibold text-stone-800 block">Já quero agendar as sessões</span>
+                <span className="text-xs text-stone-600">Defina agora a data, o horário e o profissional de cada atendimento do pacote.</span>
+              </span>
+            </label>
+
+            {agendarSessoes && (
+              <div className="space-y-2">
+                {sessoes.map((sessao, indice) => (
+                  <div key={indice} className="rounded-lg border bg-white p-2.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-700">Sessão {indice + 1}</span>
+                      <button type="button" onClick={() => setSessoes(sessoes.filter((_, i) => i !== indice))} className="text-xs text-red-600 hover:underline">Remover</button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input type="date" value={sessao.data} onChange={e => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, data: e.target.value } : s))} />
+                      <Input type="time" value={sessao.horaInicio} onChange={e => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, horaInicio: e.target.value } : s))} />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Select value={String(sessao.profissionalId || "")} onValueChange={v => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, profissionalId: Number(v) } : s))}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Profissional" /></SelectTrigger>
+                        <SelectContent>{profissionais.map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Select value={String(sessao.servicoIds[0] || "")} onValueChange={v => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, servicoIds: [Number(v)] } : s))}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Serviço do pacote" /></SelectTrigger>
+                        <SelectContent>{itens.filter(i => i.servicoId).map(item => {
+                          const servico = servicos.find(s => s.id === item.servicoId);
+                          return <SelectItem key={item.servicoId} value={String(item.servicoId)}>{servico?.nome ?? `Serviço #${item.servicoId}`}</SelectItem>;
+                        })}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => setSessoes([...sessoes, { data: "", horaInicio: "", profissionalId: profissionais[0]?.id ?? 0, servicoIds: [itens.find(i => i.servicoId)?.servicoId ?? 0].filter(Boolean) }])}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar sessão
+                </Button>
+                <div>
+                  <Label className="text-xs">Mensagem inicial para a cliente</Label>
+                  <Select value={modoNotificacao} onValueChange={v => setModoNotificacao(v as "consolidada" | "individual" | "nenhuma")}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consolidada">Uma única mensagem com todas as datas</SelectItem>
+                      <SelectItem value="individual">Uma mensagem para cada sessão</SelectItem>
+                      <SelectItem value="nenhuma">Não enviar mensagem agora</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -675,6 +748,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
   const [expanded, setExpanded] = useState(true);
   const totalItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeTotal, 0);
   const usadosItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeUsada, 0);
+  const reservadosItens = pacote.itens.reduce((a: number, i: any) => a + (i.quantidadeReservada ?? 0), 0);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -693,7 +767,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-stone-500">{usadosItens}/{totalItens} sessões</p>
+            <p className="text-xs text-stone-500">{usadosItens} concluídas · {reservadosItens} agendadas</p>
             <p className="text-xs font-semibold text-stone-700">{formatCurrency(pacote.valorPago)}</p>
           </div>
           <StatusBadge status={pacote.status} />
@@ -707,7 +781,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
             <div key={item.id} className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-stone-700">{item.servicoNome ?? `Serviço #${item.servicoId}`}</span>
-                {pacote.status === "ativo" && item.quantidadeUsada < item.quantidadeTotal && (
+                {pacote.status === "ativo" && item.quantidadeUsada + (item.quantidadeReservada ?? 0) < item.quantidadeTotal && (
                   <button
                     onClick={() => onConsumir(item.id)}
                     className="text-xs px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-medium transition-colors"
@@ -721,7 +795,8 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
                   </span>
                 )}
               </div>
-              <ProgressBar used={item.quantidadeUsada} total={item.quantidadeTotal} color="#7c3aed" />
+              <ProgressBar used={item.quantidadeUsada + (item.quantidadeReservada ?? 0)} total={item.quantidadeTotal} color="#7c3aed" />
+              <p className="text-[11px] text-stone-400">{item.quantidadeUsada} concluída(s) · {item.quantidadeReservada ?? 0} agendada(s) · {Math.max(0, item.quantidadeTotal - item.quantidadeUsada - (item.quantidadeReservada ?? 0))} disponível(is)</p>
             </div>
           ))}
 

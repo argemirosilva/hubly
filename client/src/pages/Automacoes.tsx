@@ -60,6 +60,7 @@ const TRIGGER_OPTIONS = [
   { value: "evento_reserva_paga", label: "Reserva paga", icon: Check, color: "#10b981", desc: "Dispara quando o cliente confirma o pagamento da reserva de um pré-agendamento." },
   { value: "evento_credito_gerado", label: "Crédito gerado", icon: DollarSign, color: "#10b981", desc: "Dispara quando um crédito é adicionado à conta do cliente (pagamento a maior, devolução, etc.)." },
   { value: "evento_pacote_renovado", label: "Pacote renovado", icon: RefreshCw, color: "#8b5cf6", desc: "Dispara quando um pacote de serviços é renovado para o cliente." },
+  { value: "evento_pacote_agendado", label: "Agenda do pacote", icon: Package, color: "#0f766e", desc: "Dispara uma única mensagem com todas as sessões agendadas ao abrir um pacote." },
   { value: "evento_pacote_vencendo", label: "Pacote vencendo", icon: Package, color: "#f59e0b", desc: "Dispara automaticamente quando um pacote está a 7 dias ou menos de vencer. Ideal para convidar o cliente a renovar." },
   { value: "evento_sessoes_acabando", label: "Sessões acabando", icon: Package, color: "#ef4444", desc: "Dispara automaticamente quando restam apenas 1 ou 2 sessões no pacote do cliente." },
   { value: "aniversario_mes", label: "Aniversário do mês", icon: Gift, color: "#ec4899", desc: "Dispara no mês de aniversário do cliente, no horário configurado." },
@@ -117,6 +118,7 @@ const VARIAVEIS_GRUPOS = [
     vars: [
       { var: "{{pacote}}", label: "pacote", desc: "Nome do pacote do cliente (para gatilhos de pacote)", exemplo: "Ex: Pacote Manicure 8x" },
       { var: "{{nome_pacote}}", label: "nome pacote", desc: "Nome do pacote renovado (disponível no evento Pacote renovado)", exemplo: "Ex: Pacote Progressiva 5x" },
+      { var: "{{agenda_pacote}}", label: "agenda do pacote", desc: "Lista com as datas, horários e serviços das sessões agendadas do pacote.", exemplo: "Ex: 12/09 às 14h — Maquiagem" },
       { var: "{{sessoes_restantes}}", label: "sessões restantes", desc: "Quantidade de sessões ainda disponíveis no pacote", exemplo: "Ex: 2" },
       { var: "{{sessoes_total}}", label: "sessões total", desc: "Quantidade total de sessões do pacote", exemplo: "Ex: 8" },
       { var: "{{data_vencimento}}", label: "data vencimento", desc: "Data de vencimento do pacote renovado", exemplo: "Ex: 30/06/2025" },
@@ -1943,6 +1945,7 @@ export default function Automacoes() {
           reserva_paga: "Reserva paga",
           credito_gerado: "Crédito gerado",
           pacote_renovado: "Pacote renovado",
+          pacote_agendado: "Agenda do pacote",
           pacote_vencendo: "Pacote vencendo",
           sessoes_acabando: "Sessões acabando",
         };

@@ -2815,6 +2815,10 @@
 - [x] Gerar arquivo SQL completo de migração com estrutura e dados de todas as empresas cadastradas
 - [x] Corrigir detecção de conflito para ignorar agendamentos cancelados e faltas
 - [x] Investigar e corrigir pacotes que deixam de aparecer após serem criados
-- [ ] Definir e implementar criação de múltiplos agendamentos com data e horário ao abrir pacote
-- [ ] Adicionar escolha de automação consolidada ou individual para agendamentos criados por pacote
+- [x] Definir e implementar criação de múltiplos agendamentos com data e horário ao abrir pacote
+- [x] Adicionar escolha de automação consolidada ou individual para agendamentos criados por pacote
 - [x] Gerar PDF explicativo para cliente sobre agenda de pacotes e opções de notificações
+- [x] Adicionar vínculo direto entre sessão agendada e pacote, sem consumir a sessão antes da conclusão
+- [x] Criar endpoint atômico para abrir pacote e criar múltiplos agendamentos com validação de conflito
+- [x] Criar evento configurável de automação “Pacote agendado” com lista das sessões
+- [x] Exibir e gerenciar sessões disponíveis, agendadas e concluídas no card do pacote
