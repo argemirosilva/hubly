@@ -74,7 +74,7 @@ function RelatorioPacotes() {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
           <p className="text-xs text-stone-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Receita Total</p>
           <p className="text-2xl font-bold text-violet-700">{formatCurrency(data.receitaTotal)}</p>
@@ -84,6 +84,11 @@ function RelatorioPacotes() {
           <p className="text-xs text-stone-500 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ativos</p>
           <p className="text-2xl font-bold text-emerald-600">{data.pacotesAtivos}</p>
           <p className="text-xs text-stone-400">{data.pacotesConcluidos} concluídos</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Em aberto</p>
+          <p className="text-2xl font-bold text-amber-700">{formatCurrency(data.saldoDevedorTotal)}</p>
+          <p className="text-xs text-stone-400">saldo de pacotes</p>
         </div>
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
           <p className="text-xs text-stone-500 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5 text-amber-500" /> Vencendo em 7 dias</p>
@@ -430,6 +435,9 @@ function ModalAbrirPacote({
   const [modeloId, setModeloId] = useState("");
   const [nome, setNome] = useState("");
   const [valorPago, setValorPago] = useState("");
+  const [valorRecebidoInicial, setValorRecebidoInicial] = useState("0");
+  const [tipoPagamentoInicial, setTipoPagamentoInicial] = useState<"sinal" | "parcial" | "quitacao">("sinal");
+  const [observacoesPagamentoInicial, setObservacoesPagamentoInicial] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("");
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [observacoes, setObservacoes] = useState("");
@@ -474,6 +482,9 @@ function ModalAbrirPacote({
       modeloId: modeloId ? parseInt(modeloId) : undefined,
       nome,
       valorPago: parseFloat(valorPago),
+      valorRecebidoInicial: parseFloat(valorRecebidoInicial) || 0,
+      tipoPagamentoInicial,
+      observacoesPagamentoInicial: observacoesPagamentoInicial || undefined,
       formaPagamento: formaPagamento || undefined,
       numeroParcelas: parseInt(numeroParcelas) || 1,
       observacoes: observacoes || undefined,
@@ -616,6 +627,34 @@ function ModalAbrirPacote({
             )}
           </div>
 
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-emerald-900">Recebimento inicial</p>
+              <p className="text-xs text-emerald-800">Registre o sinal ou pagamento feito agora. O restante continuará como saldo em aberto no pacote.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>Valor recebido agora (R$)</Label>
+                <Input type="number" min="0" step="0.01" value={valorRecebidoInicial} onChange={e => setValorRecebidoInicial(e.target.value)} />
+              </div>
+              <div>
+                <Label>Tipo do recebimento</Label>
+                <Select value={tipoPagamentoInicial} onValueChange={v => setTipoPagamentoInicial(v as "sinal" | "parcial" | "quitacao")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sinal">Sinal / entrada</SelectItem>
+                    <SelectItem value="parcial">Pagamento parcial</SelectItem>
+                    <SelectItem value="quitacao">Quitação total</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {valorTotal > 0 && (
+              <p className="text-xs font-medium text-emerald-900">Saldo após este recebimento: {formatCurrency(Math.max(0, valorTotal - (parseFloat(valorRecebidoInicial) || 0)))}</p>
+            )}
+            <Input value={observacoesPagamentoInicial} onChange={e => setObservacoesPagamentoInicial(e.target.value)} placeholder="Observação do recebimento (opcional)" />
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Itens do pacote *</Label>
@@ -736,19 +775,97 @@ function ModalAbrirPacote({
   );
 }
 
+// ─── Modal: Pagamentos do Pacote ──────────────────────────────────────────────
+
+function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; open: boolean; onClose: () => void }) {
+  const utils = trpc.useUtils();
+  const [valor, setValor] = useState("");
+  const [formaPagamento, setFormaPagamento] = useState("");
+  const [tipo, setTipo] = useState<"sinal" | "parcial" | "quitacao">("parcial");
+  const [observacoes, setObservacoes] = useState("");
+  const { data: pagamentos = [] } = trpc.pacotes.listarPagamentos.useQuery(
+    { pacoteClienteId: pacote?.id ?? 0 },
+    { enabled: Boolean(pacote && open) },
+  );
+  const valorTotal = Number(pacote?.valorTotal ?? pacote?.valorPago ?? 0);
+  const valorRecebido = Number(pacote?.valorRecebido ?? 0);
+  const saldo = Math.max(0, valorTotal - valorRecebido);
+  const registrarMutation = trpc.pacotes.registrarPagamento.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarTodos.invalidate();
+      utils.pacotes.listarPagamentos.invalidate({ pacoteClienteId: pacote?.id ?? 0 });
+      setValor("");
+      setObservacoes("");
+      toast.success("Pagamento registrado no pacote.");
+    },
+    onError: e => toast.error(e.message),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setValor("");
+    setTipo("parcial");
+    setObservacoes("");
+  }, [open, pacote?.id]);
+
+  function registrar() {
+    const valorNumerico = parseFloat(valor);
+    if (!pacote || !valorNumerico || valorNumerico <= 0) {
+      toast.error("Informe um valor de pagamento válido.");
+      return;
+    }
+    registrarMutation.mutate({
+      pacoteClienteId: pacote.id,
+      valor: valorNumerico,
+      formaPagamento: formaPagamento || undefined,
+      tipo,
+      observacoes: observacoes || undefined,
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={value => !value && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Financeiro do pacote</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 grid grid-cols-2 gap-3">
+            <div><p className="text-xs text-emerald-800">Valor total</p><p className="font-semibold text-emerald-950">{formatCurrency(valorTotal)}</p></div>
+            <div><p className="text-xs text-emerald-800">Saldo em aberto</p><p className="font-semibold text-amber-800">{formatCurrency(saldo)}</p></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><Label>Valor recebido (R$)</Label><Input type="number" min="0" max={saldo} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
+            <div><Label>Tipo</Label><Select value={tipo} onValueChange={v => setTipo(v as "sinal" | "parcial" | "quitacao")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sinal">Sinal / entrada</SelectItem><SelectItem value="parcial">Pagamento parcial</SelectItem><SelectItem value="quitacao">Quitação total</SelectItem></SelectContent></Select></div>
+          </div>
+          <div><Label>Forma de pagamento</Label><Select value={formaPagamento} onValueChange={setFormaPagamento}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label>Observação</Label><Textarea rows={2} value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Ex.: sinal recebido via Pix" /></div>
+          {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Histórico</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><span className="font-semibold">{formatCurrency(pagamento.valor)}</span></div>)}</div>}
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={registrar} disabled={registrarMutation.isPending || saldo <= 0}>{registrarMutation.isPending ? "Registrando..." : "Registrar pagamento"}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
+function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
   onCancelar: (id: number) => void;
   onRenovar?: (pacote: any) => void;
   onEditar?: (pacote: any) => void;
+  onRegistrarPagamento?: (pacote: any) => void;
+  onReabrir?: (pacote: any) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const totalItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeTotal, 0);
   const usadosItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeUsada, 0);
   const reservadosItens = pacote.itens.reduce((a: number, i: any) => a + (i.quantidadeReservada ?? 0), 0);
+  const valorTotalPacote = Number(pacote.valorTotal ?? 0) || Number(pacote.valorPago ?? 0);
+  const valorRecebidoPacote = Number(pacote.valorRecebido ?? 0);
+  const saldoDevedor = Math.max(0, valorTotalPacote - valorRecebidoPacote);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -768,7 +885,7 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-xs text-stone-500">{usadosItens} concluídas · {reservadosItens} agendadas</p>
-            <p className="text-xs font-semibold text-stone-700">{formatCurrency(pacote.valorPago)}</p>
+            <p className="text-xs font-semibold text-stone-700">{formatCurrency(valorTotalPacote)}</p>
           </div>
           <StatusBadge status={pacote.status} />
           {expanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
@@ -800,6 +917,18 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
             </div>
           ))}
 
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs text-emerald-800">Financeiro do pacote</p>
+              <p className="text-sm font-semibold text-emerald-950">Recebido {formatCurrency(valorRecebidoPacote)} · Em aberto {formatCurrency(saldoDevedor)}</p>
+            </div>
+            {saldoDevedor > 0 && onRegistrarPagamento && (
+              <Button size="sm" variant="outline" className="h-8 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={(e) => { e.stopPropagation(); onRegistrarPagamento(pacote); }}>
+                Registrar pagamento
+              </Button>
+            )}
+          </div>
+
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-stone-500">
             <span>Aberto em {new Date(pacote.dataAbertura).toLocaleDateString("pt-BR")}</span>
             {pacote.dataVencimento && (
@@ -813,6 +942,11 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar }: {
             {pacote.status === "ativo" && onEditar && (
               <button onClick={() => onEditar(pacote)} className="text-amber-600 hover:text-blue-700 flex items-center gap-1 font-medium">
                 <Pencil className="w-3 h-3" /> Editar
+              </button>
+            )}
+            {pacote.status === "concluido" && onReabrir && (
+              <button onClick={() => onReabrir(pacote)} className="text-amber-700 hover:text-amber-900 flex items-center gap-1 font-medium">
+                <RotateCcw className="w-3 h-3" /> Revisar sessões
               </button>
             )}
             {(pacote.status === "concluido" || pacote.status === "vencido") && onRenovar && (
@@ -846,6 +980,7 @@ export default function Pacotes() {
   const [buscaCliente, setBuscaCliente] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
   const [pacoteRenovarId, setPacoteRenovarId] = useState<number | null>(null);
+  const [pacotePagamento, setPacotePagamento] = useState<any | null>(null);
   const [renovarForm, setRenovarForm] = useState({
     valorPago: "",
     formaPagamento: "",
@@ -908,6 +1043,14 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
 
+  const reabrirMutation = trpc.pacotes.reabrirPacote.useMutation({
+    onSuccess: (data) => {
+      utils.pacotes.listarTodos.invalidate();
+      toast.success(data.status === "ativo" ? "Pacote reaberto: as sessões futuras voltaram a ficar agendadas." : "Todas as sessões deste pacote já estão concluídas.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const renovarMutation = trpc.pacotes.renovarPacote.useMutation({
     onSuccess: () => {
       utils.pacotes.listarTodos.invalidate();
@@ -946,7 +1089,7 @@ export default function Pacotes() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Pacotes de Serviços</h1>
-            <p className="text-sm text-stone-500 mt-0.5">Gerencie pacotes pré-pagos por cliente</p>
+            <p className="text-sm text-stone-500 mt-0.5">Gerencie sessões, pagamentos e saldo de cada pacote</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1030,6 +1173,8 @@ export default function Pacotes() {
                     pacote={p}
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
+                    onRegistrarPagamento={(pac) => setPacotePagamento(pac)}
+                    onReabrir={(pac) => reabrirMutation.mutate({ pacoteClienteId: pac.id })}
                     onEditar={(pac) => {
                       setPacoteEditarId(pac.id);
                       setEditarPacoteForm({
@@ -1212,6 +1357,11 @@ export default function Pacotes() {
           servicos={servicosData}
         />
       )}
+      <ModalPagamentoPacote
+        pacote={pacotePagamento}
+        open={Boolean(pacotePagamento)}
+        onClose={() => setPacotePagamento(null)}
+      />
 
       {/* Modal de renovação de pacote */}
       <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>

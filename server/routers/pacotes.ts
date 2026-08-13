@@ -9,6 +9,7 @@ import { getEmpresaDoContexto } from "../db";
 import {
   pacotesModelos, pacotesModelosItens,
   pacotesClientes, pacotesClientesItens,
+  pacotesClientesPagamentos,
   notificacoesPacotes,
   servicos, clientes,
   agendamentos, agendamentoItens,
@@ -21,6 +22,7 @@ import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
+import { calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
 
 /**
  * Verifica se o usuário tem permissão de pacotes.
@@ -206,6 +208,9 @@ export const pacotesRouter = router({
         nome: pacotesClientes.nome,
         status: pacotesClientes.status,
         valorPago: pacotesClientes.valorPago,
+        valorTotal: pacotesClientes.valorTotal,
+        valorRecebido: pacotesClientes.valorRecebido,
+        statusPagamento: pacotesClientes.statusPagamento,
         formaPagamento: pacotesClientes.formaPagamento,
         numeroParcelas: pacotesClientes.numeroParcelas,
         valorParcela: pacotesClientes.valorParcela,
@@ -349,6 +354,9 @@ export const pacotesRouter = router({
       modeloId: z.number().optional(),
       nome: z.string().min(2),
       valorPago: z.number().min(0),
+      valorRecebidoInicial: z.number().min(0).optional().default(0),
+      tipoPagamentoInicial: z.enum(["sinal", "parcial", "quitacao"]).optional().default("parcial"),
+      observacoesPagamentoInicial: z.string().optional(),
       formaPagamento: z.string().optional(),
       numeroParcelas: z.number().min(1).max(24).optional().default(1),
       validadeDias: z.number().optional(),
@@ -379,6 +387,11 @@ export const pacotesRouter = router({
 
       const numeroParcelas = input.numeroParcelas ?? 1;
       const valorParcela = numeroParcelas > 1 ? input.valorPago / numeroParcelas : null;
+      if (input.valorRecebidoInicial > input.valorPago) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'O valor recebido não pode ser maior que o valor total do pacote.' });
+      }
+      const situacaoPagamento = calcularSituacaoPagamentoPacote(input.valorPago, input.valorRecebidoInicial);
+      const statusPagamento = situacaoPagamento.statusPagamento;
 
       const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
       await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
@@ -427,6 +440,9 @@ export const pacotesRouter = router({
           modeloId: input.modeloId,
           nome: input.nome,
           valorPago: String(input.valorPago),
+          valorTotal: String(input.valorPago),
+          valorRecebido: String(input.valorRecebidoInicial),
+          statusPagamento,
           formaPagamento: input.formaPagamento,
           numeroParcelas,
           valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
@@ -435,6 +451,16 @@ export const pacotesRouter = router({
           ...(({ automacaoRenovacao: input.automacaoRenovacao ?? false, dataValidade: input.dataValidade ? input.dataValidade.substring(0, 10) : undefined }) as any),
         } as any);
         const pacoteId = (result as any).insertId as number;
+        if (input.valorRecebidoInicial > 0) {
+          await tx.insert(pacotesClientesPagamentos).values({
+            pacoteClienteId: pacoteId,
+            empresaId: empId,
+            valor: String(input.valorRecebidoInicial),
+            formaPagamento: input.formaPagamento,
+            tipo: input.tipoPagamentoInicial,
+            observacoes: input.observacoesPagamentoInicial,
+          });
+        }
         await tx.insert(pacotesClientesItens).values(input.itens.map(i => ({
           pacoteClienteId: pacoteId,
           servicoId: i.servicoId,
@@ -458,7 +484,7 @@ export const pacotesRouter = router({
             horaInicio: sessao.horaInicio,
             horaFim: sessao.horaFim,
             status: 'agendado',
-            valorTotal: String(sessao.valor),
+            valorTotal: '0.00',
             reservaPaga: true,
             observacoesInternas: `Sessão agendada pelo pacote: ${input.nome}`,
           });
@@ -475,7 +501,7 @@ export const pacotesRouter = router({
               profissionalId: sessao.profissionalId,
               horaInicio: horaItem,
               horaFim: horaFimItem,
-              valorUnitario: String(servico.valor),
+              valorUnitario: '0.00',
               pacoteClienteItemId: item.id,
             };
             horaItem = horaFimItem;
@@ -618,6 +644,110 @@ export const pacotesRouter = router({
       return { ok: true, pacoteConcluido };
     }),
 
+  // ── Histórico financeiro do pacote ────────────────────────────────────────
+  listarPagamentos: protectedProcedure
+    .input(z.object({ pacoteClienteId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const empId = await getEmpresaId(ctx.user.id, ctx.systemUser?.empresaId);
+      return db.select().from(pacotesClientesPagamentos)
+        .where(and(
+          eq(pacotesClientesPagamentos.pacoteClienteId, input.pacoteClienteId),
+          eq(pacotesClientesPagamentos.empresaId, empId),
+        ))
+        .orderBy(sql`${pacotesClientesPagamentos.dataPagamento} DESC`);
+    }),
+
+  registrarPagamento: protectedProcedure
+    .input(z.object({
+      pacoteClienteId: z.number(),
+      valor: z.number().positive(),
+      formaPagamento: z.string().optional(),
+      tipo: z.enum(["sinal", "parcial", "quitacao"]).default("parcial"),
+      observacoes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const [pacote] = await db.select().from(pacotesClientes).where(and(
+        eq(pacotesClientes.id, input.pacoteClienteId),
+        eq(pacotesClientes.empresaId, empresa.id),
+      )).limit(1);
+      if (!pacote) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pacote não encontrado.' });
+
+      const valorTotal = Number(pacote.valorTotal ?? pacote.valorPago ?? 0);
+      const valorRecebidoAtual = Number(pacote.valorRecebido ?? 0);
+      const novoRecebido = Number((valorRecebidoAtual + input.valor).toFixed(2));
+      if (novoRecebido > valorTotal) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'O pagamento ultrapassa o saldo devedor do pacote.' });
+      }
+      const statusPagamento = calcularSituacaoPagamentoPacote(valorTotal, novoRecebido).statusPagamento;
+      await db.transaction(async (tx) => {
+        await tx.insert(pacotesClientesPagamentos).values({
+          pacoteClienteId: pacote.id,
+          empresaId: empresa.id,
+          valor: String(input.valor),
+          formaPagamento: input.formaPagamento,
+          tipo: input.tipo,
+          observacoes: input.observacoes,
+        });
+        await tx.update(pacotesClientes).set({
+          valorRecebido: String(novoRecebido),
+          statusPagamento,
+        }).where(eq(pacotesClientes.id, pacote.id));
+      });
+      return { ok: true, valorRecebido: novoRecebido, saldoDevedor: Math.max(0, valorTotal - novoRecebido), statusPagamento };
+    }),
+
+  // ── Reabrir e corrigir pacote concluído antes dos atendimentos ──────────────
+  reabrirPacote: protectedProcedure
+    .input(z.object({ pacoteClienteId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const [pacote] = await db.select().from(pacotesClientes).where(and(
+        eq(pacotesClientes.id, input.pacoteClienteId),
+        eq(pacotesClientes.empresaId, empresa.id),
+      )).limit(1);
+      if (!pacote) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pacote não encontrado.' });
+      if (pacote.status === 'cancelado' || pacote.status === 'vencido') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Pacotes cancelados ou vencidos devem ser renovados, não reabertos.' });
+      }
+      const itens = await db.select().from(pacotesClientesItens)
+        .where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+      const itemIds = itens.map(item => item.id);
+      const vinculos = itemIds.length > 0 ? await db.select({
+        itemId: agendamentoItens.pacoteClienteItemId,
+        status: agendamentos.status,
+      }).from(agendamentoItens)
+        .innerJoin(agendamentos, eq(agendamentoItens.agendamentoId, agendamentos.id))
+        .where(and(inArray(agendamentoItens.pacoteClienteItemId, itemIds), eq(agendamentos.empresaId, empresa.id))) : [];
+
+      const statusInativos = new Set(['cancelado', 'cancelado_cliente', 'faltou', 'remarcado']);
+      let todasConcluidas = true;
+      await db.transaction(async (tx) => {
+        for (const item of itens) {
+          const vinculados = vinculos.filter(v => v.itemId === item.id);
+          const concluidos = vinculados.filter(v => v.status === 'concluido').length;
+          const reservados = vinculados.filter(v => v.status !== 'concluido' && !statusInativos.has(v.status ?? '')).length;
+          const consumoManual = Math.max(0, item.quantidadeUsada - vinculados.length);
+          const quantidadeUsada = Math.min(item.quantidadeTotal, consumoManual + concluidos);
+          const quantidadeReservada = Math.min(item.quantidadeTotal - quantidadeUsada, reservados);
+          if (quantidadeUsada < item.quantidadeTotal || quantidadeReservada > 0) todasConcluidas = false;
+          await tx.update(pacotesClientesItens).set({ quantidadeUsada, quantidadeReservada })
+            .where(eq(pacotesClientesItens.id, item.id));
+        }
+        await tx.update(pacotesClientes).set({ status: todasConcluidas ? 'concluido' : 'ativo' })
+          .where(eq(pacotesClientes.id, pacote.id));
+      });
+      return { ok: true, status: todasConcluidas ? 'concluido' : 'ativo' };
+    }),
+
   // ── Relatório financeiro de pacotes ─────────────────────────────────────────
   relatorioFinanceiro: protectedProcedure
     .query(async ({ ctx }) => {
@@ -630,6 +760,8 @@ export const pacotesRouter = router({
         id: pacotesClientes.id,
         status: pacotesClientes.status,
         valorPago: pacotesClientes.valorPago,
+        valorTotal: pacotesClientes.valorTotal,
+        valorRecebido: pacotesClientes.valorRecebido,
         dataAbertura: pacotesClientes.dataAbertura,
         dataVencimento: pacotesClientes.dataVencimento,
         clienteNome: clientes.nome,
@@ -639,7 +771,8 @@ export const pacotesRouter = router({
         .where(eq(pacotesClientes.empresaId, empId))
         .orderBy(sql`${pacotesClientes.criadoEm} DESC`);
 
-      const receitaTotal = todosOsPacotes.reduce((acc, p) => acc + parseFloat(p.valorPago ?? '0'), 0);
+      const receitaTotal = todosOsPacotes.reduce((acc, p) => acc + parseFloat(p.valorRecebido ?? '0'), 0);
+      const saldoDevedorTotal = todosOsPacotes.reduce((acc, p) => acc + Math.max(0, parseFloat(p.valorTotal ?? p.valorPago ?? '0') - parseFloat(p.valorRecebido ?? '0')), 0);
       const pacotesAtivos = todosOsPacotes.filter(p => p.status === 'ativo').length;
       const pacotesConcluidos = todosOsPacotes.filter(p => p.status === 'concluido').length;
       const pacotesCancelados = todosOsPacotes.filter(p => p.status === 'cancelado').length;
@@ -665,7 +798,7 @@ export const pacotesRouter = router({
         if (!p.dataAbertura) return;
         const d = new Date(p.dataAbertura);
         const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        receitaPorMes[chave] = (receitaPorMes[chave] ?? 0) + parseFloat(p.valorPago ?? '0');
+        receitaPorMes[chave] = (receitaPorMes[chave] ?? 0) + parseFloat(p.valorRecebido ?? '0');
       });
 
       // Sessões por serviço (consumidas vs total)
@@ -692,6 +825,7 @@ export const pacotesRouter = router({
 
       return {
         receitaTotal,
+        saldoDevedorTotal,
         pacotesAtivos,
         pacotesConcluidos,
         pacotesCancelados,
@@ -1067,13 +1201,16 @@ export const pacotesRouter = router({
 
       // Resetar sessões dos itens do pacote
       await db.update(pacotesClientesItens)
-        .set({ quantidadeUsada: 0 })
+        .set({ quantidadeUsada: 0, quantidadeReservada: 0 })
         .where(eq(pacotesClientesItens.pacoteClienteId, input.pacoteClienteId));
 
       // Atualizar o pacote para ativo com novo valor e vencimento
       await db.update(pacotesClientes).set({
         status: "ativo",
         valorPago: String(input.valorPago),
+        valorTotal: String(input.valorPago),
+        valorRecebido: String(input.valorPago),
+        statusPagamento: "pago",
         formaPagamento: input.formaPagamento,
         numeroParcelas,
         valorParcela: valorParcela !== null ? String(valorParcela) : undefined,
@@ -1084,6 +1221,14 @@ export const pacotesRouter = router({
         eq(pacotesClientes.id, input.pacoteClienteId),
         eq(pacotesClientes.empresaId, empId),
       ));
+      await db.insert(pacotesClientesPagamentos).values({
+        pacoteClienteId: input.pacoteClienteId,
+        empresaId: empId,
+        valor: String(input.valorPago),
+        formaPagamento: input.formaPagamento,
+        tipo: "quitacao",
+        observacoes: "Pagamento registrado na renovação do pacote",
+      });
 
        // Buscar dados do cliente para notificações
       const [clienteRow] = await db.select({
@@ -1191,7 +1336,14 @@ export const pacotesRouter = router({
       // Nota: dataValidade usa date() no Drizzle MySQL → tipo string | null
       const updates: Partial<typeof pacotesClientes.$inferInsert> = {};
       if (input.nome !== undefined) updates.nome = input.nome;
-      if (input.valorPago !== undefined) updates.valorPago = String(input.valorPago);
+      if (input.valorPago !== undefined) {
+        if (input.valorPago < Number(pacote.valorRecebido ?? 0)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'O valor total não pode ser menor que o valor já recebido.' });
+        }
+        updates.valorPago = String(input.valorPago);
+        updates.valorTotal = String(input.valorPago);
+        updates.statusPagamento = input.valorPago <= 0 ? 'pendente' : Number(pacote.valorRecebido ?? 0) >= input.valorPago ? 'pago' : 'parcial';
+      }
       if (input.formaPagamento !== undefined) updates.formaPagamento = input.formaPagamento;
       if (input.numeroParcelas !== undefined) {
         updates.numeroParcelas = input.numeroParcelas;
@@ -1215,21 +1367,38 @@ export const pacotesRouter = router({
 
       // Atualizar itens se fornecidos
       if (input.itens && input.itens.length > 0) {
-        // Buscar itens existentes para preservar sessoesUsadas
+        // Atualizar em vez de apagar/recriar: itens vinculados a sessões futuras
+        // mantêm seu identificador e não perdem a relação com os agendamentos.
         const existentes = await db.select().from(pacotesClientesItens)
           .where(eq(pacotesClientesItens.pacoteClienteId, input.id));
-        await db.delete(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, input.id));
-        await db.insert(pacotesClientesItens).values(
-          input.itens.map(item => {
+        await db.transaction(async (tx) => {
+          for (const item of input.itens!) {
             const existente = existentes.find(e => e.servicoId === item.servicoId);
-            return {
-              pacoteClienteId: input.id,
-              servicoId: item.servicoId,
-              quantidadeTotal: item.quantidade,
-              quantidadeUsada: item.sessoesUsadas ?? existente?.quantidadeUsada ?? 0,
-            };
-          })
-        );
+            const usadas = item.sessoesUsadas ?? existente?.quantidadeUsada ?? 0;
+            const reservadas = existente?.quantidadeReservada ?? 0;
+            if (item.quantidade < usadas + reservadas) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'A quantidade não pode ser menor que as sessões já concluídas ou agendadas.' });
+            }
+            if (existente) {
+              await tx.update(pacotesClientesItens).set({ quantidadeTotal: item.quantidade, quantidadeUsada: usadas })
+                .where(eq(pacotesClientesItens.id, existente.id));
+            } else {
+              await tx.insert(pacotesClientesItens).values({
+                pacoteClienteId: input.id,
+                servicoId: item.servicoId,
+                quantidadeTotal: item.quantidade,
+                quantidadeUsada: 0,
+                quantidadeReservada: 0,
+              });
+            }
+          }
+          for (const existente of existentes.filter(e => !input.itens!.some(item => item.servicoId === e.servicoId))) {
+            if ((existente.quantidadeUsada ?? 0) > 0 || (existente.quantidadeReservada ?? 0) > 0) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Não é possível remover um serviço que possui sessões concluídas ou agendadas.' });
+            }
+            await tx.delete(pacotesClientesItens).where(eq(pacotesClientesItens.id, existente.id));
+          }
+        });
       }
 
       return { ok: true };

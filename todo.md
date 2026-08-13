@@ -2822,3 +2822,11 @@
 - [x] Criar endpoint atômico para abrir pacote e criar múltiplos agendamentos com validação de conflito
 - [x] Criar evento configurável de automação “Pacote agendado” com lista das sessões
 - [x] Exibir e gerenciar sessões disponíveis, agendadas e concluídas no card do pacote
+- [x] Corrigir pacotes concluídos indevidamente por sessões apenas agendadas
+- [x] Permitir reabrir pacotes concluídos indevidamente sem perder sessões ou agenda
+- [x] Adicionar registro de sinal, pagamentos parciais, valor pago e saldo devedor em pacotes
+- [x] Desvincular a cobrança do pacote dos valores financeiros individuais dos agendamentos vinculados
+- [x] Auditar e documentar o acesso master/impersonation de suporte administrativo
+- [ ] Implementar acesso de suporte auditável caso não exista recurso master seguro
+- [ ] Projetar sessão temporária de suporte por empresa com consentimento, expiração e registro de auditoria
+- [ ] Remover dependência de credenciais administrativas fixas antes de habilitar impersonation em produção

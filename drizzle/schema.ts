@@ -755,6 +755,9 @@ export const pacotesClientes = mysqlTable("pacotes_clientes", {
   modeloId: int("modeloId"), // null se pacote avulso
   nome: varchar("nome", { length: 150 }).notNull(), // cópia do nome do modelo
   valorPago: decimal("valorPago", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  valorRecebido: decimal("valorRecebido", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  statusPagamento: mysqlEnum("statusPagamento", ["pendente", "parcial", "pago"]).default("pendente").notNull(),
   formaPagamento: varchar("formaPagamento", { length: 60 }),
   numeroParcelas: int("numeroParcelas").default(1).notNull(),
   valorParcela: decimal("valorParcela", { precision: 10, scale: 2 }),
@@ -778,6 +781,20 @@ export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
   quantidadeReservada: int("quantidadeReservada").notNull().default(0), // sessões já agendadas para o futuro
 });
 export type PacoteClienteItem = typeof pacotesClientesItens.$inferSelect;
+
+/** Cada entrada financeira recebida para um pacote. */
+export const pacotesClientesPagamentos = mysqlTable("pacotes_clientes_pagamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  pacoteClienteId: int("pacoteClienteId").notNull(),
+  empresaId: int("empresaId").notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  formaPagamento: varchar("formaPagamento", { length: 60 }),
+  tipo: mysqlEnum("tipo", ["sinal", "parcial", "quitacao"]).default("parcial").notNull(),
+  observacoes: text("observacoes"),
+  dataPagamento: timestamp("dataPagamento").defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+export type PacoteClientePagamento = typeof pacotesClientesPagamentos.$inferSelect;
 
 /** Notificações enviadas sobre pacotes prestes a vencer */
 export const notificacoesPacotes = mysqlTable("notificacoes_pacotes", {
