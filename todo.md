@@ -2832,3 +2832,7 @@
 - [ ] Remover dependência de credenciais administrativas fixas antes de habilitar impersonation em produção
 - [x] Corrigir confirmação rápida de pré-agendamento para registrar sinal e enviar automação de agendamento criado
 - [x] Validar e corrigir mensagens de automação enviadas após cancelamento manual de agendamento
+- [x] Corrigir reaproveitamento de automações que pode enviar mensagem após cancelamento manual
+- [x] Exibir no histórico o horário real de envio da automação, sem reutilizar data antiga
+- [x] Centralizar a revogação de todas as automações vinculadas ao cancelar um agendamento
+- [x] Impedir atomicamente que workers enviem automação após a revogação do agendamento

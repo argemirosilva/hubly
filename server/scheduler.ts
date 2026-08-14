@@ -9,7 +9,7 @@
  * │  NUNCA monte texto fixo no código. Ver WHATSAPP_POLICY.md                  │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
-import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
+import { getDb, registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
 import { provisionarTemplateRemarcadoExistentes } from "./automation-templates";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
@@ -1686,7 +1686,7 @@ export async function processarFilaPendente() {
         if (!automacaoAtual || !automacaoAtual.ativo) {
           const motivo = !automacaoAtual ? 'Automação excluída' : 'Automação desativada pelo usuário';
           await db.update(historicoEnviosAutomacao)
-            .set({ status: 'cancelado', erroDetalhe: motivo })
+            .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: motivo })
             .where(eq(historicoEnviosAutomacao.id, item.id));
           console.log(`[Fila] Envio ${item.id} cancelado — ${motivo} (automacaoId: ${item.automacaoId})`);
           continue;
@@ -1694,7 +1694,7 @@ export async function processarFilaPendente() {
       }
       if (!item.telefone || !item.mensagem) {
         await db.update(historicoEnviosAutomacao)
-          .set({ status: 'falhou', erroDetalhe: 'Telefone ou mensagem ausente' })
+          .set({ status: 'falhou', messageStatus: 'failed', erroDetalhe: 'Telefone ou mensagem ausente' })
           .where(eq(historicoEnviosAutomacao.id, item.id));
         continue;
       }
@@ -1706,11 +1706,29 @@ export async function processarFilaPendente() {
           .limit(1);
         if (agStatus && deveInterromperAutomacoesDoAgendamento(agStatus.status)) {
           await db.update(historicoEnviosAutomacao)
-            .set({ status: 'cancelado', erroDetalhe: `Agendamento ${agStatus.status} — envio bloqueado` })
+            .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: `Agendamento ${agStatus.status} — envio bloqueado` })
             .where(eq(historicoEnviosAutomacao.id, item.id));
           console.log(`[Fila] Envio ${item.id} bloqueado — agendamento ${item.agendamentoId} está ${agStatus.status}`);
           continue;
         }
+      }
+
+      // Reivindicar o item antes de enviar. Em produção pode haver mais de uma
+      // instância do worker; somente quem trocar pendente/agendado para
+      // processando continua. Se o cancelamento chegou antes, esta atualização
+      // não afeta nenhuma linha e o envio é descartado.
+      const reivindicacao = await db.update(historicoEnviosAutomacao)
+        .set({ status: "processando", messageStatus: "queued" })
+        .where(and(
+          eq(historicoEnviosAutomacao.id, item.id),
+          or(
+            eq(historicoEnviosAutomacao.status, "pendente"),
+            eq(historicoEnviosAutomacao.status, "agendado"),
+          ),
+        ));
+      if (Number((reivindicacao as any).rowsAffected ?? 0) !== 1) {
+        console.log(`[Fila] Envio ${item.id} ignorado — foi cancelado ou assumido por outro worker`);
+        continue;
       }
 
       // Substituir placeholder __LINK_CONFIRMACAO__ pelo token fresco gerado agora.
@@ -1741,6 +1759,14 @@ export async function processarFilaPendente() {
         // A mensagem pode ter sido selecionada para este ciclo pouco antes de
         // a usuária cancelar/remarcar o agendamento. Revalidar no último ponto
         // possível evita que ela atravesse essa janela de concorrência.
+        const [filaAtual] = await db.select({ status: historicoEnviosAutomacao.status })
+          .from(historicoEnviosAutomacao)
+          .where(eq(historicoEnviosAutomacao.id, item.id))
+          .limit(1);
+        if (filaAtual?.status !== "processando") {
+          console.log(`[Fila] Envio ${item.id} revogado antes do WhatsApp`);
+          continue;
+        }
         if (item.agendamentoId) {
           const [statusFinalAgendamento] = await db.select({ status: agendamentos.status })
             .from(agendamentos)
@@ -1748,8 +1774,8 @@ export async function processarFilaPendente() {
             .limit(1);
           if (statusFinalAgendamento && deveInterromperAutomacoesDoAgendamento(statusFinalAgendamento.status)) {
             await db.update(historicoEnviosAutomacao)
-              .set({ status: 'cancelado', erroDetalhe: `Agendamento ${statusFinalAgendamento.status} — envio bloqueado antes do WhatsApp` })
-              .where(eq(historicoEnviosAutomacao.id, item.id));
+              .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: `Agendamento ${statusFinalAgendamento.status} — envio bloqueado antes do WhatsApp` })
+              .where(and(eq(historicoEnviosAutomacao.id, item.id), eq(historicoEnviosAutomacao.status, "processando")));
             console.log(`[Fila] Envio ${item.id} bloqueado na validação final — agendamento ${item.agendamentoId} está ${statusFinalAgendamento.status}`);
             continue;
           }
@@ -1763,6 +1789,7 @@ export async function processarFilaPendente() {
           await db.update(historicoEnviosAutomacao)
             .set({
               status: 'falhou',
+              messageStatus: 'failed',
               erroDetalhe: 'Limite mensal de notificações WhatsApp do plano atingido',
             })
             .where(eq(historicoEnviosAutomacao.id, item.id));
@@ -1814,9 +1841,11 @@ export async function processarFilaPendente() {
         await db.update(historicoEnviosAutomacao)
           .set({
             status: enviado ? 'enviado' : 'falhou',
+            messageStatus: enviado ? 'sent' : 'failed',
+            enviadoEm: enviado ? new Date() : null,
             erroDetalhe: enviado ? (erroDetalhe ?? null) : (erroDetalhe ?? 'Falha ao enviar via WhatsApp'),
           })
-          .where(eq(historicoEnviosAutomacao.id, item.id));
+          .where(and(eq(historicoEnviosAutomacao.id, item.id), eq(historicoEnviosAutomacao.status, "processando")));
 
         if (enviado) {
           // Incrementar contador de uso
@@ -1969,6 +1998,10 @@ async function cancelarPreAgendamentosExpirados() {
         await db.update(agendamentos)
           .set({ status: 'cancelado' })
           .where(eq(agendamentos.id, ag.id));
+        await cancelarEnviosPendentesDoAgendamento(
+          ag.id,
+          "Pré-agendamento cancelado por expiração de sinal — automações futuras revogadas",
+        );
         totalCancelados++;
         console.log(`[Scheduler] Pré-agendamento ${ag.id} cancelado por expiração de reserva (${horasExpiracao}h)`);
 

@@ -4,7 +4,7 @@
  */
 import { publicProcedure, router } from "../_core/trpc";
 import { z } from "zod";
-import { getDb } from "../db";
+import { getDb, cancelarEnviosPendentesDoAgendamento } from "../db";
 import {
   empresas, profissionais, servicos, agendamentos, clientes, bloqueiosAgenda, agendamentoItens,
   profissionalServicos,
@@ -965,6 +965,10 @@ export const portalRouter = router({
       await db.update(agendamentos)
         .set({ status: 'cancelado' })
         .where(eq(agendamentos.id, input.agendamentoId));
+      await cancelarEnviosPendentesDoAgendamento(
+        input.agendamentoId,
+        "Cancelado pela cliente no portal — automações futuras revogadas",
+      );
 
       // ── Notificar admin e profissional via push ──────────────────────────────
       try {

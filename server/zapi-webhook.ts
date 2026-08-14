@@ -12,7 +12,7 @@
 import type { Express } from "express";
 import { getDb } from "./db";
 import { historicoEnviosAutomacao } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 type ZapiMessageStatus = "sent" | "delivered" | "read" | "failed";
 
@@ -64,7 +64,10 @@ export function registerZapiWebhook(app: Express) {
             messageStatus: status,
             messageStatusAt: new Date(),
           })
-          .where(eq(historicoEnviosAutomacao.zapiMessageId, messageId));
+          .where(and(
+            eq(historicoEnviosAutomacao.zapiMessageId, messageId),
+            ne(historicoEnviosAutomacao.status, "cancelado"),
+          ));
       }
 
       console.log(`[ZapiWebhook] messageId=${messageId} status=${status}`);

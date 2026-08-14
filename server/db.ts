@@ -1946,12 +1946,18 @@ export async function cancelarEnviosPendentesDoAgendamento(
   if (!db) return 0;
 
   const resultado = await db.update(historicoEnviosAutomacao)
-    .set({ status: "cancelado", erroDetalhe: motivo })
+    .set({
+      status: "cancelado",
+      messageStatus: "cancelled",
+      canceladoEm: new Date(),
+      erroDetalhe: motivo,
+    })
     .where(and(
       eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
       or(
         eq(historicoEnviosAutomacao.status, "pendente"),
         eq(historicoEnviosAutomacao.status, "agendado"),
+        eq(historicoEnviosAutomacao.status, "processando"),
       ),
     ));
 
@@ -1968,9 +1974,10 @@ export async function registrarEnvioAutomacao(data: {
   telefone?: string;
   canal?: "whatsapp" | "email" | "sms" | "lembrete";
   mensagem?: string;
-  status?: "enviado" | "falhou" | "pendente" | "agendado";
+  status?: "enviado" | "falhou" | "pendente" | "agendado" | "processando" | "cancelado";
   erroDetalhe?: string;
   enviarEm?: Date; // Data/hora programada para envio (para status pendente)
+  enviadoEm?: Date; // Horário efetivo de aceite pelo canal de envio
   midiaUrl?: string; // URL da mídia para envio (imagem/documento)
   isTeste?: boolean; // Flag de envio de teste
   servicoNome?: string; // Nome do serviço do agendamento
@@ -1987,6 +1994,47 @@ export async function registrarEnvioAutomacao(data: {
   if (!data.automacaoId && !isReenvio && !isTeste) {
     console.warn(`[GUARD] BLOQUEADO: tentativa de envio sem automacaoId. empresaId=${data.empresaId}, telefone=${data.telefone}, msg="${(data.mensagem ?? '').slice(0, 50)}...". Nenhuma mensagem será enviada.`);
     return;
+  }
+
+  if (data.agendamentoId) {
+    const [agendamentoAtual] = await db.select({ status: agendamentos.status })
+      .from(agendamentos)
+      .where(eq(agendamentos.id, data.agendamentoId))
+      .limit(1);
+    const statusInativo = ["cancelado", "faltou", "remarcado"].includes(agendamentoAtual?.status ?? "");
+    if (statusInativo) {
+      let eventoAutomacao: string | null = null;
+      if (data.automacaoId) {
+        const [automacao] = await db.select({ evento: automacoes.evento })
+          .from(automacoes)
+          .where(eq(automacoes.id, data.automacaoId))
+          .limit(1);
+        eventoAutomacao = automacao?.evento ?? null;
+      }
+      const permiteComunicacaoDoCancelamento = ["agendamento_cancelado", "pre_agendamento_cancelado"].includes(eventoAutomacao ?? "");
+      if (!permiteComunicacaoDoCancelamento) {
+        await db.insert(historicoEnviosAutomacao).values({
+          empresaId: data.empresaId,
+          automacaoId: data.automacaoId ?? null,
+          automacaoNome: data.automacaoNome ?? null,
+          clienteId: data.clienteId ?? null,
+          clienteNome: data.clienteNome ?? null,
+          agendamentoId: data.agendamentoId,
+          telefone: data.telefone ?? null,
+          canal: data.canal ?? "whatsapp",
+          mensagem: data.mensagem ?? null,
+          status: "cancelado",
+          messageStatus: "cancelled",
+          canceladoEm: new Date(),
+          erroDetalhe: `Bloqueado: agendamento ${agendamentoAtual?.status} antes de entrar na fila`,
+          midiaUrl: data.midiaUrl ?? null,
+          isTeste: data.isTeste ?? false,
+          servicoNome: data.servicoNome ?? null,
+        });
+        console.log(`[Fila] Envio bloqueado na origem — agendamento ${data.agendamentoId} está ${agendamentoAtual?.status}`);
+        return;
+      }
+    }
   }
 
   // Determinar status automaticamente: se enviarEm for > 60s no futuro → 'agendado'; caso contrário manter o status informado
@@ -2037,6 +2085,8 @@ export async function registrarEnvioAutomacao(data: {
     canal: data.canal ?? "whatsapp",
     mensagem: data.mensagem ?? null,
     status: statusFinal as any,
+    messageStatus: statusFinal === "enviado" ? "sent" : statusFinal === "falhou" ? "failed" : statusFinal === "cancelado" ? "cancelled" : "queued",
+    enviadoEm: data.enviadoEm ?? (statusFinal === "enviado" ? new Date() : null),
     erroDetalhe: data.erroDetalhe ?? null,
     enviarEm: data.enviarEm ?? null,
     midiaUrl: data.midiaUrl ?? null,

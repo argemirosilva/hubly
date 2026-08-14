@@ -2503,7 +2503,7 @@ export const appRouter = router({
           .select()
           .from(hea)
           .where(and(eq(hea.empresaId, empresa.id), eq(hea.agendamentoId, input.agendamentoId)))
-          .orderBy(desc(hea.criadoEm))
+          .orderBy(desc(sql`COALESCE(${hea.enviadoEm}, ${hea.canceladoEm}, ${hea.enviarEm}, ${hea.criadoEm})`))
           .limit(50);
         return rows;
       }),
@@ -3976,6 +3976,17 @@ export const appRouter = router({
 
         const envio = await getEnvioById(input.envioId, empresa.id);
         if (!envio) throw new TRPCError({ code: "NOT_FOUND", message: "Envio não encontrado" });
+
+        if (envio.agendamentoId) {
+          const db = await getDb();
+          const [agendamentoAtual] = db ? await db.select({ status: agendamentos.status })
+            .from(agendamentos)
+            .where(eq(agendamentos.id, envio.agendamentoId))
+            .limit(1) : [];
+          if (agendamentoAtual && ["cancelado", "faltou", "remarcado"].includes(agendamentoAtual.status)) {
+            throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Não é possível reenviar uma automação de agendamento cancelado, remarcado ou marcado como falta." });
+          }
+        }
 
         // Tentar reenviar via WhatsApp (roteamento inteligente: Pro=Z-API, demais=Baileys)
         if (!envio.telefone || !envio.mensagem) {
@@ -6228,6 +6239,10 @@ export const appRouter = router({
         if (!ag || ag.status === 'cancelado') return { resultado: 'ja_cancelado' as const };
         if (ag.status === 'concluido') return { resultado: 'ja_concluido' as const };
         await db.update(agTbl).set({ status: 'cancelado' }).where(eq(agTbl.id, tokenRow.agendamentoId));
+        await cancelarEnviosPendentesDoAgendamento(
+          tokenRow.agendamentoId,
+          "Cancelado pela cliente no link de confirmação — automações futuras revogadas",
+        );
         await db.update(tbl).set({ usadoEm: agora }).where(eq(tbl.id, tokenRow.id));
         // Disparar automação agendamento_cancelado_pelo_cliente
         try {

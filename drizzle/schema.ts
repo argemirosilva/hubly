@@ -382,15 +382,17 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   telefone: varchar("telefone", { length: 30 }),
   canal: mysqlEnum("canal", ["whatsapp", "email", "sms", "lembrete"]).default("whatsapp").notNull(),
   mensagem: text("mensagem"),
-  status: mysqlEnum("status", ["enviado", "falhou", "pendente", "agendado", "cancelado"]).default("enviado").notNull(),
+  status: mysqlEnum("status", ["enviado", "falhou", "pendente", "agendado", "processando", "cancelado"]).default("enviado").notNull(),
   erroDetalhe: text("erroDetalhe"),
   midiaUrl: text("midiaUrl"),
   isTeste: boolean("isTeste").default(false),
   enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
   servicoNome: varchar("servicoNome", { length: 255 }), // Nome do serviço do agendamento
   zapiMessageId: varchar("zapiMessageId", { length: 255 }), // ID da mensagem retornado pela Z-API
-  messageStatus: mysqlEnum("messageStatus", ["sent", "delivered", "read", "failed"]).default("sent"), // Status de entrega Z-API
+  messageStatus: mysqlEnum("messageStatus", ["queued", "sent", "delivered", "read", "failed", "cancelled"]).default("queued"), // Status de entrega Z-API
   messageStatusAt: timestamp("messageStatusAt"), // Quando o status foi atualizado
+  enviadoEm: timestamp("enviadoEm"), // Horário real em que o provedor aceitou o envio
+  canceladoEm: timestamp("canceladoEm"), // Horário em que a fila foi revogada
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
 });
 

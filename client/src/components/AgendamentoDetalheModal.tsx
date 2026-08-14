@@ -1485,9 +1485,16 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
               {mostrarMensagens && (
                 <div className="divide-y" style={{ borderColor: "oklch(89.5% 0.018 80)" }}>
                   {mensagens.map((m: any) => {
-                    const statusColor = m.status === 'enviado' ? 'text-green-600' : m.status === 'falhou' ? 'text-red-500' : 'text-amber-500';
-                    const statusLabel = m.status === 'enviado' ? 'Enviado' : m.status === 'falhou' ? 'Falhou' : m.status === 'pendente' ? 'Pendente' : 'Agendado';
-                    const deliveryLabel = m.messageStatus === 'read' ? '✓✓ Lido' : m.messageStatus === 'delivered' ? '✓✓ Entregue' : m.messageStatus === 'sent' ? '✓ Enviado' : m.messageStatus === 'failed' ? '✗ Falhou' : null;
+                    const statusColor = m.status === 'enviado' ? 'text-green-600' : m.status === 'falhou' ? 'text-red-500' : m.status === 'cancelado' ? 'text-muted-foreground' : m.status === 'processando' ? 'text-blue-600' : 'text-amber-500';
+                    const statusLabel = m.status === 'enviado' ? 'Enviado' : m.status === 'falhou' ? 'Falhou' : m.status === 'cancelado' ? 'Cancelado' : m.status === 'processando' ? 'Processando' : m.status === 'pendente' ? 'Pendente' : 'Agendado';
+                    const deliveryLabel = m.status === 'enviado' && m.messageStatus === 'read' ? '✓✓ Lido' : m.status === 'enviado' && m.messageStatus === 'delivered' ? '✓✓ Entregue' : m.status === 'enviado' && m.messageStatus === 'sent' ? '✓ Enviado' : m.status === 'falhou' || m.messageStatus === 'failed' ? '✗ Falhou' : null;
+                    const horarioEvento = m.status === 'enviado' ? (m.enviadoEm ?? m.messageStatusAt ?? m.criadoEm) : m.status === 'cancelado' ? (m.canceladoEm ?? m.criadoEm) : m.status === 'agendado' ? (m.enviarEm ?? m.criadoEm) : m.criadoEm;
+                    const horarioLabel = m.status === 'enviado'
+                      ? (m.enviadoEm ? 'Enviado em' : m.messageStatusAt ? 'Status atualizado em' : 'Criado na fila em')
+                      : m.status === 'cancelado'
+                        ? (m.canceladoEm ? 'Cancelado em' : 'Registro cancelado; criado em')
+                        : m.status === 'agendado' ? 'Agendado para' : 'Criado em';
+                    const podeReenviar = m.status !== 'cancelado' && m.status !== 'processando';
                     const isReenviando = reenvioId === m.id && reenviarMensagemMut.isPending;
                     return (
                       <div key={m.id} className="px-4 py-3 space-y-1.5">
@@ -1495,7 +1502,7 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                           <span className="text-xs font-semibold text-foreground truncate flex-1">{m.automacaoNome || 'Automação'}</span>
                           <div className="flex items-center gap-2">
                             <span className={`text-[10px] font-semibold ${statusColor}`}>{statusLabel}</span>
-                            <button
+                            {podeReenviar && <button
                               title="Reenviar mensagem"
                               disabled={isReenviando}
                               onClick={() => { setPreviewEnvioId(m.id); }}
@@ -1504,11 +1511,11 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
                             >
                               {isReenviando ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <MessageCircle className="w-2.5 h-2.5" />}
                               {isReenviando ? 'Enviando...' : 'Reenviar'}
-                            </button>
+                            </button>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>{new Date(m.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>{horarioLabel}: {new Date(horarioEvento).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                           {deliveryLabel && <span className="text-green-600 font-medium">{deliveryLabel}</span>}
                         </div>
                         {m.mensagem && (
