@@ -61,7 +61,7 @@ import {
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
   getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
-  registrarEnvioAutomacao, getHistoricoEnvios, contarFalhasRecentes, getEnvioById,
+  registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, getHistoricoEnvios, contarFalhasRecentes, getEnvioById,
   getMeiosPagamentoByEmpresa, getMeioPagamentoById, createMeioPagamento, updateMeioPagamento, deleteMeioPagamento,
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
@@ -85,6 +85,7 @@ import {
   getPessoasByAgendamentos,
   jaEnviouNaCriacaoDoAgendamento,
 } from "./db";
+import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, checkSuspended, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1460,6 +1461,19 @@ export const appRouter = router({
         if (data.status === "concluido") updates.concluidoEm = new Date();
         if (data.reservaPaga) updates.reservaPagaEm = new Date();
         await updateAgendamento(id, updates);
+
+        // Cancelamento e remarcação devem retirar imediatamente os lembretes
+        // já enfileirados. A automação de cancelamento é criada mais abaixo,
+        // depois desta limpeza, e continua podendo ser enviada normalmente.
+        if (deveInterromperAutomacoesDoAgendamento(data.status)) {
+          const enviosCancelados = await cancelarEnviosPendentesDoAgendamento(
+            id,
+            `Agendamento ${data.status} manualmente — envio preventivamente cancelado`,
+          );
+          if (enviosCancelados > 0) {
+            console.log(`[Fila] ${enviosCancelados} envio(s) pendente(s) cancelado(s) ao atualizar agendamento ${id} para ${data.status}`);
+          }
+        }
 
         // ── Sessões de pacote: consumir na conclusão e liberar na alteração ──
         const statusLiberaReserva = ["cancelado", "faltou", "remarcado"].includes(data.status ?? "");

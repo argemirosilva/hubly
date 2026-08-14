@@ -2831,3 +2831,4 @@
 - [ ] Projetar sessão temporária de suporte por empresa com consentimento, expiração e registro de auditoria
 - [ ] Remover dependência de credenciais administrativas fixas antes de habilitar impersonation em produção
 - [x] Corrigir confirmação rápida de pré-agendamento para registrar sinal e enviar automação de agendamento criado
+- [x] Validar e corrigir mensagens de automação enviadas após cancelamento manual de agendamento

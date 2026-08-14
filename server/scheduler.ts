@@ -10,6 +10,7 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import { getDb, registrarEnvioAutomacao, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
+import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
 import { provisionarTemplateRemarcadoExistentes } from "./automation-templates";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
 import {
@@ -1703,7 +1704,7 @@ export async function processarFilaPendente() {
           .from(agendamentos)
           .where(eq(agendamentos.id, item.agendamentoId))
           .limit(1);
-        if (agStatus && (agStatus.status === 'cancelado' || agStatus.status === 'faltou')) {
+        if (agStatus && deveInterromperAutomacoesDoAgendamento(agStatus.status)) {
           await db.update(historicoEnviosAutomacao)
             .set({ status: 'cancelado', erroDetalhe: `Agendamento ${agStatus.status} — envio bloqueado` })
             .where(eq(historicoEnviosAutomacao.id, item.id));
@@ -1736,6 +1737,23 @@ export async function processarFilaPendente() {
       try {
         let enviado = false;
         let erroDetalhe: string | null = null;
+
+        // A mensagem pode ter sido selecionada para este ciclo pouco antes de
+        // a usuária cancelar/remarcar o agendamento. Revalidar no último ponto
+        // possível evita que ela atravesse essa janela de concorrência.
+        if (item.agendamentoId) {
+          const [statusFinalAgendamento] = await db.select({ status: agendamentos.status })
+            .from(agendamentos)
+            .where(eq(agendamentos.id, item.agendamentoId))
+            .limit(1);
+          if (statusFinalAgendamento && deveInterromperAutomacoesDoAgendamento(statusFinalAgendamento.status)) {
+            await db.update(historicoEnviosAutomacao)
+              .set({ status: 'cancelado', erroDetalhe: `Agendamento ${statusFinalAgendamento.status} — envio bloqueado antes do WhatsApp` })
+              .where(eq(historicoEnviosAutomacao.id, item.id));
+            console.log(`[Fila] Envio ${item.id} bloqueado na validação final — agendamento ${item.agendamentoId} está ${statusFinalAgendamento.status}`);
+            continue;
+          }
+        }
 
         // ── Verificar teto de notificações WhatsApp do plano ─────────────────────
         // Se a empresa atingiu o limite mensal, não envia e registra o motivo.

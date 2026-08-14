@@ -1933,6 +1933,31 @@ export async function importarAgendamentosParaContasReceber(empresaId: number) {
 
 // ─── HISTÓRICO DE ENVIOS DE AUTOMAÇÕES ────────────────────────────────────────
 
+/**
+ * Remove da fila os lembretes e automações que ainda não foram enviados para um
+ * agendamento inativo. A automação do próprio cancelamento é inserida depois
+ * deste passo e, portanto, não é afetada.
+ */
+export async function cancelarEnviosPendentesDoAgendamento(
+  agendamentoId: number,
+  motivo = "Agendamento cancelado ou indisponível"
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const resultado = await db.update(historicoEnviosAutomacao)
+    .set({ status: "cancelado", erroDetalhe: motivo })
+    .where(and(
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      or(
+        eq(historicoEnviosAutomacao.status, "pendente"),
+        eq(historicoEnviosAutomacao.status, "agendado"),
+      ),
+    ));
+
+  return Number((resultado as any).rowsAffected ?? 0);
+}
+
 export async function registrarEnvioAutomacao(data: {
   empresaId: number;
   automacaoId?: number;
