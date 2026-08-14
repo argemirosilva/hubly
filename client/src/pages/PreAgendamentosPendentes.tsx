@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import AgendamentoDetalheModal from "@/components/AgendamentoDetalheModal";
 import { useLocation } from "wouter";
+import { obterOperacaoPreAgendamento } from "../../../shared/pre-agendamento-acao";
 
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
@@ -60,16 +61,32 @@ export default function PreAgendamentosPendentes() {
     },
   });
 
+  const confirmarReservaMutation = trpc.agendamentos.confirmarReserva.useMutation({
+    onSuccess: () => {
+      toast.success("Reserva recebida e agendamento confirmado!");
+      utils.agendamentos.listPreAgendamentosPendentes.invalidate();
+      utils.agendamentos.contarPreAgendamentosPendentes.invalidate();
+      utils.agendamentos.list.invalidate();
+      utils.agendamentos.getById.invalidate();
+      setConfirmAction(null);
+    },
+    onError: (err) => {
+      toast.error(`Erro ao confirmar reserva: ${err.message}`);
+      setConfirmAction(null);
+    },
+  });
+
   function handleAction(id: number, action: "confirmar" | "cancelar") {
     setConfirmAction({ id, action });
   }
 
   function executeAction() {
     if (!confirmAction) return;
-    updateMutation.mutate({
-      id: confirmAction.id,
-      status: confirmAction.action === "confirmar" ? "agendado" : "cancelado",
-    });
+    if (obterOperacaoPreAgendamento(confirmAction.action) === "confirmar_reserva") {
+      confirmarReservaMutation.mutate({ id: confirmAction.id });
+      return;
+    }
+    updateMutation.mutate({ id: confirmAction.id, status: "cancelado" });
   }
 
   const total = pendentes?.length ?? 0;
@@ -202,7 +219,7 @@ export default function PreAgendamentosPendentes() {
                   size="sm"
                   className="text-[11px] h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full"
                   onClick={() => handleAction(ag.id, "cancelar")}
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || confirmarReservaMutation.isPending}
                 >
                   <XCircle className="w-3 h-3 mr-1" />
                   Cancelar
@@ -211,7 +228,7 @@ export default function PreAgendamentosPendentes() {
                   size="sm"
                   className="text-[11px] h-8 bg-primary hover:bg-primary/90 text-white w-full"
                   onClick={() => handleAction(ag.id, "confirmar")}
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || confirmarReservaMutation.isPending}
                 >
                   <CheckCircle className="w-3 h-3 mr-1" />
                   Confirmar
@@ -231,7 +248,7 @@ export default function PreAgendamentosPendentes() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.action === "confirmar"
-                ? "O status será alterado para Agendado e o cliente poderá receber uma notificação."
+                ? "A reserva será marcada como recebida, o valor do sinal será lançado no financeiro e a mensagem de agendamento criado será enviada conforme sua automação."
                 : "O agendamento será marcado como Cancelado. Esta ação pode ser desfeita manualmente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -241,7 +258,7 @@ export default function PreAgendamentosPendentes() {
               onClick={executeAction}
               className={confirmAction?.action === "cancelar" ? "bg-red-600 hover:bg-red-700" : ""}
             >
-              {confirmAction?.action === "confirmar" ? "Confirmar" : "Cancelar agendamento"}
+              {confirmAction?.action === "confirmar" ? (confirmarReservaMutation.isPending ? "Confirmando..." : "Confirmar reserva") : "Cancelar agendamento"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
