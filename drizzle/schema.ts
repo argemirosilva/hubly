@@ -391,6 +391,7 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   zapiMessageId: varchar("zapiMessageId", { length: 255 }), // ID da mensagem retornado pela Z-API
   messageStatus: mysqlEnum("messageStatus", ["queued", "sent", "delivered", "read", "failed", "cancelled"]).default("queued"), // Status de entrega Z-API
   messageStatusAt: timestamp("messageStatusAt"), // Quando o status foi atualizado
+  processandoEm: timestamp("processandoEm"), // Início da posse do worker, para recuperar envios interrompidos
   enviadoEm: timestamp("enviadoEm"), // Horário real em que o provedor aceitou o envio
   canceladoEm: timestamp("canceladoEm"), // Horário em que a fila foi revogada
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),

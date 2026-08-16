@@ -1,0 +1,5 @@
+[2026-08-16T23:31:54.128Z] [Scheduler] preRegistrarEnviosPendentes iniciado em 2026-08-16T23:31:54.127Z
+[2026-08-16T23:31:54.176Z] [Job] Verificando agendamentos entre 2026-08-17T00:26:54.176Z e 2026-08-17T00:36:54.176Z
+[2026-08-16T23:31:54.177Z] [Job] Notificações de agendamento: verificação concluída
+[2026-08-16T23:31:54.179Z] [Scheduler] processarAutomacoesAgendadas iniciado em 2026-08-16T23:31:54.178Z
+[2026-08-16T23:31:55.166Z] [Scheduler] Empresas com automações: dias_antes=0, horas_antes=1, horas_apos=0, total=1

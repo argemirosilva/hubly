@@ -12,6 +12,7 @@
 import { ENV } from "./_core/env";
 
 const BASE_URL = "https://api.z-api.io";
+const ZAPI_ENVIO_TIMEOUT_MS = 20_000;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export interface ZapiSendResult {
@@ -98,6 +99,7 @@ async function zapiPost(creds: ZapiCreds, endpoint: string, body: Record<string,
       method: "POST",
       headers: zapiHeaders(creds),
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(ZAPI_ENVIO_TIMEOUT_MS),
     });
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -111,7 +113,9 @@ async function zapiPost(creds: ZapiCreds, endpoint: string, body: Record<string,
     const messageId = (data?.zaapId as string) ?? (data?.messageId as string) ?? undefined;
     return { ok: true, messageId };
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
+    const errMsg = err instanceof Error && err.name === "TimeoutError"
+      ? `Tempo limite de ${ZAPI_ENVIO_TIMEOUT_MS / 1000}s ao comunicar com a Z-API`
+      : err instanceof Error ? err.message : String(err);
     console.error(`[Z-API] Exceção ao chamar ${endpoint}:`, errMsg);
     return { ok: false, error: errMsg };
   }

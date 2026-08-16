@@ -11,6 +11,7 @@
  */
 import { getDb, registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
+import { quantidadeLinhasAtualizadas, TEMPO_MAXIMO_PROCESSANDO_MS } from "./fila-recuperacao";
 import { provisionarTemplateRemarcadoExistentes } from "./automation-templates";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
 import {
@@ -1578,6 +1579,7 @@ function deveExecutarNaHora(horaAlvo: number): boolean {
 // // ── Worker: processar fila de envios pendentes ────────────────────────────────────────────────
 // Processa todos os pendentes com enviarEm <= agora.
 // Expira itens com enviarEm + 4h < agora (remove da fila).
+// Recupera itens órfãos se um worker for interrompido durante o envio.
 let _filaProcessando = false;
 export async function processarFilaPendente() {
   if (_filaProcessando) return;
@@ -1595,6 +1597,7 @@ export async function processarFilaPendente() {
 
     const agora = new Date();
     const expiracaoLimite = new Date(agora.getTime() - 4 * 60 * 60 * 1000); // agora - 4h
+    const recuperacaoProcessandoLimite = new Date(agora.getTime() - TEMPO_MAXIMO_PROCESSANDO_MS);
 
     // 1. Expirar itens pendentes/agendados com enviarEm + 4h < agora
     const expirados = await db
@@ -1617,7 +1620,41 @@ export async function processarFilaPendente() {
       console.log(`[Fila] ${expirados.length} item(ns) expirado(s) e marcado(s) como falhou`);
     }
 
-    // 2. Verificar se há itens para processar antes de checar conexão
+    // 2. Recuperar itens que ficaram em "processando" por interrupção do worker.
+    // A marca processandoEm é criada junto com a reivindicação atômica. Para
+    // registros antigos, sem essa marca, usamos enviarEm como referência.
+    const itensOrfaos = await db
+      .select({ id: historicoEnviosAutomacao.id })
+      .from(historicoEnviosAutomacao)
+      .where(and(
+        eq(historicoEnviosAutomacao.status, 'processando'),
+        or(
+          lte(historicoEnviosAutomacao.processandoEm, recuperacaoProcessandoLimite),
+          and(
+            isNull(historicoEnviosAutomacao.processandoEm),
+            lte(historicoEnviosAutomacao.enviarEm, recuperacaoProcessandoLimite),
+          ),
+        ),
+      ));
+
+    if (itensOrfaos.length > 0) {
+      for (const item of itensOrfaos) {
+        await db.update(historicoEnviosAutomacao)
+          .set({
+            status: 'pendente',
+            messageStatus: 'queued',
+            processandoEm: null,
+            erroDetalhe: 'Recuperado automaticamente após interrupção durante o envio',
+          })
+          .where(and(
+            eq(historicoEnviosAutomacao.id, item.id),
+            eq(historicoEnviosAutomacao.status, 'processando'),
+          ));
+      }
+      console.warn(`[Fila] ${itensOrfaos.length} item(ns) recuperado(s) de processamento interrompido`);
+    }
+
+    // 3. Verificar se há itens para processar antes de checar conexão
     // NOTA: A verificação de conexão é feita por empresa dentro do routedSendMessage/routedSendMedia,
     // pois empresas PRO usam Z-API (sem necessidade de Baileys conectado).
     // Apenas pular o ciclo se Baileys estiver desconectado E não houver empresas PRO na fila.
@@ -1625,7 +1662,7 @@ export async function processarFilaPendente() {
     const baileysConectado = waState.status === 'connected';
     // Continua mesmo com Baileys desconectado — routedSendMessage trata por empresa
 
-    // 3. Buscar pendentes/agendados com enviarEm <= agora (hora chegou)
+    // 4. Buscar pendentes/agendados com enviarEm <= agora (hora chegou)
     const pendentes = await db
       .select()
       .from(historicoEnviosAutomacao)
@@ -1718,7 +1755,7 @@ export async function processarFilaPendente() {
       // processando continua. Se o cancelamento chegou antes, esta atualização
       // não afeta nenhuma linha e o envio é descartado.
       const reivindicacao = await db.update(historicoEnviosAutomacao)
-        .set({ status: "processando", messageStatus: "queued" })
+        .set({ status: "processando", messageStatus: "queued", processandoEm: new Date() })
         .where(and(
           eq(historicoEnviosAutomacao.id, item.id),
           or(
@@ -1726,7 +1763,7 @@ export async function processarFilaPendente() {
             eq(historicoEnviosAutomacao.status, "agendado"),
           ),
         ));
-      if (Number((reivindicacao as any).rowsAffected ?? 0) !== 1) {
+      if (quantidadeLinhasAtualizadas(reivindicacao) !== 1) {
         console.log(`[Fila] Envio ${item.id} ignorado — foi cancelado ou assumido por outro worker`);
         continue;
       }
@@ -1842,6 +1879,7 @@ export async function processarFilaPendente() {
           .set({
             status: enviado ? 'enviado' : 'falhou',
             messageStatus: enviado ? 'sent' : 'failed',
+            processandoEm: null,
             enviadoEm: enviado ? new Date() : null,
             erroDetalhe: enviado ? (erroDetalhe ?? null) : (erroDetalhe ?? 'Falha ao enviar via WhatsApp'),
           })
@@ -1875,7 +1913,7 @@ export async function processarFilaPendente() {
         }
       } catch (err) {
         await db.update(historicoEnviosAutomacao)
-          .set({ status: 'falhou', erroDetalhe: String(err) })
+          .set({ status: 'falhou', messageStatus: 'failed', processandoEm: null, erroDetalhe: String(err) })
           .where(eq(historicoEnviosAutomacao.id, item.id));
         console.error(`[Fila] Erro ao enviar item ${item.id}:`, err);
       }

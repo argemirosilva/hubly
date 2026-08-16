@@ -8,6 +8,7 @@
  * - Confirmação automática: job de confirmação por proximidade
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { deveRecuperarEnvioProcessando, quantidadeLinhasAtualizadas } from "./fila-recuperacao";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 vi.mock("./db", () => ({
@@ -55,7 +56,7 @@ vi.mock("./_core/env", () => ({
 }));
 
 // ─── Tipos locais para simulação da fila ─────────────────────────────────────
-type StatusEnvio = "enviado" | "falhou" | "pendente" | "agendado";
+type StatusEnvio = "enviado" | "falhou" | "pendente" | "agendado" | "processando";
 
 interface EnvioFila {
   id: number;
@@ -66,6 +67,7 @@ interface EnvioFila {
   mensagem?: string;
   status: StatusEnvio;
   enviarEm?: Date;
+  processandoEm?: Date;
   erroDetalhe?: string;
   isTeste?: boolean;
   tentativas?: number;
@@ -220,6 +222,53 @@ describe("estaExpirado — expiração de envios na fila", () => {
       enviarEm: new Date(Date.now() + 60 * 60 * 1000), // 1h no futuro
     };
     expect(estaExpirado(envio)).toBe(false);
+  });
+});
+
+// ─── Testes: recuperação de processamento interrompido ───────────────────────
+describe("deveRecuperarEnvioProcessando — recuperação de worker interrompido", () => {
+  const agora = new Date("2026-08-16T20:00:00.000Z");
+
+  it("recupera o item que ficou processando por mais de cinco minutos", () => {
+    expect(deveRecuperarEnvioProcessando({
+      status: "processando",
+      processandoEm: new Date("2026-08-16T19:54:59.000Z"),
+    }, agora)).toBe(true);
+  });
+
+  it("mantém em processamento o envio assumido há menos de cinco minutos", () => {
+    expect(deveRecuperarEnvioProcessando({
+      status: "processando",
+      processandoEm: new Date("2026-08-16T19:56:00.000Z"),
+    }, agora)).toBe(false);
+  });
+
+  it("recupera registro legado sem processandoEm pela hora programada", () => {
+    expect(deveRecuperarEnvioProcessando({
+      status: "processando",
+      enviarEm: new Date("2026-08-16T19:50:00.000Z"),
+    }, agora)).toBe(true);
+  });
+
+  it("não recupera item que já saiu do status processando", () => {
+    expect(deveRecuperarEnvioProcessando({
+      status: "enviado",
+      processandoEm: new Date("2026-08-16T19:40:00.000Z"),
+    }, agora)).toBe(false);
+  });
+});
+
+describe("quantidadeLinhasAtualizadas — confirmação da reivindicação atômica", () => {
+  it("lê affectedRows do ResultSetHeader retornado pelo MySQL", () => {
+    expect(quantidadeLinhasAtualizadas([{ affectedRows: 1 }])).toBe(1);
+  });
+
+  it("aceita adaptadores que retornam rowsAffected diretamente", () => {
+    expect(quantidadeLinhasAtualizadas({ rowsAffected: 1 })).toBe(1);
+  });
+
+  it("trata ausência de linhas afetadas como uma reivindicação perdida", () => {
+    expect(quantidadeLinhasAtualizadas([{ affectedRows: 0 }])).toBe(0);
   });
 });
 

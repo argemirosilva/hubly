@@ -71,7 +71,7 @@ export async function routedSendMessage(
 
   if (plan === "PRO") {
     console.log(`[WA-Router] Empresa ${empresaId} (PRO) → Z-API`);
-    const result = await zapiSendText(telefone, mensagem);
+    const result = await zapiSendText(telefone, mensagem, empresaId);
     if (!result.ok) {
       console.warn(`[WA-Router] Z-API falhou para empresa ${empresaId}: ${result.error}`);
     }
@@ -104,7 +104,7 @@ export async function routedSendMedia(
 
   if (plan === "PRO") {
     console.log(`[WA-Router] Empresa ${empresaId} (PRO) → Z-API (mídia)`);
-    const result = await zapiSendMedia(telefone, mediaUrl, caption, mimeType);
+    const result = await zapiSendMedia(telefone, mediaUrl, caption, mimeType, empresaId);
     return result.ok;
   }
 

@@ -2836,3 +2836,7 @@
 - [x] Exibir no histórico o horário real de envio da automação, sem reutilizar data antiga
 - [x] Centralizar a revogação de todas as automações vinculadas ao cancelar um agendamento
 - [x] Impedir atomicamente que workers enviem automação após a revogação do agendamento
+- [x] Recuperar automações que ficaram presas em “processando” após falha ou reinício durante o envio
+- [x] Validar a retomada segura de mensagens órfãs na fila de automações
+- [x] Usar a instância WhatsApp da empresa e limitar o tempo de resposta do provedor para não travar a fila
+- [x] Corrigir a leitura do resultado da reivindicação atômica para que o worker efetivamente envie a mensagem assumida

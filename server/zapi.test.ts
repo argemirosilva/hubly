@@ -90,6 +90,17 @@ describe("Z-API — zapiSendText", () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain("Network error");
   });
+
+  it("deve encerrar com falha controlada quando a API excede o tempo limite", async () => {
+    const timeout = Object.assign(new Error("The operation was aborted"), { name: "TimeoutError" });
+    mockFetch.mockRejectedValueOnce(timeout);
+
+    const { zapiSendText } = await import("./zapi");
+    const result = await zapiSendText("11999998888", "Teste");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Tempo limite de 20s");
+  });
 });
 
 describe("Z-API — zapiCheckStatus", () => {
