@@ -5,6 +5,7 @@ import { invokeOpenAIText, invokeOpenAIJson } from "../openai";
 import { empresaHasFeature } from "../db-plans";
 import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
 import { marketingPosts, marketingTiposConteudo, marketingMetricas, marketingTiposOcultos } from "../../drizzle/schema";
+import { resolverTipoConteudo } from "../marketing-tipos";
 import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -16,6 +17,18 @@ const formatos = ["feed", "reels", "stories", "tiktok", "outro"] as const;
 const statusProducaoEnum = ["planejado", "gravado", "editado", "postado"] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+async function normalizarTipoConteudo(db: any, empresaId: number, tipo: string): Promise<string> {
+  const tiposPersonalizados = await db
+    .select({ id: marketingTiposConteudo.id, nome: marketingTiposConteudo.nome })
+    .from(marketingTiposConteudo)
+    .where(eq(marketingTiposConteudo.empresaId, empresaId));
+  const tipoNormalizado = resolverTipoConteudo(tipo, tiposPersonalizados);
+  if (!tipoNormalizado) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de conteúdo inválido para esta empresa" });
+  }
+  return tipoNormalizado;
+}
+
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
@@ -296,6 +309,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
     .input(z.object({
       id: z.number(),
       tema: z.string().optional(),
+      tipo: z.string().trim().min(1).max(100).optional(),
       legenda: z.string().optional(),
       hashtags: z.string().optional(),
       plataforma: z.enum(plataformas).optional(),
@@ -317,6 +331,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
       if (input.tema !== undefined) updates.tema = input.tema;
+      if (input.tipo !== undefined) updates.tipo = await normalizarTipoConteudo(db, empresa.id, input.tipo);
       if (input.legenda !== undefined) updates.legenda = input.legenda;
       if (input.hashtags !== undefined) updates.hashtags = input.hashtags;
       if (input.plataforma !== undefined) updates.plataforma = input.plataforma;
@@ -541,7 +556,7 @@ Retorne um JSON com:
   criarPostCalendario: protectedProcedure
     .input(z.object({
       tema: z.string().min(1).max(500),
-      tipo: z.enum(tiposPost).default("outro"),
+      tipo: z.string().trim().min(1).max(100).default("outro"),
       plataforma: z.enum(plataformas).default("instagram"),
       formato: z.enum(formatos).default("feed"),
       dataPublicacao: z.string(), // YYYY-MM-DD
@@ -556,10 +571,11 @@ Retorne um JSON com:
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const tipo = await normalizarTipoConteudo(db, empresa.id, input.tipo);
 
       const [inserted] = await db.insert(marketingPosts).values({
         empresaId: empresa.id,
-        tipo: input.tipo,
+        tipo,
         tema: input.tema,
         plataforma: input.plataforma,
         formato: input.formato,
@@ -701,7 +717,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
   criarIdeia: protectedProcedure
     .input(z.object({
       tema: z.string().min(1).max(500),
-      tipo: z.enum(tiposPost).default("outro"),
+      tipo: z.string().trim().min(1).max(100).default("outro"),
       plataforma: z.enum(plataformas).default("instagram"),
       formato: z.enum(formatos).default("feed"),
       observacoes: z.string().optional(),
@@ -713,9 +729,10 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
       if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const tipo = await normalizarTipoConteudo(db, empresa.id, input.tipo);
       const [inserted] = await db.insert(marketingPosts).values({
         empresaId: empresa.id,
-        tipo: input.tipo,
+        tipo,
         tema: input.tema,
         plataforma: input.plataforma,
         formato: input.formato,

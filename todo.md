@@ -2845,3 +2845,5 @@
 - [x] Unificar a transição para agendado para disparar uma única automação de Agendamento criado, sem bloqueio pela mensagem de pré-agendamento
 - [x] Corrigir a etapa visível do Pipeline vinculada a Agendamento criado
 - [x] Testar todos os caminhos de transição para agendado (criação direta, confirmação rápida e sinal fora do prazo)
+- [x] Corrigir o encaixe de ideias no calendário para aceitar tipos de conteúdo personalizados, como Carrossel
+- [x] Adicionar regressão para a criação de post a partir de ideia com tipo personalizado

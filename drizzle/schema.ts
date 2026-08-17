@@ -1273,7 +1273,8 @@ export type InsertTaxaConfig = typeof taxasConfig.$inferInsert;
 export const marketingPosts = mysqlTable("marketing_posts", {
   id: int("id").autoincrement().primaryKey(),
   empresaId: int("empresaId").notNull(),
-  tipo: mysqlEnum("tipo", ["promocao", "servico", "dica", "depoimento", "novidade", "sazonal", "outro"]).default("outro").notNull(),
+  // Texto livre validado no servidor: aceita tipos padrão e tipos personalizados da empresa.
+  tipo: varchar("tipo", { length: 100 }).default("outro").notNull(),
   tema: varchar("tema", { length: 255 }),
   legenda: text("legenda"),
   hashtags: text("hashtags"),

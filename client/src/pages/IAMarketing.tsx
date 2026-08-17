@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-type TipoPost = "promocao" | "servico" | "dica" | "depoimento" | "novidade" | "sazonal" | "outro";
+type TipoPost = string;
 type TomPost = "descontraido" | "profissional" | "emocional" | "urgente";
 type Plataforma = "instagram" | "tiktok" | "ambos";
 type Formato = "feed" | "reels" | "stories" | "tiktok" | "outro";
@@ -110,6 +110,7 @@ function PostCard({
   compact?: boolean;
 }) {
   const tipoInfo = TIPOS_POST.find(t => t.value === post.tipo);
+  const tipoLabel = tipoInfo?.label ?? post.tipo;
   const statusInfo = STATUS_PRODUCAO.find(s => s.value === (post.statusProducao ?? "planejado"));
   const formatoInfo = FORMATOS.find(f => f.value === (post.formato ?? "feed"));
   const statusAtual = (post.statusProducao ?? "planejado") as StatusProducao;
@@ -144,9 +145,9 @@ function PostCard({
           </div>
         </div>
         <p className="font-medium leading-tight line-clamp-2">{post.tema}</p>
-        {tipoInfo && (
-          <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full border ${tipoInfo.cor}`}>
-            {tipoInfo.icon} {tipoInfo.label}
+        {tipoLabel && (
+          <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full border ${tipoInfo?.cor ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
+            {tipoInfo?.icon} {tipoLabel}
           </span>
         )}
         <div className="flex items-center justify-between">
@@ -183,9 +184,9 @@ function PostCard({
           {formatoInfo && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">{formatoInfo.icon} {formatoInfo.label}</span>
           )}
-          {tipoInfo && (
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo.cor}`}>
-              {tipoInfo.icon} {tipoInfo.label}
+          {tipoLabel && (
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${tipoInfo?.cor ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
+              {tipoInfo?.icon} {tipoLabel}
             </span>
           )}
         </div>
@@ -427,7 +428,7 @@ function ModalPost({
             <SelectContent>
               {TIPOS_POST.filter(t => !tiposOcultos.includes(t.value)).map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               {tiposCustom.length > 0 && tiposCustom.map(tc => (
-                <SelectItem key={`custom_${tc.id}`} value={`custom_${tc.id}`}>{tc.nome}</SelectItem>
+                <SelectItem key={`custom_${tc.id}`} value={tc.nome}>{tc.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1387,8 +1388,8 @@ export default function IAMarketing() {
               {tiposCustom.map(tc => (
                 <span key={`custom_${tc.id}`} className="inline-flex items-center gap-0.5">
                   <button
-                    onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === `custom_${tc.id}` ? "todos" : `custom_${tc.id}`)}
-                    className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === `custom_${tc.id}` ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
+                    onClick={() => setFiltroTipoIdeia(filtroTipoIdeia === tc.nome ? "todos" : tc.nome)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${filtroTipoIdeia === tc.nome ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"}`}
                   >
                     {tc.nome}
                   </button>

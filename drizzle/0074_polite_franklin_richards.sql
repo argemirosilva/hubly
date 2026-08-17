@@ -1,0 +1,1 @@
+ALTER TABLE `marketing_posts` MODIFY COLUMN `tipo` varchar(100) NOT NULL DEFAULT 'outro';
