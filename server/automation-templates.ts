@@ -346,7 +346,7 @@ export const AUTOMATION_TEMPLATES: AutomacaoTemplate[] = [
 // ─── SINCRONIZAÇÃO DE PIPELINE ────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; cor: string }> = {
-  agendamento_criado: { label: "Agendado", cor: "#6366f1" },
+  agendamento_criado: { label: "Agendamento criado", cor: "#6366f1" },
   pre_agendamento: { label: "Pré-agendado", cor: "#8b5cf6" },
   agendamento_confirmado: { label: "Confirmado", cor: "#10b981" },
   agendamento_cancelado: { label: "Cancelado", cor: "#ef4444" },

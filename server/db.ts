@@ -2131,19 +2131,20 @@ export async function jaEnviouParaCliente(empresaId: number, automacaoId: number
 }
 
 /**
- * Verifica se já foi enviada uma mensagem de criação (agendamento_criado ou agendamento_pre_agendado)
- * para este agendamento. Usado para evitar duplicidade quando confirmarReserva dispara.
+ * Verifica se a automação de agendamento_criado já foi enviada para este
+ * agendamento. A mensagem de pré-agendamento é outro evento e não pode
+ * bloquear a mensagem emitida na posterior transição para Agendado.
  */
 export async function jaEnviouNaCriacaoDoAgendamento(empresaId: number, agendamentoId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
-  // Buscar automações cujo evento seja agendamento_criado ou agendamento_pre_agendado
+  // Buscar apenas automações do evento que é deduplicado neste ponto.
   const automacoesEvento = await db.select({ id: automacoes.id })
     .from(automacoes)
     .where(and(
       eq(automacoes.empresaId, empresaId),
       eq(automacoes.tipoGatilho, 'evento'),
-      sql`${automacoes.evento} IN ('agendamento_criado', 'agendamento_pre_agendado')`,
+      eq(automacoes.evento, 'agendamento_criado'),
     ));
   if (automacoesEvento.length === 0) return false;
   const autoIds = automacoesEvento.map(a => a.id);

@@ -86,6 +86,7 @@ import {
   jaEnviouNaCriacaoDoAgendamento,
 } from "./db";
 import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
+import { mudouParaAgendado } from "./transicao-agendado";
 import { provisionarAutomacoesDefault } from "./automation-templates";
 import { storagePut } from "./storage";
 import { checkAgendamentoLimit, checkProfissionalLimit, checkSuspended, getEmpresaPlan, getOrCreateSubscription, getOrCreateUsage, incrementAgendamentosCount, decrementAgendamentosCount, getSubscriptionData } from "./db-plans";
@@ -1770,8 +1771,9 @@ export const appRouter = router({
           }
         }
 
-          // ── Enfileirar automação para confirmado, cancelado, concluido ou remarcado ───────────
-        if (data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido' || data.status === 'remarcado') {
+        // ── Enfileirar automação de status, inclusive na transição efetiva para Agendado ───────
+        const virouAgendadoNaAtualizacao = mudouParaAgendado(agendamentoAnterior?.status, data.status);
+        if (virouAgendadoNaAtualizacao || data.status === 'confirmado' || data.status === 'cancelado' || data.status === 'concluido' || data.status === 'remarcado') {
           try {
             const agendamento = await getAgendamentoById(id);
             if (agendamento) {
@@ -1815,7 +1817,8 @@ export const appRouter = router({
                 };
 
                 // Determinar evento e mensagem padrão por status
-                const eventoStatus = data.status === 'confirmado' ? 'agendamento_confirmado'
+                const eventoStatus = data.status === 'agendado' ? 'agendamento_criado'
+                  : data.status === 'confirmado' ? 'agendamento_confirmado'
                   : data.status === 'cancelado' ? 'agendamento_cancelado'
                   : data.status === 'remarcado' ? 'agendamento_remarcado'
                   : 'agendamento_concluido';
@@ -1844,7 +1847,8 @@ export const appRouter = router({
                   } catch (e) { console.error('[Fila] Erro ao buscar itens compostos:', e); }
                 }
 
-                const nomeEventoLabel = data.status === 'confirmado' ? 'Confirmação de Agendamento'
+                const nomeEventoLabel = data.status === 'agendado' ? 'Agendamento criado'
+                  : data.status === 'confirmado' ? 'Confirmação de Agendamento'
                   : data.status === 'cancelado' ? 'Cancelamento de Agendamento'
                   : data.status === 'remarcado' ? 'Agendamento Remarcado'
                   : 'Atendimento Concluído';
@@ -2001,6 +2005,7 @@ export const appRouter = router({
         // e o valor da reserva é registrado como pagamento parcial.
         const agParaConfirmar = await getAgendamentoById(input.id);
         const novoStatus = agParaConfirmar?.status === 'pre_agendado' ? 'agendado' : undefined;
+        const virouAgendadoNaReserva = mudouParaAgendado(agParaConfirmar?.status, novoStatus);
         await updateAgendamento(input.id, {
           reservaPaga: true,
           reservaPagaEm: new Date(),
@@ -2150,7 +2155,7 @@ export const appRouter = router({
         }
 
         // ── Mover cartão no Pipeline para "Agendamento Criado" (status agendado) ─────────────
-        if (agParaConfirmar?.status === 'pre_agendado') {
+        if (virouAgendadoNaReserva) {
           try {
             const { moverCartaoPorStatusInterno } = await import('./routers/pipeline');
             await moverCartaoPorStatusInterno({
@@ -6132,6 +6137,7 @@ export const appRouter = router({
         // Se o agendamento é pré-agendado, confirmar = mudar para 'agendado'; senão, 'confirmado'
         const [agParaConfirmar] = await db.select({ status: agTbl.status }).from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
         const novoStatus = agParaConfirmar?.status === 'pre_agendado' ? 'agendado' : 'confirmado';
+        const virouAgendadoNoPortal = mudouParaAgendado(agParaConfirmar?.status, novoStatus);
         await db.update(agTbl).set({ status: novoStatus, confirmadoEm: agora }).where(eq(agTbl.id, tokenRow.agendamentoId));
         // Buscar agendamento atualizado para notificações e automações
         const [ag] = await db.select().from(agTbl).where(eq(agTbl.id, tokenRow.agendamentoId)).limit(1);
@@ -6140,12 +6146,13 @@ export const appRouter = router({
           const { notificarConfirmacaoPublica } = await import('./confirmacao.js');
           if (ag) await notificarConfirmacaoPublica(ag, tokenRow.empresaId, db);
         } catch (e) { console.error('[confirmar] Erro ao notificar:', e); }
-        // Disparar automação agendamento_confirmado (mesma lógica do painel interno)
+        // Disparar a automação correspondente ao status final (Agendamento criado ao promover para Agendado).
         if (ag) {
           try {
             const { empresas: empTbl2, clientes: cliTbl2, profissionais: profTbl2, servicos: svcTbl2, agendamentoItens: itensTbl2 } = await import('../drizzle/schema.js');
             const { getAutomacoesByEvento, registrarEnvioAutomacao } = await import('./db.js');
-            const automacoesConfirmado = await getAutomacoesByEvento(tokenRow.empresaId, 'agendamento_confirmado');
+            const eventoAutomacaoPortal = virouAgendadoNoPortal ? 'agendamento_criado' : 'agendamento_confirmado';
+            const automacoesConfirmado = await getAutomacoesByEvento(tokenRow.empresaId, eventoAutomacaoPortal);
             if (automacoesConfirmado.length > 0) {
               const [empresa2] = await db.select({ nome: empTbl2.nome, portalSlug: empTbl2.portalSlug }).from(empTbl2).where(eq(empTbl2.id, tokenRow.empresaId)).limit(1);
               const [cliente2] = await db.select({ id: cliTbl2.id, nome: cliTbl2.nome, telefone: cliTbl2.telefone, tags: cliTbl2.tags }).from(cliTbl2).where(eq(cliTbl2.id, ag.clienteId)).limit(1);
@@ -6194,7 +6201,7 @@ export const appRouter = router({
                     empresaId: tokenRow.empresaId,
                     agendamentoId: ag.id,
                     automacaoId: automacaoConf.id,
-                    automacaoNome: automacaoConf.nome ?? 'Confirmação de Agendamento',
+                    automacaoNome: automacaoConf.nome ?? (virouAgendadoNoPortal ? 'Agendamento criado' : 'Confirmação de Agendamento'),
                     clienteId: cliente2.id,
                     clienteNome: cliente2.nome,
                     telefone: cliente2.telefone,
@@ -6219,7 +6226,7 @@ export const appRouter = router({
             empresaId: tokenRow.empresaId,
             agendamentoId: ag.id,
             clienteId: ag.clienteId ?? undefined,
-            novoStatus: 'confirmado',
+            novoStatus: virouAgendadoNoPortal ? 'agendado' : 'confirmado',
           });
         } catch (e) { console.error('[Pipeline/confirmar] Erro ao mover cartão:', e); }
         return { resultado: 'confirmado' as const };

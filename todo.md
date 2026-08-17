@@ -2840,3 +2840,8 @@
 - [x] Validar a retomada segura de mensagens órfãs na fila de automações
 - [x] Usar a instância WhatsApp da empresa e limitar o tempo de resposta do provedor para não travar a fila
 - [x] Corrigir a leitura do resultado da reivindicação atômica para que o worker efetivamente envie a mensagem assumida
+- [x] Reenviar manualmente a mensagem expirada de pré-agendamento para a cliente autorizada
+- [x] Investigar a confirmação rápida de pré-agendamento que muda para agendado sem disparar “Agendamento criado” nem atualizar o Pipeline
+- [x] Unificar a transição para agendado para disparar uma única automação de Agendamento criado, sem bloqueio pela mensagem de pré-agendamento
+- [x] Corrigir a etapa visível do Pipeline vinculada a Agendamento criado
+- [x] Testar todos os caminhos de transição para agendado (criação direta, confirmação rápida e sinal fora do prazo)

@@ -30,13 +30,32 @@ describe("Unificação de Gatilhos", () => {
       expect(routersContent).toContain("jaEnviouNaCriacaoDoAgendamento");
     });
 
-    it("deve verificar se já enviou na criação antes de enviar na reserva", () => {
-      // Buscar o trecho do confirmarReserva que contém a guarda
+    it("deve verificar especificamente o envio de agendamento criado antes de reenviar", () => {
+      // A automação de pré-agendamento não pode bloquear a posterior promoção para agendado.
       expect(routersContent).toContain("jaEnviouNaCriacaoDoAgendamento");
     });
 
     it("deve conter log de skip quando já enviou na criação", () => {
       expect(routersContent).toMatch(/j[aá] enviou.*cria[çc][aã]o/i);
+    });
+  });
+
+  describe("Transição para Agendado", () => {
+    const routersContent = readFile(path.join(SERVER_DIR, "routers.ts"));
+
+    it("deve disparar Agendamento criado na atualização manual de status", () => {
+      expect(routersContent).toContain("virouAgendadoNaAtualizacao");
+      expect(routersContent).toContain("data.status === 'agendado' ? 'agendamento_criado'");
+    });
+
+    it("deve reconhecer a promoção pela confirmação rápida de reserva", () => {
+      expect(routersContent).toContain("virouAgendadoNaReserva");
+    });
+
+    it("deve disparar Agendamento criado e mover o Pipeline no link público", () => {
+      expect(routersContent).toContain("virouAgendadoNoPortal");
+      expect(routersContent).toContain("eventoAutomacaoPortal = virouAgendadoNoPortal ? 'agendamento_criado'");
+      expect(routersContent).toContain("novoStatus: virouAgendadoNoPortal ? 'agendado' : 'confirmado'");
     });
   });
 
