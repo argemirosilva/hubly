@@ -6,6 +6,7 @@ import { empresaHasFeature } from "../db-plans";
 import { getEmpresaDoContexto, getServicosByEmpresa, getProfissionaisByEmpresa, getDb } from "../db";
 import { marketingPosts, marketingTiposConteudo, marketingMetricas, marketingTiposOcultos } from "../../drizzle/schema";
 import { resolverTipoConteudo } from "../marketing-tipos";
+import { montarPublicacoesDoConteudo } from "../marketing-publicacoes";
 import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -564,6 +565,8 @@ Retorne um JSON com:
       responsavelId: z.number().optional(),
       responsavelNome: z.string().optional(),
       observacoes: z.string().optional(),
+      roteiro: z.string().optional(),
+      tags: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
@@ -585,10 +588,49 @@ Retorne um JSON com:
         responsavelId: input.responsavelId,
         responsavelNome: input.responsavelNome,
         observacoes: input.observacoes,
+        roteiro: input.roteiro,
+        tags: input.tags,
         status: "rascunho",
       });
 
       return { id: (inserted as any)?.insertId ?? null, success: true };
+    }),
+
+  /** Cria várias publicações independentes para o mesmo conteúdo-base. */
+  criarPublicacoesCalendario: protectedProcedure
+    .input(z.object({
+      tema: z.string().min(1).max(500),
+      tipo: z.string().trim().min(1).max(100).default("outro"),
+      observacoes: z.string().optional(),
+      roteiro: z.string().optional(),
+      tags: z.string().optional(),
+      publicacoes: z.array(z.object({
+        plataforma: z.enum(plataformas),
+        formato: z.enum(formatos),
+        dataPublicacao: z.string().min(10),
+        horarioPublicacao: z.string().optional(),
+        responsavelId: z.number().optional(),
+        responsavelNome: z.string().optional(),
+      })).min(1).max(20),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
+      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const tipo = await normalizarTipoConteudo(db, empresa.id, input.tipo);
+      const linhas = montarPublicacoesDoConteudo({
+        empresaId: empresa.id,
+        tema: input.tema,
+        tipo,
+        observacoes: input.observacoes,
+        roteiro: input.roteiro,
+        tags: input.tags,
+        status: "rascunho" as const,
+        statusProducao: "planejado" as const,
+      }, input.publicacoes);
+      await db.insert(marketingPosts).values(linhas as any);
+      return { success: true, count: linhas.length };
     }),
 
   /**

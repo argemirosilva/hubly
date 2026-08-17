@@ -33,6 +33,14 @@ type TomPost = "descontraido" | "profissional" | "emocional" | "urgente";
 type Plataforma = "instagram" | "tiktok" | "ambos";
 type Formato = "feed" | "reels" | "stories" | "tiktok" | "outro";
 type StatusProducao = "planejado" | "gravado" | "editado" | "postado";
+type PublicacaoExtraForm = {
+  chave: string;
+  plataforma: Plataforma;
+  formato: Formato;
+  dataPublicacao: string;
+  horarioPublicacao: string;
+  responsavelId: string;
+};
 
 // ─── Constantes visuais ───────────────────────────────────────────────────────
 const TIPOS_POST: { value: TipoPost; label: string; icon: React.ReactNode; cor: string }[] = [
@@ -326,7 +334,7 @@ function ModalPost({
     return String(raw ?? "");
   };
   const [data, setData] = useState(() => normalizeDate(post?.dataPublicacao ?? dataDefault));
-  const [datasExtras, setDatasExtras] = useState<string[]>([]);
+  const [publicacoesExtras, setPublicacoesExtras] = useState<PublicacaoExtraForm[]>([]);
   // Sync data when dataDefault changes (e.g., clicking a different day)
   useEffect(() => {
     setData(normalizeDate(post?.dataPublicacao ?? dataDefault));
@@ -360,7 +368,16 @@ function ModalPost({
     if (!modoIdeia && !data) { toast.error("Informe a data de publicação"); return; }
     const resp = responsavelId && responsavelId !== '__nenhum__' ? profissionais.find(p => p.id === Number(responsavelId)) : undefined;
     const tagsStr = tags.length > 0 ? tags.join(",") : undefined;
-    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined, tags: tagsStr, datasExtras: datasExtras.filter(Boolean) });
+    const publicacoes = modoIdeia ? [] : [
+      { plataforma, formato, dataPublicacao: data, horarioPublicacao: horario, responsavelId: resp?.id, responsavelNome: resp?.nome },
+      ...publicacoesExtras.filter(item => item.dataPublicacao).map(item => {
+        const responsavel = item.responsavelId && item.responsavelId !== '__nenhum__'
+          ? profissionais.find(p => p.id === Number(item.responsavelId))
+          : undefined;
+        return { plataforma: item.plataforma, formato: item.formato, dataPublicacao: item.dataPublicacao, horarioPublicacao: item.horarioPublicacao, responsavelId: responsavel?.id, responsavelNome: responsavel?.nome };
+      }),
+    ];
+    onSave({ tema: tema.trim(), plataforma, formato, tipo, dataPublicacao: modoIdeia ? undefined : data, horarioPublicacao: horario, responsavelId: resp?.id ?? undefined, responsavelNome: resp?.nome ?? undefined, observacoes: observacoes.trim() || undefined, roteiro: roteiro.trim() || undefined, tags: tagsStr, publicacoes });
   };
 
   return (
@@ -405,19 +422,40 @@ function ModalPost({
                 <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-8 text-xs w-full" />
               </div>
             </div>
-            {/* Datas extras */}
-            {datasExtras.map((de, idx) => (
-              <div key={idx} className="flex items-center gap-1.5">
-                <Input type="date" value={de} onChange={e => setDatasExtras(prev => prev.map((d, i) => i === idx ? e.target.value : d))} className="h-7 text-xs flex-1" />
-                <button onClick={() => setDatasExtras(prev => prev.filter((_, i) => i !== idx))} className="p-1 hover:text-destructive rounded"><X className="w-3.5 h-3.5" /></button>
+            {publicacoesExtras.map((publicacao, idx) => (
+              <div key={publicacao.chave} className="rounded-lg border border-dashed bg-muted/20 p-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold">Publicação {idx + 2}</p>
+                  <button type="button" onClick={() => setPublicacoesExtras(prev => prev.filter(item => item.chave !== publicacao.chave))} className="p-1 hover:text-destructive rounded" aria-label={`Remover publicação ${idx + 2}`}><X className="w-3.5 h-3.5" /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={publicacao.plataforma} onValueChange={v => setPublicacoesExtras(prev => prev.map(item => item.chave === publicacao.chave ? { ...item, plataforma: v as Plataforma } : item))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="instagram">Instagram</SelectItem><SelectItem value="tiktok">TikTok</SelectItem><SelectItem value="ambos">Ambos</SelectItem></SelectContent>
+                  </Select>
+                  <Select value={publicacao.formato} onValueChange={v => setPublicacoesExtras(prev => prev.map(item => item.chave === publicacao.chave ? { ...item, formato: v as Formato } : item))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{FORMATOS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-[1fr_90px] gap-2">
+                  <Input aria-label={`Data da publicação ${idx + 2}`} type="date" value={publicacao.dataPublicacao} onChange={e => setPublicacoesExtras(prev => prev.map(item => item.chave === publicacao.chave ? { ...item, dataPublicacao: e.target.value } : item))} className="h-8 text-xs" />
+                  <Input aria-label={`Horário da publicação ${idx + 2}`} type="time" value={publicacao.horarioPublicacao} onChange={e => setPublicacoesExtras(prev => prev.map(item => item.chave === publicacao.chave ? { ...item, horarioPublicacao: e.target.value } : item))} className="h-8 text-xs" />
+                </div>
+                {profissionais.length > 0 && (
+                  <Select value={publicacao.responsavelId} onValueChange={v => setPublicacoesExtras(prev => prev.map(item => item.chave === publicacao.chave ? { ...item, responsavelId: v } : item))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Responsável pela publicação" /></SelectTrigger>
+                    <SelectContent><SelectItem value="__nenhum__">Nenhum responsável</SelectItem>{profissionais.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
               </div>
             ))}
             <button
               type="button"
-              onClick={() => setDatasExtras(prev => [...prev, ""])}
+              onClick={() => setPublicacoesExtras(prev => [...prev, { chave: `${Date.now()}-${prev.length}`, plataforma, formato, dataPublicacao: data, horarioPublicacao: horario, responsavelId }])}
               className="text-[11px] text-primary hover:underline flex items-center gap-1"
             >
-              <Plus className="w-3 h-3" /> Adicionar outra data de publicação
+              <Plus className="w-3 h-3" /> Adicionar outra publicação
             </button>
           </div>
         )}
@@ -649,6 +687,15 @@ export default function IAMarketing() {
     onSuccess: () => { toast.success("Post adicionado!"); refetchCalendario(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao criar post"),
   });
+  const criarPublicacoesMut = trpc.iaMarketing.criarPublicacoesCalendario.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.count} publicação${data.count !== 1 ? "ões" : ""} adicionada${data.count !== 1 ? "s" : ""}!`);
+      refetchCalendario();
+      utils.iaMarketing.listarPosts.invalidate();
+      setModalPost({ open: false });
+    },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao criar publicações"),
+  });
   const atualizarPostMut = trpc.iaMarketing.atualizarPostCalendario.useMutation({
     onSuccess: () => { toast.success("Post atualizado!"); refetchCalendario(); utils.iaMarketing.listarIdeias.invalidate(); utils.iaMarketing.listarPosts.invalidate(); setModalPost({ open: false }); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao atualizar post"),
@@ -746,14 +793,8 @@ export default function IAMarketing() {
     if (modalPost.post) atualizarPostMut.mutate({ id: modalPost.post.id, ...data });
     else if (modalPost.modoIdeia) criarIdeiasMut.mutate(data);
     else {
-      const { datasExtras, ...dadosPrincipais } = data;
-      criarPostMut.mutate(dadosPrincipais);
-      // Criar posts adicionais para cada data extra
-      if (datasExtras && datasExtras.length > 0) {
-        datasExtras.forEach((dataExtra: string) => {
-          if (dataExtra) criarPostMut.mutate({ ...dadosPrincipais, dataPublicacao: dataExtra });
-        });
-      }
+      const { publicacoes, ...conteudo } = data;
+      criarPublicacoesMut.mutate({ ...conteudo, publicacoes });
     }
   };
   const handleEncaixarIdeia = (ideiaId: number, dataPublicacao: string, horarioPublicacao: string) => {

@@ -2847,3 +2847,7 @@
 - [x] Testar todos os caminhos de transição para agendado (criação direta, confirmação rápida e sinal fora do prazo)
 - [x] Corrigir o encaixe de ideias no calendário para aceitar tipos de conteúdo personalizados, como Carrossel
 - [x] Adicionar regressão para a criação de post a partir de ideia com tipo personalizado
+- [x] Permitir várias publicações independentes para o mesmo conteúdo de Marketing
+- [x] Permitir plataforma, formato, data, horário e responsável próprios em cada publicação
+- [x] Exibir no calendário todas as publicações vinculadas ao mesmo conteúdo
+- [x] Testar o agendamento do mesmo conteúdo em redes e horários diferentes
