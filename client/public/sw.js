@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hubly-v3';
+const CACHE_NAME = 'hubly-v4-public-root';
 const APP_SHELL = [
   '/',
   '/manifest.json',

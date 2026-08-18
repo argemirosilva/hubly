@@ -113,8 +113,11 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js')
-            .then(function(reg) { console.log('[PWA] Service Worker registrado:', reg.scope); })
+          navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+            .then(function(reg) {
+              reg.update();
+              console.log('[PWA] Service Worker registrado:', reg.scope);
+            })
             .catch(function(err) { console.log('[PWA] Falha ao registrar SW:', err); });
         });
       }

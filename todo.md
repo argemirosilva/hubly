@@ -2874,3 +2874,5 @@
 - [x] Implementar a página inicial pública com proposta de valor, dores e recursos
 - [x] Adicionar páginas públicas de recursos, funcionamento e segmentos
 - [x] Validar a navegação mobile, acessibilidade e CTAs de criação de conta
+- [x] Corrigir o domínio público para exibir a página de aquisição na raiz em produção
+- [x] Invalidar o cache PWA da versão anterior para que o domínio personalizado carregue a nova raiz pública
