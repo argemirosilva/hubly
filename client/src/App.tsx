@@ -84,6 +84,11 @@ function Router() {
       <Route path="/recursos">{() => <SitePublico page="recursos" />}</Route>
       <Route path="/como-funciona">{() => <SitePublico page="como-funciona" />}</Route>
       <Route path="/para-seu-negocio">{() => <SitePublico page="negocios" />}</Route>
+      <Route path="/solucoes/agenda">{() => <SitePublico topic="agenda" />}</Route>
+      <Route path="/solucoes/clientes">{() => <SitePublico topic="clientes" />}</Route>
+      <Route path="/solucoes/financeiro">{() => <SitePublico topic="financeiro" />}</Route>
+      <Route path="/solucoes/automacoes">{() => <SitePublico topic="automacoes" />}</Route>
+      <Route path="/solucoes/marketing">{() => <SitePublico topic="marketing" />}</Route>
       <Route path="/assinaturas" component={AssinaturasPublicas} />
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/agendar/:slug" component={PortalCliente} />
@@ -146,7 +151,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicSite = ["/", "/recursos", "/como-funciona", "/para-seu-negocio", "/assinaturas"].includes(location);
+  const isPublicSite = ["/", "/recursos", "/como-funciona", "/para-seu-negocio", "/assinaturas"].includes(location) || location.startsWith("/solucoes/");
   useEffect(() => {
     document.title = "Hubly - Gestão de Agendamentos e Clientes";
   }, []);

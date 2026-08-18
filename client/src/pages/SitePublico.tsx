@@ -97,6 +97,56 @@ const moments = [
   { step: "03", title: "Acompanhe o que acontece", text: "Veja o que entrou, o que falta e quais clientes precisam de atenção.", icon: CircleDollarSign },
 ];
 
+export type PublicTopic = "agenda" | "clientes" | "financeiro" | "automacoes" | "marketing";
+
+const publicTopics: Record<PublicTopic, { label: string; eyebrow: string; title: string; description: string; icon: typeof CalendarCheck2; benefits: string[]; outcome: string }> = {
+  agenda: {
+    label: "Agenda",
+    eyebrow: "Agenda organizada",
+    title: "Seu dia deixa de depender da memória.",
+    description: "Visualize horários, bloqueios, pré-agendamentos e pacotes em uma única rotina fácil de acompanhar.",
+    icon: CalendarCheck2,
+    benefits: ["Veja o dia, a semana e os horários disponíveis sem procurar conversa", "Crie bloqueios para proteger seu tempo pessoal e profissional", "Transforme pré-agendamentos em atendimentos com sinal e confirmação"],
+    outcome: "Você atende com mais tranquilidade porque sabe exatamente o que vem a seguir.",
+  },
+  clientes: {
+    label: "Clientes",
+    eyebrow: "Relacionamento com contexto",
+    title: "Cada cliente continua sendo lembrado depois do atendimento.",
+    description: "O Hubly centraliza histórico, preferências, retornos e conversas importantes para deixar o atendimento mais próximo.",
+    icon: UsersRound,
+    benefits: ["Consulte histórico e preferências sem depender de anotações soltas", "Use o Pipeline para saber quem precisa de retorno", "Acompanhe confirmações para reduzir desencontros na agenda"],
+    outcome: "Você mantém um relacionamento mais atento sem transformar isso em mais trabalho.",
+  },
+  financeiro: {
+    label: "Financeiro",
+    eyebrow: "Dinheiro mais visível",
+    title: "Entenda o que entrou e o que ainda precisa receber.",
+    description: "Registre sinais, pagamentos parciais e valores em aberto no mesmo lugar em que sua agenda acontece.",
+    icon: CircleDollarSign,
+    benefits: ["Acompanhe recebimentos reais em vez de depender de memória", "Veja valores em aberto por atendimento, pacote e cliente", "Controle comissões e contas da rotina com mais clareza"],
+    outcome: "Você toma decisões com base no que realmente está acontecendo no seu negócio.",
+  },
+  automacoes: {
+    label: "Automações",
+    eyebrow: "Comunicação no momento certo",
+    title: "Confirmações e lembretes sem repetir a mesma tarefa todo dia.",
+    description: "Configure mensagens ligadas ao status real de cada agendamento e acompanhe tudo pelo histórico.",
+    icon: MessageCircleMore,
+    benefits: ["Envie confirmação, lembrete e retorno no momento que faz sentido", "Mantenha a comunicação coerente com cancelamentos e remarcações", "Consulte o histórico para saber o que foi programado ou enviado"],
+    outcome: "Sua rotina ganha consistência, sem deixar a conversa com o cliente parecer automática.",
+  },
+  marketing: {
+    label: "Marketing",
+    eyebrow: "Conteúdo com direção",
+    title: "Transforme ideias em conteúdo sem perder o ritmo de postagem.",
+    description: "Guarde ideias, organize roteiro, programe publicações e acompanhe o desempenho dos conteúdos que fazem sentido para o seu negócio.",
+    icon: Sparkles,
+    benefits: ["Mantenha um banco de ideias para não começar do zero toda semana", "Planeje o mesmo conteúdo em canais, datas e horários diferentes", "Registre métricas para entender os formatos que mais funcionam"],
+    outcome: "Você publica com mais constância e escolhe os próximos conteúdos com mais intenção.",
+  },
+};
+
 function Logo() {
   return (
     <a href="/" className="inline-flex items-center" aria-label="Hubly — Página inicial">
@@ -194,7 +244,7 @@ function HomeContent() {
         </div>
       </section>
 
-      <section className="border-y border-[#eee2d7] bg-[#fffdf9] py-6"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-3 px-5 text-center text-xs font-bold text-[#8d7666]"><span>AGENDA</span><span className="h-1 w-1 rounded-full bg-[#c4985f]" /><span>CLIENTES</span><span className="h-1 w-1 rounded-full bg-[#c4985f]" /><span>FINANCEIRO</span><span className="h-1 w-1 rounded-full bg-[#c4985f]" /><span>AUTOMAÇÕES</span><span className="h-1 w-1 rounded-full bg-[#c4985f]" /><span>MARKETING</span></div></section>
+      <section className="border-y border-[#eee2d7] bg-[#fffdf9] py-6"><nav className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-5 text-center" aria-label="Soluções do Hubly">{(Object.keys(publicTopics) as PublicTopic[]).map((topic, index) => <React.Fragment key={topic}>{index > 0 && <span className="h-1 w-1 rounded-full bg-[#c4985f]" aria-hidden="true" />}<a href={`/solucoes/${topic}`} className="text-xs font-bold text-[#8d7666] transition-colors hover:text-[#6b4028] hover:underline hover:underline-offset-4">{publicTopics[topic].label.toUpperCase()}</a></React.Fragment>)}</nav></section>
 
       <section className="bg-[#fffaf4] py-20 sm:py-28"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">Reconhece essa rotina?</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Você trabalha muito. A gestão não precisa virar mais um trabalho.</h2><p className="mt-5 text-base leading-relaxed text-[#735f52]">O Hubly tira as tarefas repetitivas do caminho para você olhar com calma para o que faz seu negócio crescer.</p></div><div className="mt-12 grid gap-4 md:grid-cols-2"><div className="rounded-3xl bg-[#3b2115] p-7 text-[#fff8f0] sm:p-9"><p className="text-sm font-bold text-[#f7d187]">Antes</p><p className="mt-5 text-2xl font-bold leading-tight">“Eu confirmo tudo no WhatsApp e, mesmo assim, tem cliente que esquece.”</p><div className="mt-8 inline-flex rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-[#eadcd1]">Tempo indo embora</div></div><div className="rounded-3xl border border-[#eaded2] bg-white p-7 sm:p-9"><p className="text-sm font-bold text-[#60945a]">Com o Hubly</p><p className="mt-5 text-2xl font-bold leading-tight text-[#38231a]">“Minha agenda confirma, eu acompanho e consigo atender melhor.”</p><div className="mt-8 inline-flex rounded-full bg-[#edf5e9] px-3 py-2 text-xs font-semibold text-[#5a8655]">Rotina organizada</div></div></div></div></section>
 
@@ -237,7 +287,13 @@ function SupportPage({ page }: { page: Exclude<PublicPage, "inicio"> }) {
   return <><section className="relative overflow-hidden bg-[#fffaf4] py-20 sm:py-28"><div className="absolute right-[-6rem] top-[-8rem] h-80 w-80 rounded-full bg-[#f6d777]/30 blur-3xl" /><div className="relative mx-auto max-w-4xl px-5 text-center"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">{intro.eyebrow}</p><h1 className="mt-4 text-4xl font-extrabold tracking-[-0.06em] text-[#2c1a12] sm:text-6xl">{intro.title}</h1><p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[#735f52] sm:text-lg">{intro.description}</p><Button asChild className="mt-8 rounded-xl bg-[#3b2115] px-6 font-bold hover:bg-[#57321d]"><a href="/admin">Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div></section><section className="bg-[#f8f1e9] py-16 sm:py-24"><div className="mx-auto max-w-6xl px-5"><div className={`grid gap-4 ${isWorkflow ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3"}`}>{details.map(({ label, title, text, icon: Icon }, index) => <article key={title} className="group rounded-3xl border border-[#eaded2] bg-white p-6 transition-transform hover:-translate-y-1"><div className="flex items-center justify-between"><span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#a65d32]">{isWorkflow ? `Passo ${index + 1}` : label}</span><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#f6ebdf] text-[#8a4d2b]"><Icon className="h-5 w-5" /></span></div><h2 className="mt-7 text-2xl font-extrabold tracking-[-0.04em] text-[#352217]">{title}</h2><p className="mt-3 text-sm leading-relaxed text-[#796659]">{text}</p></article>)}</div></div></section><section className="bg-[#fffdf9] py-16"><div className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-5 text-center"><p className="max-w-2xl text-xl font-bold tracking-[-0.03em] text-[#3b2115]">O Hubly foi pensado para deixar a gestão mais simples, não para colocar mais uma ferramenta complicada na sua rotina.</p><Button asChild variant="outline" className="rounded-xl border-[#d7c5b5] bg-white px-6 font-bold text-[#4d3325] hover:bg-[#f8f1e9]"><a href="/">Voltar para o início <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div></section></>;
 }
 
-export default function SitePublico({ page = "inicio" }: { page?: PublicPage }) {
-  useEffect(() => { document.title = page === "inicio" ? "Hubly — Você no controle" : `${pageCopy[page].title} | Hubly`; }, [page]);
-  return <div className="min-h-screen bg-[#fffaf4] font-['Plus_Jakarta_Sans'] text-[#2c1a12]"><SiteHeader />{page === "inicio" ? <HomeContent /> : <SupportPage page={page} />}<footer className="border-t border-[#eaded2] bg-[#fffdf9]"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-10 text-sm text-[#7a675a] sm:flex-row sm:items-center sm:justify-between lg:px-8"><Logo /><div className="flex flex-wrap gap-x-5 gap-y-2"><a href="/politica-de-privacidade" className="hover:text-[#3b2115]">Privacidade</a><a href="/termos-de-uso" className="hover:text-[#3b2115]">Termos de uso</a><a href="/admin" className="hover:text-[#3b2115]">Entrar na plataforma</a></div><p>© {new Date().getFullYear()} Hubly</p></div></footer></div>;
+function TopicPage({ topic }: { topic: PublicTopic }) {
+  const content = publicTopics[topic];
+  const Icon = content.icon;
+  return <><section className="relative overflow-hidden bg-[#fffaf4] py-20 sm:py-28"><div className="absolute right-[-6rem] top-[-8rem] h-80 w-80 rounded-full bg-[#f6d777]/30 blur-3xl" /><div className="relative mx-auto max-w-4xl px-5 text-center"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">{content.eyebrow}</p><span className="mx-auto mt-7 grid h-14 w-14 place-items-center rounded-2xl bg-[#f4e5d5] text-[#8a4d2b]"><Icon className="h-6 w-6" /></span><h1 className="mt-5 text-4xl font-extrabold tracking-[-0.06em] text-[#2c1a12] sm:text-6xl">{content.title}</h1><p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[#735f52] sm:text-lg">{content.description}</p></div></section><section className="bg-[#f8f1e9] py-16 sm:py-24"><div className="mx-auto grid max-w-5xl gap-10 px-5 lg:grid-cols-[1.1fr_.9fr] lg:items-start"><div className="rounded-3xl border border-[#eaded2] bg-white p-7 sm:p-9"><p className="text-sm font-extrabold uppercase tracking-[0.14em] text-[#a65d32]">Na prática</p><ul className="mt-6 space-y-4 text-base leading-relaxed text-[#604b3d]">{content.benefits.map((benefit) => <li key={benefit} className="flex gap-3"><Check className="mt-1 h-4 w-4 shrink-0 text-[#5f9a59]" />{benefit}</li>)}</ul></div><aside className="rounded-3xl bg-[#3b2115] p-7 text-white sm:p-9"><p className="text-sm font-bold text-[#f7d187]">O resultado</p><p className="mt-5 text-2xl font-extrabold leading-tight">{content.outcome}</p><Button asChild className="mt-8 rounded-xl bg-[#f5d77a] px-6 font-bold text-[#432815] hover:bg-[#ffe493]"><a href="/admin">Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button></aside></div></section><section className="bg-[#fffdf9] py-14"><div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-5 text-center"><p className="text-lg font-bold text-[#3b2115]">Conheça as outras partes da gestão que o Hubly deixa mais simples.</p><a href="/recursos" className="inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b] hover:underline">Ver todos os recursos <ArrowRight className="h-4 w-4" /></a></div></section></>;
+}
+
+export default function SitePublico({ page = "inicio", topic }: { page?: PublicPage; topic?: PublicTopic }) {
+  useEffect(() => { document.title = topic ? `${publicTopics[topic].label} | Hubly` : page === "inicio" ? "Hubly — Você no controle" : `${pageCopy[page].title} | Hubly`; }, [page, topic]);
+  return <div className="min-h-screen bg-[#fffaf4] font-['Plus_Jakarta_Sans'] text-[#2c1a12]"><SiteHeader />{topic ? <TopicPage topic={topic} /> : page === "inicio" ? <HomeContent /> : <SupportPage page={page} />}<footer className="border-t border-[#eaded2] bg-[#fffdf9]"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-10 text-sm text-[#7a675a] sm:flex-row sm:items-center sm:justify-between lg:px-8"><Logo /><div className="flex flex-wrap gap-x-5 gap-y-2"><a href="/politica-de-privacidade" className="hover:text-[#3b2115]">Privacidade</a><a href="/termos-de-uso" className="hover:text-[#3b2115]">Termos de uso</a><a href="/admin" className="hover:text-[#3b2115]">Entrar na plataforma</a></div><p>© {new Date().getFullYear()} Hubly</p></div></footer></div>;
 }

@@ -16,6 +16,8 @@ describe("site público do Hubly", () => {
     expect(html).toContain("Clique em cada card para ver o que ele resolve no seu dia a dia.");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('aria-controls="recurso-agenda-no-controle"');
+    expect(html).toContain('href="/solucoes/agenda"');
+    expect(html).toContain('href="/solucoes/marketing"');
   });
 
   it("mantém páginas públicas de apoio para recursos e funcionamento", () => {
@@ -24,5 +26,13 @@ describe("site público do Hubly", () => {
 
     expect(resources).toContain("Recursos que trabalham juntos");
     expect(workflow).toContain("Simples desde o primeiro dia");
+  });
+
+  it("apresenta páginas específicas para cada solução pública", () => {
+    const agenda = renderToStaticMarkup(createElement(SitePublico, { topic: "agenda" }));
+    const marketing = renderToStaticMarkup(createElement(SitePublico, { topic: "marketing" }));
+
+    expect(agenda).toContain("Seu dia deixa de depender da memória.");
+    expect(marketing).toContain("Transforme ideias em conteúdo sem perder o ritmo de postagem.");
   });
 });
