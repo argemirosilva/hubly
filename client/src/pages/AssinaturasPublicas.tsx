@@ -87,7 +87,6 @@ function PlanCard({ plan, cycle }: { plan: PublicPlan; cycle: BillingCycle }) {
           <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.04em] text-[#2c1a12]">{plan.label}</h2>
           <p className="mt-2 min-h-10 text-sm leading-relaxed text-[#796659]">{plan.description}</p>
         </div>
-        {plan.type === "PLUS" && <span className="rounded-full bg-[#3b2115] px-3 py-1 text-[11px] font-extrabold text-white">Para equipes</span>}
       </div>
 
       <div className="mt-6 border-y border-[#eee2d7] py-5">

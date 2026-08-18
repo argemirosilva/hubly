@@ -2880,3 +2880,4 @@
 - [x] Adicionar explicações detalhadas e acessíveis aos cards de recursos do site público
 - [x] Corrigir o clique inativo dos cards de recursos no domínio publicado
 - [x] Remover ícones decorativos com aparência de emoji do site público
+- [x] Verificar e remover o elemento visual apontado na página pública de assinaturas
