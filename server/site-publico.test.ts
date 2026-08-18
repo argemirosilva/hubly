@@ -25,8 +25,9 @@ describe("site público do Hubly", () => {
     const workflow = renderToStaticMarkup(createElement(SitePublico, { page: "como-funciona" }));
 
     expect(resources).toContain("Recursos que trabalham juntos");
-    expect(workflow).toContain("Você organiza. O Hubly acompanha.");
-    expect(workflow).toContain("Você não precisa usar tudo de uma vez.");
+    expect(workflow).toContain("Você organiza a rotina. O Hubly mostra o que merece sua atenção.");
+    expect(workflow).toContain("IA Financeira");
+    expect(workflow).toContain("Marketing que sai da ideia e chega à postagem");
   });
 
   it("apresenta páginas específicas para cada solução pública", () => {

@@ -2883,3 +2883,4 @@
 - [x] Verificar e remover o elemento visual apontado na página pública de assinaturas
 - [x] Tornar clicáveis os atalhos Agenda, Clientes, Financeiro, Automações e Marketing com explicações públicas específicas
 - [x] Simplificar a página pública Como funciona em uma explicação breve de uma única página
+- [x] Ampliar a página Como funciona com IA financeira, controle de posts, insights, automações e gestão operacional
