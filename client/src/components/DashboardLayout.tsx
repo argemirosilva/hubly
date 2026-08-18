@@ -27,6 +27,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { HublyLogo } from "./HublyLogo";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
@@ -37,31 +38,6 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
-
-const LOGO_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
-const ICON_GOLD_URL = "/manus-storage/hubly-icon-gold_40021193.png";
-
-function HublyLogoSidebar({ className, textColor = 'white' }: { className?: string; textColor?: 'white' | 'dark' }) {
-  const textColorStyle = textColor === 'dark' ? '#45291a' : '#ffffff';
-  return (
-    <div className={`flex items-center gap-2 ${className ?? ''}`}>
-      <img src={ICON_GOLD_URL} alt="Hubly" className="h-8 w-8 object-contain flex-shrink-0" />
-      <span
-        style={{
-          fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif",
-          fontWeight: 300,
-          letterSpacing: '0.18em',
-          fontSize: '1.25rem',
-          color: textColorStyle,
-          lineHeight: 1,
-          userSelect: 'none',
-        }}
-      >
-        hubly
-      </span>
-    </div>
-  );
-}
 
 export default function DashboardLayout({
   children,
@@ -86,7 +62,7 @@ export default function DashboardLayout({
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full animate-in-up">
-          <img src={LOGO_URL} alt="Hubly" className="h-16 w-auto object-contain mb-4" />
+          <HublyLogo tone="dark" height={64} className="mb-4" />
           <div className="flex flex-col items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-center">
               Bem-vindo ao Hubly
@@ -202,7 +178,7 @@ function DashboardLayoutContent({
           <SidebarHeader className="h-20 justify-center border-b border-sidebar-border/50 px-4">
             <div className="flex items-center gap-3 transition-all w-full overflow-hidden">
               <div className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                <HublyLogoSidebar />
+                <HublyLogo tone="light" height={32} />
               </div>
               <button
                 onClick={toggleSidebar}
@@ -283,7 +259,7 @@ function DashboardLayoutContent({
           <div className="flex border-b items-center justify-between bg-background/95 px-4 backdrop-blur sticky top-0 z-40 h-16" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-9 w-9 rounded-lg" />
-              <HublyLogoSidebar className="scale-90" textColor="dark" />
+              <HublyLogo tone="dark" height={30} className="scale-90" />
             </div>
           </div>
         )}
@@ -292,4 +268,3 @@ function DashboardLayoutContent({
     </>
   );
 }
-

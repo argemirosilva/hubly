@@ -17,11 +17,11 @@ import {
   Zap,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { HublyLogo } from "@/components/HublyLogo";
 
 type PublicPage = "inicio" | "recursos" | "como-funciona" | "negocios";
 
 const HERO_IMAGE = "/manus-storage/hubly-public-hero_2c2e6de4.jpg";
-const HUBLY_LOGO_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
 
 const pageCopy: Record<Exclude<PublicPage, "inicio">, { eyebrow: string; title: string; description: string }> = {
   recursos: {
@@ -102,7 +102,7 @@ const moments = [
 function Logo() {
   return (
     <a href="/" className="inline-flex items-center" aria-label="Hubly — Página inicial">
-      <img src={HUBLY_LOGO_URL} alt="Hubly" className="h-9 w-auto object-contain" />
+      <HublyLogo tone="dark" height={38} />
     </a>
   );
 }

@@ -11,31 +11,7 @@ import { useSystemAuth } from "@/_core/hooks/useSystemAuth";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import NovaAgendaModal from "@/components/NovaAgendaModal";
 import { useBadge } from "@/hooks/useBadge";
-
-const HUBLY_LOGO_DARK_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
-const HUBLY_ICON_GOLD_URL = "/manus-storage/hubly-icon-gold_40021193.png";
-
-function HublyLogoSVG({ variant = 'white', height = 56 }: { variant?: 'white' | 'dark'; height?: number }) {
-  if (variant === 'dark') {
-    return (
-      <img src={HUBLY_LOGO_DARK_URL} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
-    );
-  }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <img src={HUBLY_ICON_GOLD_URL} alt="Hubly" style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }} />
-      <span style={{
-        fontFamily: "'Poppins', 'Plus Jakarta Sans', sans-serif",
-        fontWeight: 300,
-        letterSpacing: '0.18em',
-        fontSize: `${height * 0.55}px`,
-        color: '#ffffff',
-        lineHeight: 1,
-        userSelect: 'none',
-      }}>hubly</span>
-    </div>
-  );
-}
+import { HublyLogo } from "@/components/HublyLogo";
 
 type NavItem = {
   href: string;
@@ -344,7 +320,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(22% 0.030 55)" }}>
         <div className="flex flex-col items-center gap-4">
           <div className="animate-pulse">
-            <HublyLogoSVG variant="white" height={64} />
+            <HublyLogo tone="light" height={64} />
           </div>
         </div>
       </div>
@@ -591,7 +567,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between px-4 py-4"
           style={{ borderBottom: "1px solid oklch(34% 0.060 48)" }}>
           <div className="flex items-center gap-2">
-            <HublyLogoSVG variant="white" height={40} />
+            <HublyLogo tone="light" height={40} />
           </div>
           <button onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-lg transition-colors"
