@@ -2890,3 +2890,7 @@
 - [x] Versionar o URL Open Graph para forçar a renovação da prévia em caches externos
 - [x] Adicionar FAQ expansível sobre IA Financeira e gestão de posts na página inicial pública
 - [x] Ampliar a FAQ com dúvidas sobre começar, atendimento, pagamentos, automações, pacotes e acesso pelo celular
+- [x] Analisar o fluxo demonstrado no vídeo e apresentar diagnóstico antes de alterações
+- [x] Exibir histórico de sessões ao clicar em um pacote, com dia, hora, serviço, profissional e status
+- [x] Permitir exclusão definitiva apenas para pacotes sem sessões, agendamentos ou pagamentos vinculados
+- [x] Corrigir seletores de serviço cortados no agendamento de sessões de pacote

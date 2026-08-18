@@ -24,6 +24,7 @@ import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
 import { calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
 import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
+import { avaliarExclusaoDefinitivaPacote } from "../pacotes-exclusao";
 
 /**
  * Verifica se o usuário tem permissão de pacotes.
@@ -914,6 +915,60 @@ export const pacotesRouter = router({
       const empId = empresa.id;
       await db.update(pacotesClientes).set({ status: "cancelado" })
         .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
+      return { ok: true };
+    }),
+
+  // ── Excluir pacote de teste sem movimentação ───────────────────────────────
+  excluirPacoteDefinitivamente: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, "pacotesExcluir");
+      const empId = empresa.id;
+
+      const [pacote] = await db.select({ id: pacotesClientes.id, status: pacotesClientes.status })
+        .from(pacotesClientes)
+        .where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)))
+        .limit(1);
+      if (!pacote) throw new TRPCError({ code: "NOT_FOUND", message: "Pacote não encontrado." });
+
+      const itens = await db.select({ id: pacotesClientesItens.id, quantidadeUsada: pacotesClientesItens.quantidadeUsada })
+        .from(pacotesClientesItens)
+        .where(eq(pacotesClientesItens.pacoteClienteId, input.id));
+      const itemIds = itens.map((item) => item.id);
+      const sessoesUsadas = itens.reduce((total, item) => total + Number(item.quantidadeUsada ?? 0), 0);
+      const [pagamento] = await db.select({ id: pacotesClientesPagamentos.id })
+        .from(pacotesClientesPagamentos)
+        .where(eq(pacotesClientesPagamentos.pacoteClienteId, input.id))
+        .limit(1);
+      const [agendamentoDoPacote] = await db.select({ id: agendamentos.id })
+        .from(agendamentos)
+        .where(and(eq(agendamentos.pacoteClienteId, input.id), eq(agendamentos.empresaId, empId)))
+        .limit(1);
+      const [agendamentoPorItem] = itemIds.length
+        ? await db.select({ id: agendamentoItens.id })
+          .from(agendamentoItens)
+          .where(inArray(agendamentoItens.pacoteClienteItemId, itemIds))
+          .limit(1)
+        : [];
+
+      const elegibilidade = avaliarExclusaoDefinitivaPacote({
+        status: pacote.status,
+        sessoesUsadas,
+        possuiAgendamentos: Boolean(agendamentoDoPacote || agendamentoPorItem),
+        possuiPagamentos: Boolean(pagamento),
+      });
+      if (!elegibilidade.permitido) {
+        throw new TRPCError({ code: "CONFLICT", message: elegibilidade.motivo });
+      }
+
+      await db.transaction(async (tx) => {
+        await tx.delete(notificacoesPacotes).where(eq(notificacoesPacotes.pacoteClienteId, input.id));
+        await tx.delete(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, input.id));
+        await tx.delete(pacotesClientes).where(and(eq(pacotesClientes.id, input.id), eq(pacotesClientes.empresaId, empId)));
+      });
       return { ok: true };
     }),
 

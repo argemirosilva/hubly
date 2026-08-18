@@ -731,7 +731,7 @@ function ModalAbrirPacote({
                       <Input type="date" value={sessao.data} onChange={e => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, data: e.target.value } : s))} />
                       <Input type="time" value={sessao.horaInicio} onChange={e => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, horaInicio: e.target.value } : s))} />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       <Select value={String(sessao.profissionalId || "")} onValueChange={v => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, profissionalId: Number(v) } : s))}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Profissional" /></SelectTrigger>
                         <SelectContent>{profissionais.map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}</SelectContent>
@@ -848,13 +848,50 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   );
 }
 
+function ModalHistoricoSessoes({ pacote, onClose }: { pacote: any | null; onClose: () => void }) {
+  const { data: sessoes = [], isLoading } = trpc.pacotes.historicoSessoes.useQuery(
+    { pacoteClienteId: pacote?.id ?? 0 },
+    { enabled: Boolean(pacote?.id) },
+  );
+  const statusLabel: Record<string, string> = {
+    agendado: "Agendada", confirmado: "Confirmada", concluido: "Concluída", cancelado: "Cancelada", faltou: "Faltou", remarcado: "Remarcada",
+  };
+
+  return <Dialog open={Boolean(pacote)} onOpenChange={(open) => !open && onClose()}>
+    <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Sessões do pacote</DialogTitle>
+        {pacote && <p className="text-sm text-stone-500">{pacote.nome} · {pacote.clienteNome ?? "Cliente"}</p>}
+      </DialogHeader>
+      <div className="space-y-3 py-2">
+        {isLoading ? <p className="py-8 text-center text-sm text-stone-400">Carregando sessões...</p> : sessoes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-7 text-center text-sm text-stone-500">Ainda não há sessões agendadas ou concluídas para este pacote.</div>
+        ) : sessoes.map((sessao: any) => {
+          const data = sessao.data ? new Date(`${sessao.data}T12:00:00`).toLocaleDateString("pt-BR") : "Data não informada";
+          const status = statusLabel[sessao.status] ?? sessao.status ?? "Sem status";
+          return <div key={`${sessao.agendamentoId}-${sessao.pacoteClienteItemId}`} className="rounded-xl border border-stone-200 bg-white p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="font-semibold text-stone-800">{sessao.servicoNome ?? "Sessão do pacote"}</p><p className="mt-1 text-xs text-stone-500">{data} · {sessao.horaInicio ?? "Horário não informado"}</p></div>
+              <Badge variant="outline" className="shrink-0 border-violet-200 bg-violet-50 text-violet-800">{status}</Badge>
+            </div>
+            {sessao.profissionalNome && <p className="mt-2 text-xs text-stone-600">Profissional: {sessao.profissionalNome}</p>}
+          </div>;
+        })}
+      </div>
+      <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>;
+}
+
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
+function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExcluir, onVerHistorico, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
   onDesfazerConsumo: (itemId: number) => void;
   onCancelar: (id: number) => void;
+  onExcluir: (id: number) => void;
+  onVerHistorico: (pacote: any) => void;
   onRenovar?: (pacote: any) => void;
   onEditar?: (pacote: any) => void;
   onRegistrarPagamento?: (pacote: any) => void;
@@ -951,6 +988,14 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onRenov
                 <XCircle className="w-3 h-3" /> Cancelar
               </button>
             )}
+            <button onClick={() => onVerHistorico(pacote)} className="text-violet-700 hover:text-violet-900 flex items-center gap-1 font-medium">
+              <CalendarClock className="w-3 h-3" /> Sessões
+            </button>
+            {pacote.status === "cancelado" && (
+              <button onClick={() => onExcluir(pacote.id)} className="text-red-600 hover:text-red-800 flex items-center gap-1 font-medium">
+                <Trash2 className="w-3 h-3" /> Excluir
+              </button>
+            )}
             {pacote.status === "ativo" && onEditar && (
               <button onClick={() => onEditar(pacote)} className="text-amber-600 hover:text-blue-700 flex items-center gap-1 font-medium">
                 <Pencil className="w-3 h-3" /> Editar
@@ -1001,6 +1046,7 @@ export default function Pacotes() {
     observacoes: "",
   });
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
+  const [pacoteHistorico, setPacoteHistorico] = useState<any | null>(null);
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
     nome: string; valorPago: string; formaPagamento: string;
     numeroParcelas: string; dataVencimento: string; observacoes: string;
@@ -1059,6 +1105,10 @@ export default function Pacotes() {
 
   const cancelarMutation = trpc.pacotes.cancelarPacote.useMutation({
     onSuccess: () => { utils.pacotes.listarTodos.invalidate(); toast.success("Pacote cancelado."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const excluirPacoteMutation = trpc.pacotes.excluirPacoteDefinitivamente.useMutation({
+    onSuccess: () => { utils.pacotes.listarTodos.invalidate(); toast.success("Pacote excluído definitivamente."); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -1193,6 +1243,10 @@ export default function Pacotes() {
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
                     onDesfazerConsumo={(itemId) => desfazerConsumoMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
+                    onExcluir={(id) => {
+                      if (window.confirm("Excluir este pacote definitivamente? A ação só é permitida para pacotes cancelados sem sessões, agendamentos ou pagamentos.")) excluirPacoteMutation.mutate({ id });
+                    }}
+                    onVerHistorico={(pac) => setPacoteHistorico(pac)}
                     onRegistrarPagamento={(pac) => setPacotePagamento(pac)}
                     onReabrir={(pac) => reabrirMutation.mutate({ pacoteClienteId: pac.id })}
                     onEditar={(pac) => {
@@ -1377,6 +1431,7 @@ export default function Pacotes() {
           servicos={servicosData}
         />
       )}
+      <ModalHistoricoSessoes pacote={pacoteHistorico} onClose={() => setPacoteHistorico(null)} />
       <ModalPagamentoPacote
         pacote={pacotePagamento}
         open={Boolean(pacotePagamento)}
