@@ -983,11 +983,10 @@ export const pacotesRouter = router({
         .limit(1);
       if (!pacote) throw new TRPCError({ code: "NOT_FOUND", message: "Pacote não encontrado." });
 
-      const itens = await db.select({ id: pacotesClientesItens.id, quantidadeUsada: pacotesClientesItens.quantidadeUsada })
+      const itens = await db.select({ id: pacotesClientesItens.id })
         .from(pacotesClientesItens)
         .where(eq(pacotesClientesItens.pacoteClienteId, input.id));
       const itemIds = itens.map((item) => item.id);
-      const sessoesUsadas = itens.reduce((total, item) => total + Number(item.quantidadeUsada ?? 0), 0);
       const [pagamento] = await db.select({ id: pacotesClientesPagamentos.id })
         .from(pacotesClientesPagamentos)
         .where(eq(pacotesClientesPagamentos.pacoteClienteId, input.id))
@@ -1005,7 +1004,6 @@ export const pacotesRouter = router({
 
       const elegibilidade = avaliarExclusaoDefinitivaPacote({
         status: pacote.status,
-        sessoesUsadas,
         possuiAgendamentos: Boolean(agendamentoDoPacote || agendamentoPorItem),
         possuiPagamentos: Boolean(pagamento),
       });
