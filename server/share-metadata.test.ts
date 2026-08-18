@@ -12,6 +12,6 @@ describe("metadados de compartilhamento do Hubly", () => {
   });
 
   it("mantém a URL canônica de compartilhamento no domínio público", () => {
-    expect(html).toContain('<meta property="og:url" content="https://hubly.orizontech.com.br/" />');
+    expect(html).toContain('<meta property="og:url" content="https://hubly.orizontech.com.br/?share=hubly-public-v2" />');
   });
 });

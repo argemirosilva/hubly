@@ -2886,3 +2886,5 @@
 - [x] Ampliar a página Como funciona com IA financeira, controle de posts, insights, automações e gestão operacional
 - [x] Direcionar os CTAs Começar agora do site público para o cadastro inicial em vez do login
 - [x] Atualizar a imagem e os metadados de compartilhamento para a identidade oficial do Hubly
+- [x] Corrigir a resposta do domínio publicado que ainda entrega metadados antigos aos robôs de compartilhamento
+- [x] Versionar o URL Open Graph para forçar a renovação da prévia em caches externos
