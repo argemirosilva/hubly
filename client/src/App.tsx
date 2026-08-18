@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { PWAInstallBanner } from "./components/PWAInstallBanner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, Redirect } from "wouter";
+import { Route, Switch, Redirect, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
@@ -53,6 +53,7 @@ import SuporteAdmin from "./pages/SuporteAdmin";
 import Atendimento from "./pages/Atendimento";
 import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
 import NovoAgendamento from "./pages/NovoAgendamento";
+import SitePublico from "./pages/SitePublico";
 import { SupportChat } from "./components/SupportChat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useMobileApp } from "./hooks/useMobileApp";
@@ -78,7 +79,10 @@ function MobileAppInit() {
 function Router() {
   return (
     <Switch>
-      <Route path="/">{() => <Redirect to="/admin" />}</Route>
+      <Route path="/" component={SitePublico} />
+      <Route path="/recursos">{() => <SitePublico page="recursos" />}</Route>
+      <Route path="/como-funciona">{() => <SitePublico page="como-funciona" />}</Route>
+      <Route path="/para-seu-negocio">{() => <SitePublico page="negocios" />}</Route>
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/agendar/:slug" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
@@ -139,6 +143,8 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const isPublicSite = ["/", "/recursos", "/como-funciona", "/para-seu-negocio"].includes(location);
   useEffect(() => {
     document.title = "Hubly - Gestão de Agendamentos e Clientes";
   }, []);
@@ -165,7 +171,7 @@ function App() {
           <Toaster richColors position="top-right" />
           <OfflineIndicator />
           <MobileAppInit />
-          <PWAInstallBanner />
+          {!isPublicSite && <PWAInstallBanner />}
           <Router />
         </TooltipProvider>
       </ThemeProvider>

@@ -2870,3 +2870,7 @@
 - [x] Gerar arquivo SQL de criação da tabela taxas_config para importação no MySQL remoto
 - [x] Conferir o relatório de sincronização remota contra as contagens do banco local
 - [x] Planejar o site público do Hubly para apresentar a plataforma e converter jovens empreendedores em novos usuários
+- [x] Criar a rota pública e a navegação do site de aquisição do Hubly
+- [x] Implementar a página inicial pública com proposta de valor, dores e recursos
+- [x] Adicionar páginas públicas de recursos, funcionamento e segmentos
+- [x] Validar a navegação mobile, acessibilidade e CTAs de criação de conta
