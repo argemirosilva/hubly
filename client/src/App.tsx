@@ -54,6 +54,7 @@ import Atendimento from "./pages/Atendimento";
 import PreAgendamentosPendentes from "./pages/PreAgendamentosPendentes";
 import NovoAgendamento from "./pages/NovoAgendamento";
 import SitePublico from "./pages/SitePublico";
+import AssinaturasPublicas from "./pages/AssinaturasPublicas";
 import { SupportChat } from "./components/SupportChat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useMobileApp } from "./hooks/useMobileApp";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/recursos">{() => <SitePublico page="recursos" />}</Route>
       <Route path="/como-funciona">{() => <SitePublico page="como-funciona" />}</Route>
       <Route path="/para-seu-negocio">{() => <SitePublico page="negocios" />}</Route>
+      <Route path="/assinaturas" component={AssinaturasPublicas} />
       <Route path="/agendar" component={PortalCliente} />
       <Route path="/agendar/:slug" component={PortalCliente} />
       <Route path="/setup" component={Setup} />
@@ -144,7 +146,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicSite = ["/", "/recursos", "/como-funciona", "/para-seu-negocio"].includes(location);
+  const isPublicSite = ["/", "/recursos", "/como-funciona", "/para-seu-negocio", "/assinaturas"].includes(location);
   useEffect(() => {
     document.title = "Hubly - Gestão de Agendamentos e Clientes";
   }, []);

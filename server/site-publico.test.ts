@@ -8,8 +8,9 @@ describe("site público do Hubly", () => {
     const html = renderToStaticMarkup(createElement(SitePublico));
 
     expect(html).toContain("Seu negócio não precisa ser uma bagunça");
-    expect(html).toContain("Começar agora");
+    expect(html).toContain("Entrar");
     expect(html).toContain('href="/admin"');
+    expect(html).toContain('href="/assinaturas"');
     expect(html).toContain("hubly-icon-gold_40021193.png");
     expect(html).toContain("Agenda no controle");
     expect(html).toContain("Clique em cada card para ver o que ele resolve no seu dia a dia.");

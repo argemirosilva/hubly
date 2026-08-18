@@ -114,6 +114,7 @@ function SiteHeader() {
     ["Recursos", "/recursos"],
     ["Como funciona", "/como-funciona"],
     ["Para seu negócio", "/para-seu-negocio"],
+    ["Assinaturas", "/assinaturas"],
   ];
 
   return (
@@ -127,7 +128,6 @@ function SiteHeader() {
         </nav>
         <div className="hidden items-center gap-3 md:flex">
           <Button asChild variant="ghost" className="font-bold text-[#5f4a3c] hover:bg-[#f4ece3] hover:text-[#2c1a12]"><a href="/admin">Entrar</a></Button>
-          <Button asChild className="rounded-xl bg-[#3b2115] px-5 font-bold text-white shadow-[0_10px_20px_rgba(59,33,21,0.18)] transition-transform hover:-translate-y-0.5 hover:bg-[#5a351e]"><a href="/admin">Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button>
         </div>
         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)} aria-label={open ? "Fechar menu" : "Abrir menu"}>{open ? <X /> : <Menu />}</Button>
       </div>
@@ -135,7 +135,7 @@ function SiteHeader() {
         <div className="border-t border-[#eee2d7] bg-[#fffaf4] px-5 pb-5 pt-3 md:hidden">
           <nav className="grid gap-1" aria-label="Navegação móvel">
             {links.map(([label, href]) => <a key={href} href={href} className="rounded-xl px-3 py-3 font-semibold text-[#4b3325] hover:bg-[#f4ece3]">{label}</a>)}
-            <a href="/admin" className="mt-2 rounded-xl bg-[#3b2115] px-4 py-3 text-center font-bold text-white">Começar agora</a>
+            <a href="/admin" className="mt-2 rounded-xl bg-[#3b2115] px-4 py-3 text-center font-bold text-white">Entrar</a>
           </nav>
         </div>
       )}
