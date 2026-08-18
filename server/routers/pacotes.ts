@@ -1330,14 +1330,18 @@ export const pacotesRouter = router({
         .leftJoin(profissionais, eq(agendamentos.profissionalId, profissionais.id))
         .where(inArray(agendamentos.id, agendIds));
 
-      // Montar resultado
-      return agendItens.map(ai => {
-        const ag = agends.find(a => a.id === ai.agendamentoId);
+      // Agrupar os itens pelo agendamento para que uma sessão com múltiplos
+      // serviços apareça como um único atendimento no histórico.
+      return agendIds.map(agendamentoId => {
+        const itensDaSessao = agendItens.filter(item => item.agendamentoId === agendamentoId);
+        const primeiroItem = itensDaSessao[0];
+        const ag = agends.find(a => a.id === agendamentoId);
         return {
-          agendamentoId: ai.agendamentoId,
-          pacoteClienteItemId: ai.pacoteClienteItemId,
-          servicoNome: ai.servicoNome,
-          valorUnitario: ai.valorUnitario,
+          agendamentoId,
+          pacoteClienteItemId: primeiroItem?.pacoteClienteItemId ?? null,
+          servicoNome: primeiroItem?.servicoNome ?? null,
+          servicoNomes: Array.from(new Set(itensDaSessao.map(item => item.servicoNome).filter(Boolean))),
+          valorUnitario: primeiroItem?.valorUnitario ?? null,
           data: ag?.data ?? null,
           horaInicio: ag?.horaInicio ?? null,
           status: ag?.status ?? null,

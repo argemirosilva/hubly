@@ -486,6 +486,20 @@ function ModalAbrirPacote({
     }
   }
 
+  function alternarServicoDaSessao(indiceSessao: number, servicoId: number) {
+    setSessoes(sessoesAtuais => sessoesAtuais.map((sessao, indice) => {
+      if (indice !== indiceSessao) return sessao;
+      const jaSelecionado = sessao.servicoIds.includes(servicoId);
+      if (jaSelecionado && sessao.servicoIds.length === 1) return sessao;
+      return {
+        ...sessao,
+        servicoIds: jaSelecionado
+          ? sessao.servicoIds.filter(id => id !== servicoId)
+          : [...sessao.servicoIds, servicoId],
+      };
+    }));
+  }
+
   const abrirMutation = trpc.pacotes.abrirPacote.useMutation({
     onSuccess: () => {
       utils.pacotes.listarTodos.invalidate();
@@ -784,13 +798,29 @@ function ModalAbrirPacote({
                         <SelectTrigger className="h-9"><SelectValue placeholder="Profissional" /></SelectTrigger>
                         <SelectContent>{profissionais.map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.nome}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Select value={String(sessao.servicoIds[0] || "")} onValueChange={v => setSessoes(sessoes.map((s, i) => i === indice ? { ...s, servicoIds: [Number(v)] } : s))}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Serviço do pacote" /></SelectTrigger>
-                        <SelectContent>{itens.filter(i => i.servicoId).map(item => {
-                          const servico = servicos.find(s => s.id === item.servicoId);
-                          return <SelectItem key={item.servicoId} value={String(item.servicoId)}>{servico?.nome ?? `Serviço #${item.servicoId}`}</SelectItem>;
-                        })}</SelectContent>
-                      </Select>
+                      <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-2.5">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-stone-700">Serviços nesta sessão</p>
+                          <span className="text-[11px] text-stone-500">{sessao.servicoIds.length} selecionado{sessao.servicoIds.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        <p className="mb-2 text-[11px] text-stone-500">Selecione um ou mais serviços para o mesmo horário.</p>
+                        <div className="space-y-1.5">
+                          {itens.filter(item => item.servicoId).map(item => {
+                            const servico = servicos.find(s => s.id === item.servicoId);
+                            const selecionado = sessao.servicoIds.includes(item.servicoId);
+                            return <button
+                              key={item.servicoId}
+                              type="button"
+                              aria-pressed={selecionado}
+                              onClick={() => alternarServicoDaSessao(indice, item.servicoId)}
+                              className={`flex w-full items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-left text-xs transition-colors ${selecionado ? "border-amber-400 bg-amber-100 text-amber-950" : "border-stone-200 bg-white text-stone-700 hover:border-amber-300"}`}
+                            >
+                              <span className="flex items-center gap-2 min-w-0"><CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${selecionado ? "text-amber-700" : "text-stone-300"}`} /><span className="truncate">{servico?.nome ?? `Serviço #${item.servicoId}`}</span></span>
+                              <span className="shrink-0 text-[10px] text-stone-500">{item.quantidadeTotal} no pacote</span>
+                            </button>;
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -946,9 +976,10 @@ function ModalHistoricoSessoes({ pacote, onClose }: { pacote: any | null; onClos
         ) : sessoes.map((sessao: any) => {
           const data = sessao.data ? new Date(`${sessao.data}T12:00:00`).toLocaleDateString("pt-BR") : "Data não informada";
           const status = statusLabel[sessao.status] ?? sessao.status ?? "Sem status";
-          return <div key={`${sessao.agendamentoId}-${sessao.pacoteClienteItemId}`} className="rounded-xl border border-stone-200 bg-white p-3">
+          const nomesServicos = sessao.servicoNomes?.length ? sessao.servicoNomes : [sessao.servicoNome].filter(Boolean);
+          return <div key={sessao.agendamentoId} className="rounded-xl border border-stone-200 bg-white p-3">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="font-semibold text-stone-800">{sessao.servicoNome ?? "Sessão do pacote"}</p><p className="mt-1 text-xs text-stone-500">{data} · {sessao.horaInicio ?? "Horário não informado"}</p></div>
+              <div><p className="font-semibold text-stone-800">{nomesServicos.length ? nomesServicos.join(" + ") : "Sessão do pacote"}</p><p className="mt-1 text-xs text-stone-500">{data} · {sessao.horaInicio ?? "Horário não informado"}</p></div>
               <Badge variant="outline" className="shrink-0 border-violet-200 bg-violet-50 text-violet-800">{status}</Badge>
             </div>
             {sessao.profissionalNome && <p className="mt-2 text-xs text-stone-600">Profissional: {sessao.profissionalNome}</p>}

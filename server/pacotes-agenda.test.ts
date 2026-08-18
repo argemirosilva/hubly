@@ -20,4 +20,14 @@ describe("agenda de pacotes", () => {
       [{ servicoIds: [1] }, { servicoIds: [1] }],
     )).toBeNull();
   });
+
+  it("aceita dois serviços diferentes na mesma sessão e reserva um uso de cada item", () => {
+    expect(validarReservasDePacote(
+      [
+        { servicoId: 1, quantidadeTotal: 1, quantidadeUsada: 0, quantidadeReservada: 0 },
+        { servicoId: 2, quantidadeTotal: 1, quantidadeUsada: 0, quantidadeReservada: 0 },
+      ],
+      [{ servicoIds: [1, 2] }],
+    )).toBeNull();
+  });
 });
