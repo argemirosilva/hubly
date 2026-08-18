@@ -2888,3 +2888,4 @@
 - [x] Atualizar a imagem e os metadados de compartilhamento para a identidade oficial do Hubly
 - [x] Corrigir a resposta do domínio publicado que ainda entrega metadados antigos aos robôs de compartilhamento
 - [x] Versionar o URL Open Graph para forçar a renovação da prévia em caches externos
+- [x] Adicionar FAQ expansível sobre IA Financeira e gestão de posts na página inicial pública

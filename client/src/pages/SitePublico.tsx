@@ -98,6 +98,41 @@ const moments = [
   { step: "03", title: "Acompanhe o que acontece", text: "Veja o que entrou, o que falta e quais clientes precisam de atenção.", icon: CircleDollarSign },
 ];
 
+const faqs = [
+  {
+    question: "O que a IA Financeira faz no Hubly?",
+    answer: "Ela transforma os dados que você já registra — como sinais, pagamentos, valores em aberto, contas e comissões — em uma leitura mais clara da saúde financeira do negócio. Você recebe score, alertas e explicações sobre pontos que merecem atenção.",
+  },
+  {
+    question: "A IA Financeira toma decisões ou movimenta meu dinheiro?",
+    answer: "Não. Ela não movimenta dinheiro e não toma decisões por você. O papel dela é organizar a leitura dos dados e destacar o que pode exigir sua atenção para que você decida com mais segurança.",
+  },
+  {
+    question: "Consigo organizar ideias e roteiros de posts?",
+    answer: "Sim. Você pode guardar ideias no banco de conteúdo, adicionar tags, escrever o roteiro e, quando estiver pronto, encaixar a ideia no calendário de publicações.",
+  },
+  {
+    question: "Posso usar o mesmo conteúdo em mais de uma rede ou data?",
+    answer: "Pode. Um mesmo conteúdo pode ter publicações separadas, cada uma com plataforma, formato, data, horário e responsável próprios. Assim você reaproveita o material sem perder a organização.",
+  },
+  {
+    question: "O Hubly publica automaticamente nas redes sociais?",
+    answer: "O Hubly organiza o planejamento, o roteiro, o calendário e as métricas do conteúdo. A publicação continua sob seu controle nas redes sociais, para você manter a revisão final de cada post.",
+  },
+];
+
+function FaqItem({ question, answer }: (typeof faqs)[number]) {
+  const [expanded, setExpanded] = useState(false);
+  const id = `faq-${question.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}`;
+  return <article className={`border-b border-[#eaded2] last:border-b-0 ${expanded ? "bg-[#fffaf4]" : "bg-white"}`}>
+    <button type="button" className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left sm:px-6" onClick={() => setExpanded((open) => !open)} aria-expanded={expanded} aria-controls={id}>
+      <span className="text-base font-extrabold tracking-[-0.02em] text-[#3b2115]">{question}</span>
+      <ChevronDown className={`h-5 w-5 shrink-0 text-[#9a6543] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+    </button>
+    {expanded && <div id={id} className="px-5 pb-5 text-sm leading-relaxed text-[#715c4f] sm:px-6 sm:pb-6">{answer}</div>}
+  </article>;
+}
+
 export type PublicTopic = "agenda" | "clientes" | "financeiro" | "automacoes" | "marketing";
 
 const publicTopics: Record<PublicTopic, { label: string; eyebrow: string; title: string; description: string; icon: typeof CalendarCheck2; benefits: string[]; outcome: string }> = {
@@ -254,6 +289,8 @@ function HomeContent() {
       <section id="como-funciona" className="bg-[#fffdf9] py-20 sm:py-28"><div className="mx-auto grid max-w-7xl gap-14 px-5 lg:grid-cols-[.85fr_1.15fr] lg:px-8"><div><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">Um passo de cada vez</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Comece pela agenda. O Hubly cresce com você.</h2><p className="mt-5 text-base leading-relaxed text-[#735f52]">Não precisa mudar tudo de uma vez. Configure o essencial, ganhe clareza no dia a dia e adicione novas ferramentas quando fizer sentido.</p><Button asChild variant="outline" className="mt-8 rounded-xl border-[#d8c7b7] bg-white font-bold text-[#4b3020] hover:bg-[#f8f1e9]"><a href="/como-funciona">Ver a rotina completa <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div><div className="space-y-3">{moments.map(({ step, title, text, icon: Icon }) => <article key={step} className="flex gap-5 rounded-3xl border border-[#eaded2] bg-white p-5 sm:p-6"><span className="pt-0.5 text-sm font-black text-[#b17b50]">{step}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#352217]">{title}</h3><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#f7ece2] text-[#8a4d2b]"><Icon className="h-4 w-4" /></span></div><p className="mt-2 text-sm leading-relaxed text-[#796659]">{text}</p></div></article>)}</div></div></section>
 
       <section className="overflow-hidden bg-[#3b2115] py-20 text-white sm:py-28"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="grid gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center"><div><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#f2c870]">Feito para serviços</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] sm:text-5xl">Você entende do seu atendimento. O Hubly entende da sua rotina.</h2><p className="mt-5 max-w-xl text-base leading-relaxed text-[#e6d7cc]">Beleza, estética, barbearia, bem-estar, consultoria e outros serviços. Cada negócio tem seu jeito, mas todos precisam de tempo para fazer o que fazem bem.</p><Button asChild className="mt-8 rounded-xl bg-[#f5d77a] px-6 font-bold text-[#432815] hover:bg-[#ffe493]"><a href="/para-seu-negocio">Ver para o meu negócio <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-3xl bg-white/10 p-6"><p className="text-xl font-extrabold">Beleza & estética</p><p className="mt-2 text-sm text-[#e1d2c7]">Agenda, sinal, pacotes e relacionamento no ritmo da sua cliente.</p></div><div className="rounded-3xl bg-white/10 p-6"><p className="text-xl font-extrabold">Barbearia</p><p className="mt-2 text-sm text-[#e1d2c7]">Mais fluidez entre horários, equipe e atendimento recorrente.</p></div><div className="rounded-3xl bg-white/10 p-6 sm:col-span-2"><p className="text-xl font-extrabold">Profissionais de serviço</p><p className="mt-2 text-sm text-[#e1d2c7]">Para quem atende, administra e quer crescer sem se perder no processo.</p></div></div></div></div></section>
+
+      <section id="perguntas-frequentes" className="bg-[#f8f1e9] py-20 sm:py-28"><div className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[.78fr_1.22fr] lg:px-8"><div><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">Perguntas frequentes</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Dúvidas antes de começar?</h2><p className="mt-5 max-w-md text-base leading-relaxed text-[#735f52]">Entenda como as ferramentas de análise financeira e marketing ajudam sem tirar o controle das suas mãos.</p></div><div className="overflow-hidden rounded-3xl border border-[#eaded2] bg-white shadow-[0_14px_30px_rgba(76,45,26,0.05)]">{faqs.map((faq) => <FaqItem key={faq.question} {...faq} />)}</div></div></section>
 
       <section className="bg-[#fffaf4] py-20 sm:py-28"><div className="mx-auto max-w-4xl px-5 text-center"><span className="inline-flex rounded-full bg-[#f7ead5] px-4 py-2 text-xs font-extrabold text-[#91501f]">Gestão sem complicação</span><h2 className="mx-auto mt-5 max-w-3xl text-4xl font-extrabold tracking-[-0.06em] text-[#2c1a12] sm:text-6xl">Organize hoje. Cresça com mais calma amanhã.</h2><p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#735f52]">Crie sua conta, coloque a agenda para funcionar e descubra quanto mais leve pode ser gerir o seu negócio.</p><Button asChild size="lg" className="mt-8 h-12 rounded-xl bg-[#3b2115] px-7 font-bold shadow-[0_14px_28px_rgba(59,33,21,0.2)] hover:bg-[#57321d]"><a href={CADASTRO_URL}>Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div></section>
     </>

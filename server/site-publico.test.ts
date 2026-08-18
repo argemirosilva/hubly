@@ -19,6 +19,9 @@ describe("site público do Hubly", () => {
     expect(html).toContain('aria-controls="recurso-agenda-no-controle"');
     expect(html).toContain('href="/solucoes/agenda"');
     expect(html).toContain('href="/solucoes/marketing"');
+    expect(html).toContain("Perguntas frequentes");
+    expect(html).toContain("O que a IA Financeira faz no Hubly?");
+    expect(html).toContain("Consigo organizar ideias e roteiros de posts?");
   });
 
   it("mantém páginas públicas de apoio para recursos e funcionamento", () => {
