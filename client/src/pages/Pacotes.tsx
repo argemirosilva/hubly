@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { FILTRO_STATUS_PACOTES_PADRAO, type FiltroStatusPacote } from "../../../shared/pacotes";
+import { removerSessoesEmConflito } from "../../../shared/pacotes-conflitos";
 import {
   Package, Plus, Trash2, ChevronDown, ChevronUp,
   Users, CheckCircle2, Clock, XCircle, AlertCircle,
@@ -445,6 +446,7 @@ function ModalAbrirPacote({
   const [agendarSessoes, setAgendarSessoes] = useState(false);
   const [sessoes, setSessoes] = useState<{ data: string; horaInicio: string; profissionalId: number; servicoIds: number[] }[]>([]);
   const [modoNotificacao, setModoNotificacao] = useState<"consolidada" | "individual" | "nenhuma">("consolidada");
+  const [conflitos, setConflitos] = useState<{ indice: number; data: string; horaInicio: string; horaFim: string; profissionalId: number }[]>([]);
   const { data: profissionais = [] } = trpc.profissionais.listParaAgendamento.useQuery();
 
   const numParcelas = parseInt(numeroParcelas) || 1;
@@ -469,14 +471,9 @@ function ModalAbrirPacote({
     },
     onError: (e) => toast.error(e.message),
   });
+  const verificarConflitosMutation = trpc.pacotes.verificarConflitosSessoes.useMutation();
 
-  function handleSave() {
-    if (!clienteId || !nome || !valorPago || itens.some(i => !i.servicoId)) {
-      toast.error("Preencha todos os campos obrigatórios"); return;
-    }
-    if (agendarSessoes && (!sessoes.length || sessoes.some(s => !s.data || !s.horaInicio || !s.profissionalId || !s.servicoIds.length))) {
-      toast.error("Preencha data, horário, profissional e serviço em cada sessão programada"); return;
-    }
+  function abrirComSessoes(sessoesParaAbrir: typeof sessoes, permitirConflitos = false) {
     abrirMutation.mutate({
       clienteId: parseInt(clienteId),
       modeloId: modeloId ? parseInt(modeloId) : undefined,
@@ -489,12 +486,32 @@ function ModalAbrirPacote({
       numeroParcelas: parseInt(numeroParcelas) || 1,
       observacoes: observacoes || undefined,
       itens: itens.filter(i => i.servicoId > 0),
-      sessoes: agendarSessoes ? sessoes : [],
-      modoNotificacao: agendarSessoes ? modoNotificacao : "nenhuma",
+      sessoes: sessoesParaAbrir,
+      permitirConflitos,
+      modoNotificacao: sessoesParaAbrir.length ? modoNotificacao : "nenhuma",
     });
   }
 
+  async function handleSave() {
+    if (!clienteId || !nome || !valorPago || itens.some(i => !i.servicoId)) {
+      toast.error("Preencha todos os campos obrigatórios"); return;
+    }
+    if (agendarSessoes && (!sessoes.length || sessoes.some(s => !s.data || !s.horaInicio || !s.profissionalId || !s.servicoIds.length))) {
+      toast.error("Preencha data, horário, profissional e serviço em cada sessão programada"); return;
+    }
+    const sessoesParaAbrir = agendarSessoes ? sessoes : [];
+    if (sessoesParaAbrir.length) {
+      const resultado = await verificarConflitosMutation.mutateAsync({ sessoes: sessoesParaAbrir });
+      if (resultado.conflitos.length) {
+        setConflitos(resultado.conflitos);
+        return;
+      }
+    }
+    abrirComSessoes(sessoesParaAbrir);
+  }
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -766,12 +783,41 @@ function ModalAbrirPacote({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={abrirMutation.isPending}>
+          <Button onClick={handleSave} disabled={abrirMutation.isPending || verificarConflitosMutation.isPending}>
             {abrirMutation.isPending ? "Abrindo..." : "Abrir pacote"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={conflitos.length > 0} onOpenChange={aberto => { if (!aberto) setConflitos([]); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Há conflito de agenda</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Essas sessões coincidem com horários já ocupados. Escolha conscientemente como deseja continuar:</p>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+            {conflitos.map(conflito => {
+              const profissional = profissionais.find((p: any) => p.id === conflito.profissionalId);
+              return <p key={conflito.indice} className="text-sm text-amber-950">Sessão {conflito.indice + 1}: {new Date(`${conflito.data}T12:00:00`).toLocaleDateString("pt-BR")} às {conflito.horaInicio} com {profissional?.nome ?? "profissional selecionada"}</p>;
+            })}
+          </div>
+        </div>
+        <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
+          <Button variant="outline" onClick={() => setConflitos([])}>Ajustar horários</Button>
+          <Button variant="secondary" onClick={() => {
+            const sessoesSemConflito = removerSessoesEmConflito(sessoes, conflitos.map(conflito => conflito.indice));
+            setConflitos([]);
+            abrirComSessoes(sessoesSemConflito);
+          }}>Abrir sem as sessões em conflito</Button>
+          <Button onClick={() => {
+            setConflitos([]);
+            abrirComSessoes(sessoes, true);
+          }}>Agendar mesmo assim</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -2894,3 +2894,5 @@
 - [x] Exibir histórico de sessões ao clicar em um pacote, com dia, hora, serviço, profissional e status
 - [x] Permitir exclusão definitiva apenas para pacotes sem sessões, agendamentos ou pagamentos vinculados
 - [x] Corrigir seletores de serviço cortados no agendamento de sessões de pacote
+- [x] Analisar o novo vídeo enviado e apresentar diagnóstico antes de alterações
+- [x] Permitir ajustar, manter sem agendamento ou confirmar conscientemente sessões de pacote com conflito de agenda

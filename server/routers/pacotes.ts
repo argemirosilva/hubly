@@ -398,6 +398,7 @@ export const pacotesRouter = router({
         profissionalId: z.number(),
         servicoIds: z.array(z.number()).min(1),
       })).optional().default([]),
+      permitirConflitos: z.boolean().optional().default(false),
       modoNotificacao: z.enum(["consolidada", "individual", "nenhuma"]).optional().default("nenhuma"),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -446,7 +447,8 @@ export const pacotesRouter = router({
         return { ...sessao, duracao, valor, horaFim: somarMinutosAoHorario(sessao.horaInicio, duracao) };
       });
 
-      for (const sessao of sessoesPreparadas) {
+      const indicesComConflito = new Set<number>();
+      for (const [indice, sessao] of sessoesPreparadas.entries()) {
         const [conflito] = await db.select({ id: agendamentos.id }).from(agendamentos).where(and(
           eq(agendamentos.empresaId, empId),
           eq(agendamentos.profissionalId, sessao.profissionalId),
@@ -455,7 +457,12 @@ export const pacotesRouter = router({
           sql`${agendamentos.horaInicio} < ${sessao.horaFim}`,
           sql`${agendamentos.horaFim} > ${sessao.horaInicio}`,
         )).limit(1);
-        if (conflito) throw new TRPCError({ code: 'CONFLICT', message: `Há conflito no dia ${sessao.data} às ${sessao.horaInicio}. Ajuste essa sessão antes de salvar.` });
+        if (conflito) {
+          indicesComConflito.add(indice);
+          if (!input.permitirConflitos) {
+            throw new TRPCError({ code: 'CONFLICT', message: `Há conflito no dia ${sessao.data} às ${sessao.horaInicio}. Ajuste essa sessão antes de salvar.` });
+          }
+        }
       }
 
       const criado = await db.transaction(async (tx) => {
@@ -497,7 +504,7 @@ export const pacotesRouter = router({
         const itemPorServico = new Map(itensCriados.map(item => [item.servicoId, item]));
         const agendamentoIds: number[] = [];
 
-        for (const sessao of sessoesPreparadas) {
+        for (const [indice, sessao] of sessoesPreparadas.entries()) {
           const primeiroServico = servicosPorId.get(sessao.servicoIds[0])!;
           const [agendamentoResult] = await tx.insert(agendamentos).values({
             empresaId: empId,
@@ -511,7 +518,9 @@ export const pacotesRouter = router({
             status: 'agendado',
             valorTotal: '0.00',
             reservaPaga: true,
-            observacoesInternas: `Sessão agendada pelo pacote: ${input.nome}`,
+            observacoesInternas: indicesComConflito.has(indice)
+              ? `Sessão agendada pelo pacote: ${input.nome} • CONFLITO DE AGENDA ASSUMIDO`
+              : `Sessão agendada pelo pacote: ${input.nome}`,
           });
           const agendamentoId = (agendamentoResult as any).insertId as number;
           agendamentoIds.push(agendamentoId);
@@ -606,6 +615,46 @@ export const pacotesRouter = router({
       });
 
       return { id: pacoteId, agendamentoIds: criado.agendamentoIds, modoNotificacao: input.modoNotificacao };
+    }),
+
+  // ── Prévia de conflitos antes de abrir um pacote ──────────────────────────
+  verificarConflitosSessoes: protectedProcedure
+    .input(z.object({
+      sessoes: z.array(z.object({
+        data: z.string().min(10),
+        horaInicio: z.string().regex(/^\d{2}:\d{2}$/),
+        profissionalId: z.number(),
+        servicoIds: z.array(z.number()).min(1),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+      const empId = empresa.id;
+      const todosServicos = [...new Set(input.sessoes.flatMap(sessao => sessao.servicoIds))];
+      const catalogo = todosServicos.length
+        ? await db.select({ id: servicos.id, duracaoMinutos: servicos.duracaoMinutos }).from(servicos)
+          .where(and(eq(servicos.empresaId, empId), inArray(servicos.id, todosServicos)))
+        : [];
+      const servicosPorId = new Map(catalogo.map(servico => [servico.id, servico]));
+      const conflitos: { indice: number; data: string; horaInicio: string; horaFim: string; profissionalId: number }[] = [];
+
+      for (const [indice, sessao] of input.sessoes.entries()) {
+        const duracao = sessao.servicoIds.reduce((total, servicoId) => total + (servicosPorId.get(servicoId)?.duracaoMinutos ?? 60), 0);
+        const horaFim = somarMinutosAoHorario(sessao.horaInicio, duracao);
+        const [conflito] = await db.select({ id: agendamentos.id }).from(agendamentos).where(and(
+          eq(agendamentos.empresaId, empId),
+          eq(agendamentos.profissionalId, sessao.profissionalId),
+          eq(agendamentos.data, sessao.data),
+          sql`${agendamentos.status} NOT IN (${sql.raw(SQL_STATUS_NAO_OCUPAM_HORARIO)})`,
+          sql`${agendamentos.horaInicio} < ${horaFim}`,
+          sql`${agendamentos.horaFim} > ${sessao.horaInicio}`,
+        )).limit(1);
+        if (conflito) conflitos.push({ indice, data: sessao.data, horaInicio: sessao.horaInicio, horaFim, profissionalId: sessao.profissionalId });
+      }
+      return { conflitos };
     }),
 
   // ── Consumir sessão manualmente ───────────────────────────────────────────
