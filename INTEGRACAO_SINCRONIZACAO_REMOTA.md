@@ -217,14 +217,94 @@ for (const entity of snapshot.entities) {
 }
 ```
 
+## Implementação do banco remoto em MySQL
+
+O módulo remoto pode manter sua própria modelagem de negócio. Ainda assim, deve criar as quatro tabelas abaixo como uma camada de sincronização comum. Elas preservam a origem do dado, permitem retomar páginas e impedem que uma exclusão seja aplicada antes de a entidade inteira ter sido lida.
+
+```sql
+CREATE TABLE hubly_sync_runs (
+  snapshot_id VARCHAR(64) PRIMARY KEY,
+  status ENUM('running', 'completed', 'failed', 'expired') NOT NULL,
+  started_at DATETIME NOT NULL,
+  completed_at DATETIME NULL,
+  last_error TEXT NULL
+);
+
+CREATE TABLE hubly_sync_state (
+  entity VARCHAR(100) PRIMARY KEY,
+  last_snapshot_id VARCHAR(64) NULL,
+  last_cursor BIGINT NOT NULL DEFAULT 0,
+  completed_at DATETIME NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE hubly_sync_raw_records (
+  entity VARCHAR(100) NOT NULL,
+  hubly_id BIGINT NOT NULL,
+  hubly_company_id BIGINT NULL,
+  payload JSON NOT NULL,
+  source_snapshot_id VARCHAR(64) NOT NULL,
+  deleted_at DATETIME NULL,
+  synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (entity, hubly_id),
+  KEY idx_hubly_sync_raw_snapshot (entity, source_snapshot_id),
+  KEY idx_hubly_sync_raw_company (hubly_company_id)
+);
+
+CREATE TABLE hubly_sync_seen (
+  snapshot_id VARCHAR(64) NOT NULL,
+  entity VARCHAR(100) NOT NULL,
+  hubly_id BIGINT NOT NULL,
+  PRIMARY KEY (snapshot_id, entity, hubly_id)
+);
+```
+
+Cada página recebida deve ser persistida na mesma transação curta: primeiro faça o `upsert` do registro bruto, depois marque-o como visto no snapshot e só então salve o cursor da página.
+
+```sql
+INSERT INTO hubly_sync_raw_records
+  (entity, hubly_id, hubly_company_id, payload, source_snapshot_id, deleted_at, synced_at)
+VALUES (?, ?, ?, CAST(? AS JSON), ?, NULL, UTC_TIMESTAMP())
+ON DUPLICATE KEY UPDATE
+  hubly_company_id = VALUES(hubly_company_id),
+  payload = VALUES(payload),
+  source_snapshot_id = VALUES(source_snapshot_id),
+  deleted_at = NULL,
+  synced_at = UTC_TIMESTAMP();
+
+INSERT INTO hubly_sync_seen (snapshot_id, entity, hubly_id)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE hubly_id = VALUES(hubly_id);
+```
+
+Depois de receber a **última** página de uma entidade, faça a reconciliação. Esse comando nunca deve rodar enquanto ainda houver outra página pendente.
+
+```sql
+UPDATE hubly_sync_raw_records r
+LEFT JOIN hubly_sync_seen s
+  ON s.snapshot_id = ?
+ AND s.entity = r.entity
+ AND s.hubly_id = r.hubly_id
+SET r.deleted_at = UTC_TIMESTAMP()
+WHERE r.entity = ?
+  AND r.deleted_at IS NULL
+  AND s.hubly_id IS NULL;
+
+UPDATE hubly_sync_state
+SET last_snapshot_id = ?, last_cursor = ?, completed_at = UTC_TIMESTAMP()
+WHERE entity = ?;
+```
+
+O aplicativo remoto pode projetar os registros de `hubly_sync_raw_records` para suas próprias tabelas de domínio. Essa projeção também precisa ser idempotente: use a combinação `(entity, hubly_id)` como origem única, e nunca o ID interno gerado pelo próprio MySQL remoto como chave de comparação com o Hubly.
+
 ## Regras operacionais
 
 | Situação | Regra do módulo remoto |
 |---|---|
 | Registro já existe | Atualizar pelo `hubly_id`; o Hubly vence qualquer divergência. |
 | Evento repetido | Reaplicar sem criar duplicidade. |
-| Registro excluído | Processar tombstone e não recriar automaticamente. |
-| Cursor não encontrado | Registrar erro e executar bootstrap novamente. |
+| Registro excluído | Marcar como removido somente depois da reconciliação completa da entidade. |
+| Snapshot expirado ou cursor inválido | Registrar erro e executar bootstrap novamente. |
 | Chave revogada | Parar sincronização, alertar administrador e não tentar com outra chave automática. |
 | Erro temporário | Repetir com atraso progressivo, sem avançar cursor. |
 
@@ -233,10 +313,10 @@ for (const entity of snapshot.entities) {
 1. Criar tabelas internas de clientes de integração, chaves hasheadas, escopos, auditoria, snapshots e log de alterações.
 2. Criar um catálogo público de entidades e serializadores que removem campos sensíveis.
 3. Implementar autenticação, HMAC, rate limit e as rotas `health`, `schema`, `bootstrap`, `bootstrap page` e `changes`.
-4. Instrumentar as gravações dos módulos do Hubly para alimentar o log de alterações com `upsert` e `delete`.
+4. Otimizar futuramente a leitura incremental sem retirar a reconciliação completa já disponível.
 5. Validar isolamento, paginação, retomada, exclusões, reprocessamento e rotação de chave.
 6. Liberar a integração primeiro em ambiente de teste e depois emitir a credencial de produção para o módulo remoto.
 
 ## Critérios de aceite
 
-A primeira versão estará pronta quando o módulo remoto puder iniciar uma carga completa, interrompê-la, retomar sem duplicidade, aplicar alterações incrementais, refletir exclusões e consultar o status de sincronização sem nunca receber segredos ou obter conexão direta com o banco de produção.
+A primeira versão estará pronta quando o módulo remoto puder iniciar uma carga completa, interrompê-la, retomar sem duplicidade, refletir alterações e exclusões por reconciliação e consultar o status de sincronização sem nunca receber segredos ou obter conexão direta com o banco de produção.

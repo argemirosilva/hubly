@@ -2865,3 +2865,4 @@
 - [x] Implementar bootstrap paginado para a base completa e preparar leitura incremental por cursor
 - [ ] Registrar alterações e exclusões dos módulos sincronizáveis no log de saída
 - [x] Testar isolação, paginação, idempotência e recuperação da API de sincronização
+- [x] Adicionar ao manual MySQL remoto as tabelas de controle, upsert e reconciliação da sincronização
