@@ -2866,3 +2866,5 @@
 - [ ] Registrar alterações e exclusões dos módulos sincronizáveis no log de saída
 - [x] Testar isolação, paginação, idempotência e recuperação da API de sincronização
 - [x] Adicionar ao manual MySQL remoto as tabelas de controle, upsert e reconciliação da sincronização
+- [x] Validar o ponto de conexão publicado e protegido para a primeira carga do aplicativo remoto
+- [x] Gerar arquivo SQL de criação da tabela taxas_config para importação no MySQL remoto
