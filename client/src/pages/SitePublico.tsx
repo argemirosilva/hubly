@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   CalendarCheck2,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   Clock3,
@@ -20,6 +21,7 @@ import React, { useEffect, useState } from "react";
 type PublicPage = "inicio" | "recursos" | "como-funciona" | "negocios";
 
 const HERO_IMAGE = "/manus-storage/hubly-public-hero_2c2e6de4.jpg";
+const HUBLY_LOGO_URL = "/manus-storage/hubly-logo-dark_ecdf0ad5.png";
 
 const pageCopy: Record<Exclude<PublicPage, "inicio">, { eyebrow: string; title: string; description: string }> = {
   recursos: {
@@ -45,26 +47,51 @@ const pillars = [
     title: "Agenda no controle",
     description: "Organize horários, bloqueios, pré-agendamentos e pacotes sem perder tempo procurando conversa.",
     color: "bg-[#f4e5d5] text-[#8b4f2c]",
+    details: ["Visualização diária, semanal e mensal da agenda", "Bloqueios de horário para proteger sua disponibilidade", "Pré-agendamento com sinal e confirmação no fluxo certo"],
   },
   {
     icon: UsersRound,
     title: "Clientes por perto",
     description: "Tenha histórico, confirmações e retornos no momento certo para atender com mais atenção.",
     color: "bg-[#e9eee4] text-[#55703d]",
+    details: ["Histórico de atendimentos e preferências em um só perfil", "Pipeline para saber quem precisa de retorno", "Confirmações que mantêm o cliente informado"],
   },
   {
     icon: CircleDollarSign,
     title: "Dinheiro visível",
     description: "Saiba o que entrou, o que falta receber e o que está funcionando no seu negócio.",
     color: "bg-[#f8edcf] text-[#9b6a12]",
+    details: ["Sinais, pagamentos parciais e valores em aberto", "Visão do que entrou e do que ainda precisa ser recebido", "Acompanhamento de comissões e contas da rotina"],
   },
   {
     icon: MessageCircleMore,
     title: "Rotina que anda",
     description: "Automatize confirmações e lembretes sem deixar sua comunicação com cara de robô.",
     color: "bg-[#e3edf5] text-[#35617c]",
+    details: ["Lembretes e confirmações no momento configurado por você", "Mensagens ligadas ao status real de cada agendamento", "Histórico para acompanhar o que foi enviado"],
   },
 ];
+
+function ResourceCard({ resource }: { resource: (typeof pillars)[number] }) {
+  const { icon: Icon, title, description, color, details } = resource;
+  return (
+    <details className="group rounded-3xl border border-[#eaded2] bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(76,45,26,0.08)] open:ring-1 open:ring-[#d8b89c]">
+      <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
+        <div className={`grid h-11 w-11 place-items-center rounded-2xl ${color}`}><Icon className="h-5 w-5" /></div>
+        <h3 className="mt-6 text-xl font-extrabold tracking-[-0.03em] text-[#342117]">{title}</h3>
+        <p className="mt-3 text-sm leading-relaxed text-[#796659]">{description}</p>
+        <span className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">Ver como funciona <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" /></span>
+      </summary>
+      <div className="border-t border-[#f0e6dc] px-6 pb-6 pt-5">
+        <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#9a6a45]">Na prática, você consegue</p>
+        <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-[#655143]">
+          {details.map((detail) => <li key={detail} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#60945a]" />{detail}</li>)}
+        </ul>
+        <a href="/recursos" className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">Explorar todos os recursos <ArrowRight className="h-3.5 w-3.5" /></a>
+      </div>
+    </details>
+  );
+}
 
 const moments = [
   { step: "01", title: "Organize a sua agenda", text: "Cadastre serviços, horários e clientes. O dia deixa de depender da memória.", icon: CalendarCheck2 },
@@ -74,11 +101,8 @@ const moments = [
 
 function Logo() {
   return (
-    <a href="/" className="inline-flex items-center gap-2.5 font-extrabold tracking-[-0.06em] text-[#2c1a12]" aria-label="Hubly — Página inicial">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#3b2115] text-[#f6d76a] shadow-[0_8px_20px_rgba(59,33,21,0.18)]">
-        <span className="relative h-4 w-4 rounded-full border-2 border-current after:absolute after:-right-1 after:top-1 after:h-2 after:w-2 after:rounded-full after:bg-current after:content-['']" />
-      </span>
-      <span className="text-2xl">hubly</span>
+    <a href="/" className="inline-flex items-center" aria-label="Hubly — Página inicial">
+      <img src={HUBLY_LOGO_URL} alt="Hubly" className="h-9 w-auto object-contain" />
     </a>
   );
 }
@@ -176,7 +200,7 @@ function HomeContent() {
 
       <section className="bg-[#fffaf4] py-20 sm:py-28"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">Reconhece essa rotina?</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Você trabalha muito. A gestão não precisa virar mais um trabalho.</h2><p className="mt-5 text-base leading-relaxed text-[#735f52]">O Hubly tira as tarefas repetitivas do caminho para você olhar com calma para o que faz seu negócio crescer.</p></div><div className="mt-12 grid gap-4 md:grid-cols-2"><div className="rounded-3xl bg-[#3b2115] p-7 text-[#fff8f0] sm:p-9"><p className="text-sm font-bold text-[#f7d187]">Antes</p><p className="mt-5 text-2xl font-bold leading-tight">“Eu confirmo tudo no WhatsApp e, mesmo assim, tem cliente que esquece.”</p><div className="mt-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-[#eadcd1]"><Clock3 className="h-3.5 w-3.5" /> Tempo indo embora</div></div><div className="rounded-3xl border border-[#eaded2] bg-white p-7 sm:p-9"><p className="text-sm font-bold text-[#60945a]">Com o Hubly</p><p className="mt-5 text-2xl font-bold leading-tight text-[#38231a]">“Minha agenda confirma, eu acompanho e consigo atender melhor.”</p><div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#edf5e9] px-3 py-2 text-xs font-semibold text-[#5a8655]"><BadgeCheck className="h-3.5 w-3.5" /> Rotina organizada</div></div></div></div></section>
 
-      <section id="recursos" className="bg-[#f8f1e9] py-20 sm:py-28"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div className="max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">O que você resolve</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Uma visão simples para uma rotina que tem muita coisa acontecendo.</h2></div><a className="inline-flex items-center gap-1 text-sm font-bold text-[#6b4028] hover:text-[#a65d32]" href="/recursos">Conhecer todos os recursos <ChevronRight className="h-4 w-4" /></a></div><div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{pillars.map(({ icon: Icon, title, description, color }) => <article key={title} className="group rounded-3xl border border-[#eaded2] bg-white p-6 transition-transform duration-200 hover:-translate-y-1"><div className={`grid h-11 w-11 place-items-center rounded-2xl ${color}`}><Icon className="h-5 w-5" /></div><h3 className="mt-6 text-xl font-extrabold tracking-[-0.03em] text-[#342117]">{title}</h3><p className="mt-3 text-sm leading-relaxed text-[#796659]">{description}</p><a href="/recursos" className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">Entender melhor <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></a></article>)}</div></div></section>
+      <section id="recursos" className="bg-[#f8f1e9] py-20 sm:py-28"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div className="max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">O que você resolve</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Uma visão simples para uma rotina que tem muita coisa acontecendo.</h2><p className="mt-4 text-sm font-semibold text-[#846d5c]">Clique em cada card para ver o que ele resolve no seu dia a dia.</p></div><a className="inline-flex items-center gap-1 text-sm font-bold text-[#6b4028] hover:text-[#a65d32]" href="/recursos">Conhecer todos os recursos <ChevronRight className="h-4 w-4" /></a></div><div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{pillars.map((resource) => <ResourceCard key={resource.title} resource={resource} />)}</div></div></section>
 
       <section id="como-funciona" className="bg-[#fffdf9] py-20 sm:py-28"><div className="mx-auto grid max-w-7xl gap-14 px-5 lg:grid-cols-[.85fr_1.15fr] lg:px-8"><div><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#a65d32]">Um passo de cada vez</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.05em] text-[#2c1a12] sm:text-5xl">Comece pela agenda. O Hubly cresce com você.</h2><p className="mt-5 text-base leading-relaxed text-[#735f52]">Não precisa mudar tudo de uma vez. Configure o essencial, ganhe clareza no dia a dia e adicione novas ferramentas quando fizer sentido.</p><Button asChild variant="outline" className="mt-8 rounded-xl border-[#d8c7b7] bg-white font-bold text-[#4b3020] hover:bg-[#f8f1e9]"><a href="/como-funciona">Ver a rotina completa <ArrowRight className="ml-2 h-4 w-4" /></a></Button></div><div className="space-y-3">{moments.map(({ step, title, text, icon: Icon }) => <article key={step} className="flex gap-5 rounded-3xl border border-[#eaded2] bg-white p-5 sm:p-6"><span className="pt-0.5 text-sm font-black text-[#b17b50]">{step}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#352217]">{title}</h3><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#f7ece2] text-[#8a4d2b]"><Icon className="h-4 w-4" /></span></div><p className="mt-2 text-sm leading-relaxed text-[#796659]">{text}</p></div></article>)}</div></div></section>
 
