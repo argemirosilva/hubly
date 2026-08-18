@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularSituacaoPagamentoPacote } from "./pacotes-financeiro";
+import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote } from "./pacotes-financeiro";
 
 describe("calcularSituacaoPagamentoPacote", () => {
   it("mantém o pacote pendente sem recebimentos", () => {
@@ -17,6 +17,20 @@ describe("calcularSituacaoPagamentoPacote", () => {
   it("classifica quitação sem permitir saldo negativo", () => {
     expect(calcularSituacaoPagamentoPacote(500, 500)).toEqual({
       valorTotal: 500, valorRecebido: 500, saldoDevedor: 0, statusPagamento: "pago",
+    });
+  });
+});
+
+describe("calcularMargemPrevistaPacote", () => {
+  it("calcula custo, margem e percentual sobre o valor contratado", () => {
+    expect(calcularMargemPrevistaPacote(1000, 350)).toEqual({
+      valorTotal: 1000, custoTotal: 350, margemPrevista: 650, percentualMargem: 65,
+    });
+  });
+
+  it("mantém prejuízo visível quando o custo supera o preço", () => {
+    expect(calcularMargemPrevistaPacote(100, 125)).toEqual({
+      valorTotal: 100, custoTotal: 125, margemPrevista: -25, percentualMargem: -25,
     });
   });
 });

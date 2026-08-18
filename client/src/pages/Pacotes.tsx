@@ -75,11 +75,21 @@ function RelatorioPacotes() {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
           <p className="text-xs text-stone-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Receita Total</p>
           <p className="text-2xl font-bold text-violet-700">{formatCurrency(data.receitaTotal)}</p>
           <p className="text-xs text-stone-400">{data.totalPacotes} pacote{data.totalPacotes !== 1 ? "s" : ""} no total</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-rose-500" /> Custo total</p>
+          <p className="text-2xl font-bold text-rose-700">{formatCurrency(data.custoTotal)}</p>
+          <p className="text-xs text-stone-400">dos pacotes cadastrados</p>
+        </div>
+        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
+          <p className="text-xs text-stone-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Margem prevista</p>
+          <p className={`text-2xl font-bold ${data.margemPrevistaTotal < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatCurrency(data.margemPrevistaTotal)}</p>
+          <p className="text-xs text-stone-400">{data.percentualMargemPrevista.toFixed(1).replace(".", ",")}% do valor contratado</p>
         </div>
         <div className="bg-white rounded-xl border shadow-sm p-4 space-y-1">
           <p className="text-xs text-stone-500 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ativos</p>
@@ -252,6 +262,7 @@ function ModalModelo({
   const [nome, setNome] = useState(modelo?.nome ?? "");
   const [descricao, setDescricao] = useState(modelo?.descricao ?? "");
   const [preco, setPreco] = useState(String(modelo?.preco ?? ""));
+  const [custo, setCusto] = useState(String(modelo?.custo ?? "0"));
   const [validadeDias, setValidadeDias] = useState(String(modelo?.validadeDias ?? ""));
   const [itens, setItens] = useState<ItemModelo[]>(
     modelo?.itens?.map((i: any) => ({ servicoId: i.servicoId, quantidade: i.quantidade })) ?? [{ servicoId: 0, quantidade: 1 }]
@@ -262,6 +273,7 @@ function ModalModelo({
     setNome(modelo?.nome ?? "");
     setDescricao(modelo?.descricao ?? "");
     setPreco(String(modelo?.preco ?? ""));
+    setCusto(String(modelo?.custo ?? "0"));
     setValidadeDias(String(modelo?.validadeDias ?? ""));
     setItens(
       modelo?.itens?.length
@@ -290,7 +302,7 @@ function ModalModelo({
       toast.error("Preencha todos os campos obrigatórios"); return;
     }
     const payload = {
-      nome, descricao, preco: parseFloat(preco),
+      nome, descricao, preco: parseFloat(preco), custo: parseFloat(custo) || 0,
       validadeDias: validadeDias ? parseInt(validadeDias) : undefined,
       itens: itens.filter(i => i.servicoId > 0),
     };
@@ -315,16 +327,25 @@ function ModalModelo({
             <Label>Descrição</Label>
             <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descreva o pacote..." rows={2} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label>Preço (R$) *</Label>
               <Input type="number" min="0" step="0.01" value={preco} onChange={e => setPreco(e.target.value)} placeholder="0,00" />
+            </div>
+            <div>
+              <Label>Custo total (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={custo} onChange={e => setCusto(e.target.value)} placeholder="0,00" />
             </div>
             <div>
               <Label>Validade (dias)</Label>
               <Input type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} placeholder="Sem validade" />
             </div>
           </div>
+          {preco && (
+            <p className={`text-xs rounded-lg px-3 py-2 ${parseFloat(preco) - (parseFloat(custo) || 0) >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>
+              Margem prevista: <strong>{formatCurrency(parseFloat(preco) - (parseFloat(custo) || 0))}</strong>
+            </p>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -436,6 +457,7 @@ function ModalAbrirPacote({
   const [modeloId, setModeloId] = useState("");
   const [nome, setNome] = useState("");
   const [valorPago, setValorPago] = useState("");
+  const [custoTotal, setCustoTotal] = useState("0");
   const [valorRecebidoInicial, setValorRecebidoInicial] = useState("0");
   const [tipoPagamentoInicial, setTipoPagamentoInicial] = useState<"sinal" | "parcial" | "quitacao">("sinal");
   const [observacoesPagamentoInicial, setObservacoesPagamentoInicial] = useState("");
@@ -459,6 +481,7 @@ function ModalAbrirPacote({
     if (modelo) {
       setNome(modelo.nome);
       setValorPago(String(parseFloat(modelo.preco)));
+      setCustoTotal(String(parseFloat(modelo.custo ?? "0")));
       setItens(modelo.itens.map((i: any) => ({ servicoId: i.servicoId, quantidadeTotal: i.quantidade })));
     }
   }
@@ -479,6 +502,7 @@ function ModalAbrirPacote({
       modeloId: modeloId ? parseInt(modeloId) : undefined,
       nome,
       valorPago: parseFloat(valorPago),
+      custoTotal: parseFloat(custoTotal) || 0,
       valorRecebidoInicial: parseFloat(valorRecebidoInicial) || 0,
       tipoPagamentoInicial,
       observacoesPagamentoInicial: observacoesPagamentoInicial || undefined,
@@ -610,16 +634,23 @@ function ModalAbrirPacote({
               <Input type="number" min="0" step="0.01" value={valorPago} onChange={e => setValorPago(e.target.value)} />
             </div>
             <div>
-              <Label>Forma de pagamento</Label>
-              <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  {["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Custo total (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={custoTotal} onChange={e => setCustoTotal(e.target.value)} />
             </div>
+          </div>
+          <div className="rounded-lg border border-violet-100 bg-violet-50/60 px-3 py-2 text-xs text-violet-900">
+            Margem prevista deste pacote: <strong>{formatCurrency(valorTotal - (parseFloat(custoTotal) || 0))}</strong>
+          </div>
+          <div>
+            <Label>Forma de pagamento</Label>
+            <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                {["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -948,8 +979,13 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExclu
   const usadosItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeUsada, 0);
   const reservadosItens = pacote.itens.reduce((a: number, i: any) => a + (i.quantidadeReservada ?? 0), 0);
   const valorTotalPacote = Number(pacote.valorTotal ?? 0) || Number(pacote.valorPago ?? 0);
+  const custoTotalPacote = Number(pacote.custoTotal ?? 0);
   const valorRecebidoPacote = Number(pacote.valorRecebido ?? 0);
   const saldoDevedor = Math.max(0, valorTotalPacote - valorRecebidoPacote);
+  const margemPrevista = Number(pacote.margemPrevista ?? (valorTotalPacote - custoTotalPacote));
+  const percentualMargem = valorTotalPacote > 0
+    ? Number(pacote.percentualMargem ?? ((margemPrevista / valorTotalPacote) * 100))
+    : 0;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -1016,6 +1052,7 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExclu
             <div>
               <p className="text-xs text-emerald-800">Financeiro do pacote</p>
               <p className="text-sm font-semibold text-emerald-950">Recebido {formatCurrency(valorRecebidoPacote)} · Em aberto {formatCurrency(saldoDevedor)}</p>
+              <p className="mt-1 text-xs text-emerald-800">Custo {formatCurrency(custoTotalPacote)} · <span className={margemPrevista < 0 ? "font-semibold text-red-700" : "font-semibold text-emerald-900"}>Margem prevista {formatCurrency(margemPrevista)} ({percentualMargem.toFixed(1).replace(".", ",")}%)</span></p>
             </div>
             {saldoDevedor > 0 && onRegistrarPagamento && (
               <Button size="sm" variant="outline" className="h-8 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={(e) => { e.stopPropagation(); onRegistrarPagamento(pacote); }}>
@@ -1086,6 +1123,7 @@ export default function Pacotes() {
   const [pacotePagamento, setPacotePagamento] = useState<any | null>(null);
   const [renovarForm, setRenovarForm] = useState({
     valorPago: "",
+    custoTotal: "0",
     formaPagamento: "",
     numeroParcelas: "1",
     validadeDias: "",
@@ -1094,11 +1132,11 @@ export default function Pacotes() {
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
   const [pacoteHistorico, setPacoteHistorico] = useState<any | null>(null);
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
-    nome: string; valorPago: string; formaPagamento: string;
+    nome: string; valorPago: string; custoTotal: string; formaPagamento: string;
     numeroParcelas: string; dataVencimento: string; observacoes: string;
     itens: Array<{ servicoId: number; servicoNome: string; quantidade: number; sessoesUsadas: number }>;
   }>({
-    nome: "", valorPago: "", formaPagamento: "",
+    nome: "", valorPago: "", custoTotal: "0", formaPagamento: "",
     numeroParcelas: "1", dataVencimento: "", observacoes: "", itens: [],
   });
 
@@ -1290,7 +1328,7 @@ export default function Pacotes() {
                     onDesfazerConsumo={(itemId) => desfazerConsumoMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
                     onExcluir={(id) => {
-                      if (window.confirm("Excluir este pacote definitivamente? A ação só é permitida para pacotes cancelados sem sessões, agendamentos ou pagamentos.")) excluirPacoteMutation.mutate({ id });
+                      if (window.confirm("Excluir este pacote definitivamente? A ação só é permitida para pacotes cancelados sem agendamentos ou pagamentos vinculados.")) excluirPacoteMutation.mutate({ id });
                     }}
                     onVerHistorico={(pac) => setPacoteHistorico(pac)}
                     onRegistrarPagamento={(pac) => setPacotePagamento(pac)}
@@ -1300,6 +1338,7 @@ export default function Pacotes() {
                       setEditarPacoteForm({
                         nome: pac.nome ?? "",
                         valorPago: String(pac.valorPago ?? ""),
+                        custoTotal: String(pac.custoTotal ?? "0"),
                         formaPagamento: pac.formaPagamento ?? "",
                         numeroParcelas: String(pac.numeroParcelas ?? 1),
                         dataVencimento: pac.dataVencimento
@@ -1318,6 +1357,7 @@ export default function Pacotes() {
                       setPacoteRenovarId(pac.id);
                       setRenovarForm({
                         valorPago: String(pac.valorPago ?? ""),
+                        custoTotal: String(pac.custoTotal ?? "0"),
                         formaPagamento: pac.formaPagamento ?? "",
                         numeroParcelas: String(pac.numeroParcelas ?? 1),
                         validadeDias: "",
@@ -1393,7 +1433,12 @@ export default function Pacotes() {
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span className="font-bold text-violet-700">{formatCurrency(m.preco)}</span>
+                      <div>
+                        <p className="font-bold text-violet-700">{formatCurrency(m.preco)}</p>
+                        <p className={`text-xs ${Number(m.preco) - Number(m.custo ?? 0) < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                          Custo {formatCurrency(m.custo ?? 0)} · Margem {formatCurrency(Number(m.preco) - Number(m.custo ?? 0))}
+                        </p>
+                      </div>
                       {m.validadeDias && (
                         <span className="text-xs text-stone-500 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {m.validadeDias} dias
@@ -1448,7 +1493,8 @@ export default function Pacotes() {
                           ))}
                         </div>
                         <div className="pt-2 border-t border-slate-100">
-                          <span className="font-bold text-stone-400">{formatCurrency(m.preco)}</span>
+                          <p className="font-bold text-stone-400">{formatCurrency(m.preco)}</p>
+                          <p className="text-xs text-stone-400">Custo {formatCurrency(m.custo ?? 0)} · Margem {formatCurrency(Number(m.preco) - Number(m.custo ?? 0))}</p>
                         </div>
                       </div>
                     ))}
@@ -1503,6 +1549,17 @@ export default function Pacotes() {
               />
             </div>
             <div className="space-y-1.5">
+              <Label>Custo total (R$)</Label>
+              <Input
+                type="number" min="0" step="0.01" placeholder="Ex: 120.00"
+                value={renovarForm.custoTotal}
+                onChange={e => setRenovarForm(f => ({ ...f, custoTotal: e.target.value }))}
+              />
+              <p className={`text-xs ${Number(renovarForm.valorPago) - Number(renovarForm.custoTotal) < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                Margem prevista: <strong>{formatCurrency(Number(renovarForm.valorPago) - Number(renovarForm.custoTotal))}</strong>
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Forma de pagamento</Label>
               <Select value={renovarForm.formaPagamento} onValueChange={v => setRenovarForm(f => ({ ...f, formaPagamento: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -1554,6 +1611,7 @@ export default function Pacotes() {
                 renovarMutation.mutate({
                   pacoteClienteId: pacoteRenovarId,
                   valorPago: Number(renovarForm.valorPago),
+                  custoTotal: Number(renovarForm.custoTotal) || 0,
                   formaPagamento: renovarForm.formaPagamento || undefined,
                   numeroParcelas: Number(renovarForm.numeroParcelas) || 1,
                   validadeDias: renovarForm.validadeDias ? Number(renovarForm.validadeDias) : undefined,
@@ -1595,21 +1653,32 @@ export default function Pacotes() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Forma de pagamento</Label>
-                <Select
-                  value={editarPacoteForm.formaPagamento}
-                  onValueChange={v => setEditarPacoteForm(f => ({ ...f, formaPagamento: v }))}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
-                    <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Custo total (R$)</Label>
+                <Input
+                  type="number" min="0" step="0.01"
+                  value={editarPacoteForm.custoTotal}
+                  onChange={e => setEditarPacoteForm(f => ({ ...f, custoTotal: e.target.value }))}
+                />
               </div>
+            </div>
+            <p className={`text-xs rounded-md px-3 py-2 ${Number(editarPacoteForm.valorPago) - Number(editarPacoteForm.custoTotal) < 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
+              Margem prevista: <strong>{formatCurrency(Number(editarPacoteForm.valorPago) - Number(editarPacoteForm.custoTotal))}</strong>
+            </p>
+            <div className="space-y-1.5">
+              <Label>Forma de pagamento</Label>
+              <Select
+                value={editarPacoteForm.formaPagamento}
+                onValueChange={v => setEditarPacoteForm(f => ({ ...f, formaPagamento: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -1683,6 +1752,7 @@ export default function Pacotes() {
                   id: pacoteEditarId,
                   nome: editarPacoteForm.nome,
                   valorPago: editarPacoteForm.valorPago ? Number(editarPacoteForm.valorPago) : undefined,
+                  custoTotal: Number(editarPacoteForm.custoTotal) || 0,
                   formaPagamento: editarPacoteForm.formaPagamento || undefined,
                   numeroParcelas: Number(editarPacoteForm.numeroParcelas) || 1,
                   dataVencimento: editarPacoteForm.dataVencimento || null,

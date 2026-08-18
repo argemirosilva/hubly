@@ -735,6 +735,7 @@ export const pacotesModelos = mysqlTable("pacotes_modelos", {
   nome: varchar("nome", { length: 150 }).notNull(),
   descricao: text("descricao"),
   preco: decimal("preco", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  custo: decimal("custo", { precision: 10, scale: 2 }).notNull().default("0.00"),
   validadeDias: int("validadeDias"), // null = sem validade
   ativo: boolean("ativo").default(true).notNull(),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
@@ -759,6 +760,7 @@ export const pacotesClientes = mysqlTable("pacotes_clientes", {
   nome: varchar("nome", { length: 150 }).notNull(), // cópia do nome do modelo
   valorPago: decimal("valorPago", { precision: 10, scale: 2 }).notNull().default("0.00"),
   valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  custoTotal: decimal("custoTotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
   valorRecebido: decimal("valorRecebido", { precision: 10, scale: 2 }).notNull().default("0.00"),
   statusPagamento: mysqlEnum("statusPagamento", ["pendente", "parcial", "pago"]).default("pendente").notNull(),
   formaPagamento: varchar("formaPagamento", { length: 60 }),

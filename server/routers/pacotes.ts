@@ -22,7 +22,7 @@ import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
-import { calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
+import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
 import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
 import { avaliarExclusaoDefinitivaPacote } from "../pacotes-exclusao";
 
@@ -130,6 +130,7 @@ export const pacotesRouter = router({
       nome: z.string().min(2),
       descricao: z.string().optional(),
       preco: z.number().min(0),
+      custo: z.number().min(0).optional().default(0),
       validadeDias: z.number().optional(),
       itens: z.array(itemModeloSchema).min(1),
     }))
@@ -144,6 +145,7 @@ export const pacotesRouter = router({
         nome: input.nome,
         descricao: input.descricao,
         preco: String(input.preco),
+        custo: String(input.custo),
         validadeDias: input.validadeDias,
       });
       const modeloId = (result as any).insertId as number;
@@ -160,6 +162,7 @@ export const pacotesRouter = router({
       nome: z.string().min(2),
       descricao: z.string().optional(),
       preco: z.number().min(0),
+      custo: z.number().min(0).optional().default(0),
       validadeDias: z.number().optional(),
       itens: z.array(itemModeloSchema).min(1),
     }))
@@ -173,6 +176,7 @@ export const pacotesRouter = router({
         nome: input.nome,
         descricao: input.descricao,
         preco: String(input.preco),
+        custo: String(input.custo),
         validadeDias: input.validadeDias,
       }).where(and(eq(pacotesModelos.id, input.id), eq(pacotesModelos.empresaId, empId)));
       // Recriar itens
@@ -240,6 +244,7 @@ export const pacotesRouter = router({
         clienteId: pacotesClientes.clienteId,
         clienteNome: clientes.nome,
         clienteTelefone: clientes.telefone,
+        custoTotal: pacotesClientes.custoTotal,
       }).from(pacotesClientes)
         .leftJoin(clientes, eq(pacotesClientes.clienteId, clientes.id))
         .where(and(
@@ -265,13 +270,17 @@ export const pacotesRouter = router({
         .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
       const concluidasPorItem = await contarSessoesConcluidasPorItem(db, empId, itens.map(item => item.id));
 
-      return rows.map(r => ({
-        ...r,
-        itens: itens.filter(i => i.pacoteClienteId === r.id).map(item => ({
+      return rows.map(r => {
+        const margem = calcularMargemPrevistaPacote(Number(r.valorTotal ?? r.valorPago ?? 0), Number(r.custoTotal ?? 0));
+        return {
+          ...r,
+          ...margem,
+          itens: itens.filter(i => i.pacoteClienteId === r.id).map(item => ({
           ...item,
           sessoesManuaisReversiveis: calcularSessoesManuaisReversiveis(item.quantidadeUsada, concluidasPorItem.get(item.id) ?? 0),
         })),
-      }));
+        };
+      });
     }),
 
   // ── Listar pacotes de um cliente ──────────────────────────────────────────
@@ -379,6 +388,7 @@ export const pacotesRouter = router({
       modeloId: z.number().optional(),
       nome: z.string().min(2),
       valorPago: z.number().min(0),
+      custoTotal: z.number().min(0).optional().default(0),
       valorRecebidoInicial: z.number().min(0).optional().default(0),
       tipoPagamentoInicial: z.enum(["sinal", "parcial", "quitacao"]).optional().default("parcial"),
       observacoesPagamentoInicial: z.string().optional(),
@@ -473,6 +483,7 @@ export const pacotesRouter = router({
           nome: input.nome,
           valorPago: String(input.valorPago),
           valorTotal: String(input.valorPago),
+          custoTotal: String(input.custoTotal),
           valorRecebido: String(input.valorRecebidoInicial),
           statusPagamento,
           formaPagamento: input.formaPagamento,
@@ -877,6 +888,7 @@ export const pacotesRouter = router({
         status: pacotesClientes.status,
         valorPago: pacotesClientes.valorPago,
         valorTotal: pacotesClientes.valorTotal,
+        custoTotal: pacotesClientes.custoTotal,
         valorRecebido: pacotesClientes.valorRecebido,
         dataAbertura: pacotesClientes.dataAbertura,
         dataVencimento: pacotesClientes.dataVencimento,
@@ -889,6 +901,16 @@ export const pacotesRouter = router({
 
       const receitaTotal = todosOsPacotes.reduce((acc, p) => acc + parseFloat(p.valorRecebido ?? '0'), 0);
       const saldoDevedorTotal = todosOsPacotes.reduce((acc, p) => acc + Math.max(0, parseFloat(p.valorTotal ?? p.valorPago ?? '0') - parseFloat(p.valorRecebido ?? '0')), 0);
+      const resumoMargem = todosOsPacotes.reduce((acc, p) => {
+        const margem = calcularMargemPrevistaPacote(Number(p.valorTotal ?? p.valorPago ?? 0), Number(p.custoTotal ?? 0));
+        acc.valorContratadoTotal += margem.valorTotal;
+        acc.custoTotal += margem.custoTotal;
+        acc.margemPrevistaTotal += margem.margemPrevista;
+        return acc;
+      }, { valorContratadoTotal: 0, custoTotal: 0, margemPrevistaTotal: 0 });
+      const percentualMargemPrevista = resumoMargem.valorContratadoTotal > 0
+        ? Number(((resumoMargem.margemPrevistaTotal / resumoMargem.valorContratadoTotal) * 100).toFixed(2))
+        : 0;
       const pacotesAtivos = todosOsPacotes.filter(p => p.status === 'ativo').length;
       const pacotesConcluidos = todosOsPacotes.filter(p => p.status === 'concluido').length;
       const pacotesCancelados = todosOsPacotes.filter(p => p.status === 'cancelado').length;
@@ -942,6 +964,9 @@ export const pacotesRouter = router({
       return {
         receitaTotal,
         saldoDevedorTotal,
+        custoTotal: resumoMargem.custoTotal,
+        margemPrevistaTotal: resumoMargem.margemPrevistaTotal,
+        percentualMargemPrevista,
         pacotesAtivos,
         pacotesConcluidos,
         pacotesCancelados,
@@ -1329,6 +1354,7 @@ export const pacotesRouter = router({
     .input(z.object({
       pacoteClienteId: z.number(),
       valorPago: z.number().min(0),
+      custoTotal: z.number().min(0).optional(),
       formaPagamento: z.string().optional(),
       numeroParcelas: z.number().min(1).max(24).optional().default(1),
       validadeDias: z.number().optional(), // null = sem vencimento
@@ -1347,6 +1373,7 @@ export const pacotesRouter = router({
         nome: pacotesClientes.nome,
         clienteId: pacotesClientes.clienteId,
         status: pacotesClientes.status,
+        custoTotal: pacotesClientes.custoTotal,
       }).from(pacotesClientes)
         .where(and(
           eq(pacotesClientes.id, input.pacoteClienteId),
@@ -1377,6 +1404,7 @@ export const pacotesRouter = router({
         status: "ativo",
         valorPago: String(input.valorPago),
         valorTotal: String(input.valorPago),
+        custoTotal: String(input.custoTotal ?? Number(pacote.custoTotal ?? 0)),
         valorRecebido: String(input.valorPago),
         statusPagamento: "pago",
         formaPagamento: input.formaPagamento,
@@ -1475,6 +1503,7 @@ export const pacotesRouter = router({
       id: z.number(),
       nome: z.string().min(1).optional(),
       valorPago: z.number().min(0).optional(),
+      custoTotal: z.number().min(0).optional(),
       formaPagamento: z.string().optional(),
       numeroParcelas: z.number().min(1).max(24).optional(),
       dataVencimento: z.string().nullable().optional(),
@@ -1512,6 +1541,7 @@ export const pacotesRouter = router({
         updates.valorTotal = String(input.valorPago);
         updates.statusPagamento = input.valorPago <= 0 ? 'pendente' : Number(pacote.valorRecebido ?? 0) >= input.valorPago ? 'pago' : 'parcial';
       }
+      if (input.custoTotal !== undefined) updates.custoTotal = String(input.custoTotal);
       if (input.formaPagamento !== undefined) updates.formaPagamento = input.formaPagamento;
       if (input.numeroParcelas !== undefined) {
         updates.numeroParcelas = input.numeroParcelas;

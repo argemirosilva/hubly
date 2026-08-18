@@ -2896,6 +2896,6 @@
 - [x] Corrigir seletores de serviço cortados no agendamento de sessões de pacote
 - [x] Analisar o novo vídeo enviado e apresentar diagnóstico antes de alterações
 - [x] Permitir ajustar, manter sem agendamento ou confirmar conscientemente sessões de pacote com conflito de agenda
-- [ ] Adicionar custo total e margem aos modelos e pacotes de serviços
+- [x] Adicionar custo total e margem aos modelos e pacotes de serviços
 - [x] Permitir excluir pacote cancelado sem vínculos reais, mesmo que contadores antigos de sessão tenham ficado registrados
-- [ ] Exibir preço, custo e margem nos formulários, cards e relatório de Pacotes
+- [x] Exibir preço, custo e margem nos formulários, cards e relatório de Pacotes
