@@ -2885,3 +2885,4 @@
 - [x] Simplificar a página pública Como funciona em uma explicação breve de uma única página
 - [x] Ampliar a página Como funciona com IA financeira, controle de posts, insights, automações e gestão operacional
 - [x] Direcionar os CTAs Começar agora do site público para o cadastro inicial em vez do login
+- [x] Atualizar a imagem e os metadados de compartilhamento para a identidade oficial do Hubly
