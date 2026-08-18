@@ -22,6 +22,9 @@ describe("site público do Hubly", () => {
     expect(html).toContain("Perguntas frequentes");
     expect(html).toContain("O que a IA Financeira faz no Hubly?");
     expect(html).toContain("Consigo organizar ideias e roteiros de posts?");
+    expect(html).toContain("Meus clientes conseguem agendar online?");
+    expect(html).toContain("Dá para vender e acompanhar pacotes de serviços?");
+    expect(html).toContain("Funciona bem no celular?");
   });
 
   it("mantém páginas públicas de apoio para recursos e funcionamento", () => {

@@ -2889,3 +2889,4 @@
 - [x] Corrigir a resposta do domínio publicado que ainda entrega metadados antigos aos robôs de compartilhamento
 - [x] Versionar o URL Open Graph para forçar a renovação da prévia em caches externos
 - [x] Adicionar FAQ expansível sobre IA Financeira e gestão de posts na página inicial pública
+- [x] Ampliar a FAQ com dúvidas sobre começar, atendimento, pagamentos, automações, pacotes e acesso pelo celular

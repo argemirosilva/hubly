@@ -119,6 +119,34 @@ const faqs = [
     question: "O Hubly publica automaticamente nas redes sociais?",
     answer: "O Hubly organiza o planejamento, o roteiro, o calendário e as métricas do conteúdo. A publicação continua sob seu controle nas redes sociais, para você manter a revisão final de cada post.",
   },
+  {
+    question: "Preciso entender de tecnologia para começar?",
+    answer: "Não. Você pode começar cadastrando serviços, horários e clientes. A agenda passa a refletir sua rotina e os outros recursos podem ser ativados aos poucos, conforme fizerem sentido para o seu negócio.",
+  },
+  {
+    question: "Meus clientes conseguem agendar online?",
+    answer: "Sim. O Hubly permite compartilhar um link público de agendamento. A pessoa escolhe o serviço, o profissional e um horário disponível dentro das regras que você configurou.",
+  },
+  {
+    question: "Posso enviar confirmação e lembrete pelo WhatsApp?",
+    answer: "Sim. Você configura as automações de acordo com o seu fluxo. As mensagens acompanham o status real do agendamento, como criação, confirmação, lembrete, cancelamento ou remarcação.",
+  },
+  {
+    question: "Como o Hubly ajuda com sinais e pagamentos parciais?",
+    answer: "Você registra o sinal, os pagamentos recebidos e o saldo em aberto no próprio atendimento. Assim fica mais fácil saber o que já entrou e o que ainda precisa ser cobrado, sem depender de anotações soltas.",
+  },
+  {
+    question: "Dá para vender e acompanhar pacotes de serviços?",
+    answer: "Dá. Você define o pacote, reserva ou agenda as sessões e acompanha pagamentos, saldo e andamento de cada etapa. Uma sessão só é consumida quando o atendimento realmente acontece.",
+  },
+  {
+    question: "Minha equipe pode acessar o sistema?",
+    answer: "Sim. Você pode incluir profissionais, organizar os serviços de cada pessoa e controlar o que cada perfil pode visualizar ou fazer na rotina da empresa.",
+  },
+  {
+    question: "Funciona bem no celular?",
+    answer: "Sim. O Hubly foi pensado para acompanhar a rotina de quem atende e administra ao mesmo tempo. Você consegue usar a plataforma pelo celular, tablet ou computador.",
+  },
 ];
 
 function FaqItem({ question, answer }: (typeof faqs)[number]) {
