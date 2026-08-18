@@ -143,6 +143,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const loading = oauthLoading || systemLoading;
   const user = oauthUser || (systemUser ? { id: systemUser.id, name: systemUser.nome, email: systemUser.email, role: "user" as const, openId: `system_${systemUser.id}`, loginMethod: "email", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } : null);
 
+  useEffect(() => {
+    if (!isAuthenticated) setModoLogin(location === "/cadastro" ? "cadastro" : "login");
+  }, [isAuthenticated, location]);
+
   // Buscar avatarUrl do perfil (apenas para system users)
   const { data: perfilData } = trpc.perfil.getMe.useQuery(undefined, {
     enabled: systemAuth && isAuthenticated,

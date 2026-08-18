@@ -10,6 +10,7 @@ describe("site público do Hubly", () => {
     expect(html).toContain("Seu negócio não precisa ser uma bagunça");
     expect(html).toContain("Entrar");
     expect(html).toContain('href="/admin"');
+    expect(html).toContain('href="/cadastro"');
     expect(html).toContain('href="/assinaturas"');
     expect(html).toContain("hubly-icon-gold_40021193.png");
     expect(html).toContain("Agenda no controle");

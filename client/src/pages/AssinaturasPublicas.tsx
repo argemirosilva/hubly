@@ -98,7 +98,7 @@ function PlanCard({ plan, cycle }: { plan: PublicPlan; cycle: BillingCycle }) {
         {planFeatures(plan).map((feature) => <li key={feature} className="flex items-start gap-2.5 text-sm font-medium leading-snug text-[#523b2d]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#5b9958]" />{feature}</li>)}
       </ul>
 
-      <Button asChild className="mt-8 h-12 rounded-xl bg-[#3b2115] font-bold text-white hover:bg-[#5a351e]"><a href="/admin">Começar 7 dias grátis <ArrowRight className="ml-2 h-4 w-4" /></a></Button>
+      <Button asChild className="mt-8 h-12 rounded-xl bg-[#3b2115] font-bold text-white hover:bg-[#5a351e]"><a href="/cadastro">Começar 7 dias grátis <ArrowRight className="ml-2 h-4 w-4" /></a></Button>
     </article>
   );
 }

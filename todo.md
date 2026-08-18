@@ -2884,3 +2884,4 @@
 - [x] Tornar clicáveis os atalhos Agenda, Clientes, Financeiro, Automações e Marketing com explicações públicas específicas
 - [x] Simplificar a página pública Como funciona em uma explicação breve de uma única página
 - [x] Ampliar a página Como funciona com IA financeira, controle de posts, insights, automações e gestão operacional
+- [x] Direcionar os CTAs Começar agora do site público para o cadastro inicial em vez do login
