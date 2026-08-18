@@ -2899,3 +2899,5 @@
 - [x] Adicionar custo total e margem aos modelos e pacotes de serviços
 - [x] Permitir excluir pacote cancelado sem vínculos reais, mesmo que contadores antigos de sessão tenham ficado registrados
 - [x] Exibir preço, custo e margem nos formulários, cards e relatório de Pacotes
+- [x] Corrigir mensagem de confirmação que eventualmente é enviada sem o link da cliente
+- [x] Corrigir filtro de serviço para que a automação de cursos não dispare em outros procedimentos

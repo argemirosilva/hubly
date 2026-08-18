@@ -33,6 +33,8 @@ import {
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
+import { verificarFiltroServicoAutomacao } from "./filtro-servico-automacao";
+import { inserirLinkConfirmacao, mensagemExigeLinkConfirmacao, mensagemPossuiLinkConfirmacao } from "./link-confirmacao-mensagem";
 import { waManager } from "./whatsapp";
 import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
 
@@ -143,11 +145,13 @@ function verificarCondicoesFlow(
     // Verificar cada condição
     for (const cond of condicoes) {
       const tipo = cond?.data?.tipo;
-      const valor = cond?.data?.valor;
+      const valor = cond?.data?.valor ?? cond?.data?.servicos;
 
       if (tipo === 'por_servico' && valor) {
-        // valor é uma string com nomes separados por vírgula
-        const servicosFiltro = String(valor).split(',').map((s: string) => s.trim().toLowerCase());
+        // Modelos antigos salvam texto separado por vírgula; os novos podem salvar array.
+        const servicosFiltro = (Array.isArray(valor) ? valor : String(valor).split(','))
+          .map((s: string) => s.trim().toLowerCase())
+          .filter(Boolean);
         // Bug fix 3a: usar todos os serviços do agendamento (principal + itens compostos)
         const listaServicos = todosServicos && todosServicos.length > 0
           ? todosServicos.map(s => s.trim().toLowerCase()).filter(Boolean)
@@ -1467,6 +1471,14 @@ async function preRegistrarEnviosPendentes() {
         for (const ag of ags) {
           if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
 
+          // O pré-registro também precisa respeitar as condições. Sem isso, uma
+          // mensagem futura era colocada na fila antes de o filtro ser avaliado.
+          const todosServicosPre = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
+          if (!verificarFiltroServicoAutomacao(automacao.flowJson, ag.servicoNome, todosServicosPre)) {
+            console.log(`[Scheduler] Pré-registro ignorado: automação "${automacao.nome}" não se aplica ao agendamento ${ag.id} (serviços: ${todosServicosPre.join(', ')})`);
+            continue;
+          }
+
           // Normalizar o campo data (pode ser Date object ou string)
           const dataStr = getDataStr(ag.data);
 
@@ -1715,7 +1727,7 @@ export async function processarFilaPendente() {
       }
       // Verificar se a automação ainda existe e está ativa antes de enviar
       if (item.automacaoId) {
-        const [automacaoAtual] = await db.select({ ativo: automacoes.ativo })
+        const [automacaoAtual] = await db.select({ ativo: automacoes.ativo, flowJson: automacoes.flowJson })
           .from(automacoes)
           .where(eq(automacoes.id, item.automacaoId))
           .limit(1);
@@ -1727,6 +1739,22 @@ export async function processarFilaPendente() {
             .where(eq(historicoEnviosAutomacao.id, item.id));
           console.log(`[Fila] Envio ${item.id} cancelado — ${motivo} (automacaoId: ${item.automacaoId})`);
           continue;
+        }
+        if (item.agendamentoId) {
+          const [agendamentoParaFiltro] = await db.select({ servicoNome: servicos.nome })
+            .from(agendamentos)
+            .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+            .where(eq(agendamentos.id, item.agendamentoId))
+            .limit(1);
+          const todosServicosFila = await getTodosServicosAgendamento(item.agendamentoId, agendamentoParaFiltro?.servicoNome ?? null);
+          if (!verificarFiltroServicoAutomacao(automacaoAtual.flowJson, agendamentoParaFiltro?.servicoNome ?? null, todosServicosFila)) {
+            const motivo = 'Agendamento não atende ao filtro de serviço da automação';
+            await db.update(historicoEnviosAutomacao)
+              .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: motivo })
+              .where(eq(historicoEnviosAutomacao.id, item.id));
+            console.log(`[Fila] Envio ${item.id} cancelado — ${motivo} (serviços: ${todosServicosFila.join(', ')})`);
+            continue;
+          }
         }
       }
       if (!item.telefone || !item.mensagem) {
@@ -1768,15 +1796,15 @@ export async function processarFilaPendente() {
         continue;
       }
 
-      // Substituir placeholder __LINK_CONFIRMACAO__ pelo token fresco gerado agora.
-      // O token é gerado apenas no momento do envio para evitar expiração prematura.
+      // Toda mensagem que pede confirmação deve receber um token fresco no momento do envio.
+      // Isso protege automações antigas ou personalizadas que usaram a variável errada.
       let mensagemFinal = item.mensagem;
-      if (item.agendamentoId && mensagemFinal.includes('__LINK_CONFIRMACAO__')) {
+      if (item.agendamentoId && mensagemExigeLinkConfirmacao(mensagemFinal) && !mensagemPossuiLinkConfirmacao(mensagemFinal)) {
         try {
           const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _freshToken = await gerarTokenConfirmacao(item.agendamentoId, item.empresaId);
           const _freshLink = `${_origin}/confirmar/${_freshToken}`;
-          mensagemFinal = mensagemFinal.replaceAll('__LINK_CONFIRMACAO__', _freshLink);
+          mensagemFinal = inserirLinkConfirmacao(mensagemFinal, _freshLink);
           // Atualizar a mensagem no banco para refletir o link real enviado
           await db.update(historicoEnviosAutomacao)
             .set({ mensagem: mensagemFinal })
@@ -1784,8 +1812,15 @@ export async function processarFilaPendente() {
           console.log(`[Fila] Token de confirmação gerado na hora do envio para ag. ${item.agendamentoId}`);
         } catch (tokenErr) {
           console.error(`[Fila] ERRO ao gerar token de confirmação para ag. ${item.agendamentoId}:`, tokenErr);
-          // Remover placeholder para não enviar texto feio
-          mensagemFinal = mensagemFinal.replaceAll('__LINK_CONFIRMACAO__', '(link indisponível)');
+          await db.update(historicoEnviosAutomacao)
+            .set({
+              status: 'pendente',
+              messageStatus: 'queued',
+              processandoEm: null,
+              erroDetalhe: 'Link de confirmação não pôde ser gerado; envio preservado para nova tentativa.',
+            })
+            .where(and(eq(historicoEnviosAutomacao.id, item.id), eq(historicoEnviosAutomacao.status, 'processando')));
+          continue;
         }
       }
 
