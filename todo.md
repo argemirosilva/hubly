@@ -2879,3 +2879,4 @@
 - [x] Substituir a marca provisória do site público pelo logo oficial do Hubly
 - [x] Adicionar explicações detalhadas e acessíveis aos cards de recursos do site público
 - [x] Corrigir o clique inativo dos cards de recursos no domínio publicado
+- [x] Remover ícones decorativos com aparência de emoji do site público
