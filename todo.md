@@ -2854,3 +2854,9 @@
 - [x] Permitir desfazer o uso acidental de uma sessão de pacote sem recriar o pacote
 - [x] Impedir a reversão direta quando a sessão estiver vinculada a um agendamento ativo
 - [x] Adicionar ação visual de desfazer sessão usada nos pacotes
+- [ ] Definir API segura e versionada para sincronização de dados do Hubly por aplicativo externo
+- [ ] Isolar o acesso por empresa, escopos e credenciais revogáveis sem expor o banco diretamente
+- [ ] Planejar sincronização inicial, incremental e tratamento de conflitos para integrações externas
+- [ ] Definir exportação em lote somente leitura para aplicativo próprio, com carga inicial e lotes incrementais
+- [x] Elaborar estratégia local de sincronização integral de todas as tabelas operacionais do Hubly
+- [x] Produzir manual técnico de consumo da API para o módulo remoto com carga inicial e atualizações incrementais
