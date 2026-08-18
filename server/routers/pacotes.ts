@@ -23,6 +23,7 @@ import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
 import { calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
+import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
 
 /**
  * Verifica se o usuário tem permissão de pacotes.
@@ -57,6 +58,25 @@ async function getEmpresaCompleta(userId: number, systemUserEmpresaId?: number |
   const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
   if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
   return empresa;
+}
+
+async function contarSessoesConcluidasPorItem(db: any, empresaId: number, itemIds: number[]) {
+  if (!itemIds.length) return new Map<number, number>();
+  const vinculos = await db.select({
+    itemId: agendamentoItens.pacoteClienteItemId,
+  }).from(agendamentoItens)
+    .innerJoin(agendamentos, eq(agendamentoItens.agendamentoId, agendamentos.id))
+    .where(and(
+      inArray(agendamentoItens.pacoteClienteItemId, itemIds),
+      eq(agendamentos.empresaId, empresaId),
+      eq(agendamentos.status, "concluido"),
+    ));
+  const contagem = new Map<number, number>();
+  for (const vinculo of vinculos) {
+    if (!vinculo.itemId) continue;
+    contagem.set(vinculo.itemId, (contagem.get(vinculo.itemId) ?? 0) + 1);
+  }
+  return contagem;
 }
 
 // ─── MODELOS ─────────────────────────────────────────────────────────────────
@@ -242,10 +262,14 @@ export const pacotesRouter = router({
       }).from(pacotesClientesItens)
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
         .where(inArray(pacotesClientesItens.pacoteClienteId, ids));
+      const concluidasPorItem = await contarSessoesConcluidasPorItem(db, empId, itens.map(item => item.id));
 
       return rows.map(r => ({
         ...r,
-        itens: itens.filter(i => i.pacoteClienteId === r.id),
+        itens: itens.filter(i => i.pacoteClienteId === r.id).map(item => ({
+          ...item,
+          sessoesManuaisReversiveis: calcularSessoesManuaisReversiveis(item.quantidadeUsada, concluidasPorItem.get(item.id) ?? 0),
+        })),
       }));
     }),
 
@@ -642,6 +666,48 @@ export const pacotesRouter = router({
       }
 
       return { ok: true, pacoteConcluido };
+    }),
+
+  // ── Desfazer consumo manual acidental ─────────────────────────────────────
+  desfazerUsoSessao: protectedProcedure
+    .input(z.object({ pacoteClienteItemId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, "pacotesEditar");
+      const [item] = await db.select({
+        id: pacotesClientesItens.id,
+        pacoteClienteId: pacotesClientesItens.pacoteClienteId,
+        quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        statusPacote: pacotesClientes.status,
+      }).from(pacotesClientesItens)
+        .innerJoin(pacotesClientes, eq(pacotesClientesItens.pacoteClienteId, pacotesClientes.id))
+        .where(and(
+          eq(pacotesClientesItens.id, input.pacoteClienteItemId),
+          eq(pacotesClientes.empresaId, empresa.id),
+        ))
+        .limit(1);
+      if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Sessão do pacote não encontrada." });
+      if (item.statusPacote === "cancelado" || item.statusPacote === "vencido") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pacotes cancelados ou vencidos não podem ter sessões revertidas." });
+      }
+
+      const concluidasPorItem = await contarSessoesConcluidasPorItem(db, empresa.id, [item.id]);
+      const sessoesManuais = calcularSessoesManuaisReversiveis(item.quantidadeUsada, concluidasPorItem.get(item.id) ?? 0);
+      if (sessoesManuais <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Esta sessão está vinculada a atendimento concluído e não pode ser desfeita por aqui." });
+      }
+
+      await db.transaction(async (tx) => {
+        await tx.update(pacotesClientesItens)
+          .set({ quantidadeUsada: Math.max(0, item.quantidadeUsada - 1) })
+          .where(eq(pacotesClientesItens.id, item.id));
+        await tx.update(pacotesClientes)
+          .set({ status: "ativo" })
+          .where(eq(pacotesClientes.id, item.pacoteClienteId));
+      });
+      return { ok: true, sessoesManuaisRestantes: sessoesManuais - 1 };
     }),
 
   // ── Histórico financeiro do pacote ────────────────────────────────────────

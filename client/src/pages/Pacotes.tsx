@@ -850,9 +850,10 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
 
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
+function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
+  onDesfazerConsumo: (itemId: number) => void;
   onCancelar: (id: number) => void;
   onRenovar?: (pacote: any) => void;
   onEditar?: (pacote: any) => void;
@@ -904,6 +905,17 @@ function PacoteCard({ pacote, onConsumir, onCancelar, onRenovar, onEditar, onReg
                     className="text-xs px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-medium transition-colors"
                   >
                     Usar sessão
+                  </button>
+                )}
+                {pacote.status !== "cancelado" && pacote.status !== "vencido" && (item.sessoesManuaisReversiveis ?? 0) > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Desfazer o último uso manual desta sessão? Sessões ligadas a atendimentos concluídos não serão alteradas.")) onDesfazerConsumo(item.id);
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 font-medium transition-colors"
+                    title="Desfaz somente sessões marcadas manualmente"
+                  >
+                    Desfazer uso
                   </button>
                 )}
                 {item.quantidadeUsada >= item.quantidadeTotal && (
@@ -1034,6 +1046,13 @@ export default function Pacotes() {
       } else {
         toast.success("Sessão registrada com sucesso!");
       }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const desfazerConsumoMutation = trpc.pacotes.desfazerUsoSessao.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarTodos.invalidate();
+      toast.success("Uso manual desfeito. A sessão voltou a ficar disponível.");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1172,6 +1191,7 @@ export default function Pacotes() {
                     key={p.id}
                     pacote={p}
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
+                    onDesfazerConsumo={(itemId) => desfazerConsumoMutation.mutate({ pacoteClienteItemId: itemId })}
                     onCancelar={(id) => cancelarMutation.mutate({ id })}
                     onRegistrarPagamento={(pac) => setPacotePagamento(pac)}
                     onReabrir={(pac) => reabrirMutation.mutate({ pacoteClienteId: pac.id })}

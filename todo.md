@@ -2851,3 +2851,6 @@
 - [x] Permitir plataforma, formato, data, horário e responsável próprios em cada publicação
 - [x] Exibir no calendário todas as publicações vinculadas ao mesmo conteúdo
 - [x] Testar o agendamento do mesmo conteúdo em redes e horários diferentes
+- [x] Permitir desfazer o uso acidental de uma sessão de pacote sem recriar o pacote
+- [x] Impedir a reversão direta quando a sessão estiver vinculada a um agendamento ativo
+- [x] Adicionar ação visual de desfazer sessão usada nos pacotes
