@@ -256,34 +256,14 @@ function SiteHeader() {
 
 function ProductWindow() {
   return (
-    <div className="relative mx-auto w-full max-w-[570px] rounded-[28px] border border-[#3b2115]/10 bg-[#fffdf9] p-2 shadow-[0_28px_70px_rgba(59,33,21,0.18)]">
-      <div className="overflow-hidden rounded-[21px] border border-[#eadfd4] bg-[#fdf9f4]">
-        <div className="flex h-11 items-center justify-between border-b border-[#eee2d7] bg-white px-4">
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#ee9a7c]" /><span className="h-2.5 w-2.5 rounded-full bg-[#f3ca5d]" /><span className="h-2.5 w-2.5 rounded-full bg-[#83bb9b]" /></div>
-          <span className="text-[10px] font-bold tracking-wide text-[#a08d80]">hubly.app</span>
-          <span className="w-10" />
-        </div>
-        <div className="grid min-h-[345px] grid-cols-[142px_1fr]">
-          <aside className="hidden border-r border-[#eee2d7] bg-[#fffdf9] p-4 sm:block">
-            <div className="mb-6 flex items-center gap-2 text-xs font-black text-[#3b2115]"><span className="h-6 w-6 rounded-lg bg-[#3b2115]" /> hubly</div>
-            {["Visão geral", "Agenda", "Clientes", "Financeiro", "Automações"].map((item, i) => <div key={item} className={`mb-2 rounded-lg px-2.5 py-2 text-[11px] font-semibold ${i === 0 ? "bg-[#f4e6d8] text-[#65391f]" : "text-[#9c897b]"}`}>{item}</div>)}
-          </aside>
-          <main className="p-4 sm:p-5">
-            <div className="mb-5 flex items-start justify-between"><div><p className="text-[11px] font-semibold text-[#9c897b]">Terça-feira, 18 de agosto</p><h3 className="mt-1 text-lg font-extrabold tracking-tight text-[#2c1a12]">Sua rotina, mais leve.</h3></div><span className="rounded-full bg-[#e6f3e7] px-2.5 py-1 text-[10px] font-bold text-[#398052]">Tudo em dia</span></div>
-            <div className="mb-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-[#f6ebdf] p-2.5"><p className="text-[9px] font-semibold text-[#8c6b55]">Hoje</p><p className="mt-1 text-lg font-black text-[#3b2115]">08</p><p className="text-[9px] text-[#997e6c]">atendimentos</p></div>
-              <div className="rounded-xl bg-[#eef4e8] p-2.5"><p className="text-[9px] font-semibold text-[#6c8460]">Recebido</p><p className="mt-1 text-lg font-black text-[#355a3d]">R$ 860</p><p className="text-[9px] text-[#759271]">este mês</p></div>
-              <div className="rounded-xl bg-[#f8f0d8] p-2.5"><p className="text-[9px] font-semibold text-[#93792e]">Clientes</p><p className="mt-1 text-lg font-black text-[#6e5810]">124</p><p className="text-[9px] text-[#a28e4d]">ativos</p></div>
-            </div>
-            <div className="rounded-xl border border-[#ede3d9] bg-white p-3">
-              <div className="mb-3 flex items-center justify-between"><p className="text-[11px] font-extrabold text-[#493225]">Agenda de hoje</p><span className="text-[10px] font-bold text-[#9b5c31]">Ver agenda</span></div>
-              {["09:00  ·  Ana Luísa", "11:30  ·  Beatriz M.", "15:00  ·  Camila R."].map((slot, i) => <div key={slot} className="mb-2 flex items-center gap-2 last:mb-0"><span className={`h-7 w-1 rounded-full ${["bg-[#dd9b65]", "bg-[#8eb27c]", "bg-[#b497d1]"][i]}`} /><p className="text-[10px] font-semibold text-[#604a3b]">{slot}</p><span className="ml-auto rounded-full bg-[#f5f0ea] px-1.5 py-0.5 text-[8px] font-bold text-[#927b6b]">Confirmado</span></div>)}
-            </div>
-          </main>
-        </div>
-      </div>
-      <div className="absolute -bottom-6 -left-8 hidden max-w-[205px] rounded-2xl border border-[#f5e6c0] bg-[#fff9eb] p-3 shadow-[0_14px_34px_rgba(90,56,24,0.16)] sm:block"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#f6d777] text-[#755517]"><Zap className="h-3.5 w-3.5" /></span><div><p className="text-[10px] font-extrabold text-[#493225]">Confirmação enviada</p><p className="text-[9px] text-[#927b6b]">Cliente respondeu agora</p></div></div></div>
-    </div>
+    <figure className="relative mx-auto w-full max-w-[570px] overflow-hidden rounded-[28px] border border-white/80 bg-[#fffdf9] p-2 shadow-[0_28px_70px_rgba(59,33,21,0.18)]">
+      <img
+        src="/manus-storage/hubly-agenda-finance-dashboard_e3d1ae78.jpg"
+        alt="Painel visual genérico de gestão com agenda, gráfico de desempenho e indicadores financeiros"
+        className="aspect-[16/10] w-full rounded-[21px] object-cover"
+      />
+      <figcaption className="absolute bottom-5 left-5 rounded-full border border-white/70 bg-[#fffaf4]/90 px-3.5 py-2 text-xs font-extrabold text-[#65442f] shadow-sm backdrop-blur-sm">Agenda, resultados e financeiro no mesmo lugar</figcaption>
+    </figure>
   );
 }
 
