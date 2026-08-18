@@ -1389,3 +1389,51 @@ export const marketingTiposOcultos = mysqlTable("marketing_tipos_ocultos", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type MarketingTipoOculto = typeof marketingTiposOcultos.$inferSelect;
+
+// ─── INTEGRAÇÕES DE SINCRONIZAÇÃO REMOTA ──────────────────────────────────────
+// Credenciais são guardadas apenas como hash. O segredo completo é mostrado uma vez
+// quando criado e nunca fica disponível para leitura no banco.
+export const syncIntegrationClients = mysqlTable("sync_integration_clients", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: varchar("clientId", { length: 80 }).notNull().unique(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  secretHash: varchar("secretHash", { length: 128 }).notNull(),
+  escopo: varchar("escopo", { length: 100 }).default("sync.read.all").notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  criadoPorUserId: int("criadoPorUserId"),
+  ultimoUsoEm: timestamp("ultimoUsoEm"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SyncIntegrationClient = typeof syncIntegrationClients.$inferSelect;
+
+export const syncSnapshots = mysqlTable("sync_snapshots", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  clientId: varchar("clientId", { length: 80 }).notNull(),
+  manifestJson: longtext("manifestJson"),
+  snapshotCursor: bigint("snapshotCursor", { mode: "number" }).default(0).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const syncChangeLog = mysqlTable("sync_change_log", {
+  cursor: bigint("cursor", { mode: "number" }).autoincrement().primaryKey(),
+  empresaId: int("empresaId"),
+  entity: varchar("entity", { length: 100 }).notNull(),
+  recordId: varchar("recordId", { length: 100 }).notNull(),
+  operation: mysqlEnum("operation", ["upsert", "delete"]).notNull(),
+  payloadJson: longtext("payloadJson"),
+  schemaVersion: varchar("schemaVersion", { length: 20 }).default("v1").notNull(),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+});
+
+export const syncAuditLog = mysqlTable("sync_audit_log", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  clientId: varchar("clientId", { length: 80 }).notNull(),
+  rota: varchar("rota", { length: 255 }).notNull(),
+  statusCode: int("statusCode").notNull(),
+  recordsEntregues: int("recordsEntregues").default(0).notNull(),
+  cursorSolicitado: varchar("cursorSolicitado", { length: 100 }),
+  ipHash: varchar("ipHash", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

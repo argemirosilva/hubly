@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2, DatabaseBackup, Download } from "lucide-react";
+import { Settings, Building2, Save, Globe, Clock, Palette, ExternalLink, Copy, Check, CheckCircle2, Loader2, Upload, Image, Bell, AlertCircle, AlertTriangle, Trash2, DatabaseBackup, Download, KeyRound, Ban } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -28,6 +28,7 @@ export default function Configuracoes() {
   const [, setLocation] = useLocation();
   const { data: empresa } = trpc.empresa.get.useQuery();
   const [copied, setCopied] = useState(false);
+  const [credencialSync, setCredencialSync] = useState<{ clientId: string; accessToken: string } | null>(null);
 
   // ─── Exclusão de conta ─────────────────────────────────────────────────────
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -54,6 +55,22 @@ export default function Configuracoes() {
       toast.success("Exportação SQL baixada com sucesso", { description: `${resultado.registros} registros preparados para importação.` });
     },
     onError: (erro: any) => toast.error("Não foi possível gerar a exportação", { description: erro.message }),
+  });
+  const { data: clientesSync = [], isLoading: loadingClientesSync } = trpc.sincronizacao.listarClientes.useQuery(undefined, { enabled: !!isAdmin });
+  const criarCredencialSyncMutation = trpc.sincronizacao.criarCredencial.useMutation({
+    onSuccess: (credencial) => {
+      setCredencialSync(credencial);
+      utils.sincronizacao.listarClientes.invalidate();
+      toast.success("Credencial de sincronização criada. Copie o token agora.");
+    },
+    onError: (erro: any) => toast.error(erro.message ?? "Não foi possível criar a credencial"),
+  });
+  const revogarCredencialSyncMutation = trpc.sincronizacao.revogarCredencial.useMutation({
+    onSuccess: () => {
+      utils.sincronizacao.listarClientes.invalidate();
+      toast.success("Credencial revogada. O aplicativo remoto não poderá mais sincronizar com ela.");
+    },
+    onError: (erro: any) => toast.error(erro.message ?? "Não foi possível revogar a credencial"),
   });
   function handleExcluirConta() {
     if (deleteConfirmText !== "EXCLUIR MINHA CONTA") {
@@ -811,6 +828,53 @@ export default function Configuracoes() {
               {exportarSqlMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {exportarSqlMutation.isPending ? "Preparando arquivo..." : "Baixar exportação SQL"}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="rounded-xl border border-sky-200 dark:border-sky-900/50 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-4 bg-sky-50/70 dark:bg-sky-950/20" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)" }}>
+            <KeyRound className="w-4 h-4 text-sky-700" />
+            <h3 className="font-semibold text-sm text-sky-900 dark:text-sky-200">Integração de sincronização</h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Permita que o módulo remoto próprio leia a base operacional do Hubly em lotes, sem acesso direto ao banco.</p>
+                <p className="text-xs text-muted-foreground mt-1">Credenciais são revogáveis e não exportam senhas, tokens ou chaves internas.</p>
+              </div>
+              <Button type="button" className="gap-2 shrink-0" onClick={() => criarCredencialSyncMutation.mutate({ nome: "Módulo remoto administrativo" })} disabled={criarCredencialSyncMutation.isPending}>
+                {criarCredencialSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                Criar credencial
+              </Button>
+            </div>
+
+            {credencialSync && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 space-y-2">
+                <p className="text-sm font-medium text-emerald-950">Copie este token agora. Ele não será exibido novamente.</p>
+                <div className="flex gap-2 items-center">
+                  <code className="flex-1 min-w-0 truncate rounded bg-white px-2 py-1.5 text-xs border border-emerald-200">{credencialSync.accessToken}</code>
+                  <Button type="button" size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={async () => { await navigator.clipboard.writeText(credencialSync.accessToken); toast.success("Token copiado."); }}><Copy className="w-3.5 h-3.5" /> Copiar</Button>
+                </div>
+                <p className="text-xs text-emerald-800">Client ID: <span className="font-mono">{credencialSync.clientId}</span></p>
+              </div>
+            )}
+
+            {loadingClientesSync ? (
+              <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Carregando credenciais...</div>
+            ) : clientesSync.length === 0 ? (
+              <p className="text-sm text-muted-foreground rounded-lg border border-dashed border-sky-200 p-3">Nenhuma credencial criada ainda.</p>
+            ) : (
+              <div className="space-y-2">
+                {clientesSync.map((cliente) => (
+                  <div key={cliente.id} className="rounded-lg border border-border px-3 py-2.5 flex flex-wrap items-center gap-2 justify-between">
+                    <div className="min-w-0"><p className="text-sm font-medium truncate">{cliente.nome}</p><p className="text-xs text-muted-foreground font-mono truncate">{cliente.clientId} · {cliente.escopo}</p></div>
+                    <div className="flex items-center gap-2"><span className={cliente.ativo ? "text-xs font-medium text-emerald-700" : "text-xs font-medium text-stone-500"}>{cliente.ativo ? "Ativa" : "Revogada"}</span>{cliente.ativo && <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-red-700 border-red-200 hover:bg-red-50" onClick={() => { if (window.confirm(`Revogar a credencial ${cliente.nome}?`)) revogarCredencialSyncMutation.mutate({ id: cliente.id }); }}><Ban className="w-3.5 h-3.5" /> Revogar</Button>}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

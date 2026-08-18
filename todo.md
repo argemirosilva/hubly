@@ -2854,9 +2854,14 @@
 - [x] Permitir desfazer o uso acidental de uma sessão de pacote sem recriar o pacote
 - [x] Impedir a reversão direta quando a sessão estiver vinculada a um agendamento ativo
 - [x] Adicionar ação visual de desfazer sessão usada nos pacotes
-- [ ] Definir API segura e versionada para sincronização de dados do Hubly por aplicativo externo
-- [ ] Isolar o acesso por empresa, escopos e credenciais revogáveis sem expor o banco diretamente
+- [x] Definir API segura e versionada para sincronização de dados do Hubly por aplicativo externo
+- [x] Isolar o acesso por empresa, escopos e credenciais revogáveis sem expor o banco diretamente
 - [ ] Planejar sincronização inicial, incremental e tratamento de conflitos para integrações externas
-- [ ] Definir exportação em lote somente leitura para aplicativo próprio, com carga inicial e lotes incrementais
+- [x] Definir exportação em lote somente leitura para aplicativo próprio, com carga inicial e lotes de reconciliação
 - [x] Elaborar estratégia local de sincronização integral de todas as tabelas operacionais do Hubly
 - [x] Produzir manual técnico de consumo da API para o módulo remoto com carga inicial e atualizações incrementais
+- [x] Criar tabelas de clientes de integração, snapshots, alterações e auditoria da API de sincronização
+- [x] Implementar credenciais revogáveis e catálogo seguro de entidades exportáveis
+- [x] Implementar bootstrap paginado para a base completa e preparar leitura incremental por cursor
+- [ ] Registrar alterações e exclusões dos módulos sincronizáveis no log de saída
+- [x] Testar isolação, paginação, idempotência e recuperação da API de sincronização

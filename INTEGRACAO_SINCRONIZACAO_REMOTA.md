@@ -20,6 +20,10 @@ flowchart LR
 
 O Hubly permanece como a **fonte oficial** dos dados. O aplicativo remoto lê, compara, inclui e atualiza apenas a sua própria base local. Nenhuma mudança feita no aplicativo remoto volta para o Hubly nesta primeira versão.
 
+Na primeira entrega operacional, a atualização acontece por **nova carga paginada completa**: o módulo remoto percorre todas as entidades e faz `upsert` local. No fim de cada execução, ele deve marcar como removidos localmente os registros daquela entidade que não apareceram no snapshot recém-concluído. Dessa forma, inclusões, alterações e exclusões são sincronizadas com segurança, mesmo antes da otimização incremental.
+
+> Nesta versão, a rota `/changes` responde com orientação para executar nova carga completa. O módulo remoto não deve tratar uma resposta vazia dessa rota como “não houve mudanças”, pois isso poderia ocultar alterações.
+
 | Responsabilidade | Hubly local | Aplicativo remoto |
 |---|---|---|
 | Criar e alterar dados de negócio | Sim | Não |
@@ -123,28 +127,23 @@ Os caminhos abaixo são a especificação do módulo local a implementar. Eles n
 | `GET /api/integrations/v1/schema` | Retorna versão, catálogo de entidades e campos públicos de cada entidade. |
 | `POST /api/integrations/v1/bootstrap` | Cria uma sessão de carga inicial e devolve `snapshotId`, `snapshotCursor` e entidades disponíveis. |
 | `GET /api/integrations/v1/bootstrap/{snapshotId}/{entity}?cursor=&limit=` | Entrega uma página estável da entidade durante a carga inicial. |
-| `GET /api/integrations/v1/changes?after={cursor}&limit=` | Entrega alterações incrementais ordenadas por cursor. |
-| `GET /api/integrations/v1/records/{entity}/{id}` | Reconsulta um registro quando o evento indicar payload reduzido. |
+| `GET /api/integrations/v1/changes?after={cursor}&limit=` | Reservada para a futura otimização incremental; nesta versão orienta executar nova carga completa. |
+| `GET /api/integrations/v1/records/{entity}/{id}` | Reconsulta um registro específico e saneado por ID. |
 
 ### Formato de resposta de lote
 
 ```json
 {
   "apiVersion": "v1",
-  "requestId": "req_01J...",
+  "snapshotId": "f75f3f...",
   "entity": "appointments",
-  "cursorStart": "881000",
-  "cursorEnd": "881499",
-  "nextCursor": "881500",
+  "after": 881000,
+  "nextCursor": 881500,
   "hasMore": true,
-  "serverTime": "2026-08-18T01:40:00.000Z",
   "records": [
     {
-      "hublyId": 1770004,
-      "companyId": 1,
-      "operation": "upsert",
-      "updatedAt": "2026-08-18T01:39:58.000Z",
-      "data": {}
+      "id": 881499,
+      "empresaId": 1
     }
   ]
 }
@@ -153,12 +152,11 @@ Os caminhos abaixo são a especificação do módulo local a implementar. Eles n
 ### Autorização da chamada
 
 ```http
-GET /api/integrations/v1/changes?after=881000&limit=500 HTTP/1.1
+GET /api/integrations/v1/bootstrap/<snapshotId>/appointments?after=881000&limit=500 HTTP/1.1
 Host: hubly.orizontech.com.br
-Authorization: Bearer <access_token_de_integracao>
-X-Hubly-Client-Id: remote-admin-sync
+Authorization: Bearer <client_id>.<segredo_da_integracao>
 X-Hubly-Timestamp: 2026-08-18T01:40:00.000Z
-X-Hubly-Signature: sha256=<assinatura_hmac>
+X-Hubly-Signature: sha256=<HMAC_SHA256_de_METODO_LINHA_CAMINHO_COM_QUERY_LINHA_TIMESTAMP_LINHA_CORPO>
 ```
 
 ## Manual para o módulo remoto
@@ -181,39 +179,41 @@ Chame `POST /bootstrap` uma vez. Guarde `snapshotId` e `snapshotCursor`. A carga
 
 Para cada entidade, solicite páginas de até 500 registros. Para cada registro recebido, execute `upsert` usando `hubly_id`. Não gere identificadores novos para registros do Hubly; mantenha a origem e o ID de referência.
 
-### Passo 4 — Ativar incremental
+### Passo 4 — Concluir a reconciliação da entidade
 
-Depois de concluir todas as entidades do bootstrap, grave o `snapshotCursor` como último cursor aplicado. Em seguida, consulte `/changes` periodicamente. Uma frequência inicial de 15 minutos é adequada para sincronização em lote e pode ser ajustada conforme volume.
+Depois de receber a última página (`hasMore=false`) de uma entidade, marque como removidos na base remota somente os registros dessa entidade que não foram vistos no `snapshotId` atual. Nunca faça essa limpeza antes da última página.
 
-### Passo 5 — Aplicar alterações
+### Passo 5 — Repetir o lote
 
-Processe os eventos na ordem do cursor. Uma operação `upsert` cria ou atualiza; uma operação `delete` marca ou remove localmente. Só persista `nextCursor` depois que todos os eventos do lote tiverem sido confirmados no banco remoto.
+Em cada execução periódica, inicie novo `bootstrap`, percorra todas as entidades e faça `upsert` local pelos respectivos IDs do Hubly. Uma frequência inicial de 15 minutos é adequada para sincronização em lote e pode ser ajustada conforme o volume.
 
 ### Passo 6 — Recuperação
 
-Em caso de falha, repita a mesma página ou o mesmo intervalo a partir do cursor salvo. A rotina deve ser idempotente. Caso o cursor seja considerado inválido pelo Hubly, execute novo bootstrap controlado.
+Em caso de falha, repita a mesma página usando o último `after` confirmado. A rotina deve ser idempotente. Caso o snapshot expire, inicie novo bootstrap e só finalize a reconciliação após percorrer todas as páginas da entidade.
 
 ### Pseudocódigo de referência
 
 ```ts
-let cursor = await localStore.get("hubly_sync_cursor");
+const snapshot = await hubly.post("/api/integrations/v1/bootstrap");
 
-while (true) {
-  const batch = await hubly.get(`/api/integrations/v1/changes?after=${cursor}&limit=500`);
-
-  await database.transaction(async (tx) => {
-    for (const event of batch.records) {
-      if (event.operation === "delete") {
-        await tx.markDeleted(event.entity, event.hublyId);
-      } else {
-        await tx.upsert(event.entity, event.hublyId, event.companyId, event.data);
+for (const entity of snapshot.entities) {
+  let after = 0;
+  const vistos = new Set<number>();
+  do {
+    const page = await hubly.get(`/api/integrations/v1/bootstrap/${snapshot.snapshotId}/${entity.name}?after=${after}&limit=500`);
+    await database.transaction(async (tx) => {
+      for (const record of page.records) {
+        await tx.upsert(entity.name, record.id, record.empresaId, record);
+        vistos.add(record.id);
       }
+      await tx.savePageCursor(snapshot.snapshotId, entity.name, page.nextCursor);
+    });
+    after = page.nextCursor;
+    if (!page.hasMore) {
+      await database.markMissingAsDeleted(entity.name, vistos);
+      break;
     }
-    await tx.saveSetting("hubly_sync_cursor", batch.nextCursor);
-  });
-
-  cursor = batch.nextCursor;
-  if (!batch.hasMore) break;
+  } while (true);
 }
 ```
 

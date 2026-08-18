@@ -110,6 +110,7 @@ import { relatoriosRouter } from "./routers/relatorios";
 import { onboardingRouter } from "./routers/onboarding";
 import { orizontechRouter } from "./routers/orizontech";
 import { dbConsoleRouter } from "./routers/dbConsole";
+import { sincronizacaoRouter } from "./routers/sincronizacao";
 import { nanoid } from "nanoid";
 import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos, googleCalendarTokensUsuario } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
@@ -378,6 +379,7 @@ export const appRouter = router({
   suporte: suporteRouter,
   orizontech: orizontechRouter,
   dbConsole: dbConsoleRouter,
+  sincronizacao: sincronizacaoRouter,
   portal: portalRouter,
   importacao: importacaoRouter,
   pacotes: pacotesRouter,

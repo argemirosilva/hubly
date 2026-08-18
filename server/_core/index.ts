@@ -19,6 +19,7 @@ import { registerZapiWebhook } from "../zapi-webhook";
 import { trialReminderHandler } from "../trial-reminder";
 import { registerGoogleOAuthCallback } from "../google-oauth-callback";
 import { registerGoogleOAuthUserCallback } from "../google-oauth-user-callback";
+import { registerSyncIntegrationRoutes } from "../sync-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -65,6 +66,8 @@ async function startServer() {
   registerGoogleOAuthUserCallback(app);
   // Cron: lembrete diário de trial para donos sem cartão cadastrado
   app.post("/api/scheduled/trial-reminder", trialReminderHandler);
+  // API privada de sincronização em lote para o módulo remoto próprio
+  registerSyncIntegrationRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
