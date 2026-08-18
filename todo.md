@@ -2868,3 +2868,5 @@
 - [x] Adicionar ao manual MySQL remoto as tabelas de controle, upsert e reconciliação da sincronização
 - [x] Validar o ponto de conexão publicado e protegido para a primeira carga do aplicativo remoto
 - [x] Gerar arquivo SQL de criação da tabela taxas_config para importação no MySQL remoto
+- [x] Conferir o relatório de sincronização remota contra as contagens do banco local
+- [x] Planejar o site público do Hubly para apresentar a plataforma e converter jovens empreendedores em novos usuários
