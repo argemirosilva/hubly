@@ -13,7 +13,8 @@ describe("site público do Hubly", () => {
     expect(html).toContain("hubly-icon-gold_40021193.png");
     expect(html).toContain("Agenda no controle");
     expect(html).toContain("Clique em cada card para ver o que ele resolve no seu dia a dia.");
-    expect(html).toContain("Pré-agendamento com sinal e confirmação no fluxo certo");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-controls="recurso-agenda-no-controle"');
   });
 
   it("mantém páginas públicas de apoio para recursos e funcionamento", () => {

@@ -73,23 +73,24 @@ const pillars = [
 ];
 
 function ResourceCard({ resource }: { resource: (typeof pillars)[number] }) {
+  const [expanded, setExpanded] = useState(false);
   const { icon: Icon, title, description, color, details } = resource;
   return (
-    <details className="group rounded-3xl border border-[#eaded2] bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(76,45,26,0.08)] open:ring-1 open:ring-[#d8b89c]">
-      <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
-        <div className={`grid h-11 w-11 place-items-center rounded-2xl ${color}`}><Icon className="h-5 w-5" /></div>
-        <h3 className="mt-6 text-xl font-extrabold tracking-[-0.03em] text-[#342117]">{title}</h3>
-        <p className="mt-3 text-sm leading-relaxed text-[#796659]">{description}</p>
-        <span className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">Ver como funciona <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" /></span>
-      </summary>
-      <div className="border-t border-[#f0e6dc] px-6 pb-6 pt-5">
+    <article className={`rounded-3xl border border-[#eaded2] bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(76,45,26,0.08)] ${expanded ? "ring-1 ring-[#d8b89c]" : ""}`}>
+      <button type="button" className="block w-full cursor-pointer p-6 text-left" onClick={() => setExpanded((open) => !open)} aria-expanded={expanded} aria-controls={`recurso-${title.replace(/\s+/g, "-").toLowerCase()}`}>
+        <span className={`grid h-11 w-11 place-items-center rounded-2xl ${color}`}><Icon className="h-5 w-5" /></span>
+        <span className="mt-6 block text-xl font-extrabold tracking-[-0.03em] text-[#342117]">{title}</span>
+        <span className="mt-3 block text-sm leading-relaxed text-[#796659]">{description}</span>
+        <span className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">{expanded ? "Fechar detalhes" : "Ver como funciona"}<ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} /></span>
+      </button>
+      {expanded && <div id={`recurso-${title.replace(/\s+/g, "-").toLowerCase()}`} className="border-t border-[#f0e6dc] px-6 pb-6 pt-5">
         <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#9a6a45]">Na prática, você consegue</p>
         <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-[#655143]">
           {details.map((detail) => <li key={detail} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#60945a]" />{detail}</li>)}
         </ul>
         <a href="/recursos" className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#8a4d2b]">Explorar todos os recursos <ArrowRight className="h-3.5 w-3.5" /></a>
-      </div>
-    </details>
+      </div>}
+    </article>
   );
 }
 
