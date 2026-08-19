@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { alterouMomentoDoAgendamento } from "./reagendamento-lembretes";
+import { ajustarHorarioDeLembreteReagendado, alterouMomentoDoAgendamento } from "./reagendamento-lembretes";
 
 describe("reagendamento de lembretes após editar um atendimento", () => {
   const anterior = { data: "2026-08-21", horaInicio: "12:00:00", horaFim: "13:00:00" };
@@ -30,5 +30,15 @@ describe("reagendamento de lembretes após editar um atendimento", () => {
     const scheduler = readFileSync("server/scheduler.ts", "utf8");
     expect(scheduler).toContain("IN ('pendente', 'agendado', 'processando')");
     expect(scheduler).toContain("Um envio já realizado pertence ao horário antigo");
+  });
+
+  it("enfileira imediatamente o lembrete quando a nova janela já começou", () => {
+    const agora = new Date("2026-08-19T18:00:00.000Z");
+    const horarioPassado = new Date("2026-08-19T15:00:00.000Z");
+    const horarioFuturo = new Date("2026-08-20T15:00:00.000Z");
+
+    expect(ajustarHorarioDeLembreteReagendado(horarioPassado, agora)).toEqual(agora);
+    expect(ajustarHorarioDeLembreteReagendado(horarioFuturo, agora)).toEqual(horarioFuturo);
+    expect(ajustarHorarioDeLembreteReagendado(null, agora)).toBeNull();
   });
 });

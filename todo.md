@@ -2908,3 +2908,4 @@
 - [x] Recalcular lembretes automáticos quando a data ou o horário do agendamento mudar
 - [x] Gerar novo lembrete após reagendamento mesmo se o lembrete anterior já tiver sido enviado
 - [x] Corrigir o salvamento e a reabertura do roteiro de posts no Marketing IA
+- [x] Criar lembrete de confirmação ao reagendar um atendimento para dentro da janela de envio

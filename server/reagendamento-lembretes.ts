@@ -26,3 +26,13 @@ export function alterouMomentoDoAgendamento(anterior: AgendaAnterior | null | un
     || (alteracao.horaInicio !== undefined && normalizarHora(alteracao.horaInicio) !== normalizarHora(anterior.horaInicio))
     || (alteracao.horaFim !== undefined && normalizarHora(alteracao.horaFim) !== normalizarHora(anterior.horaFim));
 }
+
+/**
+ * Ao mover um atendimento para dentro da janela de um lembrete, o horário
+ * calculado pode já ter passado. Nesse caso, o aviso precisa entrar na fila
+ * imediatamente, e não pode simplesmente ser descartado.
+ */
+export function ajustarHorarioDeLembreteReagendado(enviarEm: Date | null, agora: Date): Date | null {
+  if (!enviarEm) return null;
+  return enviarEm.getTime() <= agora.getTime() ? agora : enviarEm;
+}

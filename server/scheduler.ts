@@ -34,6 +34,7 @@ import {
 import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { verificarFiltroServicoAutomacao } from "./filtro-servico-automacao";
+import { ajustarHorarioDeLembreteReagendado } from "./reagendamento-lembretes";
 import { inserirLinkConfirmacao, mensagemExigeLinkConfirmacao, mensagemPossuiLinkConfirmacao } from "./link-confirmacao-mensagem";
 import { waManager } from "./whatsapp";
 import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
@@ -2541,7 +2542,10 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
         const delayMin = automacao.delayMinutos ?? 60;
         enviarEm = new Date(tsAgendamento - delayMin * 60 * 1000);
       }
-      if (!enviarEm || enviarEm.getTime() <= agora.getTime()) continue;
+      const horarioOriginalDoLembrete = enviarEm;
+      enviarEm = ajustarHorarioDeLembreteReagendado(enviarEm, agora);
+      if (!enviarEm) continue;
+      const enviarAgora = horarioOriginalDoLembrete!.getTime() <= agora.getTime();
 
       const jaExiste = await db.select({ id: historicoEnviosAutomacao.id })
         .from(historicoEnviosAutomacao)
@@ -2588,9 +2592,9 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
         clienteId: ag.clienteId ?? null, clienteNome: ag.clienteNome ?? null,
         agendamentoId, telefone: ag.clienteTelefone,
         canal: (automacao.canalEnvio ?? 'whatsapp') as any,
-        mensagem, status: 'agendado', enviarEm, midiaUrl,
+        mensagem, status: enviarAgora ? 'pendente' : 'agendado', enviarEm, midiaUrl,
       }).catch(() => {});
-      console.log(`[Reagendar] Lembrete agendado: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
+      console.log(`[Reagendar] Lembrete ${enviarAgora ? 'enfileirado imediatamente' : 'agendado'}: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
     }
     console.log(`[Reagendar] Concluído para agendamento ${agendamentoId}.`);
   } catch (err) {
