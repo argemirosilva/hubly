@@ -2905,3 +2905,4 @@
 - [x] Disparar o fluxo de agendamento criado para toda sessão criada por pacote
 - [x] Remover mensagem inicial opcional da abertura de pacote e usar apenas o fluxo normal por sessão
 - [x] Disparar a automação de curso também quando o agendamento for criado sem pacote
+- [x] Recalcular lembretes automáticos quando a data ou o horário do agendamento mudar

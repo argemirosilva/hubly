@@ -61,7 +61,7 @@ import {
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
   getContasReceberByEmpresa, createContaReceber, updateContaReceber, deleteContaReceber, getMetricasContasReceber, importarAgendamentosParaContasReceber,
-  registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, getHistoricoEnvios, contarFalhasRecentes, getEnvioById,
+  registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, cancelarLembretesFuturosDoAgendamento, getHistoricoEnvios, contarFalhasRecentes, getEnvioById,
   getMeiosPagamentoByEmpresa, getMeioPagamentoById, createMeioPagamento, updateMeioPagamento, deleteMeioPagamento,
   getTaxasParcelaByMeio, upsertTaxasParcela, getMeiosPagamentoComTaxas,
   getComissoesPagarDetalhadas, marcarComissoesPagas,
@@ -94,6 +94,7 @@ import { checkAndNotifyUsageLimits } from "./usage-alerts";
 import { PLAN_LIMITS, PLAN_PRICES, getAgendamentosUsagePercent } from "./plans";
 import { zanduRouter } from "./routers/zandu";
 import { reagendarLembretesAgendamento } from "./scheduler";
+import { alterouMomentoDoAgendamento } from "./reagendamento-lembretes";
 import { pipelineRouter } from "./routers/pipeline";
 import { iaFinanceiroRouter } from "./routers/iaFinanceiro";
 import { iaClientesRouter } from "./routers/iaClientes";
@@ -1474,6 +1475,21 @@ export const appRouter = router({
           );
           if (enviosCancelados > 0) {
             console.log(`[Fila] ${enviosCancelados} envio(s) pendente(s) cancelado(s) ao atualizar agendamento ${id} para ${data.status}`);
+          }
+        }
+
+        // Lembretes de dias/horas antes possuem um horário fixo na fila. Quando o
+        // atendimento muda, os lembretes ainda futuros são cancelados e calculados
+        // de novo a partir da nova data e hora, sem interromper mensagens imediatas.
+        const deveReagendarLembretes = !deveInterromperAutomacoesDoAgendamento(data.status)
+          && alterouMomentoDoAgendamento(agendamentoAnterior, data);
+        if (deveReagendarLembretes) {
+          try {
+            const cancelados = await cancelarLembretesFuturosDoAgendamento(id);
+            await reagendarLembretesAgendamento(id, empresa.id);
+            console.log(`[Fila] ${cancelados} lembrete(s) futuro(s) recalculado(s) após alterar agenda do agendamento ${id}`);
+          } catch (erroReagendamento) {
+            console.error(`[Fila] Erro ao recalcular lembretes do agendamento ${id}:`, erroReagendamento);
           }
         }
 

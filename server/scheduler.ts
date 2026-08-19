@@ -2518,8 +2518,12 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
       eq(automacoes.ativo, true),
       sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento')`,
     ));
+    const todosServicos = await getTodosServicosAgendamento(agendamentoId, ag.servicoNome);
 
     for (const automacao of todasAutomacoes) {
+      if (!verificarFiltroServicoAutomacao(automacao.flowJson, ag.servicoNome, todosServicos)) {
+        continue;
+      }
       let enviarEm: Date | null = null;
       if (automacao.tipoGatilho === 'dias_antes_agendamento') {
         const diasAntes = automacao.diasAntesDepois ?? 1;

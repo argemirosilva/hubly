@@ -1964,6 +1964,35 @@ export async function cancelarEnviosPendentesDoAgendamento(
   return Number((resultado as any).rowsAffected ?? 0);
 }
 
+/**
+ * Cancela somente lembretes ainda futuros ao reagendar um atendimento. Mensagens
+ * imediatas em processamento não são afetadas, mas qualquer lembrete calculado
+ * com a data/hora antiga é removido para ser reconstruído com o novo horário.
+ */
+export async function cancelarLembretesFuturosDoAgendamento(
+  agendamentoId: number,
+  motivo = "Data ou horário do agendamento alterado — lembrete será recalculado",
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const agora = new Date();
+  const resultado = await db.update(historicoEnviosAutomacao)
+    .set({
+      status: "cancelado",
+      messageStatus: "cancelled",
+      canceladoEm: agora,
+      erroDetalhe: motivo,
+    })
+    .where(and(
+      eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
+      or(
+        eq(historicoEnviosAutomacao.status, "agendado"),
+        and(eq(historicoEnviosAutomacao.status, "pendente"), gt(historicoEnviosAutomacao.enviarEm, agora)),
+      ),
+    ));
+  return Number((resultado as any).rowsAffected ?? 0);
+}
+
 export async function registrarEnvioAutomacao(data: {
   empresaId: number;
   automacaoId?: number;
