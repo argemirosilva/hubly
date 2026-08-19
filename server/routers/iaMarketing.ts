@@ -320,6 +320,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       responsavelId: z.number().nullable().optional(),
       responsavelNome: z.string().nullable().optional(),
       observacoes: z.string().optional(),
+      roteiro: z.string().optional(),
       status: z.enum(statusPost).optional(),
       tags: z.string().optional(),
     }))
@@ -342,6 +343,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       if (input.responsavelId !== undefined) updates.responsavelId = input.responsavelId;
       if (input.responsavelNome !== undefined) updates.responsavelNome = input.responsavelNome;
       if (input.observacoes !== undefined) updates.observacoes = input.observacoes;
+      if (input.roteiro !== undefined) updates.roteiro = input.roteiro;
       if (input.status !== undefined) updates.status = input.status;
       if (input.tags !== undefined) updates.tags = input.tags;
 
