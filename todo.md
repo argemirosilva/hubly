@@ -2904,3 +2904,4 @@
 - [x] Permitir incluir múltiplos serviços de um pacote na mesma sessão agendada
 - [x] Disparar o fluxo de agendamento criado para toda sessão criada por pacote
 - [x] Remover mensagem inicial opcional da abertura de pacote e usar apenas o fluxo normal por sessão
+- [x] Disparar a automação de curso também quando o agendamento for criado sem pacote

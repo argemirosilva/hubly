@@ -59,6 +59,19 @@ describe("Unificação de Gatilhos", () => {
     });
   });
 
+  describe("Criação comum com automações por serviço", () => {
+    const routersContent = readFile(path.join(SERVER_DIR, "routers.ts"));
+
+    it("deve consultar todas as automações de agendamento criado", () => {
+      expect(routersContent).toContain("await getAutomacoesByEvento(empresa.id, 'agendamento_criado')");
+    });
+
+    it("deve filtrar e enfileirar cada automação compatível", () => {
+      expect(routersContent).toContain("const automacoesCompativeis = automacoesCandidatas.filter");
+      expect(routersContent).toContain("for (const automacaoAtiva of automacoesCompativeis)");
+    });
+  });
+
   describe("Serviços compostos no confirmarReserva", () => {
     const routersContent = readFile(path.join(SERVER_DIR, "routers.ts"));
 

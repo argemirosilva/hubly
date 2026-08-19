@@ -1264,20 +1264,6 @@ export const appRouter = router({
               }),
               observacoes: rest.observacoes ?? '',
             };
-            // ── Lógica de prioridade de automação por status inicial ────────────────
-            let automacaoAtiva: Awaited<ReturnType<typeof getAutomacaoByEvento>> = null;
-            let nomeEventoUsado = 'Confirmação de Agendamento';
-
-            if (statusOriginal === 'pre_agendado') {
-              automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_pre_agendado');
-              nomeEventoUsado = automacaoAtiva ? 'Pré-agendamento' : 'Confirmação de Agendamento';
-              if (!automacaoAtiva) {
-                automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
-              }
-            } else {
-              automacaoAtiva = await getAutomacaoByEvento(empresa.id, 'agendamento_criado');
-            }
-
             // Montar extras para filtros avançados de condição
             const todasCategoriasAg = servicosInput && servicosInput.length > 0
               ? servicosInput.map(s => todosServicosEmpresa.find(sv => sv.id === s.servicoId)?.categoria).filter(Boolean) as string[]
@@ -1291,35 +1277,48 @@ export const appRouter = router({
               totalAgendamentosCliente: (cliente as any).agendamentosCount ?? 0,
               ultimoAgendamentoData: null as Date | null, // criando agora, sem histórico prévio relevante
             };
-            // Verificar condições do flowJson (filtros por serviço, profissional, categoria, valor, tag, tipo de cliente)
-            const passouFiltroServico = !automacaoAtiva || verificarCondicoesFlowRouter(automacaoAtiva.flowJson, servico?.nome, itensAgCriado, extrasCondicao);
-            if (!automacaoAtiva || !automacaoAtiva.corpoMensagem) {
-              // Sem automação configurada ou sem mensagem: não enviar nada
-              console.log(`[Fila] Nenhuma automação ativa para ag. ${id} (${statusOriginal}) — envio ignorado`);
-            } else if (!passouFiltroServico) {
-              console.log(`[Fila] Automação "${automacaoAtiva.nome}" ignorada para ag. ${id}: filtro de condição não passou`);
-            } else {
-              const mensagem = processarVariaveisTemplate(automacaoAtiva.corpoMensagem, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico });
+            // Usa todas as automações do evento, pois cada uma pode atender um serviço
+            // diferente (ex.: maquiagem, cabelo e curso). Antes, getAutomacaoByEvento
+            // retornava apenas a primeira e um curso podia ficar sem mensagem.
+            const automacoesDoEvento = statusOriginal === 'pre_agendado'
+              ? await getAutomacoesByEvento(empresa.id, 'agendamento_pre_agendado')
+              : await getAutomacoesByEvento(empresa.id, 'agendamento_criado');
+            const eventoTemAutomacoesEspecificas = automacoesDoEvento.length > 0;
+            const automacoesCandidatas = statusOriginal === 'pre_agendado' && !eventoTemAutomacoesEspecificas
+              ? await getAutomacoesByEvento(empresa.id, 'agendamento_criado')
+              : automacoesDoEvento;
+            const nomeEventoUsado = statusOriginal === 'pre_agendado' && eventoTemAutomacoesEspecificas
+              ? 'Pré-agendamento'
+              : 'Agendamento criado';
+            const automacoesCompativeis = automacoesCandidatas.filter(automacao =>
+              Boolean(automacao.corpoMensagem) &&
+              verificarCondicoesFlowRouter(automacao.flowJson, servico?.nome, itensAgCriado, extrasCondicao),
+            );
 
-              // Enfileirar como pendente — o worker enviará quando o WhatsApp estiver conectado
-              const midiaUrlCriado = extrairMidiaUrl(automacaoAtiva.flowJson);
-              await registrarEnvioAutomacao({
-                empresaId: empresa.id,
-                automacaoId: automacaoAtiva?.id,
-                automacaoNome: automacaoAtiva?.nome ?? nomeEventoUsado,
-                clienteId: cliente.id,
-                clienteNome: cliente.nome,
-                agendamentoId: id,
-                telefone,
-                canal: 'whatsapp',
-                mensagem,
-                status: 'pendente',
-                enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
-                midiaUrl: midiaUrlCriado ?? undefined,
-                servicoNome: servicoNomeCriado ?? undefined, // todos os serviços concatenados
-              });
-              console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva?.nome ?? nomeEventoUsado}`);
-            } // fim do else (passou pelo filtro de serviço)
+            if (automacoesCompativeis.length === 0) {
+              console.log(`[Fila] Nenhuma automação ativa para ag. ${id} (${statusOriginal}) — envio ignorado`);
+            } else {
+              for (const automacaoAtiva of automacoesCompativeis) {
+                const mensagem = processarVariaveisTemplate(automacaoAtiva.corpoMensagem!, { ...templateVars, servico: servicoNomeCriado ?? templateVars.servico });
+                const midiaUrlCriado = extrairMidiaUrl(automacaoAtiva.flowJson);
+                await registrarEnvioAutomacao({
+                  empresaId: empresa.id,
+                  automacaoId: automacaoAtiva.id,
+                  automacaoNome: automacaoAtiva.nome ?? nomeEventoUsado,
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  agendamentoId: id,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem,
+                  status: 'pendente',
+                  enviarEm: new Date(), // envio imediato — worker processa em até 1 minuto
+                  midiaUrl: midiaUrlCriado ?? undefined,
+                  servicoNome: servicoNomeCriado ?? undefined, // todos os serviços concatenados
+                });
+                console.log(`[Fila] Envio enfileirado para ag. ${id} (${statusOriginal}) → ${automacaoAtiva.nome ?? nomeEventoUsado}`);
+              }
+            }
           }
         } catch (e) {
           // Não bloquear o fluxo principal se o enfileiramento falhar
