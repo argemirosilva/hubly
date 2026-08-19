@@ -41,4 +41,10 @@ describe("reagendamento de lembretes após editar um atendimento", () => {
     expect(ajustarHorarioDeLembreteReagendado(horarioFuturo, agora)).toEqual(horarioFuturo);
     expect(ajustarHorarioDeLembreteReagendado(null, agora)).toBeNull();
   });
+
+  it("mantém disponível o operador usado para localizar lembretes futuros", () => {
+    const banco = readFileSync("server/db.ts", "utf8");
+    expect(banco).toContain("eq, gt, gte");
+    expect(banco).toContain("gt(historicoEnviosAutomacao.enviarEm, agora)");
+  });
 });
