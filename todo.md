@@ -2902,3 +2902,4 @@
 - [x] Corrigir mensagem de confirmação que eventualmente é enviada sem o link da cliente
 - [x] Corrigir filtro de serviço para que a automação de cursos não dispare em outros procedimentos
 - [x] Permitir incluir múltiplos serviços de um pacote na mesma sessão agendada
+- [x] Disparar o fluxo de agendamento criado para toda sessão criada por pacote

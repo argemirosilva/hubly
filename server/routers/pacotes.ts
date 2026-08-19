@@ -17,7 +17,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, lte, gt, like, or, inArray } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
-import { getAutomacaoByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
+import { getAutomacaoByEvento, getAutomacoesByEvento, registrarEnvioAutomacao, getPermissoesGrupoByProfissional } from "../db";
 import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
@@ -25,6 +25,7 @@ import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agend
 import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
 import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
 import { avaliarExclusaoDefinitivaPacote } from "../pacotes-exclusao";
+import { selecionarAutomacoesPorServicos } from "../automacoes-por-servico";
 
 /**
  * Verifica se o usuário tem permissão de pacotes.
@@ -561,40 +562,62 @@ export const pacotesRouter = router({
       });
       const pacoteId = criado.pacoteId;
 
-      // A comunicação inicial respeita a escolha do pacote. Os lembretes próximos
-      // de cada sessão continuam sendo processados normalmente pelo agendador.
-      if (input.modoNotificacao !== 'nenhuma' && sessoesPreparadas.length > 0) {
+      // Toda sessão criada pelo pacote já entrou na agenda com status "agendado".
+      // Portanto ela deve passar pelo mesmo evento de criação e pelo mesmo pipeline
+      // dos demais agendamentos, independentemente da mensagem extra escolhida no pacote.
+      if (sessoesPreparadas.length > 0) {
         try {
           const [cliente] = await db.select({ id: clientes.id, nome: clientes.nome, telefone: clientes.telefone, whatsapp: clientes.whatsapp })
             .from(clientes).where(eq(clientes.id, input.clienteId)).limit(1);
           const telefone = cliente?.whatsapp || cliente?.telefone;
-          if (telefone) {
+          if (cliente) {
+            try {
+              const { moverCartaoPorStatusInterno } = await import('./pipeline');
+              for (const agendamentoId of criado.agendamentoIds) {
+                await moverCartaoPorStatusInterno({
+                  empresaId: empId,
+                  agendamentoId,
+                  clienteId: cliente.id,
+                  novoStatus: 'agendado',
+                });
+              }
+            } catch (erroPipeline) {
+              console.error('[abrirPacote] Erro ao inserir sessões do pacote no pipeline:', erroPipeline);
+            }
+          }
+          if (telefone && cliente) {
             const idsProfissionais = [...new Set(sessoesPreparadas.map(sessao => sessao.profissionalId))];
             const profissionaisDaAgenda = await db.select({ id: profissionais.id, nome: profissionais.nome })
               .from(profissionais).where(inArray(profissionais.id, idsProfissionais));
             const profissionalPorId = new Map(profissionaisDaAgenda.map(profissional => [profissional.id, profissional.nome]));
             const formatarData = (data: string) => new Date(`${data}T12:00:00`).toLocaleDateString('pt-BR');
+            const origemPublica = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+            const linkAgendamento = empresa.portalSlug ? `${origemPublica}/agendar/${empresa.portalSlug}` : `${origemPublica}/agendar?e=${empId}`;
             const agendaFormatada = sessoesPreparadas.map(sessao => {
               const nomesServicos = sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ');
               return `• ${formatarData(sessao.data)} — ${sessao.horaInicio} às ${sessao.horaFim}: ${nomesServicos}`;
             }).join('\n');
-            const evento = input.modoNotificacao === 'consolidada' ? 'pacote_agendado' : 'agendamento_criado';
-            const automacao = await getAutomacaoByEvento(empId, evento);
-            if (automacao?.canalEnvio === 'whatsapp') {
-              const renderizar = (mensagem: string, sessao?: typeof sessoesPreparadas[number]) => mensagem
-                .replace(/\{\{nome_cliente\}\}/g, cliente.nome)
-                .replace(/\{\{primeiro_nome\}\}/g, cliente.nome.split(' ')[0] ?? cliente.nome)
-                .replace(/\{\{empresa\}\}/g, empresa.nome ?? '')
-                .replace(/\{\{nome_pacote\}\}/g, input.nome)
-                .replace(/\{\{agenda_pacote\}\}/g, agendaFormatada)
-                .replace(/\{\{data\}\}/g, sessao ? formatarData(sessao.data) : '')
-                .replace(/\{\{hora\}\}/g, sessao ? `${sessao.horaInicio} às ${sessao.horaFim}` : '')
-                .replace(/\{\{servico\}\}/g, sessao ? sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ') : '')
-                .replace(/\{\{profissional\}\}/g, sessao ? (profissionalPorId.get(sessao.profissionalId) ?? '') : '');
-              const mensagens = input.modoNotificacao === 'consolidada'
-                ? [{ mensagem: renderizar(automacao.corpoMensagem), agendamentoId: undefined, servicoNome: input.nome }]
-                : sessoesPreparadas.map((sessao, indice) => ({ mensagem: renderizar(automacao.corpoMensagem, sessao), agendamentoId: criado.agendamentoIds[indice], servicoNome: sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ') }));
-              for (const envio of mensagens) {
+            const renderizar = (mensagem: string, sessao?: typeof sessoesPreparadas[number]) => mensagem
+              .replace(/\{\{nome_cliente\}\}/g, cliente.nome)
+              .replace(/\{\{primeiro_nome\}\}/g, cliente.nome.split(' ')[0] ?? cliente.nome)
+              .replace(/\{\{empresa\}\}/g, empresa.nome ?? '')
+              .replace(/\{\{nome_pacote\}\}/g, input.nome)
+              .replace(/\{\{agenda_pacote\}\}/g, agendaFormatada)
+              .replace(/\{\{data\}\}/g, sessao ? formatarData(sessao.data) : '')
+              .replace(/\{\{hora\}\}/g, sessao ? `${sessao.horaInicio} às ${sessao.horaFim}` : '')
+              .replace(/\{\{servico\}\}/g, sessao ? sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ') : '')
+              .replace(/\{\{profissional\}\}/g, sessao ? (profissionalPorId.get(sessao.profissionalId) ?? '') : '')
+              .replace(/\{\{valor\}\}/g, sessao ? `R$ ${sessao.valor.toFixed(2).replace('.', ',')}` : '')
+              .replace(/\{\{link_agendamento\}\}/g, linkAgendamento)
+              .replace(/\{\{link_confirmacao\}\}/g, '__LINK_CONFIRMACAO__');
+
+            const automacoesAgendamentoCriado = await getAutomacoesByEvento(empId, 'agendamento_criado');
+            for (const [indice, sessao] of sessoesPreparadas.entries()) {
+              const servicoPrincipal = servicosPorId.get(sessao.servicoIds[0])?.nome ?? null;
+              const todosServicos = sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter((nome): nome is string => Boolean(nome));
+              const automacoesCompativeis = selecionarAutomacoesPorServicos(automacoesAgendamentoCriado, servicoPrincipal, todosServicos);
+              for (const automacao of automacoesCompativeis) {
+                if (automacao.canalEnvio !== 'whatsapp' || !automacao.corpoMensagem) continue;
                 await registrarEnvioAutomacao({
                   empresaId: empId,
                   automacaoId: automacao.id,
@@ -603,17 +626,39 @@ export const pacotesRouter = router({
                   clienteNome: cliente.nome,
                   telefone,
                   canal: 'whatsapp',
-                  mensagem: envio.mensagem,
-                  agendamentoId: envio.agendamentoId,
-                  servicoNome: envio.servicoNome,
+                  mensagem: renderizar(automacao.corpoMensagem, sessao),
+                  agendamentoId: criado.agendamentoIds[indice],
+                  servicoNome: todosServicos.join(', '),
                   status: 'pendente',
                   enviarEm: new Date(),
                 });
               }
             }
+
+            // A mensagem consolidada continua sendo opcional e é adicional ao fluxo
+            // de cada sessão. Ela não substitui mais o evento "agendamento_criado".
+            if (input.modoNotificacao === 'consolidada') {
+              const automacaoPacote = await getAutomacaoByEvento(empId, 'pacote_agendado');
+              if (automacaoPacote?.canalEnvio === 'whatsapp' && automacaoPacote.corpoMensagem) {
+                await registrarEnvioAutomacao({
+                  empresaId: empId,
+                  automacaoId: automacaoPacote.id,
+                  automacaoNome: automacaoPacote.nome,
+                  clienteId: cliente.id,
+                  clienteNome: cliente.nome,
+                  telefone,
+                  canal: 'whatsapp',
+                  mensagem: renderizar(automacaoPacote.corpoMensagem),
+                  servicoNome: input.nome,
+                  status: 'pendente',
+                  enviarEm: new Date(),
+                });
+              }
+            }
+
           }
         } catch (erro) {
-          console.error('[abrirPacote] Erro ao enfileirar automação da agenda do pacote:', erro);
+          console.error('[abrirPacote] Erro ao processar automações e pipeline da agenda do pacote:', erro);
         }
       }
 
