@@ -410,7 +410,6 @@ export const pacotesRouter = router({
         servicoIds: z.array(z.number()).min(1),
       })).optional().default([]),
       permitirConflitos: z.boolean().optional().default(false),
-      modoNotificacao: z.enum(["consolidada", "individual", "nenhuma"]).optional().default("nenhuma"),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -635,27 +634,6 @@ export const pacotesRouter = router({
               }
             }
 
-            // A mensagem consolidada continua sendo opcional e é adicional ao fluxo
-            // de cada sessão. Ela não substitui mais o evento "agendamento_criado".
-            if (input.modoNotificacao === 'consolidada') {
-              const automacaoPacote = await getAutomacaoByEvento(empId, 'pacote_agendado');
-              if (automacaoPacote?.canalEnvio === 'whatsapp' && automacaoPacote.corpoMensagem) {
-                await registrarEnvioAutomacao({
-                  empresaId: empId,
-                  automacaoId: automacaoPacote.id,
-                  automacaoNome: automacaoPacote.nome,
-                  clienteId: cliente.id,
-                  clienteNome: cliente.nome,
-                  telefone,
-                  canal: 'whatsapp',
-                  mensagem: renderizar(automacaoPacote.corpoMensagem),
-                  servicoNome: input.nome,
-                  status: 'pendente',
-                  enviarEm: new Date(),
-                });
-              }
-            }
-
           }
         } catch (erro) {
           console.error('[abrirPacote] Erro ao processar automações e pipeline da agenda do pacote:', erro);
@@ -670,7 +648,7 @@ export const pacotesRouter = router({
         content: `Pacote "${input.nome}" aberto para ${clienteRow[0]?.nome ?? "cliente"} — R$ ${input.valorPago.toFixed(2)}`,
       });
 
-      return { id: pacoteId, agendamentoIds: criado.agendamentoIds, modoNotificacao: input.modoNotificacao };
+      return { id: pacoteId, agendamentoIds: criado.agendamentoIds };
     }),
 
   // ── Prévia de conflitos antes de abrir um pacote ──────────────────────────

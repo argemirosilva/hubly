@@ -467,7 +467,6 @@ function ModalAbrirPacote({
   const [itens, setItens] = useState<{ servicoId: number; quantidadeTotal: number }[]>([{ servicoId: 0, quantidadeTotal: 1 }]);
   const [agendarSessoes, setAgendarSessoes] = useState(false);
   const [sessoes, setSessoes] = useState<{ data: string; horaInicio: string; profissionalId: number; servicoIds: number[] }[]>([]);
-  const [modoNotificacao, setModoNotificacao] = useState<"consolidada" | "individual" | "nenhuma">("consolidada");
   const [conflitos, setConflitos] = useState<{ indice: number; data: string; horaInicio: string; horaFim: string; profissionalId: number }[]>([]);
   const { data: profissionais = [] } = trpc.profissionais.listParaAgendamento.useQuery();
 
@@ -526,7 +525,6 @@ function ModalAbrirPacote({
       itens: itens.filter(i => i.servicoId > 0),
       sessoes: sessoesParaAbrir,
       permitirConflitos,
-      modoNotificacao: sessoesParaAbrir.length ? modoNotificacao : "nenhuma",
     });
   }
 
@@ -827,17 +825,6 @@ function ModalAbrirPacote({
                 <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => setSessoes([...sessoes, { data: "", horaInicio: "", profissionalId: profissionais[0]?.id ?? 0, servicoIds: [itens.find(i => i.servicoId)?.servicoId ?? 0].filter(Boolean) }])}>
                   <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar sessão
                 </Button>
-                <div>
-                  <Label className="text-xs">Mensagem inicial para a cliente</Label>
-                  <Select value={modoNotificacao} onValueChange={v => setModoNotificacao(v as "consolidada" | "individual" | "nenhuma")}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="consolidada">Uma única mensagem com todas as datas</SelectItem>
-                      <SelectItem value="individual">Uma mensagem para cada sessão</SelectItem>
-                      <SelectItem value="nenhuma">Não enviar mensagem agora</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             )}
           </div>

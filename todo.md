@@ -2903,3 +2903,4 @@
 - [x] Corrigir filtro de serviço para que a automação de cursos não dispare em outros procedimentos
 - [x] Permitir incluir múltiplos serviços de um pacote na mesma sessão agendada
 - [x] Disparar o fluxo de agendamento criado para toda sessão criada por pacote
+- [x] Remover mensagem inicial opcional da abertura de pacote e usar apenas o fluxo normal por sessão
