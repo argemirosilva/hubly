@@ -25,4 +25,10 @@ describe("reagendamento de lembretes após editar um atendimento", () => {
     expect(roteador).toContain("reagendarLembretesAgendamento(id, empresa.id)");
     expect(banco).toContain("export async function cancelarLembretesFuturosDoAgendamento");
   });
+
+  it("não deixa um lembrete já enviado bloquear o novo cálculo", () => {
+    const scheduler = readFileSync("server/scheduler.ts", "utf8");
+    expect(scheduler).toContain("IN ('pendente', 'agendado', 'processando')");
+    expect(scheduler).toContain("Um envio já realizado pertence ao horário antigo");
+  });
 });

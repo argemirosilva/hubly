@@ -1509,13 +1509,16 @@ async function preRegistrarEnviosPendentes() {
           // Só registrar se o envio é futuro
           if (enviarEm.getTime() <= agora.getTime()) continue;
 
-          // Verificar se já existe registro (pendente ou enviado) para este agendamento+automação
+          // Um envio já realizado pertence ao horário antigo e não pode impedir um
+          // novo lembrete se o agendamento for movido. Só filas ainda ativas bloqueiam
+          // o pré-registro para evitar duplicidade.
           const jaExiste = await db.select({ id: historicoEnviosAutomacao.id })
             .from(historicoEnviosAutomacao)
             .where(and(
               eq(historicoEnviosAutomacao.empresaId, empresaId),
               eq(historicoEnviosAutomacao.automacaoId, automacao.id),
               eq(historicoEnviosAutomacao.agendamentoId, ag.id),
+              sql`${historicoEnviosAutomacao.status} IN ('pendente', 'agendado', 'processando')`,
             ))
             .limit(1);
 
@@ -2546,7 +2549,7 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
           eq(historicoEnviosAutomacao.empresaId, empresaId),
           eq(historicoEnviosAutomacao.automacaoId, automacao.id),
           eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
-          sql`${historicoEnviosAutomacao.status} IN ('pendente', 'agendado', 'enviado')`,
+          sql`${historicoEnviosAutomacao.status} IN ('pendente', 'agendado', 'processando')`,
         )).limit(1);
       if (jaExiste.length > 0) continue;
 
