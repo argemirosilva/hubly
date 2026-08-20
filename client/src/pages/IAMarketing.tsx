@@ -32,7 +32,7 @@ type TipoPost = string;
 type TomPost = "descontraido" | "profissional" | "emocional" | "urgente";
 type Plataforma = "instagram" | "tiktok" | "ambos";
 type Formato = "feed" | "reels" | "stories" | "tiktok" | "outro";
-type StatusProducao = "planejado" | "gravado" | "editado" | "postado";
+type StatusProducao = "planejado" | "gravado" | "editado" | "programado" | "postado";
 type PublicacaoExtraForm = {
   chave: string;
   plataforma: Plataforma;
@@ -68,6 +68,7 @@ const STATUS_PRODUCAO: {
   { value: "planejado", label: "Planejado", icon: <Circle className="w-3.5 h-3.5" />, bgCor: "bg-slate-100 text-slate-600 border-slate-200" },
   { value: "gravado", label: "Gravado", icon: <Camera className="w-3.5 h-3.5" />, bgCor: "bg-amber-50 text-amber-700 border-amber-200" },
   { value: "editado", label: "Editado", icon: <Scissors className="w-3.5 h-3.5" />, bgCor: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "programado", label: "Programado", icon: <Calendar className="w-3.5 h-3.5" />, bgCor: "bg-violet-50 text-violet-700 border-violet-200" },
   { value: "postado", label: "Postado", icon: <CheckCircle2 className="w-3.5 h-3.5" />, bgCor: "bg-green-50 text-green-700 border-green-200" },
 ];
 
@@ -123,10 +124,10 @@ function PostCard({
   const formatoInfo = FORMATOS.find(f => f.value === (post.formato ?? "feed"));
   const statusAtual = (post.statusProducao ?? "planejado") as StatusProducao;
   const proximoStatus: Record<StatusProducao, StatusProducao | null> = {
-    planejado: "gravado", gravado: "editado", editado: "postado", postado: null,
+    planejado: "gravado", gravado: "editado", editado: "programado", programado: "postado", postado: null,
   };
   const anteriorStatus: Record<StatusProducao, StatusProducao | null> = {
-    planejado: null, gravado: "planejado", editado: "gravado", postado: "editado",
+    planejado: null, gravado: "planejado", editado: "gravado", programado: "editado", postado: "programado",
   };
   const proximo = proximoStatus[statusAtual];
   const anterior = anteriorStatus[statusAtual];
@@ -785,6 +786,7 @@ export default function IAMarketing() {
       planejado: todos.filter(p => (p.statusProducao ?? "planejado") === "planejado").length,
       gravado: todos.filter(p => p.statusProducao === "gravado").length,
       editado: todos.filter(p => p.statusProducao === "editado").length,
+      programado: todos.filter(p => p.statusProducao === "programado").length,
       postado: todos.filter(p => p.statusProducao === "postado").length,
     };
   }, [calendario]);
@@ -1042,7 +1044,7 @@ export default function IAMarketing() {
 
           {/* Stats do mês */}
           {stats.total > 0 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {STATUS_PRODUCAO.map(s => (
                 <div key={s.value} className={`rounded-lg border p-2 text-center ${s.bgCor}`}>
                   <div className="text-base font-bold">{stats[s.value as keyof typeof stats]}</div>
@@ -1565,6 +1567,7 @@ export default function IAMarketing() {
                 { value: "planejado", label: "Planejado" },
                 { value: "gravado", label: "Gravado" },
                 { value: "editado", label: "Editado" },
+                { value: "programado", label: "Programado" },
                 { value: "postado", label: "Postado" },
               ].map(opt => (
                 <button

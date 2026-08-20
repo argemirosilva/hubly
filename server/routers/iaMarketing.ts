@@ -15,7 +15,7 @@ const tiposPost = ["promocao", "servico", "dica", "depoimento", "novidade", "saz
 const statusPost = ["rascunho", "aprovado", "agendado", "publicado", "arquivado"] as const;
 const plataformas = ["instagram", "tiktok", "ambos"] as const;
 const formatos = ["feed", "reels", "stories", "tiktok", "outro"] as const;
-const statusProducaoEnum = ["planejado", "gravado", "editado", "postado"] as const;
+const statusProducaoEnum = ["planejado", "gravado", "editado", "programado", "postado"] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function normalizarTipoConteudo(db: any, empresaId: number, tipo: string): Promise<string> {
@@ -272,7 +272,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
     }),
 
   /**
-   * Atualiza o status de produção de um post (Planejado → Gravado → Editado → Postado)
+   * Atualiza o status de produção de um post (Planejado → Gravado → Editado → Programado → Postado)
    */
   atualizarStatusProducao: protectedProcedure
     .input(z.object({

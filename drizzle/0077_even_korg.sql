@@ -1,0 +1,1 @@
+ALTER TABLE `marketing_posts` MODIFY COLUMN `statusProducao` enum('planejado','gravado','editado','programado','postado') DEFAULT 'planejado';

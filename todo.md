@@ -2912,3 +2912,4 @@
 - [x] Rastrear e corrigir o reagendamento recente que não colocou o lembrete na fila
 - [x] Corrigir erro de execução no cancelamento de lembretes futuros ao editar agendamento
 - [x] Corrigir automação de atendimento externo que não disparou para cliente agendada
+- [x] Adicionar status Programado aos posts do calendário de Marketing IA
