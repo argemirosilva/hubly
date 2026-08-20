@@ -2911,3 +2911,4 @@
 - [x] Criar lembrete de confirmação ao reagendar um atendimento para dentro da janela de envio
 - [x] Rastrear e corrigir o reagendamento recente que não colocou o lembrete na fila
 - [x] Corrigir erro de execução no cancelamento de lembretes futuros ao editar agendamento
+- [x] Corrigir automação de atendimento externo que não disparou para cliente agendada
