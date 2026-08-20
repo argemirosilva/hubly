@@ -792,7 +792,14 @@ export default function IAMarketing() {
   }, [calendario]);
 
   const handleSalvarPost = (data: any) => {
-    if (modalPost.post) atualizarPostMut.mutate({ id: modalPost.post.id, ...data });
+    if (modalPost.post) {
+      const { publicacoes, ...conteudo } = data;
+      atualizarPostMut.mutate({
+        id: modalPost.post.id,
+        ...conteudo,
+        publicacoesAdicionais: publicacoes.slice(1),
+      });
+    }
     else if (modalPost.modoIdeia) criarIdeiasMut.mutate(data);
     else {
       const { publicacoes, ...conteudo } = data;

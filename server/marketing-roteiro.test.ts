@@ -13,6 +13,8 @@ describe("roteiro em posts do calendário editorial", () => {
 
   it("envia o roteiro digitado pelo formulário ao salvar", () => {
     expect(tela).toContain("roteiro: roteiro.trim() || undefined");
-    expect(tela).toContain("atualizarPostMut.mutate({ id: modalPost.post.id, ...data })");
+    expect(tela).toContain("atualizarPostMut.mutate({");
+    expect(tela).toContain("id: modalPost.post.id");
+    expect(tela).toContain("...conteudo");
   });
 });

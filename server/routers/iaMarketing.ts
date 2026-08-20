@@ -323,6 +323,14 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       roteiro: z.string().optional(),
       status: z.enum(statusPost).optional(),
       tags: z.string().optional(),
+      publicacoesAdicionais: z.array(z.object({
+        plataforma: z.enum(plataformas),
+        formato: z.enum(formatos),
+        dataPublicacao: z.string().min(10),
+        horarioPublicacao: z.string().optional(),
+        responsavelId: z.number().optional(),
+        responsavelNome: z.string().optional(),
+      })).max(19).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
@@ -332,8 +340,12 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
+      let tipoNormalizado: string | undefined;
       if (input.tema !== undefined) updates.tema = input.tema;
-      if (input.tipo !== undefined) updates.tipo = await normalizarTipoConteudo(db, empresa.id, input.tipo);
+      if (input.tipo !== undefined) {
+        tipoNormalizado = await normalizarTipoConteudo(db, empresa.id, input.tipo);
+        updates.tipo = tipoNormalizado;
+      }
       if (input.legenda !== undefined) updates.legenda = input.legenda;
       if (input.hashtags !== undefined) updates.hashtags = input.hashtags;
       if (input.plataforma !== undefined) updates.plataforma = input.plataforma;
@@ -351,7 +363,32 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
         .set(updates as any)
         .where(and(eq(marketingPosts.id, input.id), eq(marketingPosts.empresaId, empresa.id)));
 
-      return { success: true };
+      const extras = input.publicacoesAdicionais ?? [];
+      if (extras.length === 0) return { success: true, publicacoesAdicionadas: 0 };
+
+      const [postOriginal] = await db.select()
+        .from(marketingPosts)
+        .where(and(eq(marketingPosts.id, input.id), eq(marketingPosts.empresaId, empresa.id)))
+        .limit(1);
+      if (!postOriginal) throw new TRPCError({ code: "NOT_FOUND", message: "Post não encontrado" });
+
+      const novasPublicacoes = montarPublicacoesDoConteudo({
+        empresaId: empresa.id,
+        tema: input.tema ?? postOriginal.tema,
+        tipo: tipoNormalizado ?? postOriginal.tipo,
+        legenda: input.legenda ?? postOriginal.legenda,
+        hashtags: input.hashtags ?? postOriginal.hashtags,
+        imagemUrl: postOriginal.imagemUrl,
+        imagemPrompt: postOriginal.imagemPrompt,
+        observacoes: input.observacoes ?? postOriginal.observacoes,
+        roteiro: input.roteiro ?? postOriginal.roteiro,
+        tags: input.tags ?? postOriginal.tags,
+        status: "rascunho" as const,
+        statusProducao: "planejado" as const,
+      }, extras);
+      await db.insert(marketingPosts).values(novasPublicacoes as any);
+
+      return { success: true, publicacoesAdicionadas: extras.length };
     }),
 
   /**

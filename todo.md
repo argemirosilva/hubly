@@ -2913,3 +2913,4 @@
 - [x] Corrigir erro de execução no cancelamento de lembretes futuros ao editar agendamento
 - [x] Corrigir automação de atendimento externo que não disparou para cliente agendada
 - [x] Adicionar status Programado aos posts do calendário de Marketing IA
+- [x] Permitir adicionar outra publicação ao editar um post já existente no Marketing IA
