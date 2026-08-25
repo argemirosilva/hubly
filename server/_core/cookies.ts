@@ -39,10 +39,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // SameSite=None exige Secure e Ã© rejeitado pelos navegadores em HTTP local.
+    // Em localhost, Lax preserva o cookie nas navegaÃ§Ãµes do prÃ³prio Hubly.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }

@@ -28,7 +28,8 @@ const queryClient = new QueryClient({
 });
 
 // ── Persistência do cache via IndexedDB ──────────────────────────────────────
-const IDB_CACHE_KEY = "hubly-query-cache";
+// Versão local do cache: evita restaurar resultados do banco anterior à migração MySQL.
+const IDB_CACHE_KEY = "hubly-query-cache-local-mysql-v1";
 const MAX_AGE = 1000 * 60 * 60 * 24; // 24 horas
 
 const idbPersister = {

@@ -108,7 +108,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
     if (!client || !requireGlobalRead(client, res)) return;
     const db = await getDb();
     if (!db) return res.status(503).json({ error: "sync_database_unavailable" });
-    const cursorResult = await db.execute(sql`SELECT COALESCE(MAX(cursor), 0) AS cursor FROM sync_change_log`);
+    const cursorResult = await db.execute(sql`SELECT COALESCE(MAX(\`cursor\`), 0) AS \`cursor\` FROM sync_change_log`);
     const snapshotCursor = Number(rowsFrom(cursorResult)[0]?.cursor ?? 0);
     const snapshotId = crypto.randomUUID().replace(/-/g, "");
     const expiresAt = new Date(Date.now() + SNAPSHOT_TTL_MS);

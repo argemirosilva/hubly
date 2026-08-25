@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title">
+  <title id="title">Hubly</title>
+  <g transform="translate(18 18) scale(.36)">
+    <rect x="84" y="127" width="344" height="291" rx="34" fill="#d4af37"/>
+    <g fill="#ffffff">
+      <circle cx="159" cy="260" r="32"/>
+      <circle cx="223" cy="260" r="16"/><circle cx="287" cy="260" r="16"/><circle cx="351" cy="260" r="16"/>
+      <circle cx="159" cy="307" r="16"/><circle cx="223" cy="307" r="16"/><circle cx="287" cy="307" r="16"/><circle cx="351" cy="307" r="16"/>
+      <circle cx="159" cy="355" r="16"/><circle cx="223" cy="355" r="16"/><circle cx="287" cy="355" r="16"/><circle cx="351" cy="355" r="16"/>
+    </g>
+  </g>
+  <text x="205" y="145" fill="#241b35" font-family="Poppins, Arial, sans-serif" font-size="96" font-weight="300" letter-spacing="14">hubly</text>
+</svg>

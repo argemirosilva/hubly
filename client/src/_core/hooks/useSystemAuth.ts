@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type SystemUser = {
   id: number;
@@ -15,6 +16,7 @@ type SystemAuthState = {
 };
 
 export function useSystemAuth() {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<SystemAuthState>({
     user: null,
     loading: true,
@@ -26,6 +28,7 @@ export function useSystemAuth() {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
         const user = await res.json();
+        queryClient.clear();
         setState({ user, loading: false, isAuthenticated: true });
       } else {
         setState({ user: null, loading: false, isAuthenticated: false });
@@ -33,7 +36,7 @@ export function useSystemAuth() {
     } catch {
       setState({ user: null, loading: false, isAuthenticated: false });
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     checkAuth();
@@ -49,6 +52,7 @@ export function useSystemAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        queryClient.clear();
         setState({ user: { ...data.user, onboardingConcluido: false }, loading: false, isAuthenticated: true });
         return { success: true, onboardingPendente: true };
       }
@@ -56,7 +60,7 @@ export function useSystemAuth() {
     } catch {
       return { success: false, error: "Erro de conexão. Tente novamente." };
     }
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(async (email: string, senha: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -68,6 +72,7 @@ export function useSystemAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        queryClient.clear();
         setState({ user: data.user, loading: false, isAuthenticated: true });
         return { success: true };
       }
@@ -75,14 +80,15 @@ export function useSystemAuth() {
     } catch {
       return { success: false, error: "Erro de conexão. Tente novamente." };
     }
-  }, []);
+  }, [queryClient]);
 
   const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch {}
+    queryClient.clear();
     setState({ user: null, loading: false, isAuthenticated: false });
-  }, []);
+  }, [queryClient]);
 
   return {
     ...state,

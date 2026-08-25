@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
-import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -20,25 +19,7 @@ import { trialReminderHandler } from "../trial-reminder";
 import { registerGoogleOAuthCallback } from "../google-oauth-callback";
 import { registerGoogleOAuthUserCallback } from "../google-oauth-user-callback";
 import { registerSyncIntegrationRoutes } from "../sync-api";
-
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
-  });
-}
-
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`No available port found starting from ${startPort}`);
-}
+import { registerSyncInboundRoutes } from "../sync-inbound-api";
 
 async function startServer() {
   const app = express();
@@ -46,7 +27,14 @@ async function startServer() {
   // Stripe webhook DEVE ser registrado antes do express.json() para verificação de assinatura
   registerStripeWebhook(app);
   // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
+  app.use(express.json({
+    limit: "50mb",
+    verify: (req, _res, buffer) => {
+      if (req.originalUrl.startsWith("/api/integrations/v1/sync/")) {
+        (req as typeof req & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+      }
+    },
+  }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // Storage proxy para assets privados
   registerStorageProxy(app);
@@ -68,6 +56,8 @@ async function startServer() {
   app.post("/api/scheduled/trial-reminder", trialReminderHandler);
   // API privada de sincronização em lote para o módulo remoto próprio
   registerSyncIntegrationRoutes(app);
+  // API reversa: recebe ideias de marketing autenticadas de sistemas externos
+  registerSyncInboundRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -83,12 +73,15 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  const port = parseInt(process.env.PORT || "3010", 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`PORT inválida: ${process.env.PORT ?? "não configurada"}`);
   }
+
+  server.on("error", error => {
+    console.error(`Não foi possível iniciar o Hubly na porta fixa ${port}.`, error);
+    process.exitCode = 1;
+  });
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

@@ -1403,6 +1403,9 @@ export const syncIntegrationClients = mysqlTable("sync_integration_clients", {
   escopo: varchar("escopo", { length: 100 }).default("sync.read.all").notNull(),
   ativo: boolean("ativo").default(true).notNull(),
   criadoPorUserId: int("criadoPorUserId"),
+  empresaId: int("empresaId"),
+  companyKeyHash: varchar("companyKeyHash", { length: 128 }),
+  sourceSystem: varchar("sourceSystem", { length: 100 }),
   ultimoUsoEm: timestamp("ultimoUsoEm"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1438,4 +1441,30 @@ export const syncAuditLog = mysqlTable("sync_audit_log", {
   cursorSolicitado: varchar("cursorSolicitado", { length: 100 }),
   ipHash: varchar("ipHash", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Requisições recebidas pela sincronização reversa. requestKey garante que o
+// mesmo X-Request-Id nunca seja processado duas vezes para a mesma integração.
+export const syncInboundRequests = mysqlTable("sync_inbound_requests", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  requestKey: varchar("requestKey", { length: 64 }).notNull().unique(),
+  clientId: varchar("clientId", { length: 80 }).notNull(),
+  requestId: varchar("requestId", { length: 64 }).notNull(),
+  bodyHash: varchar("bodyHash", { length: 64 }).notNull(),
+  status: mysqlEnum("status", ["processing", "processed"]).default("processing").notNull(),
+  responseJson: longtext("responseJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Vínculo estável entre o identificador da origem e o post local do Hubly.
+export const syncMarketingIdeaLinks = mysqlTable("sync_marketing_idea_links", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  linkKey: varchar("linkKey", { length: 64 }).notNull().unique(),
+  clientId: varchar("clientId", { length: 80 }).notNull(),
+  externalId: varchar("externalId", { length: 255 }).notNull(),
+  marketingPostId: int("marketingPostId").notNull(),
+  updatedAtSource: varchar("updatedAtSource", { length: 35 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

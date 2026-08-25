@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
   Bell, Calendar, CalendarCheck, CreditCard, ReceiptText, TrendingUp, ChevronDown,
@@ -113,7 +112,6 @@ const bottomNav = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user: oauthUser, loading: oauthLoading, isAuthenticated: oauthAuth, logout: oauthLogout } = useAuth();
   const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout, register: systemRegister } = useSystemAuth();
   const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj } = usePermissoes();
   useBadge(); // Atualiza badge do ícone do app com pendentes
@@ -139,9 +137,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [cadastroLoading, setCadastroLoading] = useState(false);
   const [cadastroError, setCadastroError] = useState("");
 
-  const isAuthenticated = oauthAuth || systemAuth;
-  const loading = oauthLoading || systemLoading;
-  const user = oauthUser || (systemUser ? { id: systemUser.id, name: systemUser.nome, email: systemUser.email, role: "user" as const, openId: `system_${systemUser.id}`, loginMethod: "email", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } : null);
+  const isAuthenticated = systemAuth;
+  const loading = systemLoading;
+  const user = systemUser ? { id: systemUser.id, name: systemUser.nome, email: systemUser.email, role: isOwner ? "admin" as const : "user" as const, openId: `system_${systemUser.id}`, loginMethod: "email", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } : null;
 
   useEffect(() => {
     if (!isAuthenticated) setModoLogin(location === "/cadastro" ? "cadastro" : "login");
@@ -155,8 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const avatarUrl = perfilData?.avatarUrl ?? null;
 
   const logout = async () => {
-    if (systemAuth) await systemLogout();
-    if (oauthAuth) await oauthLogout();
+    await systemLogout();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -349,12 +346,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             style={{ background: "oklch(72% 0.065 65)" }} />
           <div className="relative">
             <div className="flex items-center gap-3 mb-16">
-              <img
-                src="/manus-storage/hubly-logo-dark_ecdf0ad5.png"
-                alt="Hubly"
-                className="w-auto object-contain"
-                style={{height: '115px'}}
-              />
+              <HublyLogo tone="dark" height={115} />
             </div>
             <div className="space-y-5">
               <p className="text-xs font-semibold tracking-[0.18em] uppercase"
@@ -378,12 +370,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex-1 flex items-center justify-center px-8" style={{ backgroundColor: '#fdf7ee' }}>
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
-              <img
-                src="/manus-storage/hubly-logo-dark_ecdf0ad5.png"
-                alt="Hubly"
-                className="h-24 w-auto object-contain"
-                style={{}}
-              />
+              <HublyLogo tone="dark" height={96} />
             </div>
             {modoLogin === "login" ? (
               <>
