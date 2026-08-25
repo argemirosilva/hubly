@@ -2810,6 +2810,16 @@
 - [x] Corrigir contratos de rota, Marketing e sincronização que impediram a compilação após a atualização
 - [x] Executar testes focalizados de Marketing e sincronização
 
+## Site público — ativos visuais após sincronização (25/08/2026)
+- [x] Identificar as referências de imagem ausentes no site público
+- [x] Restaurar os ativos por URLs persistentes compatíveis com a hospedagem
+- [ ] Validar visualmente a página inicial sem imagens quebradas
+
+## Atualização remota — migração de Pacotes pendente (25/08/2026)
+- [x] Adicionar o vínculo `agendamentos.pacoteClienteId` exigido pela agenda atualizada
+- [x] Adicionar `pacotes_clientes_itens.quantidadeReservada` para reservas de sessão
+- [x] Validar a leitura da agenda com as novas colunas
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador

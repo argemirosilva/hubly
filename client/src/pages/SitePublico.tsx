@@ -18,7 +18,7 @@ import { HublyLogo } from "@/components/HublyLogo";
 
 type PublicPage = "inicio" | "recursos" | "como-funciona" | "negocios";
 
-const HERO_IMAGE = "/manus-storage/hubly-public-hero_2c2e6de4.jpg";
+const HERO_IMAGE = "/manus-storage/hubly-public-hero_019ba692.jpg";
 const CADASTRO_URL = "/cadastro";
 
 const pageCopy: Record<Exclude<PublicPage, "inicio">, { eyebrow: string; title: string; description: string }> = {
@@ -258,7 +258,7 @@ function ProductWindow() {
   return (
     <figure className="relative mx-auto w-full max-w-[570px] overflow-hidden rounded-[28px] border border-white/80 bg-[#fffdf9] p-2 shadow-[0_28px_70px_rgba(59,33,21,0.18)]">
       <img
-        src="/manus-storage/hubly-agenda-finance-dashboard_e3d1ae78.jpg"
+        src="/manus-storage/hubly-agenda-finance-dashboard_e7009168.jpg"
         alt="Painel visual genérico de gestão com agenda, gráfico de desempenho e indicadores financeiros"
         className="aspect-[16/10] w-full rounded-[21px] object-cover"
       />
