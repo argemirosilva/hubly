@@ -2820,6 +2820,11 @@
 - [x] Adicionar `pacotes_clientes_itens.quantidadeReservada` para reservas de sessão
 - [x] Validar a leitura da agenda com as novas colunas
 
+## Correção — lista de Pacotes após atualização (25/08/2026)
+- [x] Mapear as colunas de custo e pagamento ausentes em `pacotes_modelos` e `pacotes_clientes`
+- [x] Aplicar as migrações pendentes preservando os registros de pacotes existentes
+- [x] Validar as consultas de Pacotes na tela de Serviços e na lista principal
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
