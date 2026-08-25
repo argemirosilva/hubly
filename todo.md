@@ -2813,7 +2813,7 @@
 ## Site público — ativos visuais após sincronização (25/08/2026)
 - [x] Identificar as referências de imagem ausentes no site público
 - [x] Restaurar os ativos por URLs persistentes compatíveis com a hospedagem
-- [ ] Validar visualmente a página inicial sem imagens quebradas
+- [x] Validar visualmente a página inicial sem imagens quebradas
 
 ## Atualização remota — migração de Pacotes pendente (25/08/2026)
 - [x] Adicionar o vínculo `agendamentos.pacoteClienteId` exigido pela agenda atualizada
