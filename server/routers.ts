@@ -113,7 +113,7 @@ import { orizontechRouter } from "./routers/orizontech";
 import { dbConsoleRouter } from "./routers/dbConsole";
 import { sincronizacaoRouter } from "./routers/sincronizacao";
 import { nanoid } from "nanoid";
-import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos, googleCalendarTokensUsuario } from "../drizzle/schema";
+import { pacotesClientes, pacotesClientesItens, historicoEnviosAutomacao, automacoes, clientes, systemUsers, googleCalendarEventos, googleCalendarTokensUsuario, agendamentos } from "../drizzle/schema";
 import { eq, and, sql as drizzleSql, desc, gte, lt, or, inArray, gt, isNull } from "drizzle-orm";
 
 /**
@@ -336,7 +336,7 @@ async function getEmpresaDoUsuario(userId: number, systemUserEmpresaId?: number 
 async function resolveAdminContext(
   ctx: { user: { id: number } | null; systemUser?: { id: number; empresaId: number; profissionalId: number | null; isOwner?: boolean } | null },
   empresa: { id: number; ownerId: number },
-  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" | "agendaAprovarBloqueio" = "agendamentosVerTodos"
+  permField: "agendamentosVerTodos" | "financeiroVerComissoes" | "financeiroVer" | "servicosEditar" | "profissionaisEditar" | "agendaAprovarBloqueio" | "configuracoesEditar" = "agendamentosVerTodos"
 ): Promise<{ isAdmin: boolean; profId: number | null }> {
   // Owner OAuth: sempre admin
   if (!ctx.systemUser && ctx.user && empresa.ownerId === ctx.user.id) {
@@ -2178,7 +2178,7 @@ export const appRouter = router({
             await moverCartaoPorStatusInterno({
               empresaId: empresa.id,
               agendamentoId: input.id,
-              clienteId: agParaConfirmar.clienteId ?? undefined,
+              clienteId: agParaConfirmar?.clienteId ?? undefined,
               novoStatus: 'agendado',
             });
             console.log(`[confirmarReserva] Cartão movido para Agendamento Criado (ag. ${input.id})`);
@@ -2710,19 +2710,6 @@ export const appRouter = router({
           } catch (err) {
             console.error("[Pacote] Erro ao consumir sessão:", err);
           }
-          }
-        }
-
-        if (statusLiberaReserva && agendamentoAnterior?.status !== "concluido") {
-          const itensDoAgendamento = await getItensByAgendamento(id);
-          const itemIds = [...new Set(itensDoAgendamento.map(item => item.pacoteClienteItemId).filter(Boolean))] as number[];
-          const db = await getDb();
-          if (db) {
-            for (const itemId of itemIds) {
-              await db.update(pacotesClientesItens)
-                .set({ quantidadeReservada: drizzleSql`GREATEST(quantidadeReservada - 1, 0)` })
-                .where(eq(pacotesClientesItens.id, itemId));
-            }
           }
         }
             } else {

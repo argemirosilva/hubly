@@ -30,7 +30,7 @@ async function startServer() {
   app.use(express.json({
     limit: "50mb",
     verify: (req, _res, buffer) => {
-      if (req.originalUrl.startsWith("/api/integrations/v1/sync/")) {
+      if ((req.url ?? "").startsWith("/api/integrations/v1/sync/")) {
         (req as typeof req & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
       }
     },

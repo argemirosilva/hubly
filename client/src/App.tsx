@@ -80,7 +80,7 @@ function MobileAppInit() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={SitePublico} />
+      <Route path="/">{() => <SitePublico />}</Route>
       <Route path="/recursos">{() => <SitePublico page="recursos" />}</Route>
       <Route path="/como-funciona">{() => <SitePublico page="como-funciona" />}</Route>
       <Route path="/para-seu-negocio">{() => <SitePublico page="negocios" />}</Route>

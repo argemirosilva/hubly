@@ -44,7 +44,7 @@ export const iaMarketingRouter = router({
    */
   gerarPost: protectedProcedure
     .input(z.object({
-      tipo: z.enum(tiposPost),
+      tipo: z.string().trim().min(1).max(100).default("outro"),
       tema: z.string().min(1).max(500),
       servicoId: z.number().optional(),
       tom: z.enum(["descontraido", "profissional", "emocional", "urgente"]).default("descontraido"),
@@ -63,15 +63,15 @@ export const iaMarketingRouter = router({
 
       // Buscar pacotes ativos
       const dbPost = await getDb();
+      if (!dbPost) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const tipoNormalizado = await normalizarTipoConteudo(dbPost, empresa.id, input.tipo);
       let pacotesNomes: string[] = [];
-      if (dbPost) {
-        const { pacotesModelos } = await import('../../drizzle/schema');
-        const pacotes = await dbPost.select({ nome: pacotesModelos.nome })
-          .from(pacotesModelos)
-          .where(and(eq(pacotesModelos.empresaId, empresa.id), eq(pacotesModelos.ativo, true)))
-          .limit(6);
-        pacotesNomes = pacotes.map(p => p.nome);
-      }
+      const { pacotesModelos } = await import('../../drizzle/schema');
+      const pacotes = await dbPost.select({ nome: pacotesModelos.nome })
+        .from(pacotesModelos)
+        .where(and(eq(pacotesModelos.empresaId, empresa.id), eq(pacotesModelos.ativo, true)))
+        .limit(6);
+      pacotesNomes = pacotes.map(p => p.nome);
 
       const tipoLabels: Record<string, string> = {
         promocao: "promoção/oferta especial",
@@ -109,7 +109,7 @@ export const iaMarketingRouter = router({
 
 Crie um post para Instagram com as seguintes características:
 - Estabelecimento: ${empresa.nome} (${empresa.tipo})
-- Tipo de post: ${tipoLabels[input.tipo] || input.tipo}
+- Tipo de post: ${tipoLabels[tipoNormalizado] || tipoNormalizado}
 - Tema/Assunto: ${input.tema}
 - Tom de voz: ${tomLabels[input.tom] || input.tom}
 - Usar emojis: ${input.incluirEmoji ? 'sim' : 'não'}
@@ -143,7 +143,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
 
       const [inserted] = await db.insert(marketingPosts).values({
         empresaId: empresa.id,
-        tipo: input.tipo,
+        tipo: tipoNormalizado,
         tema: input.tema,
         legenda: resultado.legenda,
         hashtags: resultado.hashtags,

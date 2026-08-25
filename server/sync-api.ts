@@ -141,7 +141,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
     const limit = normalizarLimiteSync(req.query.limit, MAX_PAGE_SIZE);
     const result = await db.execute(sql.raw(`SELECT * FROM \`${entity.table}\` WHERE id > ${after} ORDER BY id ASC LIMIT ${limit + 1}`));
     const fetched = rowsFrom(result);
-    const page = paginaSync(fetched, limit, after);
+    const page = paginaSync(fetched as Array<Record<string, unknown> & { id: unknown }>, limit, after);
     const records = page.records.map(sanitizeSyncRecord);
     await audit(req, client.clientId, 200, records.length);
     res.json({ apiVersion: "v1", snapshotId: snapshot.id, entity: entity.name, after, nextCursor: page.nextCursor, hasMore: page.hasMore, records });

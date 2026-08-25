@@ -2804,6 +2804,12 @@
 - [x] Marketing: tipos de conteúdo personalizáveis (usuário define seus próprios tipos)
 - [x] Marketing: gráfico de desempenho por tipo de conteúdo
 
+## Atualização remota — migrações e compatibilidade (25/08/2026)
+- [x] Aplicar a migração que converte `marketing_posts.tipo` em texto livre para tipos personalizados
+- [x] Aplicar a migração de recuperação da fila com a coluna `historico_envios_automacao.processandoEm`
+- [x] Corrigir contratos de rota, Marketing e sincronização que impediram a compilação após a atualização
+- [x] Executar testes focalizados de Marketing e sincronização
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
