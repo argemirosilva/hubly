@@ -2825,6 +2825,11 @@
 - [x] Aplicar as migrações pendentes preservando os registros de pacotes existentes
 - [x] Validar as consultas de Pacotes na tela de Serviços e na lista principal
 
+## Marketing — status Programado no calendário (25/08/2026)
+- [x] Confirmar a incompatibilidade entre o enum atual de `marketing_posts.statusProducao` e o status Programado
+- [x] Aplicar a migração do status Programado preservando os posts existentes
+- [x] Validar a alteração de status no calendário
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
