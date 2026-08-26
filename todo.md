@@ -2835,6 +2835,12 @@
 - [x] Provisionar a URL da base remota e a chave de integração em ambiente seguro
 - [x] Validar a autenticação e encaminhar os parâmetros corretos ao desenvolvedor externo
 
+## Sincronização remota — entidades ausentes no snapshot (26/08/2026)
+- [x] Mapear `pacotes_clientes_pagamentos` e `taxas_config` no schema e catálogo de sincronização
+- [x] Criar as tabelas pendentes preservando os dados atuais
+- [x] Validar que os endpoints paginam as 62 entidades sem erro
+- [x] Alinhar o nome da chave de integração como `HUBLY_REMOTE_INTEGRATION_KEY`
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
