@@ -2830,6 +2830,11 @@
 - [x] Aplicar a migração do status Programado preservando os posts existentes
 - [x] Validar a alteração de status no calendário
 
+## Sincronização remota — credenciais de conexão (25/08/2026)
+- [x] Confirmar o endereço remoto e o formato da chave usados pelo cliente de sincronização
+- [x] Provisionar a URL da base remota e a chave de integração em ambiente seguro
+- [x] Validar a autenticação e encaminhar os parâmetros corretos ao desenvolvedor externo
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
