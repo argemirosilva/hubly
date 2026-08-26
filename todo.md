@@ -2841,6 +2841,11 @@
 - [x] Validar que os endpoints paginam as 62 entidades sem erro
 - [x] Alinhar o nome da chave de integração como `HUBLY_REMOTE_INTEGRATION_KEY`
 
+## Automação — pré-agendamento de maquiagem social (26/08/2026)
+- [x] Localizar o agendamento recém-criado e conferir o status, serviço e cliente vinculados
+- [x] Verificar a automação aplicável e os registros da fila de envio
+- [x] Corrigir o motivo do não disparo e validar o envio de pré-agendamento
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador
