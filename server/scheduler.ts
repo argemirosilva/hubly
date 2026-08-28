@@ -35,7 +35,7 @@ import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-o
 import { gerarTokenConfirmacao } from "./confirmacao";
 import { verificarFiltroServicoAutomacao } from "./filtro-servico-automacao";
 import { ajustarHorarioDeLembreteReagendado } from "./reagendamento-lembretes";
-import { inserirLinkConfirmacao, mensagemExigeLinkConfirmacao, mensagemPossuiLinkConfirmacao } from "./link-confirmacao-mensagem";
+import { inserirLinkConfirmacao, mensagemExigeLinkConfirmacao } from "./link-confirmacao-mensagem";
 import { waManager } from "./whatsapp";
 import { routedSendMessage, routedSendMedia } from "./whatsapp-router";
 
@@ -742,6 +742,7 @@ async function processarAutomacoesAgendadas() {
             status: 'pendente',
             enviarEm: new Date(),
             midiaUrl: midiaUrlDiasAntes,
+            dedupeKey: `lembrete:${empresaId}:${automacao.id}:${ag.id}:dias:${dias}`,
           }).catch(() => {});
 
           console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): enfileirado para ${nomeEnvio}${contatoPrincipal ? ' [contato principal]' : ''} (ag. ${ag.id})`);
@@ -1561,21 +1562,23 @@ async function preRegistrarEnviosPendentes() {
             } catch {} return undefined;
           })();
 
-          // Registrar como agendado com texto real da mensagem
-          await db.insert(historicoEnviosAutomacao).values({
+          // Registrar como agendado com texto real da mensagem. O registrador
+          // central aplica a mesma deduplicação utilizada nos demais fluxos.
+          await registrarEnvioAutomacao({
             empresaId,
             automacaoId: automacao.id,
             automacaoNome: automacao.nome,
-            clienteId: ag.clienteId ?? null,
-            clienteNome: ag.clienteNome ?? null,
+            clienteId: ag.clienteId ?? undefined,
+            clienteNome: ag.clienteNome ?? undefined,
             agendamentoId: ag.id,
-            telefone: ag.clienteTelefone,
+            telefone: ag.clienteTelefone ?? undefined,
             canal: (automacao.canalEnvio ?? 'whatsapp') as any,
             mensagem: mensagemPre,
             status: 'agendado',
             enviarEm,
             midiaUrl: midiaUrlPre,
-          }).catch(() => {}); // Ignorar erros de duplicata
+            dedupeKey: `lembrete:${empresaId}:${automacao.id}:${ag.id}:${enviarEm.getTime()}`,
+          }).catch(() => {});
 
           console.log(`[Scheduler] Pré-registrado agendado: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
         }
@@ -1803,7 +1806,7 @@ export async function processarFilaPendente() {
       // Toda mensagem que pede confirmação deve receber um token fresco no momento do envio.
       // Isso protege automações antigas ou personalizadas que usaram a variável errada.
       let mensagemFinal = item.mensagem;
-      if (item.agendamentoId && mensagemExigeLinkConfirmacao(mensagemFinal) && !mensagemPossuiLinkConfirmacao(mensagemFinal)) {
+      if (item.agendamentoId && mensagemExigeLinkConfirmacao(mensagemFinal)) {
         try {
           const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
           const _freshToken = await gerarTokenConfirmacao(item.agendamentoId, item.empresaId);
@@ -2587,12 +2590,13 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
         } catch {} return undefined;
       })();
 
-      await db.insert(historicoEnviosAutomacao).values({
+      await registrarEnvioAutomacao({
         empresaId, automacaoId: automacao.id, automacaoNome: automacao.nome,
-        clienteId: ag.clienteId ?? null, clienteNome: ag.clienteNome ?? null,
-        agendamentoId, telefone: ag.clienteTelefone,
+        clienteId: ag.clienteId ?? undefined, clienteNome: ag.clienteNome ?? undefined,
+        agendamentoId, telefone: ag.clienteTelefone ?? undefined,
         canal: (automacao.canalEnvio ?? 'whatsapp') as any,
-        mensagem, status: enviarAgora ? 'pendente' : 'agendado', enviarEm, midiaUrl,
+        mensagem, status: enviarAgora ? 'pendente' : 'agendado', enviarEm, midiaUrl: midiaUrl ?? undefined,
+        dedupeKey: `lembrete:${empresaId}:${automacao.id}:${agendamentoId}:${enviarEm.getTime()}`,
       }).catch(() => {});
       console.log(`[Reagendar] Lembrete ${enviarAgora ? 'enfileirado imediatamente' : 'agendado'}: ${automacao.nome} para ${ag.clienteNome} em ${enviarEm.toISOString()}`);
     }

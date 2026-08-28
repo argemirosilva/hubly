@@ -1,0 +1,2 @@
+ALTER TABLE `historico_envios_automacao` ADD `dedupeKey` varchar(191);--> statement-breakpoint
+ALTER TABLE `historico_envios_automacao` ADD CONSTRAINT `historico_envios_automacao_dedupeKey_unique` UNIQUE(`dedupeKey`);

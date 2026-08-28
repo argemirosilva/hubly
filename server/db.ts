@@ -2010,6 +2010,8 @@ export async function registrarEnvioAutomacao(data: {
   midiaUrl?: string; // URL da mídia para envio (imagem/documento)
   isTeste?: boolean; // Flag de envio de teste
   servicoNome?: string; // Nome do serviço do agendamento
+  /** Chave estável para bloquear o mesmo lembrete em inserções concorrentes. */
+  dedupeKey?: string;
 }) {
   const db = await getDb();
   if (!db) return;
@@ -2074,6 +2076,20 @@ export async function registrarEnvioAutomacao(data: {
     statusFinal = 'agendado';
   }
 
+  if (data.dedupeKey) {
+    const [existenteComMesmaChave] = await db.select({ id: historicoEnviosAutomacao.id })
+      .from(historicoEnviosAutomacao)
+      .where(and(
+        eq(historicoEnviosAutomacao.empresaId, data.empresaId),
+        eq(historicoEnviosAutomacao.dedupeKey, data.dedupeKey),
+      ))
+      .limit(1);
+    if (existenteComMesmaChave) {
+      console.log(`[Fila] Lembrete duplicado bloqueado pela chave ${data.dedupeKey}`);
+      return;
+    }
+  }
+
   // Se há automacaoId + agendamentoId, verificar se já existe registro pendente/agendado para atualizar
   if (data.automacaoId && data.agendamentoId && statusFinal !== 'pendente' && statusFinal !== 'agendado') {
     const existente = await db.select({ id: historicoEnviosAutomacao.id })
@@ -2102,26 +2118,37 @@ export async function registrarEnvioAutomacao(data: {
     }
   }
 
-  // Criar novo registro
-  await db.insert(historicoEnviosAutomacao).values({
-    empresaId: data.empresaId,
-    automacaoId: data.automacaoId ?? null,
-    automacaoNome: data.automacaoNome ?? null,
-    clienteId: data.clienteId ?? null,
-    clienteNome: data.clienteNome ?? null,
-    agendamentoId: data.agendamentoId ?? null,
-    telefone: data.telefone ?? null,
-    canal: data.canal ?? "whatsapp",
-    mensagem: data.mensagem ?? null,
-    status: statusFinal as any,
-    messageStatus: statusFinal === "enviado" ? "sent" : statusFinal === "falhou" ? "failed" : statusFinal === "cancelado" ? "cancelled" : "queued",
-    enviadoEm: data.enviadoEm ?? (statusFinal === "enviado" ? new Date() : null),
-    erroDetalhe: data.erroDetalhe ?? null,
-    enviarEm: data.enviarEm ?? null,
-    midiaUrl: data.midiaUrl ?? null,
-    isTeste: data.isTeste ?? false,
-    servicoNome: data.servicoNome ?? null,
-  });
+  // Criar novo registro. O índice único da chave de deduplicação também
+  // protege a corrida rara entre duas instâncias do worker.
+  try {
+    await db.insert(historicoEnviosAutomacao).values({
+      empresaId: data.empresaId,
+      automacaoId: data.automacaoId ?? null,
+      automacaoNome: data.automacaoNome ?? null,
+      clienteId: data.clienteId ?? null,
+      clienteNome: data.clienteNome ?? null,
+      agendamentoId: data.agendamentoId ?? null,
+      telefone: data.telefone ?? null,
+      canal: data.canal ?? "whatsapp",
+      mensagem: data.mensagem ?? null,
+      status: statusFinal as any,
+      messageStatus: statusFinal === "enviado" ? "sent" : statusFinal === "falhou" ? "failed" : statusFinal === "cancelado" ? "cancelled" : "queued",
+      enviadoEm: data.enviadoEm ?? (statusFinal === "enviado" ? new Date() : null),
+      erroDetalhe: data.erroDetalhe ?? null,
+      enviarEm: data.enviarEm ?? null,
+      midiaUrl: data.midiaUrl ?? null,
+      isTeste: data.isTeste ?? false,
+      servicoNome: data.servicoNome ?? null,
+      dedupeKey: data.dedupeKey ?? null,
+    });
+  } catch (erro) {
+    const mensagemErro = erro instanceof Error ? erro.message : String(erro);
+    if (data.dedupeKey && /duplicate|unique/i.test(mensagemErro)) {
+      console.log(`[Fila] Inserção concorrente duplicada bloqueada pela chave ${data.dedupeKey}`);
+      return;
+    }
+    throw erro;
+  }
 }
 
 // Verificar se já foi enviado lembrete para este agendamento+automação (deduplicação)
@@ -2134,7 +2161,7 @@ export async function jaEnviouLembrete(empresaId: number, automacaoId: number, a
       eq(historicoEnviosAutomacao.empresaId, empresaId),
       eq(historicoEnviosAutomacao.automacaoId, automacaoId),
       eq(historicoEnviosAutomacao.agendamentoId, agendamentoId),
-      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado')`,
+      sql`${historicoEnviosAutomacao.status} IN ('enviado', 'pendente', 'agendado', 'processando')`,
     ))
     .limit(1);
   return result.length > 0;

@@ -2846,6 +2846,13 @@
 - [x] Verificar a automação aplicável e os registros da fila de envio
 - [x] Corrigir o motivo do não disparo e validar o envio de pré-agendamento
 
+## Automação — confirmação de presença duplicada (26/08/2026)
+- [x] Identificar os envios duplicados da cliente Ana Cruz e seus gatilhos de origem
+- [x] Revisar os caminhos de criação, edição, reagendamento e fila de confirmação
+- [x] Implementar deduplicação durável por agendamento e automação de confirmação
+- [x] Corrigir a origem do link para impedir URLs de desenvolvimento nas mensagens
+- [x] Adicionar testes de deduplicação e validar a ausência de novos duplicados
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador

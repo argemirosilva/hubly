@@ -27,8 +27,15 @@ describe("proteção de link de confirmação", () => {
     );
   });
 
-  it("não duplica um link de confirmação já presente", () => {
+  it("substitui um link de confirmação já presente por um token fresco", () => {
     const mensagem = `Confirme seu agendamento\n${link}`;
-    expect(inserirLinkConfirmacao(mensagem, "https://hubly.orizontech.com.br/confirmar/outro-token")).toBe(mensagem);
+    expect(inserirLinkConfirmacao(mensagem, "https://hubly.orizontech.com.br/confirmar/outro-token"))
+      .toBe("Confirme seu agendamento\nhttps://hubly.orizontech.com.br/confirmar/outro-token");
+  });
+
+  it("troca um link localhost antigo pelo domínio publicado", () => {
+    const mensagem = "Clique para confirmar sua presença\nhttp://localhost:3001/confirmar/token-antigo";
+    expect(inserirLinkConfirmacao(mensagem, link))
+      .toBe(`Clique para confirmar sua presença\n${link}`);
   });
 });

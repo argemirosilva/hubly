@@ -1,4 +1,4 @@
-const URL_CONFIRMAR_REGEX = /https?:\/\/[^\s]+\/confirmar\/[a-z0-9]+/i;
+const URL_CONFIRMAR_REGEX = /https?:\/\/[^\s]+\/confirmar\/[a-z0-9_-]+/i;
 const MARCADOR_LINK_CONFIRMAR = "__LINK_CONFIRMACAO__";
 const PEDIDO_CONFIRMACAO_REGEX = /confirm(?:e|ar)(?:\s+o)?\s+(?:seu\s+)?(?:agendamento|hor[aá]rio|presen[cç]a)|confirmar\s+sua\s+presen[cç]a/i;
 
@@ -11,7 +11,12 @@ export function mensagemPossuiLinkConfirmacao(mensagem: string): boolean {
 }
 
 export function inserirLinkConfirmacao(mensagem: string, linkConfirmacao: string): string {
-  if (mensagemPossuiLinkConfirmacao(mensagem)) return mensagem;
+  // O link é criado no instante do envio. Se uma fila antiga contém um link de
+  // localhost, domínio anterior ou token vencido, substituímos esse link em vez
+  // de manter uma confirmação que levaria a uma rota inválida.
+  if (mensagemPossuiLinkConfirmacao(mensagem)) {
+    return mensagem.replace(URL_CONFIRMAR_REGEX, linkConfirmacao);
+  }
   if (mensagem.includes(MARCADOR_LINK_CONFIRMAR)) {
     return mensagem.replaceAll(MARCADOR_LINK_CONFIRMAR, linkConfirmacao);
   }
