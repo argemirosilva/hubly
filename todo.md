@@ -2853,6 +2853,17 @@
 - [x] Corrigir a origem do link para impedir URLs de desenvolvimento nas mensagens
 - [x] Adicionar testes de deduplicação e validar a ausência de novos duplicados
 
+## Automação — origem do segundo envio de confirmação (28/08/2026)
+- [x] Correlacionar cada mensagem recebida pela Ana Cruz com a fila e os logs do provedor
+- [x] Identificar qualquer processo, ambiente ou rota que envie confirmação fora da fila protegida
+- [x] Bloquear o segundo disparo mesmo em execuções concorrentes ou externas
+- [x] Testar e confirmar que há um único envio por automação e agendamento
+
+## Automação — bloqueio de réplicas e ambiente local (29/08/2026)
+- [x] Exigir origem oficial do Hubly antes de qualquer envio central de WhatsApp
+- [x] Garantir que réplicas, snapshots e ambientes de desenvolvimento iniciem com envio desativado
+- [x] Manter o processamento habilitado exclusivamente nos domínios oficiais do Hubly
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador

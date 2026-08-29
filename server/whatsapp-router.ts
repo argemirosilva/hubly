@@ -19,6 +19,28 @@ import { zapiSendText, zapiSendMedia } from "./zapi";
 const planCache = new Map<number, { plan: string; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+// Uma réplica usada para sincronização de dados não pode compartilhar o poder
+// de envio do Hubly oficial. Sem essa barreira, um worker local com as mesmas
+// credenciais poderia repetir lembretes já disparados pela produção.
+const ORIGENS_OFICIAIS_DE_AUTOMACAO = new Set([
+  "https://hubly.orizontech.com.br",
+  "https://hubly.manus.space",
+  "https://agendei-app-bkct9rps.manus.space",
+]);
+
+export function origemEhOficialParaAutomacoes(origem = process.env.APP_PUBLIC_URL): boolean {
+  if (!origem) return false;
+  return ORIGENS_OFICIAIS_DE_AUTOMACAO.has(origem.replace(/\/+$/, ""));
+}
+
+function garantirAmbienteOficialParaEnvio(): boolean {
+  if (origemEhOficialParaAutomacoes()) return true;
+  console.error(
+    `[WA-Router] Envio bloqueado: APP_PUBLIC_URL="${process.env.APP_PUBLIC_URL ?? "ausente"}" não é uma origem oficial do Hubly.`,
+  );
+  return false;
+}
+
 /**
  * Retorna o plano da empresa consultando o banco.
  * Lança erro se o banco estiver indisponível — sem fallback para FREE.
@@ -67,6 +89,7 @@ export async function routedSendMessage(
   telefone: string,
   mensagem: string,
 ): Promise<boolean> {
+  if (!garantirAmbienteOficialParaEnvio()) return false;
   const plan = await getEmpresaPlan(empresaId);
 
   if (plan === "PRO") {
@@ -100,6 +123,7 @@ export async function routedSendMedia(
   caption?: string,
   mimeType?: string,
 ): Promise<boolean> {
+  if (!garantirAmbienteOficialParaEnvio()) return false;
   const plan = await getEmpresaPlan(empresaId);
 
   if (plan === "PRO") {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
@@ -14,6 +14,7 @@ vi.mock("./zapi", () => ({
 
 import {
   invalidatePlanCache,
+  origemEhOficialParaAutomacoes,
   routedSendMedia,
   routedSendMessage,
 } from "./whatsapp-router";
@@ -31,12 +32,19 @@ function dbComPlanoPro() {
 }
 
 describe("WhatsApp Router — instância por empresa", () => {
+  const appPublicUrlOriginal = process.env.APP_PUBLIC_URL;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.APP_PUBLIC_URL = "https://hubly.orizontech.com.br";
     mocks.getDb.mockResolvedValue(dbComPlanoPro());
     mocks.zapiSendText.mockResolvedValue({ ok: true });
     mocks.zapiSendMedia.mockResolvedValue({ ok: true });
     invalidatePlanCache(77);
+  });
+
+  afterEach(() => {
+    process.env.APP_PUBLIC_URL = appPublicUrlOriginal;
   });
 
   it("envia texto pela instância Z-API vinculada à empresa PRO", async () => {
@@ -54,5 +62,17 @@ describe("WhatsApp Router — instância por empresa", () => {
       "image/jpeg",
       77,
     );
+  });
+
+  it("reconhece somente os domínios oficiais como autorizados para automações", () => {
+    expect(origemEhOficialParaAutomacoes("https://hubly.orizontech.com.br")).toBe(true);
+    expect(origemEhOficialParaAutomacoes("https://hubly.orizontech.com.br/")).toBe(true);
+    expect(origemEhOficialParaAutomacoes("http://localhost:3001")).toBe(false);
+  });
+
+  it("bloqueia o envio quando executado em uma réplica local", async () => {
+    process.env.APP_PUBLIC_URL = "http://localhost:3001";
+    await expect(routedSendMessage(77, "14999998888", "Olá")).resolves.toBe(false);
+    expect(mocks.zapiSendText).not.toHaveBeenCalled();
   });
 });
