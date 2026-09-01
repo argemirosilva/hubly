@@ -2892,6 +2892,11 @@
 - [x] Aplicar animações curtas de entrada e atualização nos gráficos de relatórios
 - [x] Respeitar preferência de movimento reduzido e evitar recálculos visuais desnecessários
 
+## Relatórios — empresa não encontrada para usuária interna (01/09/2026)
+- [x] Identificar a consulta que não considera o `empresaId` da sessão interna
+- [x] Corrigir a resolução de empresa no fluxo de Relatórios
+- [x] Validar o carregamento dos relatórios para Maria Isabella
+
 ## Financeiro — relatórios por serviço e pacote (29/08/2026)
 - [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
 - [ ] Identificar a cobertura de receita, custo, margem, pagamentos e sessões

@@ -1,6 +1,6 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { getDb, getEmpresaDoUsuario } from "../db";
+import { getDb, getEmpresaDoContexto } from "../db";
 import { agendamentos, clientes, profissionais, servicos } from "../../drizzle/schema";
 import { and, eq, sql } from "drizzle-orm";
 
@@ -11,7 +11,7 @@ export const relatoriosRouter = router({
       meses: z.number().min(1).max(12).default(3),
     }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const db = await getDb();
@@ -91,7 +91,7 @@ export const relatoriosRouter = router({
       meses: z.number().min(1).max(6).default(3),
     }))
     .query(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const db = await getDb();
@@ -175,7 +175,7 @@ export const relatoriosRouter = router({
   // ── Previsão de Faturamento ─────────────────────────────────────────────────
   getPrevisaoFaturamento: protectedProcedure
     .query(async ({ ctx }) => {
-      const empresa = await getEmpresaDoUsuario(ctx.user.id);
+      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
       if (!empresa) throw new Error("Empresa não encontrada");
 
       const db = await getDb();
