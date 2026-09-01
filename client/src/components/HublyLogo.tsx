@@ -1,7 +1,7 @@
 import React from "react";
 
 export const HUBLY_LOGO_ASSETS = {
-  iconGold: "/manus-storage/hubly-icon-gold_40021193.png",
+  iconGold: "/hubly-icon-gold.png",
 } as const;
 
 export type HublyLogoTone = "light" | "dark";

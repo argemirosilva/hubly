@@ -10,25 +10,25 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/manus-storage/icon-192x192_752519b8.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/manus-storage/maskable-icon-192x192_3e8193c7.png",
+      "src": "/icons/maskable-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/manus-storage/playstore-512x512_b686abe8.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/manus-storage/maskable-icon-512x512_c280c73d.png",
+      "src": "/icons/maskable-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

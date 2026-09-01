@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.orizontech.hubly',
   appName: 'Hubly',
-  webDir: 'client/dist',
+  webDir: 'dist/public',
   server: {
     // Em produção, aponta para o domínio publicado
     url: 'https://hubly.orizontech.com.br',

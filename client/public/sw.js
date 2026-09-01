@@ -127,7 +127,7 @@ self.addEventListener('push', (event) => {
   const {
     title = 'Hubly',
     body = '',
-    icon = '/manus-storage/icon-192x192_752519b8.png',
+    icon = '/icons/icon-192x192.png',
     tag,
     sound = false,
     data = {},
