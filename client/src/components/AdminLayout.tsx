@@ -113,7 +113,7 @@ const bottomNav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user: systemUser, loading: systemLoading, isAuthenticated: systemAuth, login: systemLogin, logout: systemLogout, register: systemRegister } = useSystemAuth();
-  const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj } = usePermissoes();
+  const { pode, isOwner, isAdmin, hasFullAccess, permissoes: permsObj, isLoading: permissoesLoading } = usePermissoes();
   useBadge(); // Atualiza badge do ícone do app com pendentes
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -146,7 +146,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isAuthenticated, location]);
 
   // Buscar avatarUrl do perfil (apenas para system users)
-  const { data: perfilData } = trpc.perfil.getMe.useQuery(undefined, {
+  const { data: perfilData, isLoading: perfilLoading } = trpc.perfil.getMe.useQuery(undefined, {
     enabled: systemAuth && isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
@@ -187,20 +187,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // Se sucesso, o useSystemAuth já atualiza o estado e o redirect para onboarding acontece abaixo
   };
 
-  const { data: notificacoes } = trpc.notificacoes.list.useQuery(undefined, {
+  const { data: notificacoes, isLoading: notificacoesLoading } = trpc.notificacoes.list.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 30000,
   });
 
-  const { data: notifPacotesCount } = trpc.pacotes.contarNaoLidas.useQuery(undefined, {
+  const { data: notifPacotesCount, isLoading: notifPacotesLoading } = trpc.pacotes.contarNaoLidas.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 60000,
   });
 
-  const { data: planStatus } = trpc.planos.getStatus.useQuery(undefined, {
+  const { data: planStatus, isLoading: planStatusLoading } = trpc.planos.getStatus.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-  const { data: empresaData } = trpc.empresa.get.useQuery(undefined, {
+  const { data: empresaData, isLoading: empresaLoading } = trpc.empresa.get.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5,
   });
@@ -208,7 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const naoLidas = (notificacoes?.filter(n => !n.lida).length ?? 0) + (notifPacotesCount?.total ?? 0);
 
   // Status WhatsApp — poll a cada 30s para manter o ícone atualizado
-  const { data: waStatus } = trpc.whatsapp.getStatus.useQuery(undefined, {
+  const { data: waStatus, isLoading: waStatusLoading } = trpc.whatsapp.getStatus.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 30000,
     staleTime: 15000,
@@ -218,7 +218,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const waDeviceName = (waStatus as { deviceName?: string | null } | undefined)?.deviceName ?? null;
 
   // Falhas recentes de automações — poll a cada 60s para badge no menu
-  const { data: falhasAutomacoes } = trpc.automacoes.getFalhasRecentes.useQuery(undefined, {
+  const { data: falhasAutomacoes, isLoading: falhasAutomacoesLoading } = trpc.automacoes.getFalhasRecentes.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 60000,
     staleTime: 30000,
@@ -226,7 +226,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const totalFalhasAutomacoes = falhasAutomacoes?.total ?? 0;
 
   // Agendados do dia — poll a cada 60s para badge azul no menu
-  const { data: agendadosHoje } = trpc.automacoes.getAgendadosHoje.useQuery(undefined, {
+  const { data: agendadosHoje, isLoading: agendadosHojeLoading } = trpc.automacoes.getAgendadosHoje.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 60000,
     staleTime: 30000,
@@ -234,12 +234,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const totalAgendadosHoje = agendadosHoje?.total ?? 0;
 
   // Pré-agendamentos pendentes — badge vermelho no ícone Agenda da bottom nav
-  const { data: preAgendamentosPendentes } = trpc.agendamentos.contarPreAgendamentosPendentes.useQuery(undefined, {
+  const { data: preAgendamentosPendentes, isLoading: preAgendamentosLoading } = trpc.agendamentos.contarPreAgendamentosPendentes.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 60000,
     staleTime: 30000,
   });
   const totalPreAgendamentosPendentes = preAgendamentosPendentes?.total ?? 0;
+  const interfaceReady = isAuthenticated && !permissoesLoading && !perfilLoading &&
+    !notificacoesLoading && !notifPacotesLoading && !planStatusLoading && !empresaLoading &&
+    !waStatusLoading && !falhasAutomacoesLoading && !agendadosHojeLoading && !preAgendamentosLoading;
 
   // Ref para swipe na sidebar (fechar)
   const sidebarTouchStartX = useRef<number | null>(null);
@@ -332,6 +335,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isAuthenticated && systemUser?.onboardingConcluido === false) {
     navigate("/onboarding");
     return null;
+  }
+
+  // Evita que a sidebar apareça vazia ou com itens parciais antes das permissões e dos badges carregarem.
+  if (isAuthenticated && !interfaceReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(97% 0.010 80)" }}>
+        <div className="flex flex-col items-center gap-3 animate-in-up" aria-live="polite" aria-label="Preparando seu painel">
+          <HublyLogo tone="dark" height={44} />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            Preparando seu painel
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {

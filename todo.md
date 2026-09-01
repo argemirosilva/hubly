@@ -2907,6 +2907,12 @@
 - [x] Aplicar animações leves de entrada e atualização nos indicadores
 - [ ] Validar em desktop e celular antes da publicação
 
+## Calendário e Agendamentos — Motion Graphics e carregamento (01/09/2026)
+- [x] Mapear o carregamento de permissões e itens da sidebar antes da exibição
+- [x] Ocultar a sidebar até que permissões e dados essenciais da interface estejam prontos
+- [x] Aplicar animações leves de entrada e atualização no Calendário e em Agendamentos
+- [ ] Validar a fluidez em desktop e celular antes da publicação
+
 ## Financeiro — relatórios por serviço e pacote (29/08/2026)
 - [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
 - [ ] Identificar a cobertura de receita, custo, margem, pagamentos e sessões

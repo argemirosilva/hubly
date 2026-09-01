@@ -91,6 +91,7 @@ export default function Calendario() {
     profissionais?.forEach(p => { m[p.id] = { nome: p.nome, cor: p.corCalendario ?? "oklch(50% 0.06 68)" }; });
     return m;
   }, [profissionais]);
+  const calendarMotionKey = `${year}-${month}-${agendamentos?.length ?? 0}-${bloqueios?.length ?? 0}`;
 
   // Tipo para blocos do calendário (pode ser agendamento normal ou item expandido)
   type CalBloco = {
@@ -367,7 +368,7 @@ export default function Calendario() {
       )}
 
       {/* ── Calendário Grid (desktop sempre, mobile quando viewMode=grid) ── */}
-      <div className={`card-elegant overflow-hidden ${viewMode === "lista" ? "hidden lg:block" : ""}`}>
+      <div key={calendarMotionKey} className={`hubly-motion-calendar-grid card-elegant overflow-hidden ${viewMode === "lista" ? "hidden lg:block" : ""}`}>
         {/* Cabeçalho dos dias da semana */}
         <div className="grid grid-cols-7" style={{ borderBottom: "1px solid oklch(89.5% 0.018 80)", background: "oklch(97% 0.008 68)" }}>
           {DIAS_SEMANA.map((dia, i) => (
@@ -470,8 +471,8 @@ export default function Calendario() {
                       return (
                         <div
                           key={`${bloco.id}-${bi}`}
-                          className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
-                          style={{ backgroundColor: cor, color: "white", lineHeight: "1.4", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.55 : 1 }}
+                          className="hubly-motion-calendar-entry flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-sm cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
+                          style={{ backgroundColor: cor, color: "white", lineHeight: "1.4", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.55 : 1, animationDelay: `${bi * 45}ms` }}
                           onClick={e => { e.stopPropagation(); setAgendamentoSelecionado(bloco.id); }}
                           title={`${bloco.horaInicio.slice(0, 5)} — ${clienteMap[bloco.clienteId] ?? "Cliente"}${bloco.servicoNome ? ` • ${bloco.servicoNome}` : ""}${bloco.isItemBloco ? ` (· ${profNome})` : ""}`}
                         >
@@ -535,13 +536,13 @@ export default function Calendario() {
 
       {/* ── Vista Lista / Agenda (mobile quando viewMode=lista) ─────────── */}
       <div className={`space-y-3 ${viewMode === "grid" ? "hidden lg:hidden" : "lg:hidden"}`}>
-        {diasComAgendamentos.map(({ date, day, weekday }) => {
+        {diasComAgendamentos.map(({ date, day, weekday }, dayIndex) => {
           const ags = (agendamentosPorDia[date] ?? []).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
           const bloqs = bloqueios?.filter(b => b.dataInicio.split('T')[0] === date && b.status === 'aprovado') ?? [];
           const isToday = date === today;
 
           return (
-            <div key={date}>
+            <div key={`${date}-${calendarMotionKey}`} className="hubly-motion-calendar-day" style={{ animationDelay: `${dayIndex * 55}ms` }}>
               {/* Cabeçalho do dia */}
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex items-center gap-2">
@@ -575,8 +576,8 @@ export default function Calendario() {
                     return (
                       <div
                         key={`${bloco.id}-${bi}`}
-                        className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
-                        style={{ background: "white", border: `1px solid ${bloco.isItemBloco ? cor + "40" : "oklch(94% 0.010 75)"}`, boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.6 : 1 }}
+                        className="hubly-motion-calendar-entry flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/40 transition-colors"
+                        style={{ background: "white", border: `1px solid ${bloco.isItemBloco ? cor + "40" : "oklch(94% 0.010 75)"}`, boxShadow: "0 1px 4px oklch(0% 0 0 / 4%)", opacity: bloco.status === 'cancelado' || bloco.status === 'faltou' ? 0.6 : 1, animationDelay: `${bi * 45}ms` }}
                         onClick={() => setAgendamentoSelecionado(bloco.id)}
                       >
                         {/* Barra colorida */}

@@ -267,6 +267,7 @@ export default function Agendamentos() {
       return dataA.localeCompare(dataB);
     });
   }, [agendamentos, filtroStatus, busca, clienteMap, filtroProfissional, filtroSaldoAberto]);
+  const agendamentosMotionKey = filtrados.map(ag => `${ag.id}-${ag.status}-${ag.data}-${ag.horaInicio}`).join("|");
 
   const filtrosAtivos = filtroStatus !== "todos" || dataInicio !== today || dataFim !== today || filtroProfissional !== "todos" || filtroSaldoAberto;
 
@@ -492,7 +493,7 @@ export default function Agendamentos() {
       )}
 
       {/* ── Lista ───────────────────────────────────────────────────────── */}
-      <div className="card-elegant overflow-hidden">
+      <div className="hubly-motion-agendamentos-panel card-elegant overflow-hidden">
         {filtrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
@@ -507,7 +508,7 @@ export default function Agendamentos() {
             {(() => {
               const multiDia = dataInicio !== dataFim;
               let ultimaData = "";
-              return filtrados.flatMap(ag => {
+              return filtrados.flatMap((ag, index) => {
                 const servicoNome = (ag as any).servicoNome ?? servicoMap[ag.servicoId] ?? "";
                 const prof = ag.profissionalId != null ? profMap[ag.profissionalId] : undefined;
                 const st = statusStyle[ag.status] ?? statusStyle.agendado;
@@ -524,8 +525,9 @@ export default function Agendamentos() {
                 }
                 items.push(
                 <div
-                  key={ag.id}
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer ${modoSelecao && selecionados.has(ag.id) ? "bg-primary/5" : ""}`}
+                  key={`${ag.id}-${agendamentosMotionKey}`}
+                  className={`hubly-motion-agendamento-row flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer ${modoSelecao && selecionados.has(ag.id) ? "bg-primary/5" : ""}`}
+                  style={{ animationDelay: `${(index % 12) * 45}ms` }}
                   onClick={() => {
                     if (modoSelecao) { toggleSelecao(ag.id); return; }
                     setAgSelecionado(ag.id);
