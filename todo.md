@@ -2897,6 +2897,11 @@
 - [x] Corrigir a resolução de empresa no fluxo de Relatórios
 - [x] Validar o carregamento dos relatórios para Maria Isabella
 
+## Meios de pagamento — nomenclatura de profissional (01/09/2026)
+- [x] Localizar referências a “atendente” na área de meios de pagamento
+- [x] Substituir a linguagem visível por “profissional”
+- [x] Validar e publicar a padronização
+
 ## Financeiro — relatórios por serviço e pacote (29/08/2026)
 - [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
 - [ ] Identificar a cobertura de receita, custo, margem, pagamentos e sessões

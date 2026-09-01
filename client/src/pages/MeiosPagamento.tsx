@@ -244,7 +244,7 @@ export default function MeiosPagamento() {
                           <span>Até {meio.parcelamentoMaximo}x</span>
                         )}
                         {meio.descontarDoVendedor && <span className="text-orange-600">Desconta do vendedor</span>}
-                        {meio.descontarDoAtendente && <span className="text-orange-600">Desconta do atendente</span>}
+                        {meio.descontarDoAtendente && <span className="text-orange-600">Desconta do profissional</span>}
                       </div>
                     </div>
                     {/* Ações */}
@@ -433,8 +433,8 @@ export default function MeiosPagamento() {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Descontar do atendente</p>
-                  <p className="text-xs text-gray-500">A taxa é descontada da comissão do atendente</p>
+                  <p className="text-sm font-medium">Descontar do profissional</p>
+                  <p className="text-xs text-gray-500">A taxa é descontada da comissão do profissional</p>
                 </div>
                 <Switch
                   checked={form.descontarDoAtendente}
