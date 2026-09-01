@@ -2918,6 +2918,11 @@
 - [x] Tornar as chaves de itens e separadores unicamente identificáveis
 - [x] Adicionar teste de regressão e publicar a correção
 
+## Pipeline — chaves duplicadas nos cards (01/09/2026)
+- [x] Localizar todas as colunas que reutilizam o mesmo ID de agendamento como chave visual
+- [x] Deduplicar dados e tornar a chave de cada card única por coluna
+- [x] Adicionar teste de regressão e publicar a correção
+
 ## Interface — Motion Graphics em todo o Hubly (01/09/2026)
 - [x] Inventariar os módulos e componentes com dados que se beneficiam de movimento funcional
 - [x] Aplicar entrada leve nas telas operacionais e listas de atendimento

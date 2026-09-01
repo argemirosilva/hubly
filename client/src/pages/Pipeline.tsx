@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import { uniqueById } from "@/lib/collections";
 import {
   MoreHorizontal, Pencil, Trash2, GripVertical,
   User, Calendar, DollarSign, Loader2, KanbanSquare,
@@ -259,9 +260,9 @@ export default function Pipeline() {
 
                 {/* Cartões */}
                 <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
-                  {coluna.cartoes.map((cartao) => (
+                  {uniqueById(coluna.cartoes).map((cartao) => (
                     <div
-                      key={cartao.id}
+                      key={`${coluna.id}-${cartao.id}`}
                       draggable
                       onDragStart={() => setDraggingCartao(cartao.id)}
                       onDragEnd={() => { setDraggingCartao(null); setDragOverColuna(null); }}

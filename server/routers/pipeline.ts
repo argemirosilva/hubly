@@ -60,6 +60,16 @@ function descreverGatilho(aut: {
   }
 }
 
+/** Evita que leituras repetidas de uma mesma fonte gerem cards duplicados no Kanban. */
+export function removerCartoesDuplicados<T extends { id: number }>(cartoes: T[]): T[] {
+  const ids = new Set<number>();
+  return cartoes.filter((cartao) => {
+    if (ids.has(cartao.id)) return false;
+    ids.add(cartao.id);
+    return true;
+  });
+}
+
 // ── Função interna para mover cartão por status (chamada diretamente do routers.ts) ───────
 export async function moverCartaoPorStatusInterno({
   empresaId,
@@ -143,7 +153,7 @@ export const pipelineRouter = router({
     const result = await Promise.all(
       pipelinesData.map(async (p) => {
         const colunas = await getColunasByPipeline(p.id);
-        const cartoes = await getCartoesByPipeline(p.id);
+        const cartoes = removerCartoesDuplicados(await getCartoesByPipeline(p.id));
         const colunasComCartoes = colunas
           .sort((a, b) => a.ordem - b.ordem)
           .map((c) => ({
