@@ -346,6 +346,14 @@
   .hubly-motion-product-window {
     animation: hubly-motion-rise 700ms cubic-bezier(.16, 1, .3, 1) 300ms both;
   }
+
+  .hubly-motion-dashboard-stat {
+    animation: hubly-motion-dashboard-stat 420ms cubic-bezier(.16, 1, .3, 1) both;
+  }
+
+  .hubly-motion-dashboard-widget {
+    animation: hubly-motion-rise 460ms cubic-bezier(.16, 1, .3, 1) both;
+  }
 }
 
 @keyframes hubly-opening-fade {
@@ -368,6 +376,11 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes hubly-motion-dashboard-stat {
+  0% { opacity: 0; transform: translateY(10px) scale(.985); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
@@ -376,7 +389,9 @@
   .hubly-opening-motion__mark,
   .hubly-motion-hero-copy,
   .hubly-motion-hero-media,
-  .hubly-motion-product-window {
+  .hubly-motion-product-window,
+  .hubly-motion-dashboard-stat,
+  .hubly-motion-dashboard-widget {
     animation: none !important;
   }
 }

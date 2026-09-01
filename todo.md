@@ -2902,6 +2902,11 @@
 - [x] Substituir a linguagem visível por “profissional”
 - [x] Validar e publicar a padronização
 
+## Dashboard — teste de Motion Graphics (01/09/2026)
+- [x] Mapear indicadores e estados seguros para animação no Dashboard
+- [x] Aplicar animações leves de entrada e atualização nos indicadores
+- [ ] Validar em desktop e celular antes da publicação
+
 ## Financeiro — relatórios por serviço e pacote (29/08/2026)
 - [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
 - [ ] Identificar a cobertura de receita, custo, margem, pagamentos e sessões

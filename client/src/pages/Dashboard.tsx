@@ -404,6 +404,13 @@ export default function Dashboard() {
   const variacaoReceita = metrics && metrics.receitaMesAnterior > 0
     ? ((metrics.receitaMes - metrics.receitaMesAnterior) / metrics.receitaMesAnterior) * 100
     : 0;
+  const statsMotionKey = [
+    metrics?.receitaMes ?? 0,
+    metrics?.totalClientes ?? 0,
+    metrics?.taxaConversao ?? 0,
+    metrics?.enviosHoje ?? 0,
+    agendamentosHoje?.length ?? 0,
+  ].join("-");
 
   const dataFormatada = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const pendentes = agendamentosOrdenados.filter(a => a.status === "pre_agendado").length;
@@ -424,12 +431,12 @@ export default function Dashboard() {
               { label: "Conversão", value: `${metrics?.taxaConversao ?? 0}%`, sub: "concluídos", icon: TrendingUp, iconBg: "oklch(68% 0.18 80 / 12%)", iconColor: "oklch(40% 0.14 80)" },
               ...(!isProfissional ? [{ label: "Envios hoje", value: String(metrics?.enviosHoje ?? 0), sub: "disparadas", icon: Send, iconBg: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(75% 0.18 55 / 20%)" : "oklch(62% 0.20 200 / 12%)", iconColor: (metrics?.enviosHoje ?? 0) > 50 ? "oklch(45% 0.18 55)" : "oklch(40% 0.16 200)", alert: (metrics?.enviosHoje ?? 0) > 50, onClick: () => { window.location.href = "/admin/fila-automacoes"; } }] : []),
               ...(!isProfissional && (metricasPreAg?.total ?? 0) > 0 ? [{ label: "Pré-reservas", value: `${metricasPreAg?.taxaConversao ?? 0}%`, sub: `${metricasPreAg?.convertidos ?? 0}/${metricasPreAg?.total ?? 0} confirm.`, icon: CalendarCheck, iconBg: "oklch(78.5% 0.075 85 / 12%)", iconColor: "oklch(40% 0.060 55)" }] : []),
-            ].map((stat) => {
+            ].map((stat, index) => {
               const Icon = stat.icon;
               const isClickable = !!(stat as any).onClick;
               const isAlert = !!(stat as any).alert;
               return (
-                <div key={stat.label} className={`rounded-xl border bg-card px-3 py-2.5 flex flex-col gap-1 ${isClickable ? "cursor-pointer hover:shadow-sm transition-all" : ""} ${isAlert ? "border-amber-400 bg-amber-50/60" : ""}`} onClick={(stat as any).onClick}>
+                <div key={`${stat.label}-${statsMotionKey}`} className={`hubly-motion-dashboard-stat rounded-xl border bg-card px-3 py-2.5 flex flex-col gap-1 ${isClickable ? "cursor-pointer hover:shadow-sm transition-all" : ""} ${isAlert ? "border-amber-400 bg-amber-50/60" : ""}`} style={{ animationDelay: `${index * 55}ms` }} onClick={(stat as any).onClick}>
                   <div className="flex items-center justify-between">
                     <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: stat.iconBg }}><Icon className="w-2.5 h-2.5" style={{ color: stat.iconColor }} /></div>
                     {isAlert && (
@@ -993,10 +1000,10 @@ export default function Dashboard() {
       {/* ─── Widgets "full" (largura total) ─────────────────────────────────── */}
       {sortedLayout
         .filter(w => w.visible && fullWidgets.includes(w.id))
-        .map(w => {
+        .map((w, index) => {
           const content = renderWidget(w.id);
           if (!content) return null;
-          return <div key={w.id}>{content}</div>;
+          return <div key={w.id} className="hubly-motion-dashboard-widget" style={{ animationDelay: `${(index + 1) * 50}ms` }}>{content}</div>;
         })}
 
       {/* ─── Grid principal (main + sidebar) ────────────────────────────────── */}
@@ -1005,10 +1012,10 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-5">
           {sortedLayout
             .filter(w => w.visible && mainWidgets.includes(w.id))
-            .map(w => {
+            .map((w, index) => {
               const content = renderWidget(w.id);
               if (!content) return null;
-              return <div key={w.id}>{content}</div>;
+              return <div key={w.id} className="hubly-motion-dashboard-widget" style={{ animationDelay: `${(index + 2) * 55}ms` }}>{content}</div>;
             })}
         </div>
 
@@ -1016,10 +1023,10 @@ export default function Dashboard() {
         <div className="space-y-4">
           {sortedLayout
             .filter(w => w.visible && sideWidgets.includes(w.id))
-            .map(w => {
+            .map((w, index) => {
               const content = renderWidget(w.id);
               if (!content) return null;
-              return <div key={w.id}>{content}</div>;
+              return <div key={w.id} className="hubly-motion-dashboard-widget" style={{ animationDelay: `${(index + 3) * 55}ms` }}>{content}</div>;
             })}
         </div>
       </div>
