@@ -64,11 +64,14 @@ import { PlanLimitAlert } from "./components/PlanLimitAlert";
 import { ReactNode, useEffect } from "react";
 
 function WithAdmin({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
   return (
     <AdminLayout>
       <PlanLimitAlert />
       <SupportChat />
-      {children}
+      <div key={location} className="hubly-motion-route">
+        {children}
+      </div>
     </AdminLayout>
   );
 }
@@ -92,8 +95,8 @@ function Router() {
       <Route path="/solucoes/marketing">{() => <SitePublico topic="marketing" />}</Route>
       <Route path="/assinaturas" component={AssinaturasPublicas} />
       <Route path="/cadastro">{() => <WithAdmin><Dashboard /></WithAdmin>}</Route>
-      <Route path="/agendar" component={PortalCliente} />
-      <Route path="/agendar/:slug" component={PortalCliente} />
+      <Route path="/agendar">{() => <div className="hubly-motion-route"><PortalCliente /></div>}</Route>
+      <Route path="/agendar/:slug">{() => <div className="hubly-motion-route"><PortalCliente /></div>}</Route>
       <Route path="/setup" component={Setup} />
       <Route path="/confirmar/:token" component={ConfirmarAgendamento} />
       <Route path="/onboarding" component={Onboarding} />

@@ -29,6 +29,7 @@ import { trpc } from "@/lib/trpc";
 import { ServiceIcon } from "@/lib/serviceIcons";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { usePlanGuard } from "@/hooks/usePlanGuard";
+import { uniqueById } from "@/lib/collections";
 import { getLocalDateString } from "@/lib/utils";
 import { useSearch } from "wouter";
 
@@ -253,7 +254,7 @@ export default function Agendamentos() {
   }, [servicos]);
 
   const filtrados = useMemo(() => {
-    return (agendamentos ?? []).filter(ag => {
+    return uniqueById((agendamentos ?? []).filter(ag => {
       const matchStatus = filtroStatus === "todos" || ag.status === filtroStatus;
       const nomeCliente = clienteMap[ag.clienteId] ?? "";
       const matchBusca = !busca || nomeCliente.toLowerCase().includes(busca.toLowerCase());
@@ -261,7 +262,7 @@ export default function Agendamentos() {
       const emAberto = (ag as any).emAberto ?? 0;
       const matchSaldo = !filtroSaldoAberto || emAberto > 0;
       return matchStatus && matchBusca && matchProfissional && matchSaldo;
-    }).sort((a, b) => {
+    })).sort((a, b) => {
       const dataA = (a.data ?? "") + " " + (a.horaInicio ?? "");
       const dataB = (b.data ?? "") + " " + (b.horaInicio ?? "");
       return dataA.localeCompare(dataB);
@@ -525,7 +526,7 @@ export default function Agendamentos() {
                 }
                 items.push(
                 <div
-                  key={`${ag.id}-${agendamentosMotionKey}`}
+                  key={`${ag.id}-${index}-${agendamentosMotionKey}`}
                   className={`hubly-motion-agendamento-row flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer ${modoSelecao && selecionados.has(ag.id) ? "bg-primary/5" : ""}`}
                   style={{ animationDelay: `${(index % 12) * 45}ms` }}
                   onClick={() => {

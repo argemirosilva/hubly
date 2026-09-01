@@ -360,6 +360,10 @@
     animation: hubly-motion-rise 440ms cubic-bezier(.16, 1, .3, 1) both;
   }
 
+  .hubly-motion-route {
+    animation: hubly-motion-rise 360ms cubic-bezier(.16, 1, .3, 1) both;
+  }
+
   .hubly-motion-calendar-day,
   .hubly-motion-calendar-entry,
   .hubly-motion-agendamento-row {
@@ -403,6 +407,7 @@
   .hubly-motion-product-window,
   .hubly-motion-dashboard-stat,
   .hubly-motion-dashboard-widget,
+  .hubly-motion-route,
   .hubly-motion-calendar-grid,
   .hubly-motion-calendar-day,
   .hubly-motion-calendar-entry,

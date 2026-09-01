@@ -2905,13 +2905,25 @@
 ## Dashboard — teste de Motion Graphics (01/09/2026)
 - [x] Mapear indicadores e estados seguros para animação no Dashboard
 - [x] Aplicar animações leves de entrada e atualização nos indicadores
-- [ ] Validar em desktop e celular antes da publicação
+- [x] Validar em desktop e celular antes da publicação
 
 ## Calendário e Agendamentos — Motion Graphics e carregamento (01/09/2026)
 - [x] Mapear o carregamento de permissões e itens da sidebar antes da exibição
 - [x] Ocultar a sidebar até que permissões e dados essenciais da interface estejam prontos
 - [x] Aplicar animações leves de entrada e atualização no Calendário e em Agendamentos
-- [ ] Validar a fluidez em desktop e celular antes da publicação
+- [x] Validar a fluidez em desktop e celular antes da publicação
+
+## Agendamentos — chaves duplicadas na lista (01/09/2026)
+- [x] Localizar todas as listas que reutilizam o mesmo ID de agendamento como chave visual
+- [x] Tornar as chaves de itens e separadores unicamente identificáveis
+- [x] Adicionar teste de regressão e publicar a correção
+
+## Interface — Motion Graphics em todo o Hubly (01/09/2026)
+- [x] Inventariar os módulos e componentes com dados que se beneficiam de movimento funcional
+- [x] Aplicar entrada leve nas telas operacionais e listas de atendimento
+- [x] Aplicar transições de dados no Financeiro, Pacotes, Marketing e Automação
+- [x] Padronizar feedbacks de carregamento, atualização e conclusão respeitando reduzir movimento
+- [x] Validar os fluxos principais em desktop e celular antes de publicar
 
 ## Financeiro — relatórios por serviço e pacote (29/08/2026)
 - [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
