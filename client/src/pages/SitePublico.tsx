@@ -256,7 +256,7 @@ function SiteHeader() {
 
 function ProductWindow() {
   return (
-    <figure className="relative mx-auto w-full max-w-[570px] overflow-hidden rounded-[28px] border border-white/80 bg-[#fffdf9] p-2 shadow-[0_28px_70px_rgba(59,33,21,0.18)]">
+    <figure className="hubly-motion-product-window relative mx-auto w-full max-w-[570px] overflow-hidden rounded-[28px] border border-white/80 bg-[#fffdf9] p-2 shadow-[0_28px_70px_rgba(59,33,21,0.18)]">
       <img
         src="/manus-storage/hubly-agenda-finance-dashboard_e7009168.jpg"
         alt="Painel visual genérico de gestão com agenda, gráfico de desempenho e indicadores financeiros"
@@ -275,14 +275,14 @@ function HomeContent() {
         <div className="pointer-events-none absolute right-[-8%] top-[20%] h-[380px] w-[380px] rounded-full bg-[#efdc8d]/30 blur-3xl" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 lg:grid-cols-[1.02fr_.98fr] lg:px-8">
           <div className="max-w-xl">
-            <div className="mb-6 inline-flex rounded-full border border-[#e9dac9] bg-white/80 px-3.5 py-2 text-xs font-bold text-[#78563f]">Gestão feita para quem faz acontecer</div>
-            <h1 className="max-w-2xl text-[2.7rem] font-extrabold leading-[1.03] tracking-[-0.065em] text-[#2c1a12] sm:text-6xl lg:text-[4.3rem]">Seu negócio não precisa ser uma bagunça <span className="text-[#a65d32]">para crescer.</span></h1>
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-[#705e52] sm:text-lg">Organize agenda, clientes, pagamentos e mensagens em um só lugar — pelo celular e do seu jeito.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Button asChild size="lg" className="h-12 rounded-xl bg-[#3b2115] px-6 text-sm font-bold shadow-[0_14px_28px_rgba(59,33,21,0.2)] hover:bg-[#57321d]"><a href={CADASTRO_URL}>Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button><Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-[#d9cabb] bg-white/70 px-6 text-sm font-bold text-[#4d3325] hover:bg-white"><a href="#como-funciona">Ver como funciona</a></Button></div>
+            <div className="hubly-motion-hero-copy mb-6 inline-flex rounded-full border border-[#e9dac9] bg-white/80 px-3.5 py-2 text-xs font-bold text-[#78563f]">Gestão feita para quem faz acontecer</div>
+            <h1 className="hubly-motion-hero-copy hubly-motion-hero-copy--delay-1 max-w-2xl text-[2.7rem] font-extrabold leading-[1.03] tracking-[-0.065em] text-[#2c1a12] sm:text-6xl lg:text-[4.3rem]">Seu negócio não precisa ser uma bagunça <span className="text-[#a65d32]">para crescer.</span></h1>
+            <p className="hubly-motion-hero-copy hubly-motion-hero-copy--delay-2 mt-6 max-w-lg text-base leading-relaxed text-[#705e52] sm:text-lg">Organize agenda, clientes, pagamentos e mensagens em um só lugar — pelo celular e do seu jeito.</p>
+            <div className="hubly-motion-hero-copy hubly-motion-hero-copy--delay-3 mt-8 flex flex-col gap-3 sm:flex-row"><Button asChild size="lg" className="h-12 rounded-xl bg-[#3b2115] px-6 text-sm font-bold shadow-[0_14px_28px_rgba(59,33,21,0.2)] hover:bg-[#57321d]"><a href={CADASTRO_URL}>Começar agora <ArrowRight className="ml-2 h-4 w-4" /></a></Button><Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-[#d9cabb] bg-white/70 px-6 text-sm font-bold text-[#4d3325] hover:bg-white"><a href="#como-funciona">Ver como funciona</a></Button></div>
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#756156]"><span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-[#5f9a59]" /> Feito para serviços</span><span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-[#5f9a59]" /> Funciona no celular</span><span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-[#5f9a59]" /> Tudo no mesmo lugar</span></div>
           </div>
           <div className="relative min-h-[390px] lg:min-h-[500px]">
-            <div className="absolute inset-x-0 top-0 mx-auto h-[330px] max-w-[520px] overflow-hidden rounded-[32px] border border-white/80 shadow-[0_28px_70px_rgba(74,38,16,0.16)] lg:left-14 lg:right-auto"><img src={HERO_IMAGE} alt="Empreendedora de serviços organizando o negócio pelo celular" className="h-full w-full object-cover object-[70%_center]" /></div>
+            <div className="hubly-motion-hero-media absolute inset-x-0 top-0 mx-auto h-[330px] max-w-[520px] overflow-hidden rounded-[32px] border border-white/80 shadow-[0_28px_70px_rgba(74,38,16,0.16)] lg:left-14 lg:right-auto"><img src={HERO_IMAGE} alt="Empreendedora de serviços organizando o negócio pelo celular" className="h-full w-full object-cover object-[70%_center]" /></div>
             <div className="absolute bottom-0 left-0 right-0 mx-auto"><ProductWindow /></div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { PWAInstallBanner } from "./components/PWAInstallBanner";
+import { AppOpeningMotion } from "./components/AppOpeningMotion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect, useLocation } from "wouter";
@@ -180,6 +181,7 @@ function App() {
           <OfflineIndicator />
           <MobileAppInit />
           {!isPublicSite && <PWAInstallBanner />}
+          <AppOpeningMotion active={location.startsWith("/admin")} />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

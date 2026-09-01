@@ -2864,6 +2864,44 @@
 - [x] Garantir que réplicas, snapshots e ambientes de desenvolvimento iniciem com envio desativado
 - [x] Manter o processamento habilitado exclusivamente nos domínios oficiais do Hubly
 
+## Automação — limpeza de links localhost pendentes (29/08/2026)
+- [x] Localizar todos os envios de automação pendentes que ainda contenham `localhost`
+- [x] Cancelar ou corrigir com segurança cada item futuro identificado — nenhum item oficial com link local foi encontrado
+- [x] Validar que nenhum envio futuro com link local permaneceu na fila
+
+## Financeiro — relatórios por serviço, pacote e profissional (29/08/2026)
+- [x] Mapear indicadores e relatórios financeiros existentes para serviços, pacotes e profissionais
+- [x] Identificar a cobertura de receita, custo, margem, pagamentos, sessões e comissões
+- [x] Apresentar os relatórios disponíveis e as lacunas para decisão de melhoria
+
+## Financeiro — visão por forma de pagamento (29/08/2026)
+- [x] Mapear os dados financeiros existentes por forma de pagamento, incluindo recebimentos, pendências e taxas
+
+## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
+- [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
+- [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis
+- [x] Apresentar recomendações práticas de implementação
+
+## Interface — Motion Graphics inicial (29/08/2026)
+- [x] Definir animações leves, acessíveis e compatíveis com preferência de movimento reduzido
+- [x] Aplicar abertura curta e não bloqueante ao iniciar o aplicativo
+- [x] Aplicar destaque animado discreto na página pública do Hubly
+- [x] Validar a fluidez em desktop e celular antes da publicação
+
+## Interface — Motion Graphics em relatórios (29/08/2026)
+- [x] Aplicar animações curtas de entrada e atualização nos gráficos de relatórios
+- [x] Respeitar preferência de movimento reduzido e evitar recálculos visuais desnecessários
+
+## Financeiro — relatórios por serviço e pacote (29/08/2026)
+- [ ] Mapear indicadores e relatórios financeiros existentes para serviços e pacotes
+- [ ] Identificar a cobertura de receita, custo, margem, pagamentos e sessões
+- [ ] Apresentar os relatórios já disponíveis e as lacunas para decisão de melhoria
+
+## Automação — conferência de horário da duplicidade (29/08/2026)
+- [x] Confirmar na base o horário do último envio relatado — o vídeo anexado não era do incidente e não continha telas do Hubly
+- [x] Comparar o incidente com o horário de publicação da proteção contra réplicas
+- [ ] Informar se é necessário criar um novo agendamento para teste controlado
+
 ## Acesso e planos — investigação (07/08/2026)
 - [x] Investigar e corrigir bloqueio indevido de administradora no acesso a planos para anabeatriz280406@gmail.com
 - [x] Verificar se o fluxo de criação de empresa/conta pode deixar novos proprietários sem permissão de administrador

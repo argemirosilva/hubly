@@ -24,6 +24,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { allowsHublyMotion, HUBLY_MOTION } from "@/lib/motion";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ const COLORS_PIE = ["#7c3aed", "#10b981", "#f59e0b", "#ef4444"];
 
 function RelatorioPacotes() {
   const { data, isLoading } = trpc.pacotes.relatorioFinanceiro.useQuery();
+  const shouldAnimate = allowsHublyMotion(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
 
   if (isLoading) return <div className="text-center py-16 text-stone-400">Carregando relatório...</div>;
   if (!data) return <div className="text-center py-16 text-stone-400">Nenhum dado disponível.</div>;
@@ -127,7 +131,7 @@ function RelatorioPacotes() {
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
                 <Tooltip formatter={(v: number) => [formatCurrency(v), "Receita"]} />
-                <Bar dataKey="receita" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="receita" fill="#7c3aed" radius={[4, 4, 0, 0]} isAnimationActive={shouldAnimate} animationDuration={HUBLY_MOTION.chartDurationMs} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -141,7 +145,7 @@ function RelatorioPacotes() {
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={statusChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                <Pie data={statusChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} isAnimationActive={shouldAnimate} animationDuration={HUBLY_MOTION.chartDurationMs} animationBegin={100} animationEasing="ease-out">
                   {statusChart.map((_, i) => <Cell key={i} fill={COLORS_PIE[i % COLORS_PIE.length]} />)}
                 </Pie>
                 <Tooltip />
@@ -163,8 +167,8 @@ function RelatorioPacotes() {
               <YAxis type="category" dataKey="nome" tick={{ fontSize: 11 }} width={100} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="usadas" name="Usadas" fill="#7c3aed" radius={[0, 4, 4, 0]} stackId="a" />
-              <Bar dataKey="restantes" name="Restantes" fill="#e9d5ff" radius={[0, 4, 4, 0]} stackId="a" />
+              <Bar dataKey="usadas" name="Usadas" fill="#7c3aed" radius={[0, 4, 4, 0]} stackId="a" isAnimationActive={shouldAnimate} animationDuration={HUBLY_MOTION.chartDurationMs} animationEasing="ease-out" />
+              <Bar dataKey="restantes" name="Restantes" fill="#e9d5ff" radius={[0, 4, 4, 0]} stackId="a" isAnimationActive={shouldAnimate} animationDuration={HUBLY_MOTION.chartDurationMs} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         </div>
