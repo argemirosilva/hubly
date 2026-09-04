@@ -2884,6 +2884,13 @@
 - [x] Permitir abrir os recortes e registros que compõem cada número do relatório
 - [x] Validar cálculos com dados reais e publicar a área de análise
 
+## Financeiro e Relatórios — navegação filtrada (04/09/2026)
+- [x] Revisar a divisão funcional entre a tela Financeiro e a central de Relatórios
+- [x] Fazer os indicadores levarem para a visão detalhada com período e recorte preservados
+- [x] Validar a nova jornada de clique e publicar
+- [x] Criar rota dedicada para Análise de Resultados com parâmetros de período e visão
+- [x] Adicionar atalho de consulta detalhada na central de Relatórios sem duplicar os cálculos
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

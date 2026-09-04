@@ -16,6 +16,7 @@ import Equipe from "./pages/Equipe";
 import Servicos from "./pages/Servicos";
 import Agendamentos from "./pages/Agendamentos";
 import Financeiro from "./pages/Financeiro";
+import AnaliseFinanceira from "./pages/AnaliseFinanceira";
 import Automacoes from "./pages/Automacoes";
 import Configuracoes from "./pages/Configuracoes";
 import Notificacoes from "./pages/Notificacoes";
@@ -112,6 +113,7 @@ function Router() {
       <Route path="/admin/equipe">{() => <WithAdmin><Equipe /></WithAdmin>}</Route>
       <Route path="/admin/servicos">{() => <WithAdmin><Servicos /></WithAdmin>}</Route>
       <Route path="/admin/financeiro">{() => <WithAdmin><Financeiro /></WithAdmin>}</Route>
+      <Route path="/admin/financeiro/analise">{() => <WithAdmin><AnaliseFinanceira /></WithAdmin>}</Route>
       <Route path="/admin/automacoes">{() => <WithAdmin><Automacoes /></WithAdmin>}</Route>
       <Route path="/admin/notificacoes">{() => <WithAdmin><Notificacoes /></WithAdmin>}</Route>
       <Route path="/admin/bloqueios">{() => <WithAdmin><Bloqueios /></WithAdmin>}</Route>

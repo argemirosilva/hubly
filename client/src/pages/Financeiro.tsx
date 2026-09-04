@@ -182,7 +182,7 @@ export default function Financeiro() {
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
 
-      <AnaliseFinanceiraDetalhada />
+      <AnaliseFinanceiraDetalhada compacta />
 
       {/* Fluxo de Caixa Consolidado */}
       <div className="card-elegant p-4 lg:p-5">

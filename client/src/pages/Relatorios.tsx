@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, BarChart3, TrendingUp, TrendingDown, Calendar, Users, Target, Clock, ShieldOff } from "lucide-react";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useLocation } from "wouter";
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -15,6 +16,21 @@ function mesLabel(mes: string) {
   const [ano, m] = mes.split("-");
   const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
   return `${nomes[parseInt(m) - 1]}/${ano.slice(2)}`;
+}
+
+function AtalhoAnaliseFinanceira() {
+  const [, setLocation] = useLocation();
+  return (
+    <button
+      type="button"
+      onClick={() => setLocation("/admin/financeiro/analise?visao=servicos&periodo=mes")}
+      className="w-full rounded-xl border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <span className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" />Análise detalhada de vendas</span>
+      <span className="mt-1 block text-xs text-muted-foreground">Consulte serviços, pacotes, profissionais e pagamentos com os registros que formam cada total.</span>
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">Abrir análise financeira <TrendingUp className="h-3.5 w-3.5" /></span>
+    </button>
+  );
 }
 
 // ── Painel de Perdas ─────────────────────────────────────────────────────────
@@ -415,6 +431,8 @@ export default function Relatorios() {
           <p className="text-sm text-muted-foreground">Inteligência de negócio para decisões mais assertivas</p>
         </div>
       </div>
+
+      <AtalhoAnaliseFinanceira />
 
       <Tabs defaultValue="perdas">
         <TabsList className="grid grid-cols-3 w-full" style={{backgroundColor: '#f2eadc'}}>
