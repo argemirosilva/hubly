@@ -86,7 +86,7 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
         </div>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           <Resumo label="Serviço líder" valor={data?.servicos[0]?.nome ?? "—"} subtitulo={data?.servicos[0] ? moeda(data.servicos[0].faturamento) : undefined} aoClicar={() => abrirAnalise("servicos", data?.servicos[0] ? String(data.servicos[0].servicoId) : undefined)} />
-          <Resumo label="Faturamento de serviços" valor={data ? moeda(data.totais.faturamentoServicos) : "—"} aoClicar={() => abrirAnalise("servicos")} />
+          <Resumo label="Profissional líder" valor={data?.profissionais[0]?.nome ?? "—"} subtitulo={data?.profissionais[0] ? moeda(data.profissionais[0].bruto) : undefined} aoClicar={() => abrirAnalise("profissionais", data?.profissionais[0] ? String(data.profissionais[0].profissionalId) : undefined)} />
           <Resumo label="Pacotes vendidos" valor={data ? moeda(data.totais.valorPacotesVendidos) : "—"} aoClicar={() => abrirAnalise("pacotes")} />
           <Resumo label="Maior forma de pagamento" valor={maiorPagamento?.forma ?? "—"} subtitulo={maiorPagamento ? moeda(maiorPagamento.recebido) : undefined} aoClicar={() => abrirAnalise("pagamentos", maiorPagamento?.forma)} />
         </div>
@@ -128,7 +128,7 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Resumo label="Serviço líder" valor={data?.servicos[0]?.nome ?? "—"} subtitulo={data?.servicos[0] ? moeda(data.servicos[0].faturamento) : undefined} aoClicar={() => { setVisao("servicos"); atualizarUrl("servicos", periodo, dataInicio, dataFim, data?.servicos[0] ? String(data.servicos[0].servicoId) : undefined); }} />
-        <Resumo label="Faturamento de serviços" valor={data ? moeda(data.totais.faturamentoServicos) : "—"} aoClicar={() => { setVisao("servicos"); atualizarUrl("servicos", periodo, dataInicio, dataFim); }} />
+        <Resumo label="Profissional líder" valor={data?.profissionais[0]?.nome ?? "—"} subtitulo={data?.profissionais[0] ? moeda(data.profissionais[0].bruto) : undefined} aoClicar={() => { setVisao("profissionais"); atualizarUrl("profissionais", periodo, dataInicio, dataFim, data?.profissionais[0] ? String(data.profissionais[0].profissionalId) : undefined); }} />
         <Resumo label="Pacotes vendidos" valor={data ? moeda(data.totais.valorPacotesVendidos) : "—"} aoClicar={() => { setVisao("pacotes"); atualizarUrl("pacotes", periodo, dataInicio, dataFim); }} />
         <Resumo label="Maior forma de pagamento" valor={maiorPagamento ? maiorPagamento.forma : "—"} subtitulo={maiorPagamento ? moeda(maiorPagamento.recebido) : undefined} aoClicar={() => { setVisao("pagamentos"); atualizarUrl("pagamentos", periodo, dataInicio, dataFim, maiorPagamento?.forma); }} />
       </div>

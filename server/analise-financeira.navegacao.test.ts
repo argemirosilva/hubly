@@ -11,6 +11,7 @@ describe("navegação da análise financeira", () => {
     expect(analise).toContain('query.set("foco", foco)');
     expect(analise).toContain("paginaDedicada");
     expect(analise).toContain("compacta");
+    expect(analise).toContain("Profissional líder");
   });
 
   it("mantém Relatórios como atalho para a análise, sem duplicar o painel", () => {
