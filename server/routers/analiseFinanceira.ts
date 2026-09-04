@@ -302,7 +302,7 @@ export const analiseFinanceiraRouter = router({
       recebimentos: recebimentosDetalhes.map(item => ({
         ...item,
         valor: valor(item.valor),
-        forma: normalizarFormaPagamento(item.formaPagamento),
+        forma: item.formaPagamento ? normalizarFormaPagamento(item.formaPagamento) : null,
       })),
       detalhes: {
         vendas: vendasDetalhes,
@@ -312,7 +312,7 @@ export const analiseFinanceiraRouter = router({
         recebimentos: recebimentosDetalhes.map(item => ({
           ...item,
           valor: valor(item.valor),
-          forma: normalizarFormaPagamento(item.formaPagamento),
+          forma: item.formaPagamento ? normalizarFormaPagamento(item.formaPagamento) : null,
         })),
       },
     };

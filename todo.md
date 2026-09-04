@@ -2902,7 +2902,7 @@
 ## Financeiro — revisão de redundâncias (04/09/2026)
 - [x] Mapear informações repetidas entre cabeçalho, filtros, visões, resumo e detalhe lateral
 - [x] Reduzir a tela à hierarquia essencial de período, visão, resultado e registros
-- [ ] Validar o relatório enxuto, testar e publicar
+- [x] Validar o relatório enxuto, testar e publicar
 
 ## Auditoria UX/UI — telas de uso diário (04/09/2026)
 - [x] Mapear jornadas operacionais prioritárias, excluindo configurações técnicas

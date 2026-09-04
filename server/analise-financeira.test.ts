@@ -20,6 +20,7 @@ describe("análise financeira detalhada", () => {
     expect(fonte).toContain("const pacotes = profissionalRestrito");
     expect(fonte).toContain("agendamentoPagamentos.createdAt");
     expect(fonte).toContain("pacotesClientesPagamentos.dataPagamento");
+    expect(fonte).toContain("item.formaPagamento ? normalizarFormaPagamento(item.formaPagamento) : null");
     expect(fonte).toContain("dataInicio");
     expect(fonte).toContain("dataFim");
   });
