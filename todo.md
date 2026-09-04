@@ -2899,6 +2899,11 @@
 - [ ] Validar visualmente a nova experiência interna em celular com sessão autenticada
 - [x] Conectar cards principais de valores recebidos, pagamentos, comissões e pendências à análise já filtrada por período e registros
 
+## Financeiro — revisão de redundâncias (04/09/2026)
+- [x] Mapear informações repetidas entre cabeçalho, filtros, visões, resumo e detalhe lateral
+- [x] Reduzir a tela à hierarquia essencial de período, visão, resultado e registros
+- [ ] Validar o relatório enxuto, testar e publicar
+
 ## Auditoria UX/UI — telas de uso diário (04/09/2026)
 - [x] Mapear jornadas operacionais prioritárias, excluindo configurações técnicas
 - [x] Avaliar Dashboard, Calendário, Agendamentos, Clientes e Financeiro em desktop

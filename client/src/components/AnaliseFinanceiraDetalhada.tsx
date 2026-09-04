@@ -113,9 +113,9 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
           <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 text-xs" onClick={() => abrirAnalise("recebimentos")}>Ver relatório <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button>
         </div>
         <div className="mt-4 grid grid-cols-2 border-t border-border/70 lg:grid-cols-4">
-          <IndicadorCompacto etiqueta="Valores recebidos" valor={data ? moeda(data.totais.valoresRecebidos) : "—"} legenda="Baixas registradas" icone={WalletCards} aoClicar={() => abrirAnalise("recebimentos")} />
           <IndicadorCompacto etiqueta="Serviço líder" valor={data?.servicos?.[0]?.nome ?? "Sem vendas"} legenda={data?.servicos?.[0] ? moeda(data.servicos[0].faturamento) : "Sem atendimento concluído"} icone={Wrench} aoClicar={() => abrirAnalise("servicos", data?.servicos?.[0] ? String(data.servicos[0].servicoId) : undefined)} />
           <IndicadorCompacto etiqueta="Profissional líder" valor={data?.profissionais?.[0]?.nome ?? "—"} legenda={data?.profissionais?.[0] ? moeda(data.profissionais[0].bruto) : "Sem produção concluída"} icone={UsersRound} aoClicar={() => abrirAnalise("profissionais", data?.profissionais?.[0] ? String(data.profissionais[0].profissionalId) : undefined)} />
+          <IndicadorCompacto etiqueta="Pacotes vendidos" valor={data ? moeda(data.totais.valorPacotesVendidos) : "—"} legenda={data?.pacotes?.length ? `${data.pacotes.length} pacote${data.pacotes.length === 1 ? "" : "s"} no período` : "Sem pacote no período"} icone={Package} aoClicar={() => abrirAnalise("pacotes")} />
           <IndicadorCompacto etiqueta="Maior forma de pagamento" valor={maiorPagamento?.forma ?? "Sem entradas"} legenda={maiorPagamento ? moeda(maiorPagamento.recebido) : "Sem pagamento registrado"} icone={CreditCard} aoClicar={() => abrirAnalise("pagamentos", maiorPagamento?.forma)} />
         </div>
       </section>
@@ -130,8 +130,7 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-xl">
             <div className="flex items-center gap-2 text-primary"><BarChart3 className="h-4 w-4" /><span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Relatório financeiro</span></div>
-            <h1 id="analise-financeira-titulo" className="mt-2 text-xl font-bold tracking-tight">O que aconteceu no seu período</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">Escolha uma visão. O detalhamento abre ao lado, sem transformar a página em uma lista longa.</p>
+            <h1 id="analise-financeira-titulo" className="mt-2 text-xl font-bold tracking-tight">Resultados do período</h1>
           </div>
           <div className="rounded-xl border border-border/80 bg-background/80 px-3 py-2 text-xs shadow-sm"><span className="block text-muted-foreground">Período analisado</span><strong className="mt-0.5 block font-semibold text-foreground">{tituloPeriodo}</strong></div>
         </div>
@@ -142,7 +141,7 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
           {(["semana", "mes", "ano"] as const).map(item => <Button key={item} type="button" size="sm" variant={periodo === item ? "default" : "ghost"} className="h-8 rounded-lg px-3 text-xs" onClick={() => aplicarPeriodo(item)}>{item === "semana" ? "Semana" : item === "mes" ? "Mês" : "Ano"}</Button>)}
           <Button type="button" size="sm" variant={periodo === "custom" ? "default" : "ghost"} className="h-8 rounded-lg px-3 text-xs" onClick={() => { setPeriodo("custom"); atualizarUrl(visao, "custom", dataInicio, dataFim, focoDaUrl ?? undefined); }}><CalendarDays className="mr-1 h-3.5 w-3.5" />Personalizar</Button>
         </div>
-        <span className="text-xs text-muted-foreground">{isLoading ? "Atualizando dados…" : configuracaoAtual.base}</span>
+        {isLoading && <span className="text-xs text-muted-foreground">Atualizando dados…</span>}
       </div>
 
       {periodo === "custom" && <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-muted/20 p-3 sm:grid-cols-2"><CampoData etiqueta="Data inicial" valor={dataInicio} aoMudar={valor => { setDataInicio(valor); atualizarUrl(visao, "custom", valor, dataFim, focoDaUrl ?? undefined); }} /><CampoData etiqueta="Data final" valor={dataFim} aoMudar={valor => { setDataFim(valor); atualizarUrl(visao, "custom", dataInicio, valor, focoDaUrl ?? undefined); }} /></div>}
@@ -151,10 +150,9 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
         {visoes.map(item => {
           const Icone = item.icone;
           const ativa = item.id === visao;
-          return <button type="button" key={item.id} onClick={() => { setVisao(item.id); setRegistroSelecionado(null); atualizarUrl(item.id, periodo, dataInicio, dataFim); }} className={`group min-h-[92px] rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${ativa ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/80 bg-card hover:border-primary/35 hover:bg-primary/[0.035]"}`}>
-            <Icone className={`mb-3 h-4 w-4 ${ativa ? "text-primary-foreground" : "text-primary"}`} />
+          return <button type="button" key={item.id} onClick={() => { setVisao(item.id); setRegistroSelecionado(null); atualizarUrl(item.id, periodo, dataInicio, dataFim); }} className={`group flex min-h-16 items-center gap-2 rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${ativa ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/80 bg-card hover:border-primary/35 hover:bg-primary/[0.035]"}`}>
+            <Icone className={`h-4 w-4 shrink-0 ${ativa ? "text-primary-foreground" : "text-primary"}`} />
             <span className="block text-sm font-semibold">{item.titulo}</span>
-            <span className={`mt-0.5 block text-[11px] leading-snug ${ativa ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{item.descricao}</span>
           </button>;
         })}
       </nav>
@@ -162,8 +160,7 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card" aria-labelledby="ranking-financeiro-titulo">
         <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-primary">{configuracaoAtual.base}</p>
-            <h2 id="ranking-financeiro-titulo" className="mt-1 text-base font-semibold">{resumoDaVisao.titulo}</h2>
+            <h2 id="ranking-financeiro-titulo" className="text-base font-semibold">{resumoDaVisao.titulo}</h2>
             <p className="mt-1 text-xs text-muted-foreground">{resumoDaVisao.descricao}</p>
           </div>
           <div className="rounded-xl bg-muted/50 px-3 py-2 text-right"><p className="text-[10px] text-muted-foreground">{resumoDaVisao.etiqueta}</p><p className="text-base font-bold tracking-tight">{resumoDaVisao.valor}</p></div>
@@ -173,8 +170,6 @@ export function AnaliseFinanceiraDetalhada({ paginaDedicada = false, compacta = 
 
         {isLoading ? <CarregandoRanking /> : dadosDaVisao.length ? <div className="divide-y divide-border/70">{dadosDaVisao.map((item: any, index: number) => <LinhaRanking key={item.chave} indice={index} item={item} visao={visao} aoAbrir={() => setRegistroSelecionado(item)} />)}</div> : <EstadoVazio visao={visao} onVerMes={() => aplicarPeriodo("mes")} />}
       </section>
-
-      <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">{notaDaBase(visao)} Os valores são calculados apenas dentro do período selecionado.</p>
 
       <DetalheLateral registro={registroSelecionado} visao={visao} data={data} periodo={tituloPeriodo} aoFechar={() => setRegistroSelecionado(null)} />
     </section>
@@ -199,11 +194,11 @@ function selecionarDados(visao: Visao, data: any, foco: string | null) {
 function montarResumo(visao: Visao, data: any, itens: any[]) {
   const total = itens.reduce((acumulado, item) => acumulado + Number(item.total ?? 0), 0);
   const configuracoes: Record<Visao, { titulo: string; descricao: string; etiqueta: string; valor: string }> = {
-    recebimentos: { titulo: "Recebimentos confirmados", descricao: "Cada linha representa uma conta marcada como recebida.", etiqueta: "Total recebido", valor: moeda(data?.totais?.valoresRecebidos ?? total) },
-    servicos: { titulo: "Ranking de serviços", descricao: "Ordenado pelo faturamento de atendimentos concluídos.", etiqueta: "Faturamento", valor: moeda(total) },
-    pacotes: { titulo: "Pacotes vendidos", descricao: "Pacotes abertos no período, com situação financeira visível no detalhe.", etiqueta: "Valor contratado", valor: moeda(total) },
-    profissionais: { titulo: "Produção por profissional", descricao: "Ordenado pela produção de atendimentos concluídos.", etiqueta: "Produção bruta", valor: moeda(total) },
-    pagamentos: { titulo: "Formas de pagamento", descricao: "Cada forma agrupa entradas efetivamente registradas.", etiqueta: "Entradas", valor: moeda(data?.totais?.entradasRegistradas ?? total) },
+    recebimentos: { titulo: "Recebimentos", descricao: "Baixas confirmadas no período selecionado.", etiqueta: "Total recebido", valor: moeda(data?.totais?.valoresRecebidos ?? total) },
+    servicos: { titulo: "Serviços", descricao: "Faturamento de atendimentos concluídos.", etiqueta: "Faturamento", valor: moeda(total) },
+    pacotes: { titulo: "Pacotes", descricao: "Valor contratado em pacotes abertos no período.", etiqueta: "Valor contratado", valor: moeda(total) },
+    profissionais: { titulo: "Profissionais", descricao: "Produção bruta de atendimentos concluídos.", etiqueta: "Produção bruta", valor: moeda(total) },
+    pagamentos: { titulo: "Formas de pagamento", descricao: "Entradas registradas por forma de pagamento.", etiqueta: "Entradas", valor: moeda(data?.totais?.entradasRegistradas ?? total) },
   };
   return configuracoes[visao];
 }
@@ -223,10 +218,15 @@ function CarregandoRanking() { return <div className="space-y-3 p-4 sm:p-5">{[0,
 function DetalheLateral({ registro, visao, data, periodo, aoFechar }: { registro: any | null; visao: Visao; data: any; periodo: string; aoFechar: () => void }) {
   const detalhes = useMemo(() => registrosDoDetalhe(visao, registro, data), [data, registro, visao]);
   const configuracao = visoes.find(item => item.id === visao) ?? visoes[0];
-  return <Sheet open={Boolean(registro)} onOpenChange={aberto => { if (!aberto) aoFechar(); }}><SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-xl"><SheetHeader className="border-b border-border/70 px-5 py-5 pr-12"><div className="flex items-center gap-2 text-primary"><configuracao.icone className="h-4 w-4" /><span className="text-[11px] font-semibold uppercase tracking-[0.13em]">Detalhamento</span></div><SheetTitle className="mt-2 text-lg">{registro?.principal}</SheetTitle><SheetDescription>{periodo}</SheetDescription></SheetHeader>{registro && <><div className="grid grid-cols-2 gap-px border-b border-border/70 bg-border/70"><ResumoDetalhe etiqueta={visao === "servicos" ? "Faturamento" : visao === "pacotes" ? "Valor contratado" : visao === "profissionais" ? "Produção bruta" : "Total"} valor={moeda(registro.total)} /><ResumoDetalhe etiqueta={visao === "recebimentos" ? "Data do recebimento" : visao === "servicos" ? "Ticket médio" : visao === "pacotes" ? "Saldo em aberto" : visao === "profissionais" ? "Comissão" : "Quantidade"} valor={visao === "recebimentos" ? dataCurta(registro.data) : visao === "servicos" ? moeda(registro.ticketMedio) : visao === "pacotes" ? moeda(registro.saldoAberto) : visao === "profissionais" ? moeda(registro.comissao) : String(registro.quantidade)} /></div><ScrollArea className="flex-1"><div className="space-y-4 p-5"><div className="flex items-center justify-between"><div><h3 className="text-sm font-semibold">Registros que compõem este resultado</h3><p className="mt-0.5 text-xs text-muted-foreground">{detalhes.length} registro{detalhes.length === 1 ? "" : "s"} encontrado{detalhes.length === 1 ? "" : "s"}</p></div><Badge variant="secondary" className="font-normal">{configuracao.base}</Badge></div>{detalhes.length ? <div className="space-y-2">{detalhes.map((item: any) => <CartaoRegistro key={item.chave} registro={item} />)}</div> : <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Não há registros adicionais para este recorte.</div>}</div></ScrollArea></>}</SheetContent></Sheet>;
+  const baixaIndividual = visao === "recebimentos";
+  return <Sheet open={Boolean(registro)} onOpenChange={aberto => { if (!aberto) aoFechar(); }}><SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-xl"><SheetHeader className="border-b border-border/70 px-5 py-5 pr-12"><div className="flex items-center gap-2 text-primary"><configuracao.icone className="h-4 w-4" /><span className="text-[11px] font-semibold uppercase tracking-[0.13em]">{baixaIndividual ? "Recebimento" : "Detalhamento"}</span></div><SheetTitle className="mt-2 text-lg">{registro?.principal}</SheetTitle><SheetDescription>{periodo}</SheetDescription></SheetHeader>{registro && <><div className="grid grid-cols-2 gap-px border-b border-border/70 bg-border/70"><ResumoDetalhe etiqueta={visao === "servicos" ? "Faturamento" : visao === "pacotes" ? "Valor contratado" : visao === "profissionais" ? "Produção bruta" : "Total"} valor={moeda(registro.total)} /><ResumoDetalhe etiqueta={visao === "recebimentos" ? "Data do recebimento" : visao === "servicos" ? "Ticket médio" : visao === "pacotes" ? "Saldo em aberto" : visao === "profissionais" ? "Comissão" : "Quantidade"} valor={visao === "recebimentos" ? dataCurta(registro.data) : visao === "servicos" ? moeda(registro.ticketMedio) : visao === "pacotes" ? moeda(registro.saldoAberto) : visao === "profissionais" ? moeda(registro.comissao) : String(registro.quantidade)} /></div><ScrollArea className="flex-1"><div className="space-y-4 p-5">{baixaIndividual ? <FichaRecebimento registro={registro} /> : <><div><h3 className="text-sm font-semibold">Registros que compõem este resultado</h3><p className="mt-0.5 text-xs text-muted-foreground">{detalhes.length} registro{detalhes.length === 1 ? "" : "s"} encontrado{detalhes.length === 1 ? "" : "s"}</p></div>{detalhes.length ? <div className="space-y-2">{detalhes.map((item: any) => <CartaoRegistro key={item.chave} registro={item} />)}</div> : <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">Não há registros adicionais para este recorte.</div>}</>}</div></ScrollArea></>}</SheetContent></Sheet>;
 }
 
 function ResumoDetalhe({ etiqueta, valor }: { etiqueta: string; valor: string }) { return <div className="bg-card px-5 py-4"><p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{etiqueta}</p><p className="mt-1 text-sm font-bold tracking-tight">{valor}</p></div>; }
+
+function FichaRecebimento({ registro }: { registro: any }) { return <div className="overflow-hidden rounded-2xl border border-border/80"><div className="divide-y divide-border/70"><LinhaFicha etiqueta="Cliente" valor={registro.cliente ?? "Cliente não identificado"} /><LinhaFicha etiqueta="Origem" valor={registro.origem ?? "Conta a receber"} /><LinhaFicha etiqueta="Forma de pagamento" valor={registro.forma ?? "Não informada"} /></div></div>; }
+
+function LinhaFicha({ etiqueta, valor }: { etiqueta: string; valor: string }) { return <div className="flex items-center justify-between gap-4 px-4 py-3"><span className="text-xs text-muted-foreground">{etiqueta}</span><strong className="max-w-[60%] truncate text-right text-xs font-medium">{valor}</strong></div>; }
 
 function registrosDoDetalhe(visao: Visao, registro: any, data: any) {
   if (!registro || !data) return [];
@@ -238,5 +238,3 @@ function registrosDoDetalhe(visao: Visao, registro: any, data: any) {
 }
 
 function CartaoRegistro({ registro }: { registro: { titulo: string; linha1: string; linha2: string; valor: number; chip: string } }) { return <article className="rounded-2xl border border-border/80 bg-card p-3.5"><div className="flex items-start gap-3"><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><FileText className="h-4 w-4" /></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="truncate text-sm font-semibold">{registro.titulo}</p><p className="shrink-0 text-sm font-bold">{moeda(registro.valor)}</p></div><p className="mt-1 truncate text-xs text-muted-foreground">{registro.linha1}</p><div className="mt-2 flex items-center gap-2"><Badge variant="secondary" className="h-5 bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">{registro.chip}</Badge><span className="truncate text-[11px] text-muted-foreground">{registro.linha2}</span></div></div></div></article>; }
-
-function notaDaBase(visao: Visao) { const notas: Record<Visao, string> = { recebimentos: "Recebidos usa as contas baixadas como recebidas.", servicos: "Serviços usa o valor de atendimentos concluídos na data do atendimento.", pacotes: "Pacotes usa o valor contratado nas aberturas do período; o detalhe informa saldo e pagamentos disponíveis.", profissionais: "Profissionais usa a produção de atendimentos concluídos e os valores de comissão registrados.", pagamentos: "Pagamentos usa entradas efetivamente registradas na data do recebimento." }; return notas[visao]; }

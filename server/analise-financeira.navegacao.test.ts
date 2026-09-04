@@ -5,6 +5,7 @@ describe("navegação da análise financeira", () => {
   it("mantém uma rota dedicada e preserva período, visão e recorte no endereço", () => {
     const app = readFileSync(new URL("../client/src/App.tsx", import.meta.url), "utf8");
     const analise = readFileSync(new URL("../client/src/components/AnaliseFinanceiraDetalhada.tsx", import.meta.url), "utf8");
+    const financeiro = readFileSync(new URL("../client/src/pages/Financeiro.tsx", import.meta.url), "utf8");
 
     expect(app).toContain('path="/admin/financeiro/analise"');
     expect(analise).toContain('new URLSearchParams({ visao: proximaVisao, periodo: proximoPeriodo, inicio, fim })');
@@ -12,9 +13,11 @@ describe("navegação da análise financeira", () => {
     expect(analise).toContain("paginaDedicada");
     expect(analise).toContain("compacta");
     expect(analise).toContain("Profissional líder");
-    expect(analise).toContain("Valores recebidos");
+    expect(financeiro).toContain("Valores recebidos");
+    expect(analise).toContain("Pacotes vendidos");
     expect(analise).toContain("Registros que compõem este resultado");
     expect(analise).toContain("<Sheet");
+    expect(analise).toContain("FichaRecebimento");
   });
 
   it("mantém Relatórios como atalho para a análise, sem duplicar o painel", () => {

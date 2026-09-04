@@ -52,5 +52,12 @@
 - **Validação da entrada pelo Financeiro:** o card “Valores recebidos” no Panorama financeiro agora apresenta o valor de recebimentos baixados, deixa claro que há registros e possui ação de consulta. Sua base ficou consistente com o ranking “Recebidos”, eliminando a antiga ambiguidade entre receita de serviço e valor efetivamente recebido.
 - **Validação ponta a ponta do indicador:** ao clicar em “Valores recebidos” na Visão Geral, a navegação abriu o relatório na visão “Recebidos”, com período de 01 a 30 de setembro de 2026 preservado e três baixas reais exibidas. O total do card e o total do relatório permaneceram consistentes em R$ 200,00.
 
+## Análise financeira — redundâncias identificadas
+
+- A visão de recebimentos repetia a mesma referência de base em três locais: contexto ao lado dos filtros, etiqueta da seção e badge do painel lateral.
+- Os cartões de visão repetem título e explicação que voltam a aparecer no cabeçalho do ranking; uma navegação mais compacta preserva a descoberta sem competir com o resultado.
+- Ao abrir um recebimento individual, o painel lateral repetia o próprio registro já selecionado. Para esse caso, a ficha deve mostrar metadados da baixa, não a mesma linha mais uma vez.
+- Na Visão Geral do Financeiro, “Valores recebidos” aparecia tanto no panorama comercial quanto no panorama financeiro. O primeiro deve concentrar ranking comercial; o segundo, que já é a base de recebimentos, mantém o acesso aos registros.
+
 - **Contas a Receber desktop autenticado (04/09/2026):** o topo separa claramente a receber, recebido no mês, vencido e próximos sete dias. A busca e os filtros por status e origem ajudam a localizar cobranças, e cada lançamento informa cliente, profissional, vencimento, recebimento, origem e valor.
 - **Estado observado:** a listagem traz 45 contas recebidas como estado predominante, enquanto as métricas de pendência estão zeradas; no uso diário, essa prioridade poderia começar pelo que exige ação, não pelo histórico. Há vários registros de R$ 0,00 marcados como recebidos, sem uma explicação curta para o usuário; isso reduz a confiança no saldo. Ações de editar e remover aparecem em todos os lançamentos, embora remover seja uma ação destrutiva e deveria ser menos proeminente ou exigir agrupamento no menu de contexto.
