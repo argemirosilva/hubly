@@ -33,10 +33,12 @@ describe("análise financeira detalhada", () => {
       faturamentoServicos: expect.any(Number),
       valorPacotesVendidos: expect.any(Number),
       entradasRegistradas: expect.any(Number),
+      valoresRecebidos: expect.any(Number),
     }));
     expect(Array.isArray(resultado.servicos)).toBe(true);
     expect(Array.isArray(resultado.pacotes)).toBe(true);
     expect(Array.isArray(resultado.profissionais)).toBe(true);
     expect(Array.isArray(resultado.pagamentos)).toBe(true);
+    expect(Array.isArray(resultado.recebimentos)).toBe(true);
   });
 });

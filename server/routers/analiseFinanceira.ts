@@ -9,6 +9,7 @@ import {
   agendamentos,
   clientes,
   comissoes,
+  contasReceber,
   pacotesClientes,
   pacotesClientesPagamentos,
   profissionais,
@@ -200,6 +201,31 @@ export const analiseFinanceiraRouter = router({
           lte(pacotesClientesPagamentos.dataPagamento, dataFimDate),
         ));
 
+    // Esta é a mesma base exibida no card "Valores recebidos" do Financeiro.
+    // Ela permite abrir o indicador e conferir cada baixa sem confundir venda
+    // contratada com entrada efetivamente registrada.
+    const recebimentosDetalhes = await db.select({
+      id: contasReceber.id,
+      descricao: contasReceber.descricao,
+      valor: contasReceber.valor,
+      data: contasReceber.dataRecebimento,
+      vencimento: contasReceber.dataVencimento,
+      origem: contasReceber.origem,
+      formaPagamento: contasReceber.tipoPagamento,
+      cliente: clientes.nome,
+      profissional: profissionais.nome,
+    }).from(contasReceber)
+      .leftJoin(clientes, eq(contasReceber.clienteId, clientes.id))
+      .leftJoin(profissionais, eq(contasReceber.profissionalId, profissionais.id))
+      .where(and(
+        eq(contasReceber.empresaId, empresa.id),
+        eq(contasReceber.status, "recebido"),
+        gte(contasReceber.dataRecebimento, input.dataInicio),
+        lte(contasReceber.dataRecebimento, input.dataFim),
+        profissionalRestrito ? eq(contasReceber.profissionalId, profissionalRestrito) : sql`1 = 1`,
+      ))
+      .orderBy(desc(contasReceber.dataRecebimento), desc(contasReceber.id));
+
     const recebimentosPacotePorId = pagamentosPacote.reduce<Record<number, number>>((acc, pagamento) => {
       const id = pagamento.pacoteClienteId;
       acc[id] = (acc[id] ?? 0) + valor(pagamento.valor);
@@ -267,16 +293,27 @@ export const analiseFinanceiraRouter = router({
         valorPacotesVendidos: resumoPacotes.reduce((total, item) => total + item.valorTotal, 0),
         valorPacotesRecebido: pagamentosPacote.reduce((total, item) => total + valor(item.valor), 0),
         entradasRegistradas: formasPagamento.reduce((total, item) => total + item.recebido, 0),
+        valoresRecebidos: recebimentosDetalhes.reduce((total, item) => total + valor(item.valor), 0),
       },
       servicos: resumoServicos,
       pacotes: resumoPacotes,
       profissionais: rankingProfissionais,
       pagamentos: formasPagamento,
+      recebimentos: recebimentosDetalhes.map(item => ({
+        ...item,
+        valor: valor(item.valor),
+        forma: normalizarFormaPagamento(item.formaPagamento),
+      })),
       detalhes: {
         vendas: vendasDetalhes,
         pacotes: resumoPacotes,
         profissionais: comissoesDetalhes,
         pagamentos: pagamentosDetalhes,
+        recebimentos: recebimentosDetalhes.map(item => ({
+          ...item,
+          valor: valor(item.valor),
+          forma: normalizarFormaPagamento(item.formaPagamento),
+        })),
       },
     };
   }),

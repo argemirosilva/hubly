@@ -2891,6 +2891,13 @@
 - [x] Criar rota dedicada para Análise de Resultados com parâmetros de período e visão
 - [x] Adicionar atalho de consulta detalhada na central de Relatórios sem duplicar os cálculos
 
+## Financeiro — refinamento da análise detalhada (04/09/2026)
+- [x] Inspecionar a tela atual e registrar os pontos que deixam o detalhamento com aparência improvisada
+- [x] Redesenhar rankings, filtros e detalhamentos para uma navegação visual mais limpa e orientada à decisão
+- [x] Substituir listas longas por detalhamento progressivo, com contexto e ações claras
+- [ ] Validar a nova experiência em desktop e celular, testar e publicar
+- [x] Conectar cards principais de valores recebidos, pagamentos, comissões e pendências à análise já filtrada por período e registros
+
 ## Auditoria UX/UI — telas de uso diário (04/09/2026)
 - [x] Mapear jornadas operacionais prioritárias, excluindo configurações técnicas
 - [x] Avaliar Dashboard, Calendário, Agendamentos, Clientes e Financeiro em desktop

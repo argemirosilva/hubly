@@ -38,5 +38,11 @@
 - **Portal público móvel, 375×812 (04/09/2026):** a sequência de etapas, o campo de telefone e o botão principal se adaptam sem corte ou rolagem horizontal. O fluxo é legível e o alvo de toque do botão está adequado.
 - **Estado observado no móvel:** há muito espaço livre entre o formulário e o rodapé, o que alonga visualmente uma etapa curta. O horário de funcionamento fica com contraste e tamanho discretos; em uma tela pequena, deveria vir mais próximo do botão ou em um bloco de orientação. A marca do Hubly no rodapé perde legibilidade pela escala reduzida.
 
+## Análise financeira detalhada — revisão de qualidade
+
+- **Produção, visão Serviços (04/09/2026):** a tela dedicada empilha quatro faixas de decisão: período, quatro indicadores, quatro cartões de visão e uma lista expansível. Essa sequência fragmenta a leitura e cria a sensação de um conjunto de componentes adicionados em série, em vez de uma página financeira composta.
+- **Detalhes expansíveis:** o modelo atual abre textos lineares dentro de cada linha, sem hierarquia de registro, data, cliente, serviço ou ação contextual. Essa estrutura é a principal causa da percepção de lista improvisada relatada pela usuária.
+- **Estado vazio observado:** um período sem serviços mostra cards com valores de outras bases, seguido por uma tabela vazia. A página não direciona a próxima decisão nem explica que os rankings dependem de diferentes bases temporais.
+
 - **Contas a Receber desktop autenticado (04/09/2026):** o topo separa claramente a receber, recebido no mês, vencido e próximos sete dias. A busca e os filtros por status e origem ajudam a localizar cobranças, e cada lançamento informa cliente, profissional, vencimento, recebimento, origem e valor.
 - **Estado observado:** a listagem traz 45 contas recebidas como estado predominante, enquanto as métricas de pendência estão zeradas; no uso diário, essa prioridade poderia começar pelo que exige ação, não pelo histórico. Há vários registros de R$ 0,00 marcados como recebidos, sem uma explicação curta para o usuário; isso reduz a confiança no saldo. Ações de editar e remover aparecem em todos os lançamentos, embora remover seja uma ação destrutiva e deveria ser menos proeminente ou exigir agrupamento no menu de contexto.

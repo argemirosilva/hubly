@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User, Calendar, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
@@ -30,6 +31,7 @@ function formatCurrency(v: number) {
 }
 
 export default function Financeiro() {
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroProfId, setFiltroProfId] = useState("todos");
@@ -62,7 +64,8 @@ export default function Financeiro() {
   // Fluxo de caixa consolidado
   // Receita real = soma dos agendamentos concluídos (metrics.receitaMes)
   // Despesas = contas a pagar pagas no mês
-  const receitasMes = metrics?.receitaMes ?? 0;
+  // Para o fluxo mensal, receita significa entrada efetivamente baixada.
+  const receitasMes = metricasReceber?.totalRecebidoMes ?? 0;
   const despesasMes = metricasPagar?.totalPagoMes ?? 0;
   const saldoMes = receitasMes - despesasMes;
   const totalAPagar = metricasPagar?.totalPendente ?? 0;
@@ -158,6 +161,11 @@ export default function Financeiro() {
   const totalPago = filtradas.filter(c => c.paga).reduce((acc, c) => acc + parseFloat(String(c.valorComissao)), 0);
   const totalGeral = totalPendente + totalPago;
 
+  const abrirRelatorioRecebimentos = () => {
+    const query = new URLSearchParams({ visao: "recebimentos", periodo: "mes", inicio: getInicioMes(), fim: getFimMes() });
+    setLocation(`/admin/financeiro/analise?${query.toString()}`);
+  };
+
   const labelPeriodo = (() => {
     if (periodoAtivo === "mes") return "Mês atual";
     if (periodoAtivo === "mes_ant") return "Mês anterior";
@@ -184,21 +192,27 @@ export default function Financeiro() {
 
       <AnaliseFinanceiraDetalhada compacta />
 
-      {/* Fluxo de Caixa Consolidado */}
+      {/* Panorama mensal */}
       <div className="card-elegant p-4 lg:p-5">
         <div className="flex items-center gap-2 mb-3">
           <Wallet className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Fluxo de Caixa — Mês Atual</h2>
+          <h2 className="text-sm font-semibold">Panorama financeiro — Mês Atual</h2>
         </div>
         {/* 3 números principais */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="stat-card">
+          <button
+            type="button"
+            onClick={abrirRelatorioRecebimentos}
+            className="stat-card group text-left transition-colors hover:bg-primary/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label="Ver registros dos valores recebidos no relatório financeiro"
+          >
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(62% 0.18 155 / 12%)" }}>
               <ArrowUpRight className="w-3 h-3" style={{ color: "oklch(38% 0.14 155)" }} />
             </div>
             <p className={`${valueFontSize(receitasMes)} font-bold text-foreground tracking-tight break-all`}>{formatCurrency(receitasMes)}</p>
-            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Receita do mês</p>
-          </div>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Valores recebidos</p>
+            <span className="mt-1 flex items-center gap-1 text-[10px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">Ver registros <ChevronRight className="w-3 h-3" /></span>
+          </button>
           <div className="stat-card">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center mb-1.5" style={{ background: "oklch(60% 0.22 25 / 12%)" }}>
               <ArrowDownRight className="w-3 h-3" style={{ color: "oklch(42% 0.18 25)" }} />

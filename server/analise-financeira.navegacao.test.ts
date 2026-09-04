@@ -12,6 +12,9 @@ describe("navegação da análise financeira", () => {
     expect(analise).toContain("paginaDedicada");
     expect(analise).toContain("compacta");
     expect(analise).toContain("Profissional líder");
+    expect(analise).toContain("Valores recebidos");
+    expect(analise).toContain("Registros que compõem este resultado");
+    expect(analise).toContain("<Sheet");
   });
 
   it("mantém Relatórios como atalho para a análise, sem duplicar o painel", () => {
