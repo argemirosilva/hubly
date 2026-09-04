@@ -2877,6 +2877,13 @@
 ## Financeiro — visão por forma de pagamento (29/08/2026)
 - [x] Mapear os dados financeiros existentes por forma de pagamento, incluindo recebimentos, pendências e taxas
 
+## Financeiro — análise detalhada por período (01/09/2026)
+- [x] Mapear as fontes de receita, custo, comissão, pacote e pagamento usadas no cálculo
+- [x] Criar filtro de período rápido (semana, mês, ano e personalizado)
+- [x] Criar indicadores e detalhamento por serviço, pacote, profissional e forma de pagamento
+- [x] Permitir abrir os recortes e registros que compõem cada número do relatório
+- [x] Validar cálculos com dados reais e publicar a área de análise
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, User, Calendar, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { AnaliseFinanceiraDetalhada } from "@/components/AnaliseFinanceiraDetalhada";
 
 function getInicioMes(offset = 0) {
   const d = new Date();
@@ -180,6 +181,8 @@ export default function Financeiro() {
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-6xl mx-auto animate-in-up">
       <h1 className="font-bold tracking-tight text-xl lg:text-2xl">Financeiro</h1>
+
+      <AnaliseFinanceiraDetalhada />
 
       {/* Fluxo de Caixa Consolidado */}
       <div className="card-elegant p-4 lg:p-5">

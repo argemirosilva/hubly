@@ -45,6 +45,10 @@ vi.mock("./db", () => ({
   getDb: vi.fn(),
 }));
 
+vi.mock("./db-plans", () => ({
+  empresaHasFeature: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock("./_core/llm", () => ({
   invokeLLM: vi.fn().mockResolvedValue({
     choices: [{ message: { content: "Resposta de teste da IA" } }],
