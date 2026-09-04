@@ -2891,6 +2891,14 @@
 - [x] Criar rota dedicada para Análise de Resultados com parâmetros de período e visão
 - [x] Adicionar atalho de consulta detalhada na central de Relatórios sem duplicar os cálculos
 
+## Auditoria UX/UI — telas de uso diário (04/09/2026)
+- [x] Mapear jornadas operacionais prioritárias, excluindo configurações técnicas
+- [x] Avaliar Dashboard, Calendário, Agendamentos, Clientes e Financeiro em desktop
+- [x] Avaliar Pacotes, Pipeline, Marketing, Automações, Contas a Receber e portal público de agendamento
+- [x] Priorizar atritos de usabilidade, hierarquia visual, responsividade e acessibilidade
+- [x] Entregar diagnóstico sênior com recomendações e plano de execução por prioridade
+- [ ] Validar visualmente as telas internas autenticadas em celular antes de atestar a experiência mobile completa
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis
