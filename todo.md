@@ -2895,7 +2895,8 @@
 - [x] Inspecionar a tela atual e registrar os pontos que deixam o detalhamento com aparência improvisada
 - [x] Redesenhar rankings, filtros e detalhamentos para uma navegação visual mais limpa e orientada à decisão
 - [x] Substituir listas longas por detalhamento progressivo, com contexto e ações claras
-- [ ] Validar a nova experiência em desktop e celular, testar e publicar
+- [x] Validar a nova experiência em desktop, testar e publicar
+- [ ] Validar visualmente a nova experiência interna em celular com sessão autenticada
 - [x] Conectar cards principais de valores recebidos, pagamentos, comissões e pendências à análise já filtrada por período e registros
 
 ## Auditoria UX/UI — telas de uso diário (04/09/2026)
