@@ -17,6 +17,7 @@ describe("análise financeira detalhada", () => {
     expect(fonte).toContain("getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId)");
     expect(fonte).toContain("isSystemOwner(ctx.systemUser.id, ctx.systemUser.isOwner, empresa.ownerId)");
     expect(fonte).toContain("financeiroVer");
+    expect(fonte).toContain("const pacotes = profissionalRestrito");
     expect(fonte).toContain("agendamentoPagamentos.createdAt");
     expect(fonte).toContain("pacotesClientesPagamentos.dataPagamento");
     expect(fonte).toContain("dataInicio");

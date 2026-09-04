@@ -12,7 +12,7 @@ describe("site público do Hubly", () => {
     expect(html).toContain('href="/admin"');
     expect(html).toContain('href="/cadastro"');
     expect(html).toContain('href="/assinaturas"');
-    expect(html).toContain("hubly-icon-gold_40021193.png");
+    expect(html).toContain("hubly-icon-gold.png");
     expect(html).toContain("hubly-agenda-finance-dashboard_e7009168.jpg");
     expect(html).toContain("Agenda, resultados e financeiro no mesmo lugar");
     expect(html).toContain("Agenda no controle");

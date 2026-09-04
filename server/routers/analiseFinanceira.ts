@@ -114,7 +114,9 @@ export const analiseFinanceiraRouter = router({
       .where(filtroAgendamentos)
       .orderBy(desc(agendamentos.data), desc(agendamentos.id));
 
-    const pacotes = await db.select({
+    const pacotes = profissionalRestrito
+      ? []
+      : await db.select({
       id: pacotesClientes.id,
       nome: pacotesClientes.nome,
       cliente: clientes.nome,
