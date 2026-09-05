@@ -7,6 +7,9 @@ import { DollarSign, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronRight, 
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { AnaliseFinanceiraDetalhada } from "@/components/AnaliseFinanceiraDetalhada";
+import { allowsHublyMotion, HUBLY_MOTION } from "@/lib/motion";
+import { criarSerieEvolucaoRecebimentos } from "@shared/financeiroEvolucao";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 function getInicioMes(offset = 0) {
   const d = new Date();
@@ -39,6 +42,10 @@ export default function Financeiro() {
   const [dataInicio, setDataInicio] = useState(getInicioMes());
   const [dataFim, setDataFim] = useState(getFimMes());
   const [periodoAtivo, setPeriodoAtivo] = useState<"mes" | "mes_ant" | "30d" | "custom">("mes");
+  const [dataInicioEvolucao, setDataInicioEvolucao] = useState(getInicioMes());
+  const [dataFimEvolucao, setDataFimEvolucao] = useState(getFimMes());
+  const [periodoEvolucao, setPeriodoEvolucao] = useState<"mes" | "mes_ant" | "30d" | "custom">("mes");
+  const inputEvolucao = useMemo(() => ({ dataInicio: dataInicioEvolucao, dataFim: dataFimEvolucao }), [dataFimEvolucao, dataInicioEvolucao]);
 
   function aplicarPeriodo(tipo: "mes" | "mes_ant" | "30d") {
     setPeriodoAtivo(tipo);
@@ -47,8 +54,18 @@ export default function Financeiro() {
     else if (tipo === "30d") { setDataInicio(getUltimos30()); setDataFim(new Date().toISOString().slice(0, 10)); }
   }
 
+  function aplicarPeriodoEvolucao(tipo: "mes" | "mes_ant" | "30d") {
+    setPeriodoEvolucao(tipo);
+    if (tipo === "mes") { setDataInicioEvolucao(getInicioMes()); setDataFimEvolucao(getFimMes()); }
+    else if (tipo === "mes_ant") { setDataInicioEvolucao(getInicioMes(-1)); setDataFimEvolucao(getFimMes(-1)); }
+    else if (tipo === "30d") { setDataInicioEvolucao(getUltimos30()); setDataFimEvolucao(new Date().toISOString().slice(0, 10)); }
+  }
+
   const { pode, isAdmin, isLoading: carregandoPermissoes } = usePermissoes();
   const podeMarcarPaga = pode("financeiroMarcarPago");
+  const { data: dadosEvolucao, isLoading: carregandoEvolucao } = trpc.analiseFinanceira.resumo.useQuery(inputEvolucao, {
+    enabled: !carregandoPermissoes && pode("financeiroVer"),
+  });
 
   const { data: metrics } = trpc.financeiro.dashboard.useQuery();
   const { data: metricasPagar } = trpc.contasPagar.metricas.useQuery();
@@ -74,6 +91,18 @@ export default function Financeiro() {
     dataInicio || dataFim ? { dataInicio: dataInicio || undefined, dataFim: dataFim || undefined } : undefined
   );
   const { data: profissionais } = trpc.profissionais.list.useQuery();
+  const evolucaoRecebimentos = useMemo(
+    () => criarSerieEvolucaoRecebimentos(dadosEvolucao?.recebimentos ?? [], dataInicioEvolucao, dataFimEvolucao),
+    [dadosEvolucao?.recebimentos, dataFimEvolucao, dataInicioEvolucao],
+  );
+  const totalRecebidoNoPeriodo = useMemo(
+    () => evolucaoRecebimentos.reduce((total, ponto) => total + ponto.recebido, 0),
+    [evolucaoRecebimentos],
+  );
+  const intervaloRotulosGrafico = evolucaoRecebimentos.length > 10 ? Math.ceil(evolucaoRecebimentos.length / 6) - 1 : 0;
+  const animarGrafico = allowsHublyMotion(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
 
   const pagarMutation = trpc.financeiro.marcarPaga.useMutation({
     onSuccess: () => {
@@ -176,6 +205,16 @@ export default function Financeiro() {
     }
     return "Período personalizado";
   })();
+  const labelPeriodoEvolucao = (() => {
+    if (periodoEvolucao === "mes") return "mês atual";
+    if (periodoEvolucao === "mes_ant") return "mês anterior";
+    if (periodoEvolucao === "30d") return "últimos 30 dias";
+    if (dataInicioEvolucao && dataFimEvolucao) {
+      const fmt = (d: string) => new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      return `${fmt(dataInicioEvolucao)} a ${fmt(dataFimEvolucao)}`;
+    }
+    return "período personalizado";
+  })();
 
   // Retorna classe de tamanho de fonte adaptativa baseada no comprimento do valor
   function valueFontSize(value: number, base: 'sm' | 'base' = 'base') {
@@ -246,6 +285,59 @@ export default function Financeiro() {
             </div>
           </div>
         )}
+        <section className="mt-4 rounded-xl border border-border/70 bg-muted/[0.18] p-3 sm:p-4" aria-labelledby="evolucao-recebimentos-titulo">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <h3 id="evolucao-recebimentos-titulo" className="text-sm font-semibold">Evolução dos recebimentos</h3>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Baixas confirmadas no {labelPeriodoEvolucao}.</p>
+            </div>
+            <p className="text-sm font-bold tracking-tight text-foreground">{formatCurrency(totalRecebidoNoPeriodo)}</p>
+          </div>
+          <div className="mt-3 flex flex-col gap-2 border-t border-border/60 pt-3">
+            <div className="flex flex-wrap items-center gap-2" aria-label="Período da evolução de recebimentos">
+              <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {(["mes", "mes_ant", "30d"] as const).map(tipo => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => aplicarPeriodoEvolucao(tipo)}
+                  className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${periodoEvolucao === tipo ? "border-primary/45 bg-primary/10 font-medium text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/35"}`}
+                >
+                  {tipo === "mes" ? "Mês atual" : tipo === "mes_ant" ? "Mês anterior" : "Últimos 30 dias"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Input type="date" value={dataInicioEvolucao} onChange={evento => { setDataInicioEvolucao(evento.target.value); setPeriodoEvolucao("custom"); }} className="h-8 min-w-0 flex-1 bg-background text-xs" aria-label="Data inicial da evolução" />
+              <span className="shrink-0 text-xs text-muted-foreground">até</span>
+              <Input type="date" value={dataFimEvolucao} onChange={evento => { setDataFimEvolucao(evento.target.value); setPeriodoEvolucao("custom"); }} className="h-8 min-w-0 flex-1 bg-background text-xs" aria-label="Data final da evolução" />
+            </div>
+          </div>
+          <div className="mt-3 h-52" aria-live="polite">
+            {carregandoEvolucao ? (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Atualizando evolução…</div>
+            ) : totalRecebidoNoPeriodo > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evolucaoRecebimentos} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="oklch(89.5% 0.018 80)" />
+                  <XAxis dataKey="rotulo" tick={{ fontSize: 10, fill: "oklch(52% 0.025 70)" }} axisLine={false} tickLine={false} interval={intervaloRotulosGrafico} />
+                  <YAxis tick={{ fontSize: 10, fill: "oklch(52% 0.025 70)" }} axisLine={false} tickLine={false} tickFormatter={valor => `R$ ${Number(valor).toFixed(0)}`} width={52} />
+                  <Tooltip cursor={{ fill: "oklch(62% 0.18 155 / 8%)" }} labelFormatter={rotulo => `Período: ${rotulo}`} formatter={(valor: number | string) => [formatCurrency(Number(valor)), "Recebido"]} />
+                  <Bar dataKey="recebido" name="Recebido" fill="oklch(55% 0.18 155)" radius={[5, 5, 0, 0]} maxBarSize={36} isAnimationActive={animarGrafico} animationDuration={HUBLY_MOTION.chartDurationMs} animationEasing="ease-out" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-background/60 px-4 text-center">
+                <TrendingUp className="h-5 w-5 text-muted-foreground/45" />
+                <p className="mt-2 text-xs font-medium text-foreground">Nenhum recebimento no período</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Quando uma conta for baixada, a evolução aparecerá aqui.</p>
+              </div>
+            )}
+          </div>
+        </section>
         {/* Detalhes secundários colapsáveis */}
         <div className="mt-3 pt-3" style={{ borderTop: "1px solid oklch(89.5% 0.018 80)" }}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -411,14 +503,13 @@ export default function Financeiro() {
               </Select>
             </div>
           </div>
-          {/* Linha 2: filtro de período */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              {/* Atalhos rápidos */}
               {(["mes", "mes_ant", "30d"] as const).map(tipo => (
                 <button
                   key={tipo}
+                  type="button"
                   onClick={() => aplicarPeriodo(tipo)}
                   className="text-xs px-2.5 py-1 rounded-md border transition-colors"
                   style={periodoAtivo === tipo
@@ -430,21 +521,10 @@ export default function Financeiro() {
                 </button>
               ))}
             </div>
-            {/* Inputs de data personalizada — linha separada no mobile */}
             <div className="flex items-center gap-1.5">
-              <Input
-                type="date"
-                value={dataInicio}
-                onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }}
-                className="h-7 text-xs flex-1 min-w-0"
-              />
+              <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPeriodoAtivo("custom"); }} className="h-7 text-xs flex-1 min-w-0" />
               <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <Input
-                type="date"
-                value={dataFim}
-                onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }}
-                className="h-7 text-xs flex-1 min-w-0"
-              />
+              <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPeriodoAtivo("custom"); }} className="h-7 text-xs flex-1 min-w-0" />
             </div>
           </div>
         </div>

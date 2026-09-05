@@ -2904,6 +2904,11 @@
 - [x] Reduzir a tela à hierarquia essencial de período, visão, resultado e registros
 - [x] Validar o relatório enxuto, testar e publicar
 
+## Financeiro — gráfico de evolução de recebimentos (04/09/2026)
+- [x] Consolidar os recebimentos reais em série temporal conforme o período selecionado
+- [x] Exibir gráfico responsivo no panorama financeiro com preferência de movimento reduzido
+- [ ] Validar dados, interação, layout mobile, testes e publicação
+
 ## Auditoria UX/UI — telas de uso diário (04/09/2026)
 - [x] Mapear jornadas operacionais prioritárias, excluindo configurações técnicas
 - [x] Avaliar Dashboard, Calendário, Agendamentos, Clientes e Financeiro em desktop
