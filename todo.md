@@ -2917,6 +2917,13 @@
 - [x] Entregar diagnóstico sênior com recomendações e plano de execução por prioridade
 - [ ] Validar visualmente as telas internas autenticadas em celular antes de atestar a experiência mobile completa
 
+## Plano UX/UI — considerações da cliente e preparação mobile (05/09/2026)
+- [x] Atualizar a recomendação do Dashboard para preservar personalização e ordenar conteúdos por prioridade da usuária
+- [x] Esclarecer que a melhoria do Calendário mantém horários livres e atua somente na leitura de horários com múltiplos agendamentos
+- [x] Tornar mobile-first e prevenção de sobreposição, cortes e bloqueio pelo teclado critérios obrigatórios de aceite
+- [x] Incluir matriz de validação para larguras móveis, áreas seguras, modais, formulários, tabelas e ações de toque
+- [x] Revisar, salvar e entregar o plano original atualizado
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

@@ -1,6 +1,7 @@
 # Auditoria UX/UI — telas operacionais do Hubly
 
 **Data da avaliação:** 4 de setembro de 2026  
+**Plano revisado em:** 5 de setembro de 2026, após alinhamento com a cliente
 **Perspectiva:** UX/UI sênior para operação diária de negócio de serviços  
 **Ambiente revisado:** sessão autenticada da profissional Maria, em produção, com dados reais. A avaliação foi somente de leitura: nenhum cadastro, agendamento, pagamento ou automação foi alterado.
 
@@ -16,9 +17,19 @@ O produto hoje privilegia a cobertura de informação. A evolução recomendada 
 | Descoberta de ações | Média. Há ações úteis, porém parte delas fica escondida entre muitos filtros, indicadores ou ícones. |
 | Clareza dos dados | Média. Alguns valores e estados exigem contexto para não parecerem erro. |
 | Segurança operacional | Média. Ações destrutivas e ações de alteração de status poderiam ter uma hierarquia mais cuidadosa. |
-| Responsividade | O portal público foi validado em 375×812 sem quebras. As telas internas exigem uma rodada visual em celular autenticado antes de qualquer atestado global. |
+| Responsividade | O portal público foi validado em 375×812 sem quebras. Para as telas internas, a validação mobile passa a ser obrigatória antes de considerar qualquer melhoria concluída ou pronta para migração ao aplicativo. |
 
 > **Direção de UX recomendada:** não fazer uma reformulação ampla. O melhor caminho é uma sequência de ajustes cirúrgicos, começando por prioridades do dia, transparência de estado e redução da densidade de controles.
+
+## Decisões de produto incorporadas após o retorno da cliente
+
+O retorno da cliente acrescentou três restrições importantes ao plano. Elas não anulam a auditoria; tornam as recomendações mais precisas e evitam interpretações que poderiam descaracterizar a rotina já consolidada no Hubly.
+
+| Tema | Decisão incorporada ao plano |
+|---|---|
+| Dashboard | Deve continuar **personalizável por usuária**. A orientação por prioridade organiza os componentes escolhidos, mas não impõe uma tela fixa nem remove a liberdade de selecionar atalhos e informações úteis. |
+| Calendário | Deve preservar a lógica atual, os dias e horários livres e a visão de planejamento. A melhoria atua somente na descoberta e leitura de horários com múltiplos agendamentos. |
+| Preparação para aplicativo | Toda melhoria passa a ter aceite mobile obrigatório, evitando campos sobrepostos, botões cortados, ações escondidas pelo teclado e elementos fora das áreas seguras do Android e do iOS. |
 
 ## Escopo revisado
 
@@ -46,12 +57,19 @@ O convite de instalação do aplicativo apareceu sobre a região inferior direit
 **Impacto:** alto, porque é persistente, ocupa uma zona útil da interface e afeta tanto a profissional quanto a cliente.  
 **Recomendação:** transformar o convite em banner discreto no topo ou em card contextual após uma ação concluída. Quando dispensado, não deve reaparecer no mesmo período. Em telas de conversão, como o portal, não deve sobrepor formulário ou CTA.
 
-### P1 — orientar o Dashboard por prioridades, não por blocos de informação
+### P1 — organizar o Dashboard personalizável por prioridades
 
-O Dashboard reúne agenda, indicadores, equipe, pipeline, pré-agendamentos e recebimentos. A cobertura é boa, mas a primeira leitura não deixa explícito o que é mais urgente. O pipeline é volumoso e compete visualmente com os atendimentos do dia, enquanto recebimentos e pendências ficam em outra área.
+O Dashboard reúne agenda, indicadores, equipe, pipeline, pré-agendamentos e recebimentos. A cobertura é boa e sua personalização deve ser preservada, pois a primeira tela precisa refletir o que cada usuária considera útil. O problema observado não é a possibilidade de escolher componentes, mas a falta de uma hierarquia clara entre os componentes escolhidos: conteúdos volumosos podem competir com atendimentos e pendências que exigem ação imediata.
 
 **Impacto:** alto para rotina de abertura do sistema.  
-**Recomendação:** acrescentar no início um bloco “**Hoje precisa de atenção**”, com até três itens acionáveis: saldo a cobrar, confirmação pendente, pacote próximo do fim ou mensagem com falha. A agenda do dia continua logo abaixo, porque é a principal tarefa operacional.
+**Recomendação revisada:** manter a escolha individual de componentes e permitir que a própria usuária defina o que aparece, o que fica oculto e a ordem de seus atalhos. Dentro dessa personalização, oferecer um componente opcional “**Hoje precisa de atenção**”, com até três itens acionáveis, como saldo a cobrar, confirmação pendente, pacote próximo do fim ou mensagem com falha. A agenda do dia permanece disponível e pode ser posicionada como prioridade pela usuária. A orientação por prioridade funciona como uma camada de organização, não como um Dashboard fixo para todas as contas.
+
+| O que será preservado | O que será melhorado |
+|---|---|
+| Escolha dos componentes exibidos | Ordem inicial sugerida conforme urgência e frequência de uso |
+| Atalhos definidos pela usuária | Possibilidade de reordenar, ocultar e restaurar componentes |
+| Agenda do dia e demais blocos atuais | Componente opcional de pendências acionáveis e destaque de alertas reais |
+| Diferenças de rotina entre proprietária e profissional | Preferências salvas por usuária, sem impor a mesma tela a todos |
 
 ### P1 — tornar Pipeline uma ferramenta de decisão, não apenas de status
 
@@ -84,7 +102,17 @@ A lista de Agendamentos dispõe de busca, atalhos de período, duas datas, statu
 
 O Calendário preserva a visão mensal e usa “+1 mais” quando necessário, o que é positivo. Porém, as células comprimem informações de atendimento, enquanto sobra muito espaço nos dias vazios. Os controles de mudança de mês não ficaram evidentes na avaliação visual.
 
-**Recomendação:** destacar controles de navegação com rótulos e área de toque clara, manter um resumo fixo do dia selecionado e abrir uma lista lateral/inferior ao tocar em dias com múltiplos eventos. No celular, priorizar a visão diária ou semanal como padrão, com o mês como modo de planejamento.
+**Recomendação revisada:** preservar os dias e horários vazios, a visão mensal e a lógica atual de navegação. A melhoria deve ocorrer apenas quando o espaço do calendário não comportar todos os agendamentos: o indicador “+1 mais” ou “+2 mais” precisa ter maior contraste, área de toque adequada e comportamento previsível. Ao acioná-lo, o sistema abre uma lista lateral no desktop ou inferior no celular com todos os agendamentos daquele dia ou horário, sem ocultar compromissos nem poluir as demais células. Os controles de mudança de mês devem ganhar rótulos e áreas de toque claras. No celular, as visões diária e semanal podem ser oferecidas como atalhos, mas a visão mensal continua disponível e não deve ser substituída sem validação com a usuária.
+
+> **Esclarecimento:** a proposta não remove espaços vazios do calendário. Ela evita que, em horários cheios, um atendimento fique comprimido, escondido ou pareça inexistente.
+
+| Situação | Comportamento esperado |
+|---|---|
+| Dia ou horário sem agendamento | Permanece visível como espaço livre. |
+| Um agendamento | Continua exibido diretamente na célula ou faixa horária. |
+| Vários agendamentos sem espaço suficiente | Exibe o primeiro conteúdo legível e um indicador claro da quantidade restante. |
+| Toque no indicador de eventos adicionais | Abre a lista completa daquele dia ou horário, sem alterar os demais eventos. |
+| Celular | Usa painel inferior ou tela de detalhe; não comprime botões nem informações essenciais. |
 
 ### P2 — diferenciar estado do pacote, estado das sessões e estado financeiro
 
@@ -108,15 +136,47 @@ O portal em 375×812 não apresentou quebra visual, e o campo e CTA possuem bom 
 
 | Ordem | Frente | Entregas | Resultado esperado |
 |---|---|---|---|
-| 1 | Prioridade e segurança | Ajustar convite PWA; bloco “Hoje precisa de atenção”; menus de ações destrutivas; estados financeiros explicativos. | Reduzir distrações e evitar decisões equivocadas. |
-| 2 | Leitura e filtros | Padrão de filtros recolhíveis; navegação do Calendário; cards de Pacotes por estado. | Acelerar consulta sem perder recursos avançados. |
+| 1 | Prioridade, personalização e segurança | Ajustar convite PWA; permitir ordenar e ocultar componentes do Dashboard; oferecer “Hoje precisa de atenção” como componente opcional; revisar ações destrutivas e estados financeiros. | Reduzir distrações e orientar a rotina sem retirar o controle da usuária. |
+| 2 | Leitura e filtros | Padrão de filtros recolhíveis; melhorar somente a leitura de múltiplos eventos no Calendário; cards de Pacotes por estado. | Acelerar a consulta sem remover horários livres, alterar a lógica da agenda ou perder recursos avançados. |
 | 3 | Execução de relacionamento | Pipeline com próxima ação e urgência; saúde de Automações; diferenciação de ocorrências da mesma cliente. | Aumentar a previsibilidade de contatos e reduzir mensagens indevidas. |
 | 4 | Conteúdo e portal | Marketing com modo de foco; refinamento do portal público e revisão das etapas móveis autenticadas. | Melhorar planejamento de conteúdo e conversão de agendamento. |
+| Transversal | Prontidão mobile | Aplicar a matriz de aceite mobile em todas as entregas anteriores antes de marcar cada uma como concluída. | Evitar retrabalho e impedir que problemas de responsividade sejam levados para o aplicativo. |
+
+## Critérios obrigatórios de preparação mobile
+
+A futura migração para aplicativo não deve ser tratada como uma etapa em que a interface será corrigida depois. As telas web operacionais precisam ser construídas e aceitas desde agora com comportamento mobile previsível. Dessa forma, a migração poderá reaproveitar os mesmos fluxos sem carregar problemas estruturais de layout.
+
+| Área de validação | Critério de aceite obrigatório |
+|---|---|
+| Larguras de tela | Não apresentar sobreposição, corte ou rolagem horizontal acidental em 320, 360, 375, 390 e 430 px. Validar também 768 px e desktop. |
+| Campos e filtros | Empilhar controles quando o espaço horizontal for insuficiente. Datas e horários devem permanecer legíveis, com rótulo visível e ordem lógica. |
+| Botões e toque | Ação principal sempre inteira e alcançável; alvos de toque confortáveis; ações próximas não podem provocar toque acidental. |
+| Teclado virtual | Ao abrir o teclado, o campo ativo e os botões de continuar ou salvar devem permanecer acessíveis por rolagem. |
+| Modais e painéis | Usar tela cheia ou painel adaptado em celulares; impedir conteúdo fora da viewport e garantir cabeçalho/rodapé acessíveis. |
+| Tabelas e relatórios | Converter para cards, resumo progressivo ou rolagem controlada; não reduzir colunas até o texto ficar ilegível. |
+| Navegação | Não depender de hover; manter retorno claro, título da tela e acesso às ações principais. |
+| Áreas seguras | Respeitar recortes de câmera, barra superior, indicador inferior e barras do sistema em Android e iOS. |
+| Orientação e zoom | Verificar modo retrato em todas as rotas e paisagem nas telas que exigem visão ampla, como Calendário e relatórios. |
+| Acessibilidade | Preservar contraste, foco, leitura por tecnologia assistiva e preferência de movimento reduzido. |
+| Desempenho percebido | Evitar animações que atrasem o toque; exibir carregamento e impedir mudanças bruscas de layout. |
+
+### Matriz mínima de validação por tipo de tela
+
+| Tipo de tela | Cenários que precisam ser aprovados |
+|---|---|
+| Dashboard | Componentes em ordens diferentes, blocos ocultos, textos longos, alertas ativos e ausência de alertas. |
+| Calendário | Dia vazio, um evento, vários eventos no mesmo horário, nomes longos, painel de detalhes e troca de período. |
+| Formulários | Primeiro e último campo, seletor de data/hora, mensagens de erro, teclado aberto, salvar e cancelar. |
+| Listas | Estado vazio, muitos registros, filtros abertos, ações por item, confirmação de exclusão e carregamento. |
+| Financeiro e relatórios | Valores grandes, períodos longos, gráficos, detalhes laterais, filtros e ausência de dados. |
+| Portal público | Todas as etapas, erros de preenchimento, teclado, seleção de horário, confirmação e instalação PWA sem sobreposição. |
+
+> **Regra de conclusão:** nenhuma melhoria de interface será considerada pronta apenas por funcionar no computador. Para ser marcada como concluída, deverá passar pelos cenários mobile aplicáveis e não apresentar campos sobrepostos, botões cortados, conteúdo inacessível ou ações encobertas.
 
 ## Próxima decisão recomendada
 
-A primeira implementação deve combinar três melhorias de alto retorno: **remover a obstrução do convite PWA**, **criar o bloco “Hoje precisa de atenção” no Dashboard** e **tornar os estados financeiros autoexplicativos**. Elas impactam diariamente a profissional, reduzem dúvida sem exigir mudança de processo e criam uma base clara para os refinamentos posteriores.
+A primeira implementação deve combinar três melhorias de alto retorno: **remover a obstrução do convite PWA**, **adicionar mecanismos de ordenar e ocultar componentes do Dashboard** e **tornar os estados financeiros autoexplicativos**. O componente “Hoje precisa de atenção” deve ser apresentado como opção configurável, não como substituição do Dashboard atual. Em paralelo, essa primeira entrega deverá validar os critérios mobile aplicáveis antes de ser aprovada.
 
 ## Limitações da avaliação
 
-As telas administrativas foram observadas em uma sessão real de produção, em viewport desktop. O portal público foi também conferido em 375×812 e não apresentou corte horizontal. As telas internas têm padrões responsivos implementados, mas ainda precisam de uma inspeção visual autenticada em dispositivo móvel para que a avaliação mobile seja considerada concluída. Esta é uma limitação de cobertura, não uma conclusão de que exista falha no celular.
+As telas administrativas foram observadas em uma sessão real de produção, em viewport desktop. O portal público foi também conferido em 375×812 e não apresentou corte horizontal. As telas internas têm padrões responsivos implementados, mas ainda precisam de inspeção visual autenticada em dispositivos móveis para que a avaliação mobile seja considerada concluída. Essa validação deixou de ser apenas uma recomendação futura e passou a integrar o aceite obrigatório de cada melhoria. Trata-se de uma limitação de cobertura atual, não de uma conclusão de que já exista falha no celular.
