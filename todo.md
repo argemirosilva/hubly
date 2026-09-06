@@ -2949,6 +2949,12 @@
 - [x] Cancelar a pendência geral duplicada já identificada no agendamento de curso, mantendo apenas a regra específica
 - [x] Validar a fila sem enviar mensagens reais e publicar a correção
 
+## Novo vídeo de automações — comportamento a analisar (06/09/2026)
+- [x] Analisar o vídeo recebido e registrar o comportamento demonstrado
+- [x] Confirmar que o vídeo mostra uma divergência de categorias de Serviços, não uma nova falha de automações
+- [x] Corrigir a sincronização entre Tipo de Profissional e categorias de Serviços já salvas
+- [x] Testar, validar visualmente e publicar o ajuste adicional
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

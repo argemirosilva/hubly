@@ -196,10 +196,10 @@ async function getContextoFiltroAgendamento(
 
 function mesmaJanelaDeLembrete(atual: any, candidata: any): boolean {
   if (atual.tipoGatilho !== candidata.tipoGatilho) return false;
-  if (atual.tipoGatilho === 'horas_antes_agendamento') {
+  if (atual.tipoGatilho === 'horas_antes_agendamento' || atual.tipoGatilho === 'horas_apos_agendamento') {
     return (atual.delayMinutos ?? 60) === (candidata.delayMinutos ?? 60);
   }
-  if (atual.tipoGatilho === 'dias_antes_agendamento') {
+  if (atual.tipoGatilho === 'dias_antes_agendamento' || atual.tipoGatilho === 'dias_depois_agendamento') {
     return (atual.diasAntesDepois ?? 1) === (candidata.diasAntesDepois ?? 1)
       && (atual.horaDisparo ?? '09:00') === (candidata.horaDisparo ?? '09:00');
   }
@@ -661,11 +661,13 @@ async function processarAutomacoesAgendadas() {
         for (const ag of ags) {
           if (!ag.clienteTelefone) continue;
 
-          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
-          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
-          // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
+          const contextoFiltro = await getContextoFiltroAgendamento(ag.id, ag.servicoNome);
+          const automacoesDaMesmaJanela = automacoesAntes.filter((candidata) =>
+            mesmaJanelaDeLembrete(automacao, candidata),
+          );
+          const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+          if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${dias}d antes): agendamento ${ag.id} ignorado por filtro ou precedência de regra específica`);
             continue;
           }
 
@@ -957,11 +959,13 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
-          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
-          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
-          // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
+          const contextoFiltro = await getContextoFiltroAgendamento(ag.id, ag.servicoNome);
+          const automacoesDaMesmaJanela = automacoesApos.filter((candidata) =>
+            mesmaJanelaDeLembrete(automacao, candidata),
+          );
+          const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+          if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min após): agendamento ${ag.id} ignorado por filtro ou precedência de regra específica`);
             continue;
           }
 
@@ -1095,11 +1099,13 @@ async function processarAutomacoesAgendadas() {
 
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
-          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
-          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
-          // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
+          const contextoFiltro = await getContextoFiltroAgendamento(ag.id, ag.servicoNome);
+          const automacoesDaMesmaJanela = automacoesDiasDepois.filter((candidata) =>
+            mesmaJanelaDeLembrete(automacao, candidata),
+          );
+          const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+          if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${diasDepois} dia(s) depois): agendamento ${ag.id} ignorado por filtro ou precedência de regra específica`);
             continue;
           }
 

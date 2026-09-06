@@ -1645,12 +1645,18 @@ export async function updateTipoProfissionalEGruposServico(
     .limit(1);
   if (!tipoAtual) throw new Error("Tipo profissional não encontrado");
 
-  await db.update(tiposProfissional).set(data)
+  const nomeNovo = data.nome?.trim();
+  const dadosAtualizados = nomeNovo ? { ...data, nome: nomeNovo } : data;
+  await db.update(tiposProfissional).set(dadosAtualizados)
     .where(and(eq(tiposProfissional.id, id), eq(tiposProfissional.empresaId, empresaId)));
 
-  if (data.nome && data.nome !== tipoAtual.nome) {
-    await db.update(servicos).set({ categoria: data.nome })
-      .where(and(eq(servicos.empresaId, empresaId), eq(servicos.categoria, tipoAtual.nome)));
+  const nomeAtualNormalizado = tipoAtual.nome.trim().toLocaleLowerCase('pt-BR');
+  if (nomeNovo && nomeNovo.toLocaleLowerCase('pt-BR') !== nomeAtualNormalizado) {
+    await db.update(servicos).set({ categoria: nomeNovo })
+      .where(and(
+        eq(servicos.empresaId, empresaId),
+        sql`LOWER(TRIM(${servicos.categoria})) = ${nomeAtualNormalizado}`,
+      ));
   }
 }
 

@@ -13,6 +13,10 @@ O agendador aplica o filtro compartilhado de automações apenas quando encontra
 
 O filtro compartilhado precisa reconhecer `por_categoria`, consultar as categorias reais dos serviços do agendamento e bloquear a automação quando nenhuma categoria corresponder. A verificação deve ser aplicada no pré-registro da fila e novamente antes do envio, preservando a proteção já existente contra registros antigos ou alterados.
 
+## Cobertura final aplicada
+
+A decisão compartilhada agora é usada em lembretes por dias antes, horas antes, horas depois e dias depois, além do pré-registro, da fila pendente e do reagendamento após reativação. Em qualquer uma dessas janelas, uma regra específica compatível por serviço ou categoria substitui a regra geral do mesmo momento.
+
 ## Ação preventiva aplicada na fila
 
 O agendamento de curso `1980002` tinha duas pendências para o mesmo horário: a regra geral **Agendado amanhã** e a regra **Curso agen. amanhã**. A pendência geral foi cancelada e a regra específica foi mantida agendada. Nenhuma mensagem foi enviada durante essa correção.

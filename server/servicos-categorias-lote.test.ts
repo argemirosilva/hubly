@@ -9,7 +9,7 @@ const servicosPage = readFileSync(resolve(process.cwd(), "client/src/pages/Servi
 describe("categorias de Serviços", () => {
   it("mantém os grupos de Serviços sincronizados ao renomear um tipo profissional", () => {
     expect(dbContent).toContain("updateTipoProfissionalEGruposServico");
-    expect(dbContent).toContain("eq(servicos.categoria, tipoAtual.nome)");
+    expect(dbContent).toContain("LOWER(TRIM(${servicos.categoria}))");
     expect(dbContent).toContain("eq(servicos.empresaId, empresaId)");
     expect(routersContent).toContain("updateTipoProfissionalEGruposServico(empresa.id, id, data)");
   });
