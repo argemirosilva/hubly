@@ -2942,6 +2942,13 @@
 - [x] Adicionar seleção múltipla e alteração em lote de categoria/tipo profissional nos Serviços
 - [x] Testar, validar visualmente e publicar os ajustes correspondentes
 
+## Automações — impedir disparo cruzado de curso (06/09/2026)
+- [x] Mapear a seleção de automações no lembrete “Agendado amanhã” e o filtro por serviço
+- [x] Corrigir o disparo simultâneo da regra normal e da regra exclusiva de curso
+- [x] Criar testes de regressão para atendimento normal, curso e cenário com duas regras
+- [x] Cancelar a pendência geral duplicada já identificada no agendamento de curso, mantendo apenas a regra específica
+- [ ] Validar a fila sem enviar mensagens reais e publicar a correção
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

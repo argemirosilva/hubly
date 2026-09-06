@@ -33,7 +33,8 @@ import {
 } from "../drizzle/schema";
 import { eq, and, lte, gt, sql, gte, lt, isNull, isNotNull, or } from "drizzle-orm";
 import { gerarTokenConfirmacao } from "./confirmacao";
-import { verificarFiltroServicoAutomacao } from "./filtro-servico-automacao";
+import { type ContextoFiltroAutomacao, verificarFiltroAutomacao } from "./filtro-servico-automacao";
+import { selecionarAutomacoesCompativeis } from "./automacoes-por-servico";
 import { ajustarHorarioDeLembreteReagendado } from "./reagendamento-lembretes";
 import { inserirLinkConfirmacao, mensagemExigeLinkConfirmacao } from "./link-confirmacao-mensagem";
 import { waManager } from "./whatsapp";
@@ -132,45 +133,11 @@ function gerarLinkAgendaScheduler(params: {
 function verificarCondicoesFlow(
   flowJson: string | null | undefined,
   servicoNome: string | null | undefined,
-  todosServicos?: string[]
+  todosServicos?: string[],
+  categoriaServico?: string | null,
+  todasCategorias?: string[],
 ): boolean {
-  if (!flowJson) return true; // sem flow = sem filtro = envia para todos
-  try {
-    const flow = JSON.parse(flowJson);
-    if (!Array.isArray(flow)) return true;
-
-    // Encontrar nós de condição
-    const condicoes = flow.filter((n: any) => n?.type === 'condition');
-    if (condicoes.length === 0) return true; // sem condições = envia para todos
-
-    // Verificar cada condição
-    for (const cond of condicoes) {
-      const tipo = cond?.data?.tipo;
-      const valor = cond?.data?.valor ?? cond?.data?.servicos;
-
-      if (tipo === 'por_servico' && valor) {
-        // Modelos antigos salvam texto separado por vírgula; os novos podem salvar array.
-        const servicosFiltro = (Array.isArray(valor) ? valor : String(valor).split(','))
-          .map((s: string) => s.trim().toLowerCase())
-          .filter(Boolean);
-        // Bug fix 3a: usar todos os serviços do agendamento (principal + itens compostos)
-        const listaServicos = todosServicos && todosServicos.length > 0
-          ? todosServicos.map(s => s.trim().toLowerCase()).filter(Boolean)
-          : [(servicoNome ?? '').trim().toLowerCase()].filter(Boolean);
-        if (listaServicos.length === 0) return false; // sem serviço no agendamento, não passa
-        // Verificar se ALGUM serviço do agendamento bate com ALGUM filtro
-        // Comparação exata (case-insensitive) para evitar falsos positivos
-        const passou = servicosFiltro.some((sf: string) =>
-          listaServicos.some((sa: string) => sa === sf)
-        );
-        if (!passou) return false;
-      }
-      // Outros tipos de condição podem ser adicionados aqui no futuro
-    }
-    return true;
-  } catch {
-    return true; // em caso de erro de parse, não bloqueia
-  }
+  return verificarFiltroAutomacao(flowJson, { servicoNome, todosServicos, categoriaServico, todasCategorias });
 }
 
 // Bug fix 3b: Helper para buscar todos os serviços de um agendamento (principal + itens compostos)
@@ -194,6 +161,49 @@ async function getTodosServicosAgendamento(agendamentoId: number, servicoPrincip
     console.error(`[Scheduler] Erro ao buscar itens compostos do agendamento ${agendamentoId}:`, err);
   }
   return result;
+}
+
+async function getContextoFiltroAgendamento(
+  agendamentoId: number,
+  servicoNome: string | null | undefined,
+): Promise<ContextoFiltroAutomacao> {
+  const todosServicos = await getTodosServicosAgendamento(agendamentoId, servicoNome ?? null);
+  const categorias = new Set<string>();
+  const db = await getDb();
+  let categoriaServico: string | null = null;
+  if (db) {
+    try {
+      const [principal] = await db
+        .select({ categoria: servicos.categoria })
+        .from(agendamentos)
+        .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
+        .where(eq(agendamentos.id, agendamentoId))
+        .limit(1);
+      categoriaServico = principal?.categoria ?? null;
+      if (categoriaServico) categorias.add(categoriaServico);
+      const itens = await db
+        .select({ categoria: servicos.categoria })
+        .from(agendamentoItens)
+        .leftJoin(servicos, eq(agendamentoItens.servicoId, servicos.id))
+        .where(eq(agendamentoItens.agendamentoId, agendamentoId));
+      for (const item of itens) if (item.categoria) categorias.add(item.categoria);
+    } catch (err) {
+      console.error(`[Scheduler] Erro ao buscar categorias do agendamento ${agendamentoId}:`, err);
+    }
+  }
+  return { servicoNome, todosServicos, categoriaServico, todasCategorias: Array.from(categorias) };
+}
+
+function mesmaJanelaDeLembrete(atual: any, candidata: any): boolean {
+  if (atual.tipoGatilho !== candidata.tipoGatilho) return false;
+  if (atual.tipoGatilho === 'horas_antes_agendamento') {
+    return (atual.delayMinutos ?? 60) === (candidata.delayMinutos ?? 60);
+  }
+  if (atual.tipoGatilho === 'dias_antes_agendamento') {
+    return (atual.diasAntesDepois ?? 1) === (candidata.diasAntesDepois ?? 1)
+      && (atual.horaDisparo ?? '09:00') === (candidata.horaDisparo ?? '09:00');
+  }
+  return false;
 }
 
 /**
@@ -807,11 +817,13 @@ async function processarAutomacoesAgendadas() {
           // Verificar se o disparo cai na janela atual
           if (tsDisparo < JANELA_INICIO || tsDisparo > JANELA_FIM) continue;
 
-          // Bug fix 3b: buscar todos os serviços do agendamento (principal + itens compostos)
-          const todosServicos = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
-          // Verificar condições do flowJson (ex: filtro por serviço)
-          if (!verificarCondicoesFlow(automacao.flowJson, ag.servicoNome, todosServicos)) {
-            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): agendamento ${ag.id} ignorado por filtro de serviço (serviços: ${todosServicos.join(', ')})`);
+          const contextoFiltro = await getContextoFiltroAgendamento(ag.id, ag.servicoNome);
+          const automacoesDoMesmoHorario = automacoesHorasAntes.filter((candidata) =>
+            mesmaJanelaDeLembrete(automacao, candidata),
+          );
+          const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDoMesmoHorario, contextoFiltro);
+          if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
+            console.log(`[Scheduler] Automação "${automacao.nome}" (${delayMin}min antes): agendamento ${ag.id} ignorado por filtro ou precedência de regra específica`);
             continue;
           }
 
@@ -1473,11 +1485,13 @@ async function preRegistrarEnviosPendentes() {
         for (const ag of ags) {
           if (!ag.clienteTelefone || !ag.data || !ag.horaInicio) continue;
 
-          // O pré-registro também precisa respeitar as condições. Sem isso, uma
-          // mensagem futura era colocada na fila antes de o filtro ser avaliado.
-          const todosServicosPre = await getTodosServicosAgendamento(ag.id, ag.servicoNome);
-          if (!verificarFiltroServicoAutomacao(automacao.flowJson, ag.servicoNome, todosServicosPre)) {
-            console.log(`[Scheduler] Pré-registro ignorado: automação "${automacao.nome}" não se aplica ao agendamento ${ag.id} (serviços: ${todosServicosPre.join(', ')})`);
+          const contextoFiltro = await getContextoFiltroAgendamento(ag.id, ag.servicoNome);
+          const automacoesDaMesmaJanela = todasAutomacoes.filter((candidata) =>
+            mesmaJanelaDeLembrete(automacao, candidata),
+          );
+          const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+          if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
+            console.log(`[Scheduler] Pré-registro ignorado: automação "${automacao.nome}" não se aplica ou foi substituída por regra específica no agendamento ${ag.id}`);
             continue;
           }
 
@@ -1734,7 +1748,15 @@ export async function processarFilaPendente() {
       }
       // Verificar se a automação ainda existe e está ativa antes de enviar
       if (item.automacaoId) {
-        const [automacaoAtual] = await db.select({ ativo: automacoes.ativo, flowJson: automacoes.flowJson })
+        const [automacaoAtual] = await db.select({
+          id: automacoes.id,
+          ativo: automacoes.ativo,
+          flowJson: automacoes.flowJson,
+          tipoGatilho: automacoes.tipoGatilho,
+          delayMinutos: automacoes.delayMinutos,
+          diasAntesDepois: automacoes.diasAntesDepois,
+          horaDisparo: automacoes.horaDisparo,
+        })
           .from(automacoes)
           .where(eq(automacoes.id, item.automacaoId))
           .limit(1);
@@ -1753,14 +1775,36 @@ export async function processarFilaPendente() {
             .leftJoin(servicos, eq(agendamentos.servicoId, servicos.id))
             .where(eq(agendamentos.id, item.agendamentoId))
             .limit(1);
-          const todosServicosFila = await getTodosServicosAgendamento(item.agendamentoId, agendamentoParaFiltro?.servicoNome ?? null);
-          if (!verificarFiltroServicoAutomacao(automacaoAtual.flowJson, agendamentoParaFiltro?.servicoNome ?? null, todosServicosFila)) {
-            const motivo = 'Agendamento não atende ao filtro de serviço da automação';
+          const contextoFiltro = await getContextoFiltroAgendamento(item.agendamentoId, agendamentoParaFiltro?.servicoNome ?? null);
+          if (!verificarFiltroAutomacao(automacaoAtual.flowJson, contextoFiltro)) {
+            const motivo = 'Agendamento não atende ao filtro de serviço ou categoria da automação';
             await db.update(historicoEnviosAutomacao)
               .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: motivo })
               .where(eq(historicoEnviosAutomacao.id, item.id));
-            console.log(`[Fila] Envio ${item.id} cancelado — ${motivo} (serviços: ${todosServicosFila.join(', ')})`);
+            console.log(`[Fila] Envio ${item.id} cancelado — ${motivo}`);
             continue;
+          }
+          if (automacaoAtual.tipoGatilho === 'horas_antes_agendamento' || automacaoAtual.tipoGatilho === 'dias_antes_agendamento') {
+            const candidatas = await db.select({
+              id: automacoes.id,
+              flowJson: automacoes.flowJson,
+              tipoGatilho: automacoes.tipoGatilho,
+              delayMinutos: automacoes.delayMinutos,
+              diasAntesDepois: automacoes.diasAntesDepois,
+              horaDisparo: automacoes.horaDisparo,
+            }).from(automacoes).where(and(eq(automacoes.empresaId, item.empresaId), eq(automacoes.ativo, true)));
+            const automacoesDaMesmaJanela = candidatas.filter((candidata) =>
+              mesmaJanelaDeLembrete(automacaoAtual, candidata),
+            );
+            const compativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+            if (!compativeis.some((candidata) => candidata.id === automacaoAtual.id)) {
+              const motivo = 'Automação geral substituída por regra específica compatível';
+              await db.update(historicoEnviosAutomacao)
+                .set({ status: 'cancelado', messageStatus: 'cancelled', canceladoEm: new Date(), erroDetalhe: motivo })
+                .where(eq(historicoEnviosAutomacao.id, item.id));
+              console.log(`[Fila] Envio ${item.id} cancelado — ${motivo}`);
+              continue;
+            }
           }
         }
       }
@@ -2525,10 +2569,14 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
       eq(automacoes.ativo, true),
       sql`${automacoes.tipoGatilho} IN ('dias_antes_agendamento', 'horas_antes_agendamento')`,
     ));
-    const todosServicos = await getTodosServicosAgendamento(agendamentoId, ag.servicoNome);
+    const contextoFiltro = await getContextoFiltroAgendamento(agendamentoId, ag.servicoNome);
 
     for (const automacao of todasAutomacoes) {
-      if (!verificarFiltroServicoAutomacao(automacao.flowJson, ag.servicoNome, todosServicos)) {
+      const automacoesDaMesmaJanela = todasAutomacoes.filter((candidata) =>
+        mesmaJanelaDeLembrete(automacao, candidata),
+      );
+      const automacoesCompativeis = selecionarAutomacoesCompativeis(automacoesDaMesmaJanela, contextoFiltro);
+      if (!automacoesCompativeis.some((candidata) => candidata.id === automacao.id)) {
         continue;
       }
       let enviarEm: Date | null = null;
