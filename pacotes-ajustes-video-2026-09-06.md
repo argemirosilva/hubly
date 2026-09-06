@@ -14,3 +14,9 @@ O bloqueio para reduzir o valor contratado abaixo do recebido é financeiramente
 - manter a trava contra saldo negativo;
 - permitir corrigir um lançamento individual de recebimento no painel **Financeiro do pacote**;
 - recalcular `valorRecebido`, `saldo` e `statusPagamento` a partir dos lançamentos, sem apagar histórico.
+
+## Validação de distribuição
+
+Após o checkpoint `435ac1a4`, a primeira abertura autenticada ainda mostrou o bundle anterior: filtros com **Ativos** primeiro e o texto **Registrar pagamento**. A validação visual seguirá em URL inédita após a propagação da publicação; nenhum dado de pacote foi alterado durante essa etapa.
+
+Após a propagação, a sessão autenticada confirmou a nova ordem **Todos, Ativos, Concluídos, Vencidos, Cancelados**. O pacote de curso quitado passou a exibir **Gerenciar pagamentos**, e o painel financeiro exibiu o lançamento de R$ 2.500,00 com o botão acessível **Corrigir recebimento**. Nenhuma edição ou lançamento foi salvo durante a validação.

@@ -2960,7 +2960,7 @@
 - [x] Mover Todos para a primeira posição, antes de Ativos
 - [x] Criar um caminho para corrigir recebimentos de pacote lançados incorretamente
 - [x] Corrigir a nomenclatura do valor total para não confundir com valor recebido
-- [ ] Testar regras financeiras, validar visualmente e publicar os ajustes
+- [x] Testar regras financeiras, validar visualmente e publicar os ajustes
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
