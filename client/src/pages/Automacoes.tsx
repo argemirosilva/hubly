@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { filtrarAutomacoesPorStatus, type StatusListaAutomacao } from "@/lib/automacoesStatus";
 
 //  Tipos
 
@@ -1686,6 +1687,7 @@ export default function Automacoes() {
   const [testeClienteId, setTesteClienteId] = useState<number | null>(null);
   const [testeClienteSearchTerm, setTesteClienteSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"automacoes" | "historico" | "jornada">("automacoes");
+  const [statusListaAutomacao, setStatusListaAutomacao] = useState<StatusListaAutomacao>("ativas");
   const [filtroTipoGatilho, setFiltroTipoGatilho] = useState<string>("todos");
   const [historicoPage, setHistoricoPage] = useState(0);
   const [historicoFiltroCanal, setHistoricoFiltroCanal] = useState("");
@@ -1922,13 +1924,23 @@ export default function Automacoes() {
 
   const automacoesDoSistema = (automacoesSalvas as any[]).filter((a: any) => a.isTemplate);
   const automacoesDoUsuario = (automacoesSalvas as any[]).filter((a: any) => !a.isTemplate);
+  const automacoesAtivas = filtrarAutomacoesPorStatus(automacoesDoUsuario, "ativas");
+  const automacoesDesativadas = filtrarAutomacoesPorStatus(automacoesDoUsuario, "desativadas");
+  const automacoesNoStatusSelecionado = statusListaAutomacao === "ativas" ? automacoesAtivas : automacoesDesativadas;
 
-  const automacoesFiltradas = automacoesDoUsuario.filter((a: any) => {
+  const automacoesFiltradas = automacoesNoStatusSelecionado.filter((a: any) => {
     if (filtroTipoGatilho === "todos") return true;
     return a.tipoGatilho === filtroTipoGatilho;
   });
 
-  const tiposGatilhoUnicos = Array.from(new Set(automacoesDoUsuario.map((a: any) => a.tipoGatilho)));
+  const tiposGatilhoUnicos = Array.from(new Set(automacoesNoStatusSelecionado.map((a: any) => a.tipoGatilho)));
+
+  const selecionarStatusLista = (status: StatusListaAutomacao) => {
+    setStatusListaAutomacao(status);
+    setFiltroTipoGatilho("todos");
+    setSelecionadas(new Set());
+    setModoSelecao(false);
+  };
 
   const getTriggerLabel = (a: any) => {
     switch (a.tipoGatilho) {
@@ -2483,44 +2495,73 @@ export default function Automacoes() {
                       </Button>
                     </div>
                   )}
-                  <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                    <button
-                      onClick={() => setFiltroTipoGatilho("todos")}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                        filtroTipoGatilho === "todos"
-                          ? "bg-amber-600 text-white"
-                          : "bg-stone-100 text-gray-700 hover:bg-stone-200"
-                      }`}
-                    >
-                      Todos ({automacoesSalvas.length})
-                    </button>
-                    {tiposGatilhoUnicos.map(tipo => {
-                      const count = (automacoesSalvas as any[]).filter(a => a.tipoGatilho === tipo).length;
-                      return (
-                        <button
-                          key={tipo}
-                          onClick={() => setFiltroTipoGatilho(tipo)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                            filtroTipoGatilho === tipo
-                              ? "bg-amber-600 text-white"
-                              : "bg-stone-100 text-gray-700 hover:bg-stone-200"
-                          }`}
-                        >
-                          {getTipoGatilhoLabel(tipo)} ({count})
-                        </button>
-                      );
-                    })}
-                    {!modoSelecao && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex gap-1 rounded-xl bg-stone-100 p-1 w-full sm:w-auto" role="tablist" aria-label="Status das automações">
                       <button
-                        onClick={() => setModoSelecao(true)}
-                        className="ml-auto px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-stone-100 text-gray-700 hover:bg-stone-200 flex items-center gap-1.5 flex-shrink-0"
+                        role="tab"
+                        aria-selected={statusListaAutomacao === "ativas"}
+                        onClick={() => selecionarStatusLista("ativas")}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                          statusListaAutomacao === "ativas"
+                            ? "bg-white text-emerald-700 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
                       >
-                        <Check size={13} /> Selecionar
+                        Ativas ({automacoesAtivas.length})
                       </button>
-                    )}
+                      <button
+                        role="tab"
+                        aria-selected={statusListaAutomacao === "desativadas"}
+                        onClick={() => selecionarStatusLista("desativadas")}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                          statusListaAutomacao === "desativadas"
+                            ? "bg-white text-gray-800 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Desativadas ({automacoesDesativadas.length})
+                      </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1 min-w-0 flex-1">
+                      <button
+                        onClick={() => setFiltroTipoGatilho("todos")}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                          filtroTipoGatilho === "todos"
+                            ? "bg-amber-600 text-white"
+                            : "bg-stone-100 text-gray-700 hover:bg-stone-200"
+                        }`}
+                      >
+                        Todos ({automacoesNoStatusSelecionado.length})
+                      </button>
+                      {tiposGatilhoUnicos.map(tipo => {
+                        const count = automacoesNoStatusSelecionado.filter((a: any) => a.tipoGatilho === tipo).length;
+                        return (
+                          <button
+                            key={tipo}
+                            onClick={() => setFiltroTipoGatilho(tipo)}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                              filtroTipoGatilho === tipo
+                                ? "bg-amber-600 text-white"
+                                : "bg-stone-100 text-gray-700 hover:bg-stone-200"
+                            }`}
+                          >
+                            {getTipoGatilhoLabel(tipo)} ({count})
+                          </button>
+                        );
+                      })}
+                      {!modoSelecao && (
+                        <button
+                          onClick={() => setModoSelecao(true)}
+                          className="ml-auto px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-stone-100 text-gray-700 hover:bg-stone-200 flex items-center gap-1.5 flex-shrink-0"
+                        >
+                          <Check size={13} /> Selecionar
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {automacoesFiltradas.length === 0 ? (                    <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-gray-200">
-                      <p className="text-gray-500 font-medium">Nenhuma automação neste tipo</p>
+                      <p className="text-gray-500 font-medium">{statusListaAutomacao === "ativas" ? "Nenhuma automação ativa neste tipo" : "Nenhuma automação desativada neste tipo"}</p>
+                      <p className="text-xs text-gray-400 mt-1">{statusListaAutomacao === "ativas" ? "Ative uma automação ou ajuste o filtro para encontrá-la." : "As automações que você pausar aparecerão aqui."}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -2598,7 +2639,14 @@ export default function Automacoes() {
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <Switch checked={a.ativo} onCheckedChange={() => updateMutation.mutate({ id: a.id, ativo: !a.ativo }, { onSuccess: () => gerarPipelineAutomatico() })} />
+                          <Switch
+                            checked={a.ativo}
+                            aria-label={a.ativo ? `Desativar ${a.nome}` : `Ativar ${a.nome}`}
+                            onCheckedChange={(ativo) => updateMutation.mutate(
+                              { id: a.id, ativo },
+                              { onSuccess: () => gerarPipelineAutomatico() },
+                            )}
+                          />
                         )}
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Testar envio"
                           onClick={() => setTesteEnvioId(a.id)}>
