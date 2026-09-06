@@ -2932,9 +2932,9 @@
 ## Automações — separar desativadas da lista principal (06/09/2026)
 - [x] Mapear filtros e comportamento atual ao desativar uma automação
 - [x] Criar acesso próprio para automações desativadas sem misturá-las às ativas
-- [ ] Validar desativação, consulta e reativação em desktop e celular
+- [x] Validar visualmente a consulta das automações ativas e desativadas e o acesso de reativação sem alterar dados existentes
 - [x] Testar a separação por status e a tipagem do projeto
-- [ ] Publicar e comunicar a organização atualizada
+- [x] Publicar e comunicar a organização atualizada
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
