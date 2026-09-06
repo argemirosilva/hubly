@@ -11,3 +11,7 @@ A usuária abre **Serviços**, acessa **Tipos de Profissional**, edita o tipo **
 A usuária demonstra que precisa abrir cada serviço individualmente para alterar o campo **Categoria / Tipo**. Ela quer selecionar diversos serviços, inclusive de categorias diferentes, para transferi-los de uma só vez para um tipo profissional único, sem repetir a edição item por item.
 
 **Solicitação de melhoria:** criar seleção múltipla na lista de Serviços e uma ação em lote para alterar a categoria/tipo profissional dos serviços selecionados. A função deve permitir selecionar serviços pertencentes a grupos diferentes e mostrar claramente a quantidade selecionada antes de confirmar a mudança.
+
+## Validação da implementação publicada
+
+Na sessão autenticada, a página Serviços exibiu o modo **Selecionar**. Foram selecionados, sem salvar alterações, um serviço de **Cabeleireiro** e outro de **Maquiadora**. O sistema exibiu corretamente **Alterar tipo (2)** e abriu um diálogo explicando que os dois serviços serão movidos para o mesmo tipo profissional. A alteração foi cancelada antes da confirmação, preservando os dados existentes.

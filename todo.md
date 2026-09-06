@@ -2940,7 +2940,7 @@
 - [x] Analisar os dois vídeos e registrar o comportamento demonstrado
 - [x] Corrigir a atualização do agrupamento de Serviços após renomear um tipo profissional
 - [x] Adicionar seleção múltipla e alteração em lote de categoria/tipo profissional nos Serviços
-- [ ] Testar, validar visualmente e publicar os ajustes correspondentes
+- [x] Testar, validar visualmente e publicar os ajustes correspondentes
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
