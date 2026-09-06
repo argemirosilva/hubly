@@ -22,7 +22,7 @@ import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
-import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote } from "../pacotes-financeiro";
+import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "../pacotes-financeiro";
 import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
 import { avaliarExclusaoDefinitivaPacote } from "../pacotes-exclusao";
 import { selecionarAutomacoesPorServicos } from "../automacoes-por-servico";
@@ -850,6 +850,70 @@ export const pacotesRouter = router({
         }).where(eq(pacotesClientes.id, pacote.id));
       });
       return { ok: true, valorRecebido: novoRecebido, saldoDevedor: Math.max(0, valorTotal - novoRecebido), statusPagamento };
+    }),
+
+  ajustarPagamento: protectedProcedure
+    .input(z.object({
+      pacoteClienteId: z.number(),
+      pagamentoId: z.number(),
+      valor: z.number().positive(),
+      formaPagamento: z.string().optional(),
+      tipo: z.enum(["sinal", "parcial", "quitacao"]),
+      observacoes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, 'pacotesEditar');
+
+      const [pacote] = await db.select().from(pacotesClientes).where(and(
+        eq(pacotesClientes.id, input.pacoteClienteId),
+        eq(pacotesClientes.empresaId, empresa.id),
+      )).limit(1);
+      if (!pacote) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pacote não encontrado.' });
+
+      const pagamentos = await db.select({
+        id: pacotesClientesPagamentos.id,
+        valor: pacotesClientesPagamentos.valor,
+      }).from(pacotesClientesPagamentos).where(and(
+        eq(pacotesClientesPagamentos.pacoteClienteId, pacote.id),
+        eq(pacotesClientesPagamentos.empresaId, empresa.id),
+      ));
+      if (!pagamentos.some((pagamento) => pagamento.id === input.pagamentoId)) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Recebimento não encontrado neste pacote.' });
+      }
+
+      const novoRecebido = recalcularRecebidoAjustado(pagamentos, input.pagamentoId, input.valor);
+      const valorTotal = Number(pacote.valorTotal ?? pacote.valorPago ?? 0);
+      if (novoRecebido > valorTotal) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'O recebimento corrigido ultrapassa o valor total do pacote.' });
+      }
+      const statusPagamento = calcularSituacaoPagamentoPacote(valorTotal, novoRecebido).statusPagamento;
+
+      await db.transaction(async (tx) => {
+        await tx.update(pacotesClientesPagamentos).set({
+          valor: String(input.valor),
+          formaPagamento: input.formaPagamento,
+          tipo: input.tipo,
+          observacoes: input.observacoes,
+        }).where(and(
+          eq(pacotesClientesPagamentos.id, input.pagamentoId),
+          eq(pacotesClientesPagamentos.pacoteClienteId, pacote.id),
+          eq(pacotesClientesPagamentos.empresaId, empresa.id),
+        ));
+        await tx.update(pacotesClientes).set({
+          valorRecebido: String(novoRecebido),
+          statusPagamento,
+        }).where(eq(pacotesClientes.id, pacote.id));
+      });
+
+      return {
+        ok: true,
+        valorRecebido: novoRecebido,
+        saldoDevedor: Math.max(0, valorTotal - novoRecebido),
+        statusPagamento,
+      };
     }),
 
   // ── Reabrir e corrigir pacote concluído antes dos atendimentos ──────────────

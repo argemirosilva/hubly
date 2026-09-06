@@ -15,6 +15,30 @@ export function calcularSituacaoPagamentoPacote(valorTotal: number, valorRecebid
   return { valorTotal: total, valorRecebido: recebido, saldoDevedor, statusPagamento };
 }
 
+/** Recalcula o recebido do pacote após a correção de um lançamento individual. */
+export function recalcularRecebidoAjustado(
+  pagamentos: Array<{ id: number; valor: number | string | null }> ,
+  pagamentoId: number,
+  valorCorrigido: number,
+): number {
+  const novoValor = Number(valorCorrigido);
+  if (!Number.isFinite(novoValor) || novoValor <= 0) {
+    throw new Error("O valor corrigido deve ser maior que zero.");
+  }
+
+  let encontrado = false;
+  const recebido = pagamentos.reduce((total, pagamento) => {
+    if (pagamento.id === pagamentoId) {
+      encontrado = true;
+      return total + novoValor;
+    }
+    return total + Math.max(0, Number(pagamento.valor) || 0);
+  }, 0);
+
+  if (!encontrado) throw new Error("Lançamento de recebimento não encontrado.");
+  return Number(recebido.toFixed(2));
+}
+
 export function calcularMargemPrevistaPacote(valorTotal: number, custoTotal: number): {
   valorTotal: number;
   custoTotal: number;

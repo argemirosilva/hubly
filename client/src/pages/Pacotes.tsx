@@ -881,6 +881,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   const [formaPagamento, setFormaPagamento] = useState("");
   const [tipo, setTipo] = useState<"sinal" | "parcial" | "quitacao">("parcial");
   const [observacoes, setObservacoes] = useState("");
+  const [pagamentoEditando, setPagamentoEditando] = useState<any | null>(null);
   const { data: pagamentos = [] } = trpc.pacotes.listarPagamentos.useQuery(
     { pacoteClienteId: pacote?.id ?? 0 },
     { enabled: Boolean(pacote && open) },
@@ -898,12 +899,22 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     },
     onError: e => toast.error(e.message),
   });
+  const ajustarMutation = trpc.pacotes.ajustarPagamento.useMutation({
+    onSuccess: () => {
+      utils.pacotes.listarTodos.invalidate();
+      utils.pacotes.listarPagamentos.invalidate({ pacoteClienteId: pacote?.id ?? 0 });
+      setPagamentoEditando(null);
+      toast.success("Recebimento corrigido no pacote.");
+    },
+    onError: e => toast.error(e.message),
+  });
 
   useEffect(() => {
     if (!open) return;
     setValor("");
     setTipo("parcial");
     setObservacoes("");
+    setPagamentoEditando(null);
   }, [open, pacote?.id]);
 
   function registrar() {
@@ -914,6 +925,30 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     }
     registrarMutation.mutate({
       pacoteClienteId: pacote.id,
+      valor: valorNumerico,
+      formaPagamento: formaPagamento || undefined,
+      tipo,
+      observacoes: observacoes || undefined,
+    });
+  }
+
+  function iniciarAjuste(pagamento: any) {
+    setPagamentoEditando(pagamento);
+    setValor(String(pagamento.valor ?? ""));
+    setFormaPagamento(pagamento.formaPagamento ?? "");
+    setTipo(pagamento.tipo ?? "parcial");
+    setObservacoes(pagamento.observacoes ?? "");
+  }
+
+  function salvarAjuste() {
+    const valorNumerico = parseFloat(valor);
+    if (!pacote || !pagamentoEditando || !valorNumerico || valorNumerico <= 0) {
+      toast.error("Informe um valor recebido válido.");
+      return;
+    }
+    ajustarMutation.mutate({
+      pacoteClienteId: pacote.id,
+      pagamentoId: pagamentoEditando.id,
       valor: valorNumerico,
       formaPagamento: formaPagamento || undefined,
       tipo,
@@ -933,14 +968,14 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
             <div><p className="text-xs text-emerald-800">Saldo em aberto</p><p className="font-semibold text-amber-800">{formatCurrency(saldo)}</p></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Valor recebido (R$)</Label><Input type="number" min="0" max={saldo} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
+            <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={pagamentoEditando ? valorTotal : saldo} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
             <div><Label>Tipo</Label><Select value={tipo} onValueChange={v => setTipo(v as "sinal" | "parcial" | "quitacao")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sinal">Sinal / entrada</SelectItem><SelectItem value="parcial">Pagamento parcial</SelectItem><SelectItem value="quitacao">Quitação total</SelectItem></SelectContent></Select></div>
           </div>
           <div><Label>Forma de pagamento</Label><Select value={formaPagamento} onValueChange={setFormaPagamento}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Observação</Label><Textarea rows={2} value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Ex.: sinal recebido via Pix" /></div>
-          {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Histórico</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><span className="font-semibold">{formatCurrency(pagamento.valor)}</span></div>)}</div>}
+          {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Recebimentos registrados</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between gap-2 text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><div className="flex items-center gap-1"><span className="font-semibold">{formatCurrency(pagamento.valor)}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => iniciarAjuste(pagamento)} aria-label="Corrigir recebimento"><Pencil className="w-3.5 h-3.5" /></Button></div></div>)}</div>}
         </div>
-        <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={registrar} disabled={registrarMutation.isPending || saldo <= 0}>{registrarMutation.isPending ? "Registrando..." : "Registrar pagamento"}</Button></DialogFooter>
+        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending : registrarMutation.isPending || saldo <= 0}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : "Registrar pagamento")}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1076,9 +1111,9 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExclu
               <p className="text-sm font-semibold text-emerald-950">Recebido {formatCurrency(valorRecebidoPacote)} · Em aberto {formatCurrency(saldoDevedor)}</p>
               <p className="mt-1 text-xs text-emerald-800">Custo {formatCurrency(custoTotalPacote)} · <span className={margemPrevista < 0 ? "font-semibold text-red-700" : "font-semibold text-emerald-900"}>Margem prevista {formatCurrency(margemPrevista)} ({percentualMargem.toFixed(1).replace(".", ",")}%)</span></p>
             </div>
-            {saldoDevedor > 0 && onRegistrarPagamento && (
+            {onRegistrarPagamento && (
               <Button size="sm" variant="outline" className="h-8 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={(e) => { e.stopPropagation(); onRegistrarPagamento(pacote); }}>
-                Registrar pagamento
+                Gerenciar pagamentos
               </Button>
             )}
           </div>
@@ -1312,7 +1347,7 @@ export default function Pacotes() {
               </svg>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {(["ativo", "concluido", "vencido", "cancelado", "todos"] as const).map(s => (
+              {(["todos", "ativo", "concluido", "vencido", "cancelado"] as const).map(s => (
                 <button
                   key={s}
                   onClick={() => setFiltroStatus(s)}
@@ -1667,7 +1702,7 @@ export default function Pacotes() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Valor pago (R$)</Label>
+                <Label>Valor total do pacote (R$)</Label>
                 <Input
                   type="number" min="0" step="0.01"
                   value={editarPacoteForm.valorPago}
@@ -1683,6 +1718,7 @@ export default function Pacotes() {
                 />
               </div>
             </div>
+            <p className="text-xs text-stone-500">Os recebimentos são corrigidos em <strong>Gerenciar pagamentos</strong> e não são alterados neste campo.</p>
             <p className={`text-xs rounded-md px-3 py-2 ${Number(editarPacoteForm.valorPago) - Number(editarPacoteForm.custoTotal) < 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
               Margem prevista: <strong>{formatCurrency(Number(editarPacoteForm.valorPago) - Number(editarPacoteForm.custoTotal))}</strong>
             </p>

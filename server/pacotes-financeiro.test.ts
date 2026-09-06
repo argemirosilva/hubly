@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote } from "./pacotes-financeiro";
+import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "./pacotes-financeiro";
 
 describe("calcularSituacaoPagamentoPacote", () => {
   it("mantém o pacote pendente sem recebimentos", () => {
@@ -32,5 +32,19 @@ describe("calcularMargemPrevistaPacote", () => {
     expect(calcularMargemPrevistaPacote(100, 125)).toEqual({
       valorTotal: 100, custoTotal: 125, margemPrevista: -25, percentualMargem: -25,
     });
+  });
+});
+
+describe("recalcularRecebidoAjustado", () => {
+  it("recalcula o total ao corrigir um recebimento individual sem apagar os demais", () => {
+    expect(recalcularRecebidoAjustado([
+      { id: 1, valor: "500" },
+      { id: 2, valor: "150" },
+    ], 1, 200)).toBe(350);
+  });
+
+  it("rejeita correção sem valor positivo ou lançamento inexistente", () => {
+    expect(() => recalcularRecebidoAjustado([{ id: 1, valor: "500" }], 1, 0)).toThrow();
+    expect(() => recalcularRecebidoAjustado([{ id: 1, valor: "500" }], 2, 100)).toThrow();
   });
 });
