@@ -2936,6 +2936,12 @@
 - [x] Testar a separação por status e a tipagem do projeto
 - [x] Publicar e comunicar a organização atualizada
 
+## Vídeos recebidos — comportamento a investigar (06/09/2026)
+- [x] Analisar os dois vídeos e registrar o comportamento demonstrado
+- [x] Corrigir a atualização do agrupamento de Serviços após renomear um tipo profissional
+- [x] Adicionar seleção múltipla e alteração em lote de categoria/tipo profissional nos Serviços
+- [ ] Testar, validar visualmente e publicar os ajustes correspondentes
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

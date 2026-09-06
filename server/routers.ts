@@ -40,7 +40,7 @@ import {
   getPermissoesByProfissional, updatePermissoes,
   getClientesByEmpresa, getClientesByEmpresaAll, getClienteById, createCliente, updateCliente, deleteCliente,
   getServicosByEmpresa, createServico, updateServico, getServicosByProfissional,
-  deleteOuDesativarServico, deleteLoteServicos, verificarVinculosServico,
+  deleteOuDesativarServico, deleteLoteServicos, verificarVinculosServico, updateCategoriaServicosLote,
   getAgendamentosByEmpresa, getAgendamentoById, createAgendamento, updateAgendamento, getAgendamentosVinculadosByCliente,
   getBloqueiosByEmpresa, createBloqueio, createBloqueioRecorrente, updateBloqueio,
   getComissoesByEmpresa, createComissao, updateComissao,
@@ -56,7 +56,7 @@ import {
   getConvitesByEmpresa, createConvite, getConviteByToken, updateConvite, getUsersByEmpresa,
   createSystemUser, getSystemUsersByEmpresa, updateSystemUser, deleteSystemUser, resetSystemUserPassword,
   getEquipeByEmpresa,
-  getTiposProfissionalByEmpresa, createTipoProfissional, updateTipoProfissional, deleteTipoProfissional,
+  getTiposProfissionalByEmpresa, createTipoProfissional, updateTipoProfissionalEGruposServico, deleteTipoProfissional,
   getTiposByProfissional, setTiposProfissional,
   getCategoriasDespesaByEmpresa, createCategoriaDespesa, updateCategoriaDespesa, deleteCategoriaDespesa,
   getContasPagarByEmpresa, createContaPagar, updateContaPagar, deleteContaPagar, getMetricasContasPagar,
@@ -1008,6 +1008,18 @@ export const appRouter = router({
         const { id, ...data } = input;
         await updateServico(id, data as any);
         return { success: true };
+      }),
+    alterarCategoriaLote: protectedProcedure
+      .input(z.object({
+        ids: z.array(z.number()).min(1).max(500),
+        categoria: z.string().trim().min(1).max(100),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new Error("Empresa não encontrada");
+        await requirePermissao(ctx, empresa, 'servicosEditar');
+        const atualizados = await updateCategoriaServicosLote(empresa.id, input.ids, input.categoria);
+        return { success: true, atualizados };
       }),
     // Verifica vínculos antes de mostrar o modal de confirmação
     verificarVinculos: protectedProcedure
@@ -5593,9 +5605,12 @@ export const appRouter = router({
       }),
     atualizar: protectedProcedure
       .input(z.object({ id: z.number(), nome: z.string().min(1).optional(), cor: z.string().optional(), ativo: z.boolean().optional() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+        if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
+        await requirePermissao(ctx, empresa, 'servicosEditar');
         const { id, ...data } = input;
-        await updateTipoProfissional(id, data);
+        await updateTipoProfissionalEGruposServico(empresa.id, id, data);
         return { success: true };
       }),
     excluir: protectedProcedure

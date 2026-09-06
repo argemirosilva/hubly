@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, lte, sql, or, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, gte, lte, sql, or, isNull, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
@@ -205,6 +205,17 @@ export async function updateServico(id: number, data: Partial<typeof servicos.$i
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(servicos).set(data).where(eq(servicos.id, id));
+}
+
+export async function updateCategoriaServicosLote(empresaId: number, servicoIds: number[], categoria: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  if (servicoIds.length === 0) return 0;
+
+  const result = await db.update(servicos)
+    .set({ categoria })
+    .where(and(eq(servicos.empresaId, empresaId), inArray(servicos.id, servicoIds)));
+  return (result as any)[0]?.affectedRows ?? (result as any).affectedRows ?? 0;
 }
 
 /**
@@ -1614,6 +1625,33 @@ export async function updateTipoProfissional(id: number, data: { nome?: string; 
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(tiposProfissional).set(data).where(eq(tiposProfissional.id, id));
+}
+
+/**
+ * Renomeia um tipo profissional e mantém os grupos de Serviços coerentes.
+ * Serviços ainda armazenam a categoria como texto, por isso o nome antigo é
+ * atualizado apenas dentro da mesma empresa do tipo profissional editado.
+ */
+export async function updateTipoProfissionalEGruposServico(
+  empresaId: number,
+  id: number,
+  data: { nome?: string; cor?: string; ativo?: boolean },
+) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+
+  const [tipoAtual] = await db.select().from(tiposProfissional)
+    .where(and(eq(tiposProfissional.id, id), eq(tiposProfissional.empresaId, empresaId)))
+    .limit(1);
+  if (!tipoAtual) throw new Error("Tipo profissional não encontrado");
+
+  await db.update(tiposProfissional).set(data)
+    .where(and(eq(tiposProfissional.id, id), eq(tiposProfissional.empresaId, empresaId)));
+
+  if (data.nome && data.nome !== tipoAtual.nome) {
+    await db.update(servicos).set({ categoria: data.nome })
+      .where(and(eq(servicos.empresaId, empresaId), eq(servicos.categoria, tipoAtual.nome)));
+  }
 }
 
 export async function deleteTipoProfissional(id: number) {

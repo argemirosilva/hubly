@@ -40,6 +40,8 @@ export default function Servicos() {
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [alterarTipoLoteModalOpen, setAlterarTipoLoteModalOpen] = useState(false);
+  const [categoriaLote, setCategoriaLote] = useState("");
   const [deleteInfo, setDeleteInfo] = useState<{
     ids: number[];
     comVinculos: { id: number; totalAgendamentos: number; totalPacotes: number }[];
@@ -77,6 +79,18 @@ export default function Servicos() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const alterarCategoriaLoteMutation = trpc.servicos.alterarCategoriaLote.useMutation({
+    onSuccess: (res) => {
+      toast.success(`${res.atualizados} serviço${res.atualizados === 1 ? "" : "s"} movido${res.atualizados === 1 ? "" : "s"} para ${categoriaLote}.`);
+      utils.servicos.list.invalidate();
+      setAlterarTipoLoteModalOpen(false);
+      setCategoriaLote("");
+      setSelecionados(new Set());
+      setModoSelecao(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const deleteMutation = trpc.servicos.delete.useMutation({
     onSuccess: (res) => {
       if (res.acao === 'deletado') toast.success("Serviço excluído.");
@@ -111,7 +125,7 @@ export default function Servicos() {
   });
 
   const atualizarTipoMutation = trpc.tiposProfissional.atualizar.useMutation({
-    onSuccess: () => { toast.success("Tipo atualizado!"); utils.tiposProfissional.list.invalidate(); setEditandoTipo(null); setTipoForm({ ...emptyTipoForm }); },
+    onSuccess: () => { toast.success("Tipo atualizado!"); utils.tiposProfissional.list.invalidate(); utils.servicos.list.invalidate(); setEditandoTipo(null); setTipoForm({ ...emptyTipoForm }); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -254,6 +268,12 @@ export default function Servicos() {
     setSelecionados(new Set());
   }
 
+  function abrirAlterarTipoLote() {
+    if (selecionados.size === 0) return;
+    setCategoriaLote((tipos ?? [])[0]?.nome ?? "");
+    setAlterarTipoLoteModalOpen(true);
+  }
+
   async function abrirModalDelete(ids: number[]) {
     // Busca vínculos via query manual
     try {
@@ -309,9 +329,9 @@ export default function Servicos() {
                 <span className="sm:hidden">Tipos</span>
               </button>
               {(servicos?.length ?? 0) > 0 && (
-                <button onClick={() => setModoSelecao(true)} className="btn-ghost py-2 px-3 text-xs border border-border rounded-lg flex items-center gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Excluir</span>
+                <button onClick={() => setModoSelecao(true)} className="btn-ghost py-2 px-3 text-xs border border-border rounded-lg flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Selecionar</span>
                 </button>
               )}
               <button onClick={abrirNovo} className="btn-primary py-2 px-3 text-xs">
@@ -326,6 +346,14 @@ export default function Servicos() {
               <button onClick={toggleTodos} className="btn-ghost py-2 px-3 text-xs border border-border rounded-lg flex items-center gap-1.5">
                 {selecionados.size === todosIds.length ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
                 <span>{selecionados.size === todosIds.length ? "Desmarcar todos" : "Selecionar todos"}</span>
+              </button>
+              <button
+                onClick={abrirAlterarTipoLote}
+                disabled={selecionados.size === 0}
+                className="btn-ghost py-2 px-3 text-xs border border-primary/40 text-primary rounded-lg flex items-center gap-1.5 hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Tag className="w-3.5 h-3.5" />
+                Alterar tipo {selecionados.size > 0 ? `(${selecionados.size})` : ""}
               </button>
               <button
                 onClick={() => selecionados.size > 0 && abrirModalDelete(Array.from(selecionados))}
@@ -348,7 +376,7 @@ export default function Servicos() {
       {modoSelecao && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
           <CheckSquare className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Clique nos serviços para selecioná-los. Serviços com agendamentos ou pacotes vinculados serão <strong>desativados</strong> em vez de excluídos.</span>
+          <span>Selecione serviços de quaisquer grupos para alterar o tipo em lote ou excluir. Serviços com agendamentos ou pacotes vinculados serão <strong>desativados</strong> em vez de excluídos.</span>
         </div>
       )}
 
@@ -521,6 +549,41 @@ export default function Servicos() {
             </Button>
             <Button variant="destructive" onClick={confirmarDelete} disabled={isDeletePending}>
               {isDeletePending ? "Processando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={alterarTipoLoteModalOpen} onOpenChange={open => { if (!alterarCategoriaLoteMutation.isPending) setAlterarTipoLoteModalOpen(open); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-bold">
+              <Tag className="w-4 h-4 text-primary" />
+              Alterar tipo profissional
+            </DialogTitle>
+            <DialogDescription>
+              Os {selecionados.size} serviços selecionados serão movidos para o mesmo tipo profissional.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="categoria-lote">Novo tipo profissional</Label>
+            <Select value={categoriaLote} onValueChange={setCategoriaLote}>
+              <SelectTrigger id="categoria-lote">
+                <SelectValue placeholder="Selecione um tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {(tipos ?? []).map(tipo => <SelectItem key={tipo.id} value={tipo.nome}>{tipo.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(tipos ?? []).length === 0 && <p className="text-xs text-muted-foreground">Cadastre antes um tipo profissional para organizar estes serviços.</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlterarTipoLoteModalOpen(false)} disabled={alterarCategoriaLoteMutation.isPending}>Cancelar</Button>
+            <Button
+              onClick={() => alterarCategoriaLoteMutation.mutate({ ids: Array.from(selecionados), categoria: categoriaLote })}
+              disabled={!categoriaLote || alterarCategoriaLoteMutation.isPending}
+            >
+              {alterarCategoriaLoteMutation.isPending ? "Movendo..." : "Mover serviços"}
             </Button>
           </DialogFooter>
         </DialogContent>
