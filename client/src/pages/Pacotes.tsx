@@ -892,9 +892,13 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   const valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : valorTotalLegado;
   const valorRecebido = Number(pacote?.valorRecebido ?? 0);
   const saldo = Math.max(0, valorTotal - valorRecebido);
-  const precisaRegularizarTotal = valorTotal <= 0;
+  const precisaRegularizarTotal = valorTotal <= 0 || valorTotal < valorRecebido;
   const totalParaRegistrar = precisaRegularizarTotal ? Number(valorTotalRegularizado || 0) : valorTotal;
-  const limiteRecebimento = pagamentoEditando ? valorTotal : Math.max(0, totalParaRegistrar - valorRecebido);
+  const valorEmEdicao = Number(pagamentoEditando?.valor ?? 0);
+  const totalRecebidoDepoisDoAjuste = pagamentoEditando
+    ? Math.max(0, valorRecebido - valorEmEdicao) + Number(valor || 0)
+    : valorRecebido + Number(valor || 0);
+  const limiteRecebimento = precisaRegularizarTotal ? undefined : pagamentoEditando ? valorTotal : Math.max(0, totalParaRegistrar - valorRecebido);
   const registrarMutation = trpc.pacotes.registrarPagamento.useMutation({
     onSuccess: () => {
       utils.pacotes.listarTodos.invalidate();
@@ -931,11 +935,12 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
       return;
     }
     const totalRegularizado = Number(valorTotalRegularizado || 0);
-    if (precisaRegularizarTotal && totalRegularizado <= 0) {
-      toast.error("Informe o valor total do pacote antes de registrar o recebimento.");
+    const totalNecessario = valorRecebido + valorNumerico;
+    if (precisaRegularizarTotal && totalRegularizado < totalNecessario) {
+      toast.error(`Informe um valor total de pelo menos ${formatCurrency(totalNecessario)} antes de registrar o recebimento.`);
       return;
     }
-    if (valorNumerico + valorRecebido > (precisaRegularizarTotal ? totalRegularizado : valorTotal)) {
+    if (!precisaRegularizarTotal && totalNecessario > valorTotal) {
       toast.error("O recebimento não pode ultrapassar o valor total do pacote.");
       return;
     }
@@ -963,10 +968,17 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
       toast.error("Informe um valor recebido válido.");
       return;
     }
+    const totalRegularizado = Number(valorTotalRegularizado || 0);
+    const totalNecessario = Math.max(0, valorRecebido - Number(pagamentoEditando.valor ?? 0)) + valorNumerico;
+    if (precisaRegularizarTotal && totalRegularizado < totalNecessario) {
+      toast.error(`Informe um valor total de pelo menos ${formatCurrency(totalNecessario)} antes de corrigir o recebimento.`);
+      return;
+    }
     ajustarMutation.mutate({
       pacoteClienteId: pacote.id,
       pagamentoId: pagamentoEditando.id,
       valor: valorNumerico,
+      valorTotalRegularizado: precisaRegularizarTotal ? totalRegularizado : undefined,
       formaPagamento: formaPagamento || undefined,
       tipo,
       observacoes: observacoes || undefined,
@@ -984,16 +996,16 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
             <div><p className="text-xs text-emerald-800">Valor total</p><p className="font-semibold text-emerald-950">{formatCurrency(valorTotal)}</p></div>
             <div><p className="text-xs text-emerald-800">Saldo em aberto</p><p className="font-semibold text-amber-800">{formatCurrency(saldo)}</p></div>
           </div>
-          {precisaRegularizarTotal && !pagamentoEditando && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="text-xs text-amber-900">Este pacote não possui valor total registrado. Informe o valor contratado para registrar o recebimento corretamente.</p><div><Label>Valor total do pacote (R$)</Label><Input type="number" min="0.01" step="0.01" value={valorTotalRegularizado} onChange={e => setValorTotalRegularizado(e.target.value)} placeholder="Ex.: 475,00" /></div></div>}
+          {precisaRegularizarTotal && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="text-xs text-amber-900">O total salvo neste pacote é menor ou igual ao que já foi recebido. Informe o valor total contratado para regularizar o histórico e continuar.</p><div><Label>Valor total correto do pacote (R$)</Label><Input type="number" min={Math.max(0.01, totalRecebidoDepoisDoAjuste)} step="0.01" value={valorTotalRegularizado} onChange={e => setValorTotalRegularizado(e.target.value)} placeholder={`Mínimo: ${formatCurrency(totalRecebidoDepoisDoAjuste)}`} /></div></div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={limiteRecebimento > 0 ? limiteRecebimento : undefined} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
+            <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={limiteRecebimento && limiteRecebimento > 0 ? limiteRecebimento : undefined} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
             <div><Label>Tipo</Label><Select value={tipo} onValueChange={v => setTipo(v as "sinal" | "parcial" | "quitacao")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sinal">Sinal / entrada</SelectItem><SelectItem value="parcial">Pagamento parcial</SelectItem><SelectItem value="quitacao">Quitação total</SelectItem></SelectContent></Select></div>
           </div>
           <div><Label>Forma de pagamento</Label><Select value={formaPagamento} onValueChange={setFormaPagamento}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Observação</Label><Textarea rows={2} value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Ex.: sinal recebido via Pix" /></div>
           {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Recebimentos registrados</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between gap-2 text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><div className="flex items-center gap-1"><span className="font-semibold">{formatCurrency(pagamento.valor)}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => iniciarAjuste(pagamento)} aria-label="Corrigir recebimento"><Pencil className="w-3.5 h-3.5" /></Button></div></div>)}</div>}
         </div>
-        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); setValorTotalRegularizado(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending : registrarMutation.isPending || !valor || limiteRecebimento <= 0}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : precisaRegularizarTotal ? "Salvar valor e registrar pagamento" : "Registrar pagamento")}</Button></DialogFooter>
+        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); setValorTotalRegularizado(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending || !valor : registrarMutation.isPending || !valor}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : precisaRegularizarTotal ? "Salvar valor e registrar pagamento" : "Registrar pagamento")}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1037,17 +1049,16 @@ function ModalHistoricoSessoes({ pacote, onClose }: { pacote: any | null; onClos
 
 // ─── Card de Pacote do Cliente ────────────────────────────────────────────────
 
-function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExcluir, onVerHistorico, onRenovar, onEditar, onRegistrarPagamento, onReabrir }: {
+function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onExcluir, onVerHistorico, onRenovar, onEditar, onRegistrarPagamento, onAlterarStatus }: {
   pacote: any;
   onConsumir: (itemId: number) => void;
   onDesfazerConsumo: (itemId: number) => void;
-  onCancelar: (id: number) => void;
   onExcluir: (id: number) => void;
   onVerHistorico: (pacote: any) => void;
   onRenovar?: (pacote: any) => void;
   onEditar?: (pacote: any) => void;
   onRegistrarPagamento?: (pacote: any) => void;
-  onReabrir?: (pacote: any) => void;
+  onAlterarStatus: (pacote: any) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const totalItens = pacote.itens.reduce((a: number, i: any) => a + i.quantidadeTotal, 0);
@@ -1141,11 +1152,9 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExclu
             {pacote.dataVencimento && (
               <span>Vence em {new Date(pacote.dataVencimento).toLocaleDateString("pt-BR")}</span>
             )}
-            {pacote.status === "ativo" && (
-              <button onClick={() => onCancelar(pacote.id)} className="text-red-400 hover:text-red-600 flex items-center gap-1">
-                <XCircle className="w-3 h-3" /> Cancelar
-              </button>
-            )}
+            <button onClick={() => onAlterarStatus(pacote)} className="text-stone-600 hover:text-violet-800 flex items-center gap-1 font-medium">
+              <Pencil className="w-3 h-3" /> Status
+            </button>
             <button onClick={() => onVerHistorico(pacote)} className="text-violet-700 hover:text-violet-900 flex items-center gap-1 font-medium">
               <CalendarClock className="w-3 h-3" /> Sessões
             </button>
@@ -1157,11 +1166,6 @@ function PacoteCard({ pacote, onConsumir, onDesfazerConsumo, onCancelar, onExclu
             {pacote.status === "ativo" && onEditar && (
               <button onClick={() => onEditar(pacote)} className="text-amber-600 hover:text-blue-700 flex items-center gap-1 font-medium">
                 <Pencil className="w-3 h-3" /> Editar
-              </button>
-            )}
-            {pacote.status === "concluido" && onReabrir && (
-              <button onClick={() => onReabrir(pacote)} className="text-amber-700 hover:text-amber-900 flex items-center gap-1 font-medium">
-                <RotateCcw className="w-3 h-3" /> Revisar sessões
               </button>
             )}
             {(pacote.status === "concluido" || pacote.status === "vencido") && onRenovar && (
@@ -1206,6 +1210,8 @@ export default function Pacotes() {
   });
   const [pacoteEditarId, setPacoteEditarId] = useState<number | null>(null);
   const [pacoteHistorico, setPacoteHistorico] = useState<any | null>(null);
+  const [pacoteStatus, setPacoteStatus] = useState<any | null>(null);
+  const [statusManual, setStatusManual] = useState<"ativo" | "concluido" | "vencido" | "cancelado">("ativo");
   const [editarPacoteForm, setEditarPacoteForm] = useState<{
     nome: string; valorPago: string; custoTotal: string; formaPagamento: string;
     numeroParcelas: string; dataVencimento: string; observacoes: string;
@@ -1246,11 +1252,7 @@ export default function Pacotes() {
   const consumirMutation = trpc.pacotes.consumirSessao.useMutation({
     onSuccess: (data) => {
       utils.pacotes.listarTodos.invalidate();
-      if (data.pacoteConcluido) {
-        toast.success("Sessão usada! Pacote concluído — notificação enviada.");
-      } else {
-        toast.success("Sessão registrada com sucesso!");
-      }
+      toast.success("Sessão registrada com sucesso!");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1262,19 +1264,17 @@ export default function Pacotes() {
     onError: (e) => toast.error(e.message),
   });
 
-  const cancelarMutation = trpc.pacotes.cancelarPacote.useMutation({
-    onSuccess: () => { utils.pacotes.listarTodos.invalidate(); toast.success("Pacote cancelado."); },
-    onError: (e) => toast.error(e.message),
-  });
   const excluirPacoteMutation = trpc.pacotes.excluirPacoteDefinitivamente.useMutation({
     onSuccess: () => { utils.pacotes.listarTodos.invalidate(); toast.success("Pacote excluído definitivamente."); },
     onError: (e) => toast.error(e.message),
   });
 
-  const reabrirMutation = trpc.pacotes.reabrirPacote.useMutation({
+  const alterarStatusMutation = trpc.pacotes.alterarStatus.useMutation({
     onSuccess: (data) => {
       utils.pacotes.listarTodos.invalidate();
-      toast.success(data.status === "ativo" ? "Pacote reaberto: as sessões futuras voltaram a ficar agendadas." : "Todas as sessões deste pacote já estão concluídas.");
+      setPacoteStatus(null);
+      const labels: Record<string, string> = { ativo: "ativo", concluido: "concluído", vencido: "vencido", cancelado: "cancelado" };
+      toast.success(`Status do pacote alterado para ${labels[data.status] ?? data.status}.`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1401,13 +1401,15 @@ export default function Pacotes() {
                     pacote={p}
                     onConsumir={(itemId) => consumirMutation.mutate({ pacoteClienteItemId: itemId })}
                     onDesfazerConsumo={(itemId) => desfazerConsumoMutation.mutate({ pacoteClienteItemId: itemId })}
-                    onCancelar={(id) => cancelarMutation.mutate({ id })}
                     onExcluir={(id) => {
                       if (window.confirm("Excluir este pacote definitivamente? A ação só é permitida para pacotes cancelados sem agendamentos ou pagamentos vinculados.")) excluirPacoteMutation.mutate({ id });
                     }}
                     onVerHistorico={(pac) => setPacoteHistorico(pac)}
                     onRegistrarPagamento={(pac) => setPacotePagamento(pac)}
-                    onReabrir={(pac) => reabrirMutation.mutate({ pacoteClienteId: pac.id })}
+                    onAlterarStatus={(pac) => {
+                      setPacoteStatus(pac);
+                      setStatusManual((pac.status ?? "ativo") as "ativo" | "concluido" | "vencido" | "cancelado");
+                    }}
                     onEditar={(pac) => {
                       setPacoteEditarId(pac.id);
                       setEditarPacoteForm({
@@ -1604,6 +1606,40 @@ export default function Pacotes() {
         open={Boolean(pacotePagamento)}
         onClose={() => setPacotePagamento(null)}
       />
+      <Dialog open={Boolean(pacoteStatus)} onOpenChange={(open) => !open && setPacoteStatus(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Alterar status do pacote</DialogTitle>
+            {pacoteStatus && <p className="text-sm text-stone-500">{pacoteStatus.nome} · {pacoteStatus.clienteNome ?? "Cliente"}</p>}
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>Status operacional</Label>
+              <Select value={statusManual} onValueChange={(value) => setStatusManual(value as "ativo" | "concluido" | "vencido" | "cancelado")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
+                  <SelectItem value="vencido">Vencido</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+              O status é escolhido manualmente. Para marcar como concluído, o sistema confere se todas as sessões foram concluídas e se o pagamento está 100% quitado. Pagamentos continuam acessíveis em qualquer status.
+            </p>
+          </div>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setPacoteStatus(null)}>Cancelar</Button>
+            <Button
+              disabled={!pacoteStatus || alterarStatusMutation.isPending}
+              onClick={() => pacoteStatus && alterarStatusMutation.mutate({ pacoteClienteId: pacoteStatus.id, status: statusManual })}
+            >
+              {alterarStatusMutation.isPending ? "Salvando..." : "Salvar status"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de renovação de pacote */}
       <Dialog open={!!pacoteRenovarId} onOpenChange={(open) => !open && setPacoteRenovarId(null)}>

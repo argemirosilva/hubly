@@ -15,6 +15,35 @@ export function calcularSituacaoPagamentoPacote(valorTotal: number, valorRecebid
   return { valorTotal: total, valorRecebido: recebido, saldoDevedor, statusPagamento };
 }
 
+export function avaliarConclusaoPacote({
+  totalSessoes,
+  sessoesConcluidas,
+  sessoesAgendadas,
+  statusPagamento,
+}: {
+  totalSessoes: number;
+  sessoesConcluidas: number;
+  sessoesAgendadas: number;
+  statusPagamento: StatusPagamentoPacote;
+}): { permitido: boolean; motivo?: string } {
+  const total = Math.max(0, Number(totalSessoes) || 0);
+  const concluidas = Math.max(0, Number(sessoesConcluidas) || 0);
+
+  if (total <= 0) {
+    return { permitido: false, motivo: "O pacote precisa ter sessões cadastradas antes de ser concluído." };
+  }
+  if (concluidas < total) {
+    return { permitido: false, motivo: "Todas as sessões do pacote precisam estar concluídas antes de marcar o pacote como concluído." };
+  }
+  if (Math.max(0, Number(sessoesAgendadas) || 0) > 0) {
+    return { permitido: false, motivo: "Há sessões deste pacote ainda agendadas. Conclua ou cancele esses atendimentos antes de marcar o pacote como concluído." };
+  }
+  if (statusPagamento !== "pago") {
+    return { permitido: false, motivo: "O pagamento do pacote precisa estar 100% quitado antes de marcar o pacote como concluído." };
+  }
+  return { permitido: true };
+}
+
 /** Recalcula o recebido do pacote após a correção de um lançamento individual. */
 export function recalcularRecebidoAjustado(
   pagamentos: Array<{ id: number; valor: number | string | null }> ,

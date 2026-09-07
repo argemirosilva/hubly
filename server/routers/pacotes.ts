@@ -22,7 +22,7 @@ import { waManager } from "../whatsapp";
 import { TRPCError } from "@trpc/server";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "../agenda-conflitos";
 import { somarMinutosAoHorario, validarReservasDePacote } from "../pacotes-agenda";
-import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "../pacotes-financeiro";
+import { avaliarConclusaoPacote, calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "../pacotes-financeiro";
 import { calcularSessoesManuaisReversiveis } from "../pacotes-sessoes";
 import { avaliarExclusaoDefinitivaPacote } from "../pacotes-exclusao";
 import { selecionarAutomacoesPorServicos } from "../automacoes-por-servico";
@@ -76,6 +76,26 @@ async function contarSessoesConcluidasPorItem(db: any, empresaId: number, itemId
   const contagem = new Map<number, number>();
   for (const vinculo of vinculos) {
     if (!vinculo.itemId) continue;
+    contagem.set(vinculo.itemId, (contagem.get(vinculo.itemId) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+async function contarSessoesAgendadasPorItem(db: any, empresaId: number, itemIds: number[]) {
+  if (!itemIds.length) return new Map<number, number>();
+  const vinculos = await db.select({
+    itemId: agendamentoItens.pacoteClienteItemId,
+    status: agendamentos.status,
+  }).from(agendamentoItens)
+    .innerJoin(agendamentos, eq(agendamentoItens.agendamentoId, agendamentos.id))
+    .where(and(
+      inArray(agendamentoItens.pacoteClienteItemId, itemIds),
+      eq(agendamentos.empresaId, empresaId),
+    ));
+  const statusInativos = new Set(["concluido", "cancelado", "cancelado_cliente", "faltou", "remarcado"]);
+  const contagem = new Map<number, number>();
+  for (const vinculo of vinculos) {
+    if (!vinculo.itemId || statusInativos.has(vinculo.status ?? "")) continue;
     contagem.set(vinculo.itemId, (contagem.get(vinculo.itemId) ?? 0) + 1);
   }
   return contagem;
@@ -699,6 +719,8 @@ export const pacotesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, "pacotesEditar");
 
       // Buscar item e verificar se pertence à empresa
       const [item] = await db.select({
@@ -708,8 +730,12 @@ export const pacotesRouter = router({
         quantidadeUsada: pacotesClientesItens.quantidadeUsada,
         servicoNome: servicos.nome,
       }).from(pacotesClientesItens)
+        .innerJoin(pacotesClientes, eq(pacotesClientesItens.pacoteClienteId, pacotesClientes.id))
         .leftJoin(servicos, eq(pacotesClientesItens.servicoId, servicos.id))
-        .where(eq(pacotesClientesItens.id, input.pacoteClienteItemId))
+        .where(and(
+          eq(pacotesClientesItens.id, input.pacoteClienteItemId),
+          eq(pacotesClientes.empresaId, empresa.id),
+        ))
         .limit(1);
 
       if (!item) throw new Error("Item não encontrado");
@@ -722,34 +748,9 @@ export const pacotesRouter = router({
         .set({ quantidadeUsada: novaQtd })
         .where(eq(pacotesClientesItens.id, input.pacoteClienteItemId));
 
-      // Verificar se o pacote inteiro foi concluído
-      const todosItens = await db.select().from(pacotesClientesItens)
-        .where(eq(pacotesClientesItens.pacoteClienteId, item.pacoteClienteId));
-      const pacoteConcluido = todosItens.every(i =>
-        (i.id === item.id ? novaQtd : i.quantidadeUsada) >= i.quantidadeTotal
-      );
-
-      if (pacoteConcluido) {
-        await db.update(pacotesClientes)
-          .set({ status: "concluido" })
-          .where(eq(pacotesClientes.id, item.pacoteClienteId));
-
-        // Buscar nome do pacote e cliente para notificação
-        const [pacote] = await db.select({
-          nome: pacotesClientes.nome,
-          clienteId: pacotesClientes.clienteId,
-        }).from(pacotesClientes).where(eq(pacotesClientes.id, item.pacoteClienteId)).limit(1);
-
-        const [clienteRow] = await db.select({ nome: clientes.nome })
-          .from(clientes).where(eq(clientes.id, pacote.clienteId)).limit(1);
-
-        await notifyOwner({
-          title: "Pacote concluído!",
-          content: `O pacote "${pacote.nome}" de ${clienteRow?.nome ?? "cliente"} foi totalmente utilizado. Deseja renovar?`,
-        });
-      }
-
-      return { ok: true, pacoteConcluido };
+      // O consumo registra somente a sessão. A conclusão é uma escolha manual
+      // e depende da conferência conjunta de sessões e pagamento.
+      return { ok: true };
     }),
 
   // ── Desfazer consumo manual acidental ─────────────────────────────────────
@@ -787,9 +788,6 @@ export const pacotesRouter = router({
         await tx.update(pacotesClientesItens)
           .set({ quantidadeUsada: Math.max(0, item.quantidadeUsada - 1) })
           .where(eq(pacotesClientesItens.id, item.id));
-        await tx.update(pacotesClientes)
-          .set({ status: "ativo" })
-          .where(eq(pacotesClientes.id, item.pacoteClienteId));
       });
       return { ok: true, sessoesManuaisRestantes: sessoesManuais - 1 };
     }),
@@ -829,19 +827,17 @@ export const pacotesRouter = router({
       )).limit(1);
       if (!pacote) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pacote não encontrado.' });
 
+      const valorRecebidoAtual = Number(pacote.valorRecebido ?? 0);
+      const novoRecebido = Number((valorRecebidoAtual + input.valor).toFixed(2));
       const valorTotalPersistido = Number(pacote.valorTotal ?? 0);
       const valorTotalLegado = Number(pacote.valorPago ?? 0);
       let valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : valorTotalLegado;
-      if (valorTotal <= 0) {
-        if (!input.valorTotalRegularizado) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Informe o valor total do pacote antes de registrar o recebimento.' });
+      if (valorTotal < novoRecebido) {
+        const valorRegularizado = Number(input.valorTotalRegularizado ?? 0);
+        if (valorRegularizado < novoRecebido) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Informe um valor total de pelo menos R$ ${novoRecebido.toFixed(2).replace('.', ',')} para compatibilizar os recebimentos registrados.` });
         }
-        valorTotal = Number(input.valorTotalRegularizado.toFixed(2));
-      }
-      const valorRecebidoAtual = Number(pacote.valorRecebido ?? 0);
-      const novoRecebido = Number((valorRecebidoAtual + input.valor).toFixed(2));
-      if (novoRecebido > valorTotal) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'O pagamento ultrapassa o saldo devedor do pacote.' });
+        valorTotal = Number(valorRegularizado.toFixed(2));
       }
       const statusPagamento = calcularSituacaoPagamentoPacote(valorTotal, novoRecebido).statusPagamento;
       await db.transaction(async (tx) => {
@@ -858,6 +854,7 @@ export const pacotesRouter = router({
           valorPago: String(valorTotal),
           valorRecebido: String(novoRecebido),
           statusPagamento,
+          ...(pacote.status === "concluido" && statusPagamento !== "pago" ? { status: "ativo" } : {}),
         }).where(eq(pacotesClientes.id, pacote.id));
       });
       return { ok: true, valorRecebido: novoRecebido, saldoDevedor: Math.max(0, valorTotal - novoRecebido), statusPagamento };
@@ -868,6 +865,7 @@ export const pacotesRouter = router({
       pacoteClienteId: z.number(),
       pagamentoId: z.number(),
       valor: z.number().positive(),
+      valorTotalRegularizado: z.number().positive().optional(),
       formaPagamento: z.string().optional(),
       tipo: z.enum(["sinal", "parcial", "quitacao"]),
       observacoes: z.string().optional(),
@@ -896,9 +894,14 @@ export const pacotesRouter = router({
       }
 
       const novoRecebido = recalcularRecebidoAjustado(pagamentos, input.pagamentoId, input.valor);
-      const valorTotal = Number(pacote.valorTotal ?? pacote.valorPago ?? 0);
+      const valorTotalPersistido = Number(pacote.valorTotal ?? 0);
+      let valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : Number(pacote.valorPago ?? 0);
       if (novoRecebido > valorTotal) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'O recebimento corrigido ultrapassa o valor total do pacote.' });
+        const valorRegularizado = Number(input.valorTotalRegularizado ?? 0);
+        if (valorRegularizado < novoRecebido) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Informe um valor total de pelo menos R$ ${novoRecebido.toFixed(2).replace('.', ',')} para compatibilizar os recebimentos registrados.` });
+        }
+        valorTotal = Number(valorRegularizado.toFixed(2));
       }
       const statusPagamento = calcularSituacaoPagamentoPacote(valorTotal, novoRecebido).statusPagamento;
 
@@ -914,8 +917,11 @@ export const pacotesRouter = router({
           eq(pacotesClientesPagamentos.empresaId, empresa.id),
         ));
         await tx.update(pacotesClientes).set({
+          valorTotal: String(valorTotal),
+          valorPago: String(valorTotal),
           valorRecebido: String(novoRecebido),
           statusPagamento,
+          ...(pacote.status === "concluido" && statusPagamento !== "pago" ? { status: "ativo" } : {}),
         }).where(eq(pacotesClientes.id, pacote.id));
       });
 
@@ -967,10 +973,55 @@ export const pacotesRouter = router({
           await tx.update(pacotesClientesItens).set({ quantidadeUsada, quantidadeReservada })
             .where(eq(pacotesClientesItens.id, item.id));
         }
-        await tx.update(pacotesClientes).set({ status: todasConcluidas ? 'concluido' : 'ativo' })
-          .where(eq(pacotesClientes.id, pacote.id));
       });
-      return { ok: true, status: todasConcluidas ? 'concluido' : 'ativo' };
+      return { ok: true, status: pacote.status, todasConcluidas };
+    }),
+
+  // ── Alterar status operacional do pacote ───────────────────────────────────
+  alterarStatus: protectedProcedure
+    .input(z.object({
+      pacoteClienteId: z.number(),
+      status: z.enum(["ativo", "concluido", "vencido", "cancelado"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const empresa = await getEmpresaCompleta(ctx.user.id, ctx.systemUser?.empresaId);
+      await requirePermissaoPacotes(ctx, empresa, "pacotesEditar");
+      const [pacote] = await db.select().from(pacotesClientes).where(and(
+        eq(pacotesClientes.id, input.pacoteClienteId),
+        eq(pacotesClientes.empresaId, empresa.id),
+      )).limit(1);
+      if (!pacote) throw new TRPCError({ code: "NOT_FOUND", message: "Pacote não encontrado." });
+
+      if (input.status === "concluido") {
+        const itens = await db.select({
+          id: pacotesClientesItens.id,
+          quantidadeTotal: pacotesClientesItens.quantidadeTotal,
+          quantidadeUsada: pacotesClientesItens.quantidadeUsada,
+        }).from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacote.id));
+        const idsItens = itens.map((item) => item.id);
+        const concluidasPorItem = await contarSessoesConcluidasPorItem(db, empresa.id, idsItens);
+        const agendadasPorItem = await contarSessoesAgendadasPorItem(db, empresa.id, idsItens);
+        const totalSessoes = itens.reduce((total, item) => total + item.quantidadeTotal, 0);
+        const sessoesConcluidas = itens.reduce(
+          (total, item) => total + Math.min(item.quantidadeTotal, Math.max(item.quantidadeUsada, concluidasPorItem.get(item.id) ?? 0)),
+          0,
+        );
+        const sessoesAgendadas = itens.reduce(
+          (total, item) => total + (agendadasPorItem.get(item.id) ?? 0),
+          0,
+        );
+        const valorTotalPersistido = Number(pacote.valorTotal ?? 0);
+        const valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : Number(pacote.valorPago ?? 0);
+        const statusPagamento = calcularSituacaoPagamentoPacote(valorTotal, Number(pacote.valorRecebido ?? 0)).statusPagamento;
+        const conclusao = avaliarConclusaoPacote({ totalSessoes, sessoesConcluidas, sessoesAgendadas, statusPagamento });
+        if (!conclusao.permitido) throw new TRPCError({ code: "BAD_REQUEST", message: conclusao.motivo });
+      }
+
+      await db.update(pacotesClientes).set({ status: input.status })
+        .where(and(eq(pacotesClientes.id, pacote.id), eq(pacotesClientes.empresaId, empresa.id)));
+      return { ok: true, status: input.status };
     }),
 
   // ── Relatório financeiro de pacotes ─────────────────────────────────────────
@@ -1641,7 +1692,9 @@ export const pacotesRouter = router({
         }
         updates.valorPago = String(input.valorPago);
         updates.valorTotal = String(input.valorPago);
-        updates.statusPagamento = input.valorPago <= 0 ? 'pendente' : Number(pacote.valorRecebido ?? 0) >= input.valorPago ? 'pago' : 'parcial';
+        const statusPagamento = input.valorPago <= 0 ? 'pendente' : Number(pacote.valorRecebido ?? 0) >= input.valorPago ? 'pago' : 'parcial';
+        updates.statusPagamento = statusPagamento;
+        if (pacote.status === "concluido" && statusPagamento !== "pago") updates.status = "ativo";
       }
       if (input.custoTotal !== undefined) updates.custoTotal = String(input.custoTotal);
       if (input.formaPagamento !== undefined) updates.formaPagamento = input.formaPagamento;

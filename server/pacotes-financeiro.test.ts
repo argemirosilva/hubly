@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "./pacotes-financeiro";
+import { avaliarConclusaoPacote, calcularMargemPrevistaPacote, calcularSituacaoPagamentoPacote, recalcularRecebidoAjustado } from "./pacotes-financeiro";
 
 describe("calcularSituacaoPagamentoPacote", () => {
   it("mantém o pacote pendente sem recebimentos", () => {
@@ -46,5 +46,25 @@ describe("recalcularRecebidoAjustado", () => {
   it("rejeita correção sem valor positivo ou lançamento inexistente", () => {
     expect(() => recalcularRecebidoAjustado([{ id: 1, valor: "500" }], 1, 0)).toThrow();
     expect(() => recalcularRecebidoAjustado([{ id: 1, valor: "500" }], 2, 100)).toThrow();
+  });
+});
+
+describe("avaliarConclusaoPacote", () => {
+  it("não permite concluir enquanto houver sessões ainda não concluídas, mesmo com pagamento quitado", () => {
+    expect(avaliarConclusaoPacote({ totalSessoes: 4, sessoesConcluidas: 3, statusPagamento: "pago" })).toEqual({
+      permitido: false,
+      motivo: "Todas as sessões do pacote precisam estar concluídas antes de marcar o pacote como concluído.",
+    });
+  });
+
+  it("não permite concluir enquanto o pacote estiver com pagamento pendente", () => {
+    expect(avaliarConclusaoPacote({ totalSessoes: 4, sessoesConcluidas: 4, statusPagamento: "parcial" })).toEqual({
+      permitido: false,
+      motivo: "O pagamento do pacote precisa estar 100% quitado antes de marcar o pacote como concluído.",
+    });
+  });
+
+  it("permite concluir somente com todas as sessões concluídas e pagamento quitado", () => {
+    expect(avaliarConclusaoPacote({ totalSessoes: 4, sessoesConcluidas: 4, statusPagamento: "pago" })).toEqual({ permitido: true });
   });
 });
