@@ -883,6 +883,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   const [observacoes, setObservacoes] = useState("");
   const [pagamentoEditando, setPagamentoEditando] = useState<any | null>(null);
   const [valorTotalRegularizado, setValorTotalRegularizado] = useState("");
+  const [ajustandoValorTotal, setAjustandoValorTotal] = useState(false);
   const { data: pagamentos = [] } = trpc.pacotes.listarPagamentos.useQuery(
     { pacoteClienteId: pacote?.id ?? 0 },
     { enabled: Boolean(pacote && open) },
@@ -893,12 +894,13 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   const valorRecebido = Number(pacote?.valorRecebido ?? 0);
   const saldo = Math.max(0, valorTotal - valorRecebido);
   const precisaRegularizarTotal = valorTotal <= 0 || valorTotal < valorRecebido;
-  const totalParaRegistrar = precisaRegularizarTotal ? Number(valorTotalRegularizado || 0) : valorTotal;
+  const exibindoAjusteTotal = precisaRegularizarTotal || ajustandoValorTotal;
+  const totalParaRegistrar = exibindoAjusteTotal ? Number(valorTotalRegularizado || 0) : valorTotal;
   const valorEmEdicao = Number(pagamentoEditando?.valor ?? 0);
   const totalRecebidoDepoisDoAjuste = pagamentoEditando
     ? Math.max(0, valorRecebido - valorEmEdicao) + Number(valor || 0)
     : valorRecebido + Number(valor || 0);
-  const limiteRecebimento = precisaRegularizarTotal ? undefined : pagamentoEditando ? valorTotal : Math.max(0, totalParaRegistrar - valorRecebido);
+  const limiteRecebimento = exibindoAjusteTotal ? undefined : pagamentoEditando ? valorTotal : Math.max(0, totalParaRegistrar - valorRecebido);
   const registrarMutation = trpc.pacotes.registrarPagamento.useMutation({
     onSuccess: () => {
       utils.pacotes.listarTodos.invalidate();
@@ -926,6 +928,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     setObservacoes("");
     setPagamentoEditando(null);
     setValorTotalRegularizado("");
+    setAjustandoValorTotal(false);
   }, [open, pacote?.id]);
 
   function registrar() {
@@ -936,18 +939,18 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     }
     const totalRegularizado = Number(valorTotalRegularizado || 0);
     const totalNecessario = valorRecebido + valorNumerico;
-    if (precisaRegularizarTotal && totalRegularizado < totalNecessario) {
+    if (exibindoAjusteTotal && totalRegularizado < totalNecessario) {
       toast.error(`Informe um valor total de pelo menos ${formatCurrency(totalNecessario)} antes de registrar o recebimento.`);
       return;
     }
-    if (!precisaRegularizarTotal && totalNecessario > valorTotal) {
+    if (!exibindoAjusteTotal && totalNecessario > valorTotal) {
       toast.error("O recebimento não pode ultrapassar o valor total do pacote.");
       return;
     }
     registrarMutation.mutate({
       pacoteClienteId: pacote.id,
       valor: valorNumerico,
-      valorTotalRegularizado: precisaRegularizarTotal ? totalRegularizado : undefined,
+      valorTotalRegularizado: exibindoAjusteTotal ? totalRegularizado : undefined,
       formaPagamento: formaPagamento || undefined,
       tipo,
       observacoes: observacoes || undefined,
@@ -970,7 +973,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     }
     const totalRegularizado = Number(valorTotalRegularizado || 0);
     const totalNecessario = Math.max(0, valorRecebido - Number(pagamentoEditando.valor ?? 0)) + valorNumerico;
-    if (precisaRegularizarTotal && totalRegularizado < totalNecessario) {
+    if (exibindoAjusteTotal && totalRegularizado < totalNecessario) {
       toast.error(`Informe um valor total de pelo menos ${formatCurrency(totalNecessario)} antes de corrigir o recebimento.`);
       return;
     }
@@ -978,7 +981,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
       pacoteClienteId: pacote.id,
       pagamentoId: pagamentoEditando.id,
       valor: valorNumerico,
-      valorTotalRegularizado: precisaRegularizarTotal ? totalRegularizado : undefined,
+      valorTotalRegularizado: exibindoAjusteTotal ? totalRegularizado : undefined,
       formaPagamento: formaPagamento || undefined,
       tipo,
       observacoes: observacoes || undefined,
@@ -996,7 +999,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
             <div><p className="text-xs text-emerald-800">Valor total</p><p className="font-semibold text-emerald-950">{formatCurrency(valorTotal)}</p></div>
             <div><p className="text-xs text-emerald-800">Saldo em aberto</p><p className="font-semibold text-amber-800">{formatCurrency(saldo)}</p></div>
           </div>
-          {precisaRegularizarTotal && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="text-xs text-amber-900">O total salvo neste pacote é menor ou igual ao que já foi recebido. Informe o valor total contratado para regularizar o histórico e continuar.</p><div><Label>Valor total correto do pacote (R$)</Label><Input type="number" min={Math.max(0.01, totalRecebidoDepoisDoAjuste)} step="0.01" value={valorTotalRegularizado} onChange={e => setValorTotalRegularizado(e.target.value)} placeholder={`Mínimo: ${formatCurrency(totalRecebidoDepoisDoAjuste)}`} /></div></div>}
+          {exibindoAjusteTotal ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="text-xs text-amber-900">{precisaRegularizarTotal ? "O total salvo neste pacote está zerado ou menor que o que já foi recebido. Informe o valor contratado correto para regularizar o histórico e continuar." : "Ajuste o valor total contratado antes de registrar este recebimento. O novo total precisa comportar o valor já recebido e a nova baixa."}</p><div><Label>Valor total correto do pacote (R$)</Label><Input type="number" min={Math.max(0.01, totalRecebidoDepoisDoAjuste)} step="0.01" value={valorTotalRegularizado} onChange={e => setValorTotalRegularizado(e.target.value)} placeholder={`Mínimo: ${formatCurrency(totalRecebidoDepoisDoAjuste)}`} /></div>{!precisaRegularizarTotal && <Button type="button" variant="ghost" className="h-7 px-0 text-xs text-amber-950 hover:bg-transparent hover:underline" onClick={() => { setAjustandoValorTotal(false); setValorTotalRegularizado(""); }}>Manter valor total atual</Button>}</div> : <button type="button" className="text-xs font-medium text-primary hover:underline" onClick={() => { setAjustandoValorTotal(true); setValorTotalRegularizado(String(valorTotal)); }}>Corrigir valor total do pacote</button>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={limiteRecebimento && limiteRecebimento > 0 ? limiteRecebimento : undefined} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
             <div><Label>Tipo</Label><Select value={tipo} onValueChange={v => setTipo(v as "sinal" | "parcial" | "quitacao")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sinal">Sinal / entrada</SelectItem><SelectItem value="parcial">Pagamento parcial</SelectItem><SelectItem value="quitacao">Quitação total</SelectItem></SelectContent></Select></div>
@@ -1005,7 +1008,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
           <div><Label>Observação</Label><Textarea rows={2} value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Ex.: sinal recebido via Pix" /></div>
           {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Recebimentos registrados</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between gap-2 text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><div className="flex items-center gap-1"><span className="font-semibold">{formatCurrency(pagamento.valor)}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => iniciarAjuste(pagamento)} aria-label="Corrigir recebimento"><Pencil className="w-3.5 h-3.5" /></Button></div></div>)}</div>}
         </div>
-        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); setValorTotalRegularizado(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending || !valor : registrarMutation.isPending || !valor}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : precisaRegularizarTotal ? "Salvar valor e registrar pagamento" : "Registrar pagamento")}</Button></DialogFooter>
+        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); setValorTotalRegularizado(""); setAjustandoValorTotal(false); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending || !valor : registrarMutation.isPending || !valor}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : exibindoAjusteTotal ? "Salvar total e registrar pagamento" : "Registrar pagamento")}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

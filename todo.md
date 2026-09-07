@@ -2973,6 +2973,7 @@
 - [x] Adicionar alteração manual de status na tela de Pacotes, com confirmação e explicação dos efeitos
 - [x] Desvincular o acesso a pagamentos do status operacional do pacote
 - [ ] Corrigir o pacote afetado e validar todo o fluxo em dados reais, testes e celular
+- [ ] Permitir regularizar recebimentos antigos gravados no resumo do pacote sem histórico individual
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis

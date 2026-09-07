@@ -26,8 +26,10 @@ describe("edição financeira de Pacotes", () => {
     expect(router).toContain("valorTotalRegularizado: z.number().positive().optional()");
     expect(router).toContain("compatibilizar os recebimentos registrados");
     expect(router).toContain("valorTotal: String(valorTotal)");
-    expect(page).toContain("total salvo neste pacote é menor ou igual ao que já foi recebido");
+    expect(page).toContain("total salvo neste pacote está zerado ou menor que o que já foi recebido");
     expect(page).toContain("valorTotal <= 0 || valorTotal < valorRecebido");
-    expect(page).toContain("Salvar valor e registrar pagamento");
+    expect(page).toContain("Salvar total e registrar pagamento");
+    expect(page).toContain("Corrigir valor total do pacote");
+    expect(page).toContain("Salvar total e registrar pagamento");
   });
 });
