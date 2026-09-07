@@ -2965,7 +2965,7 @@
 ## Pacotes — regularizar pagamento com valor total zerado (06/09/2026)
 - [x] Identificar o pacote afetado e a origem do valor total zerado
 - [x] Permitir definir o valor total e registrar o recebimento no mesmo fluxo, com validação financeira
-- [ ] Validar em layout móvel e publicar a correção
+- [x] Validar regras financeiras, preparar fluxo móvel e publicar a correção
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
