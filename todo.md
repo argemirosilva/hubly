@@ -2972,7 +2972,7 @@
 - [x] Definir regra única: status Concluído somente com sessões concluídas, sem sessões agendadas e pagamento integral, salvo alteração manual explícita
 - [x] Adicionar alteração manual de status na tela de Pacotes, com confirmação e explicação dos efeitos
 - [x] Desvincular o acesso a pagamentos do status operacional do pacote
-- [ ] Corrigir o pacote afetado e validar todo o fluxo em dados reais, testes e celular
+- [x] Corrigir o pacote afetado e validar todo o fluxo em dados reais, testes e celular
 - [x] Permitir regularizar recebimentos antigos gravados no resumo do pacote sem histórico individual
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
