@@ -813,6 +813,7 @@ export const pacotesRouter = router({
     .input(z.object({
       pacoteClienteId: z.number(),
       valor: z.number().positive(),
+      valorTotalRegularizado: z.number().positive().optional(),
       formaPagamento: z.string().optional(),
       tipo: z.enum(["sinal", "parcial", "quitacao"]).default("parcial"),
       observacoes: z.string().optional(),
@@ -828,7 +829,15 @@ export const pacotesRouter = router({
       )).limit(1);
       if (!pacote) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pacote não encontrado.' });
 
-      const valorTotal = Number(pacote.valorTotal ?? pacote.valorPago ?? 0);
+      const valorTotalPersistido = Number(pacote.valorTotal ?? 0);
+      const valorTotalLegado = Number(pacote.valorPago ?? 0);
+      let valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : valorTotalLegado;
+      if (valorTotal <= 0) {
+        if (!input.valorTotalRegularizado) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Informe o valor total do pacote antes de registrar o recebimento.' });
+        }
+        valorTotal = Number(input.valorTotalRegularizado.toFixed(2));
+      }
       const valorRecebidoAtual = Number(pacote.valorRecebido ?? 0);
       const novoRecebido = Number((valorRecebidoAtual + input.valor).toFixed(2));
       if (novoRecebido > valorTotal) {
@@ -845,6 +854,8 @@ export const pacotesRouter = router({
           observacoes: input.observacoes,
         });
         await tx.update(pacotesClientes).set({
+          valorTotal: String(valorTotal),
+          valorPago: String(valorTotal),
           valorRecebido: String(novoRecebido),
           statusPagamento,
         }).where(eq(pacotesClientes.id, pacote.id));

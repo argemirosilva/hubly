@@ -21,4 +21,12 @@ describe("edição financeira de Pacotes", () => {
     expect(router).toContain("recalcularRecebidoAjustado");
     expect(router).toContain("eq(pacotesClientesPagamentos.empresaId, empresa.id)");
   });
+
+  it("regulariza com segurança pacote sem valor total antes de registrar o recebimento", () => {
+    expect(router).toContain("valorTotalRegularizado: z.number().positive().optional()");
+    expect(router).toContain("Informe o valor total do pacote antes de registrar o recebimento.");
+    expect(router).toContain("valorTotal: String(valorTotal)");
+    expect(page).toContain("Este pacote não possui valor total registrado");
+    expect(page).toContain("Salvar valor e registrar pagamento");
+  });
 });

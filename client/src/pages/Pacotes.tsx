@@ -882,13 +882,19 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
   const [tipo, setTipo] = useState<"sinal" | "parcial" | "quitacao">("parcial");
   const [observacoes, setObservacoes] = useState("");
   const [pagamentoEditando, setPagamentoEditando] = useState<any | null>(null);
+  const [valorTotalRegularizado, setValorTotalRegularizado] = useState("");
   const { data: pagamentos = [] } = trpc.pacotes.listarPagamentos.useQuery(
     { pacoteClienteId: pacote?.id ?? 0 },
     { enabled: Boolean(pacote && open) },
   );
-  const valorTotal = Number(pacote?.valorTotal ?? pacote?.valorPago ?? 0);
+  const valorTotalPersistido = Number(pacote?.valorTotal ?? 0);
+  const valorTotalLegado = Number(pacote?.valorPago ?? 0);
+  const valorTotal = valorTotalPersistido > 0 ? valorTotalPersistido : valorTotalLegado;
   const valorRecebido = Number(pacote?.valorRecebido ?? 0);
   const saldo = Math.max(0, valorTotal - valorRecebido);
+  const precisaRegularizarTotal = valorTotal <= 0;
+  const totalParaRegistrar = precisaRegularizarTotal ? Number(valorTotalRegularizado || 0) : valorTotal;
+  const limiteRecebimento = pagamentoEditando ? valorTotal : Math.max(0, totalParaRegistrar - valorRecebido);
   const registrarMutation = trpc.pacotes.registrarPagamento.useMutation({
     onSuccess: () => {
       utils.pacotes.listarTodos.invalidate();
@@ -915,6 +921,7 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
     setTipo("parcial");
     setObservacoes("");
     setPagamentoEditando(null);
+    setValorTotalRegularizado("");
   }, [open, pacote?.id]);
 
   function registrar() {
@@ -923,9 +930,19 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
       toast.error("Informe um valor de pagamento válido.");
       return;
     }
+    const totalRegularizado = Number(valorTotalRegularizado || 0);
+    if (precisaRegularizarTotal && totalRegularizado <= 0) {
+      toast.error("Informe o valor total do pacote antes de registrar o recebimento.");
+      return;
+    }
+    if (valorNumerico + valorRecebido > (precisaRegularizarTotal ? totalRegularizado : valorTotal)) {
+      toast.error("O recebimento não pode ultrapassar o valor total do pacote.");
+      return;
+    }
     registrarMutation.mutate({
       pacoteClienteId: pacote.id,
       valor: valorNumerico,
+      valorTotalRegularizado: precisaRegularizarTotal ? totalRegularizado : undefined,
       formaPagamento: formaPagamento || undefined,
       tipo,
       observacoes: observacoes || undefined,
@@ -967,15 +984,16 @@ function ModalPagamentoPacote({ pacote, open, onClose }: { pacote: any | null; o
             <div><p className="text-xs text-emerald-800">Valor total</p><p className="font-semibold text-emerald-950">{formatCurrency(valorTotal)}</p></div>
             <div><p className="text-xs text-emerald-800">Saldo em aberto</p><p className="font-semibold text-amber-800">{formatCurrency(saldo)}</p></div>
           </div>
+          {precisaRegularizarTotal && !pagamentoEditando && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="text-xs text-amber-900">Este pacote não possui valor total registrado. Informe o valor contratado para registrar o recebimento corretamente.</p><div><Label>Valor total do pacote (R$)</Label><Input type="number" min="0.01" step="0.01" value={valorTotalRegularizado} onChange={e => setValorTotalRegularizado(e.target.value)} placeholder="Ex.: 475,00" /></div></div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={pagamentoEditando ? valorTotal : saldo} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
+            <div><Label>{pagamentoEditando ? "Corrigir valor recebido (R$)" : "Valor recebido (R$)"}</Label><Input type="number" min="0" max={limiteRecebimento > 0 ? limiteRecebimento : undefined} step="0.01" value={valor} onChange={e => setValor(e.target.value)} /></div>
             <div><Label>Tipo</Label><Select value={tipo} onValueChange={v => setTipo(v as "sinal" | "parcial" | "quitacao")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sinal">Sinal / entrada</SelectItem><SelectItem value="parcial">Pagamento parcial</SelectItem><SelectItem value="quitacao">Quitação total</SelectItem></SelectContent></Select></div>
           </div>
           <div><Label>Forma de pagamento</Label><Select value={formaPagamento} onValueChange={setFormaPagamento}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{["Dinheiro", "Pix", "Cartão de crédito", "Cartão de débito", "Transferência"].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Observação</Label><Textarea rows={2} value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Ex.: sinal recebido via Pix" /></div>
           {pagamentos.length > 0 && <div className="space-y-1.5"><p className="text-xs font-semibold text-stone-600">Recebimentos registrados</p>{pagamentos.map((pagamento: any) => <div key={pagamento.id} className="flex items-center justify-between gap-2 text-xs rounded-lg bg-stone-50 px-2.5 py-2"><span>{new Date(pagamento.dataPagamento).toLocaleDateString("pt-BR")} · {pagamento.tipo}</span><div className="flex items-center gap-1"><span className="font-semibold">{formatCurrency(pagamento.valor)}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => iniciarAjuste(pagamento)} aria-label="Corrigir recebimento"><Pencil className="w-3.5 h-3.5" /></Button></div></div>)}</div>}
         </div>
-        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending : registrarMutation.isPending || saldo <= 0}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : "Registrar pagamento")}</Button></DialogFooter>
+        <DialogFooter className="gap-2"><Button variant="outline" onClick={() => { setPagamentoEditando(null); setValor(""); setObservacoes(""); setValorTotalRegularizado(""); }}>Limpar</Button><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={pagamentoEditando ? salvarAjuste : registrar} disabled={pagamentoEditando ? ajustarMutation.isPending : registrarMutation.isPending || !valor || limiteRecebimento <= 0}>{pagamentoEditando ? (ajustarMutation.isPending ? "Corrigindo..." : "Salvar correção") : (registrarMutation.isPending ? "Registrando..." : precisaRegularizarTotal ? "Salvar valor e registrar pagamento" : "Registrar pagamento")}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
