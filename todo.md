@@ -2990,7 +2990,7 @@
 - [x] Confirmar as imagens referenciadas pela página pública e sua origem
 - [x] Confirmar que os binários não estão na branch main do GitHub, mas permanecem recuperáveis nos domínios publicados
 - [x] Transferir as imagens para armazenamento persistente do projeto e versionar as referências no código
-- [ ] Validar a página pública e a sincronização final com o GitHub
+- [x] Validar a página pública e a sincronização final com o GitHub
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
