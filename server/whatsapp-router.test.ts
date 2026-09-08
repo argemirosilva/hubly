@@ -13,18 +13,23 @@ vi.mock("./zapi", () => ({
 }));
 
 import {
+  enviosEstaoPausados,
   invalidatePlanCache,
   origemEhOficialParaAutomacoes,
   routedSendMedia,
   routedSendMessage,
 } from "./whatsapp-router";
 
-function dbComPlanoPro() {
+function dbComPlanoPro(automacoesPausadas = false) {
+  const limit = vi.fn()
+    .mockResolvedValueOnce([{ automacoesPausadas }])
+    .mockResolvedValueOnce([{ planType: "PRO" }]);
+
   return {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ planType: "PRO" }]),
+          limit,
         }),
       }),
     }),
@@ -62,6 +67,30 @@ describe("WhatsApp Router — instância por empresa", () => {
       "image/jpeg",
       77,
     );
+  });
+
+  it("bloqueia textos antes de chamar qualquer provedor quando os envios estão pausados", async () => {
+    mocks.getDb.mockResolvedValue(dbComPlanoPro(true));
+
+    await expect(routedSendMessage(77, "14999998888", "Olá")).resolves.toBe(false);
+
+    expect(mocks.zapiSendText).not.toHaveBeenCalled();
+    expect(mocks.zapiSendMedia).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia mídias antes de chamar qualquer provedor quando os envios estão pausados", async () => {
+    mocks.getDb.mockResolvedValue(dbComPlanoPro(true));
+
+    await expect(routedSendMedia(77, "14999998888", "https://exemplo.com/foto.jpg")).resolves.toBe(false);
+
+    expect(mocks.zapiSendText).not.toHaveBeenCalled();
+    expect(mocks.zapiSendMedia).not.toHaveBeenCalled();
+  });
+
+  it("considera a pausa ativa quando não consegue consultar o banco", async () => {
+    mocks.getDb.mockResolvedValue(undefined);
+
+    await expect(enviosEstaoPausados(77)).resolves.toBe(true);
   });
 
   it("reconhece somente os domínios oficiais como autorizados para automações", () => {

@@ -132,11 +132,9 @@ describe("Z-API — zapiCheckStatus", () => {
 describe("WhatsApp Router — routedSendMessage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("deve lançar erro quando banco está indisponível (sem fallback para FREE)", async () => {
+  it("bloqueia o envio quando o banco está indisponível, sem fallback para FREE", async () => {
     const { routedSendMessage } = await import("./whatsapp-router");
 
-    await expect(routedSendMessage(1, "11999998888", "Teste")).rejects.toThrow(
-      /Banco indisponível/
-    );
+    await expect(routedSendMessage(1, "11999998888", "Teste")).resolves.toBe(false);
   });
 });

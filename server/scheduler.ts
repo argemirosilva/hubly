@@ -11,6 +11,7 @@
  */
 import { getDb, registrarEnvioAutomacao, cancelarEnviosPendentesDoAgendamento, getAutomacaoByTipoGatilho, jaEnviouLembrete, jaEnviouParaCliente, getAutomacoesAtivasByTipo, getEmpresasComAutomacoes, createNotificacao } from "./db";
 import { deveInterromperAutomacoesDoAgendamento } from "./status-automacoes-agendamento";
+import { deveBloquearPreRegistroPorPausa } from "./automacao-pausa";
 import { quantidadeLinhasAtualizadas, TEMPO_MAXIMO_PROCESSANDO_MS } from "./fila-recuperacao";
 import { provisionarTemplateRemarcadoExistentes } from "./automation-templates";
 import { enviarNotificacoesAgendamento } from "./jobs/notificacoes-agendamento";
@@ -1430,6 +1431,19 @@ async function preRegistrarEnviosPendentes() {
     if (todasEmpresas.length === 0) return;
 
     for (const empresaId of todasEmpresas) {
+      // A pausa geral precisa impedir também a criação de novos itens futuros
+      // na fila, e não apenas o envio quando chegar a hora programada.
+      const [empresaConfig] = await db
+        .select({ automacoesPausadas: empresas.automacoesPausadas })
+        .from(empresas)
+        .where(eq(empresas.id, empresaId))
+        .limit(1);
+
+      if (deveBloquearPreRegistroPorPausa(empresaConfig?.automacoesPausadas)) {
+        console.log(`[Scheduler] Pré-registro bloqueado — automações pausadas ou empresa indisponível: ${empresaId}`);
+        continue;
+      }
+
       // Obter timezone da empresa para cálculos corretos
       const tzPre = await getEmpresaTimezone(empresaId);
       const horaLocalPre = getHoraNoTimezone(tzPre);

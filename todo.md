@@ -2992,6 +2992,13 @@
 - [x] Transferir as imagens para armazenamento persistente do projeto e versionar as referências no código
 - [x] Validar a página pública e a sincronização final com o GitHub
 
+## WhatsApp — pausa total e desconexão (08/09/2026)
+- [x] Mapear contas vinculadas, credenciais e itens de envio pendentes
+- [x] Pausar todos os envios locais até nova ordem
+- [x] Remover credenciais e sessões salvas somente do Hubly, sem logout remoto
+- [x] Cancelar filas pendentes e validar que nenhum envio local poderá ocorrer
+- [x] Impedir novos pré-registros de fila enquanto os envios estiverem pausados
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis
