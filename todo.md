@@ -2975,6 +2975,17 @@
 - [x] Corrigir o pacote afetado e validar todo o fluxo em dados reais, testes e celular
 - [x] Permitir regularizar recebimentos antigos gravados no resumo do pacote sem histórico individual
 
+## Agendamentos — marcar como agendado sem pagamento (07/09/2026)
+- [ ] Mapear a troca genérica de status, a transição de pré-agendamento e o gatilho de mensagem de agendamento criado
+- [ ] Adicionar a ação explícita Marcar como agendado para pré-agendamentos sem exigir sinal ou pagamento
+- [ ] Garantir que a ação explícita envie uma única mensagem de agendamento criado e que a troca genérica permaneça silenciosa
+- [ ] Criar testes de regressão, validar no fluxo real e publicar
+
+## GitHub — auditoria de sincronização e imagens (07/09/2026)
+- [x] Inventariar arquivos rastreados, pendentes e referências de imagens do projeto
+- [x] Confirmar que ícones e logos locais necessários estão rastreados e imagens grandes usam referências persistentes
+- [ ] Salvar versão sincronizada e confirmar repositório sem pendências locais
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis
