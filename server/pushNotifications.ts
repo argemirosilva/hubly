@@ -8,12 +8,16 @@ import { getDb } from "./db";
 import { pushSubscriptions } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
-// Configurar VAPID
-webpush.setVapidDetails(
-  "mailto:noreply@agendei.app",
-  ENV.vapidPublicKey,
-  ENV.vapidPrivateKey
-);
+// Uma cópia de desenvolvimento não deve depender de credenciais de produção.
+if (ENV.vapidPublicKey && ENV.vapidPrivateKey) {
+  webpush.setVapidDetails(
+    "mailto:noreply@agendei.app",
+    ENV.vapidPublicKey,
+    ENV.vapidPrivateKey
+  );
+} else {
+  console.warn("[Push] VAPID não configurado; envio de notificações indisponível.");
+}
 
 export interface PushPayload {
   title: string;

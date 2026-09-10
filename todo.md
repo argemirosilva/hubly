@@ -2975,6 +2975,39 @@
 - [x] Corrigir o pacote afetado e validar todo o fluxo em dados reais, testes e celular
 - [x] Permitir regularizar recebimentos antigos gravados no resumo do pacote sem histórico individual
 
+## Agendamentos — marcar como agendado sem pagamento (07/09/2026)
+- [ ] Mapear a troca genérica de status, a transição de pré-agendamento e o gatilho de mensagem de agendamento criado
+- [ ] Adicionar a ação explícita Marcar como agendado para pré-agendamentos sem exigir sinal ou pagamento
+- [ ] Garantir que a ação explícita envie uma única mensagem de agendamento criado e que a troca genérica permaneça silenciosa
+- [ ] Criar testes de regressão, validar no fluxo real e publicar
+
+## GitHub — auditoria de sincronização e imagens (07/09/2026)
+- [x] Inventariar arquivos rastreados, pendentes e referências de imagens do projeto
+- [x] Confirmar que ícones e logos locais necessários estão rastreados e imagens grandes usam referências persistentes
+- [x] Salvar versão sincronizada e confirmar repositório sem pendências locais
+
+## Página pública — imagens e versionamento (08/09/2026)
+- [x] Confirmar as imagens referenciadas pela página pública e sua origem
+- [x] Confirmar que os binários não estão na branch main do GitHub, mas permanecem recuperáveis nos domínios publicados
+- [x] Transferir as imagens para armazenamento persistente do projeto e versionar as referências no código
+- [x] Validar a página pública e a sincronização final com o GitHub
+
+## WhatsApp — pausa total e desconexão (08/09/2026)
+- [x] Mapear contas vinculadas, credenciais e itens de envio pendentes
+- [x] Pausar todos os envios locais até nova ordem
+- [x] Remover credenciais e sessões salvas somente do Hubly, sem logout remoto
+- [x] Cancelar filas pendentes e validar que nenhum envio local poderá ocorrer
+- [x] Impedir novos pré-registros de fila enquanto os envios estiverem pausados
+- [x] Revalidar a suspensão provisória de todos os envios e automações após solicitação administrativa
+
+## Publicação nas lojas Apple e Android (10/09/2026)
+- [x] Mapear os requisitos atuais de metadados, privacidade e assets da App Store e Google Play
+- [x] Preparar textos de loja, metadados, descrição, palavras-chave e notas de revisão do Hubly
+- [ ] Produzir materiais gráficos de ícone, capturas de tela e banner promocional nos formatos necessários
+- [x] Organizar checklist de publicação, privacidade e informações que dependem do titular da conta
+- [x] Produzir masters de ícone e banner promocional do Google Play
+- [ ] Capturar screenshots reais do aplicativo nativo em iPhone e Android com dados de demonstração
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis

@@ -12,7 +12,7 @@ import { getPublicAppUrl } from "./runtime-config";
  */
 
 import { getDb } from "./db";
-import { subscriptions } from "../drizzle/schema";
+import { empresas, subscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { zapiSendText, zapiSendMedia } from "./zapi";
 import { isReplicaMode } from "./replica-mode";
@@ -41,6 +41,37 @@ function garantirAmbienteOficialParaEnvio(): boolean {
     `[WA-Router] Envio bloqueado: APP_PUBLIC_URL="${getPublicAppUrl() ?? "ausente"}" não é uma origem oficial do Hubly.`,
   );
   return false;
+}
+
+/**
+ * Consulta a pausa persistente de envios da empresa. Em caso de banco
+ * indisponível, falha de consulta ou empresa inexistente, bloqueia o envio.
+ * Nunca deve haver fallback que envie sem conseguir confirmar a autorização.
+ */
+export async function enviosEstaoPausados(empresaId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.error(`[WA-Router] Envio bloqueado: banco indisponível para verificar a pausa da empresa ${empresaId}.`);
+    return true;
+  }
+
+  try {
+    const [empresa] = await db
+      .select({ automacoesPausadas: empresas.automacoesPausadas })
+      .from(empresas)
+      .where(eq(empresas.id, empresaId))
+      .limit(1);
+
+    if (!empresa) {
+      console.error(`[WA-Router] Envio bloqueado: empresa ${empresaId} não encontrada.`);
+      return true;
+    }
+
+    return Boolean(empresa.automacoesPausadas);
+  } catch (error) {
+    console.error(`[WA-Router] Envio bloqueado: falha ao verificar a pausa da empresa ${empresaId}.`, error);
+    return true;
+  }
 }
 
 /**
@@ -97,6 +128,10 @@ export async function routedSendMessage(
   }
 
   if (!garantirAmbienteOficialParaEnvio()) return false;
+  if (await enviosEstaoPausados(empresaId)) {
+    console.warn(`[WA-Router] Envio bloqueado: mensagens estão pausadas para a empresa ${empresaId}.`);
+    return false;
+  }
   const plan = await getEmpresaPlan(empresaId);
 
   if (plan === "PRO") {
@@ -137,6 +172,10 @@ export async function routedSendMedia(
   }
 
   if (!garantirAmbienteOficialParaEnvio()) return false;
+  if (await enviosEstaoPausados(empresaId)) {
+    console.warn(`[WA-Router] Envio de mídia bloqueado: mensagens estão pausadas para a empresa ${empresaId}.`);
+    return false;
+  }
   const plan = await getEmpresaPlan(empresaId);
 
   if (plan === "PRO") {
