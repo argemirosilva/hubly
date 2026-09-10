@@ -2998,6 +2998,7 @@
 - [x] Remover credenciais e sessões salvas somente do Hubly, sem logout remoto
 - [x] Cancelar filas pendentes e validar que nenhum envio local poderá ocorrer
 - [x] Impedir novos pré-registros de fila enquanto os envios estiverem pausados
+- [x] Revalidar a suspensão provisória de todos os envios e automações após solicitação administrativa
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
