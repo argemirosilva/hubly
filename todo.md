@@ -3000,6 +3000,14 @@
 - [x] Impedir novos pré-registros de fila enquanto os envios estiverem pausados
 - [x] Revalidar a suspensão provisória de todos os envios e automações após solicitação administrativa
 
+## Publicação nas lojas Apple e Android (10/09/2026)
+- [x] Mapear os requisitos atuais de metadados, privacidade e assets da App Store e Google Play
+- [x] Preparar textos de loja, metadados, descrição, palavras-chave e notas de revisão do Hubly
+- [ ] Produzir materiais gráficos de ícone, capturas de tela e banner promocional nos formatos necessários
+- [x] Organizar checklist de publicação, privacidade e informações que dependem do titular da conta
+- [x] Produzir masters de ícone e banner promocional do Google Play
+- [ ] Capturar screenshots reais do aplicativo nativo em iPhone e Android com dados de demonstração
+
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
 - [x] Mapear pontos de aplicação na interface do Hubly, com prioridade para fluxos móveis
