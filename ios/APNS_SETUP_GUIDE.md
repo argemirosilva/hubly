@@ -1,3 +1,9 @@
+> **Estado verificado em 2026-09-10:** este guia é um roteiro antigo, não uma
+> integração pronta. O backend deste checkout não implementa registro/envio APNs/FCM;
+> o AppDelegate não encaminha os callbacks APNs e o target não vincula
+> `App.entitlements`. Não configurar credenciais com base neste roteiro sem definir
+> a integração de servidor. Consulte `../MOBILE_BUILD_GUIDE.md` para as pendências.
+
 # Guia de Configuração APNs (Push Notifications iOS)
 
 ## Pré-requisitos

@@ -11,7 +11,12 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
-    "sync:credential": "tsx scripts/sync-credential.ts"
+    "sync:credential": "tsx scripts/sync-credential.ts",
+    "build:web": "vite build",
+    "mobile:sync": "pnpm run build:web && cap sync",
+    "mobile:open:android": "cap open android",
+    "mobile:open:ios": "cap open ios",
+    "test:mobile": "node --experimental-strip-types --test tests/mobile-links.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

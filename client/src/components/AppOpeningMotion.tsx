@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HublyLogo } from "./HublyLogo";
 import { allowsHublyMotion, HUBLY_MOTION } from "@/lib/motion";
 
 const INTRO_STORAGE_KEY = "hubly-opening-motion-seen-v1";
@@ -23,8 +24,7 @@ export function AppOpeningMotion({ active }: { active: boolean }) {
   return (
     <div className="hubly-opening-motion pointer-events-none" aria-hidden="true">
       <div className="hubly-opening-motion__mark">
-        <span className="hubly-opening-motion__spark" />
-        <span className="hubly-opening-motion__word">hubly</span>
+        <HublyLogo tone="dark" height={64} />
       </div>
     </div>
   );

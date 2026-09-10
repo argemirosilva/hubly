@@ -305,7 +305,7 @@
     z-index: 100;
     display: grid;
     place-items: center;
-    background: oklch(96.2% 0.012 75 / 94%);
+    background: #fdf7ee;
     animation: hubly-opening-fade 650ms ease-in both;
   }
 
@@ -426,6 +426,37 @@
   }
 }
 /* Classe utilitaria para areas de seguranca iOS */
+.hubly-admin-root {
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.hubly-admin-root body,
+.hubly-admin-root #root {
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.hubly-admin-shell {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.hubly-admin-content {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  .hubly-admin-content {
+    padding-bottom: 0;
+    scroll-padding-bottom: 1rem;
+  }
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

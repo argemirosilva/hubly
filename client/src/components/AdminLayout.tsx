@@ -244,6 +244,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     !notificacoesLoading && !notifPacotesLoading && !planStatusLoading && !empresaLoading &&
     !waStatusLoading && !falhasAutomacoesLoading && !agendadosHojeLoading && !preAgendamentosLoading;
 
+  useEffect(() => {
+    if (!interfaceReady || systemUser?.onboardingConcluido === false) return;
+    document.documentElement.classList.add("hubly-admin-root");
+    return () => document.documentElement.classList.remove("hubly-admin-root");
+  }, [interfaceReady, systemUser?.onboardingConcluido]);
+
   // Ref para swipe na sidebar (fechar)
   const sidebarTouchStartX = useRef<number | null>(null);
 
@@ -321,10 +327,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "oklch(22% 0.030 55)" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#fdf7ee" }}>
         <div className="flex flex-col items-center gap-4">
           <div className="animate-pulse">
-            <HublyLogo tone="light" height={64} />
+            <HublyLogo tone="dark" height={64} />
           </div>
         </div>
       </div>
@@ -388,7 +394,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex-1 flex items-center justify-center px-8" style={{ backgroundColor: '#fdf7ee' }}>
           <div className="w-full max-w-sm">
             <div className="flex justify-center mb-8">
-              <HublyLogo tone="dark" height={96} />
+              <HublyLogo tone="dark" height={64} />
             </div>
             {modoLogin === "login" ? (
               <>
@@ -409,7 +415,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onChange={e => setLoginEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -421,7 +427,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         onChange={e => setLoginSenha(e.target.value)}
                         placeholder="Sua senha"
                         required
-                        className="w-full px-4 py-3 pr-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                        className="w-full px-4 py-3 pr-11 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                       />
                       <button type="button" onClick={() => setShowSenha(v => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -469,7 +475,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onChange={e => setCadastroNome(e.target.value)}
                       placeholder="Nome completo"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -480,7 +486,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onChange={e => setCadastroEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -491,7 +497,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onChange={e => setCadastroSenha(e.target.value)}
                       placeholder="Mínimo 6 caracteres"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -502,7 +508,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onChange={e => setCadastroConfirma(e.target.value)}
                       placeholder="Repita a senha"
                       required
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                   </div>
                   {cadastroError && (
@@ -548,7 +554,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="hubly-admin-shell flex bg-background">
       {/* Overlay mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
@@ -586,7 +592,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+        <nav className="min-h-0 flex-1 px-3 py-4 overflow-y-auto overscroll-contain space-y-5">
           {navGroups.map((group) => {
             // Filtrar itens do grupo baseado nas permissões
             const visibleItems = group.items.filter(item => {
@@ -855,9 +861,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
         {/*  Main  */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Topbar desktop — sininho + plano */}
-        <header className="hidden lg:flex items-center justify-end gap-2 px-4 py-2 sticky top-0 z-30"
+        <header className="hidden lg:flex shrink-0 items-center justify-end gap-2 px-4 py-2 z-30"
           style={{ background: "oklch(97% 0.010 80)", borderBottom: "1px solid oklch(90% 0.015 80)" }}>
           {planStatus && (
             <Link href="/admin/assinatura">
@@ -886,14 +892,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Topbar mobile */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
+        <header className="lg:hidden flex shrink-0 items-center justify-between gap-2 px-4 py-3 z-30"
           style={{ background: "oklch(97% 0.010 80)", borderBottom: "1px solid oklch(90% 0.015 80)", paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(28% 0.060 45)" }}>
+              className="shrink-0 p-2 rounded-xl transition-colors -ml-1" style={{ color: "oklch(28% 0.060 45)" }}>
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex flex-col justify-center">
+            <div className="flex min-w-0 flex-col justify-center">
               {empresaData?.nome && (
                 <span className="text-sm leading-none font-semibold max-w-[160px] truncate" style={{ color: "oklch(28% 0.060 45)" }}>
                   {empresaData.nome}
@@ -901,7 +907,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             {planStatus && (
               <Link href="/admin/assinatura">
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:shadow-sm transition-all border plan-badge-premium"
@@ -911,7 +917,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     color: planBadgeColor,
                   }}>
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: planBadgeColor }}></div>
-                  <span className="text-[10px] font-bold tracking-wide">{planBadgeLabel}</span>
+                  <span className="max-w-20 truncate text-[10px] font-bold tracking-wide">{planBadgeLabel}</span>
                 </div>
               </Link>
             )}
@@ -945,7 +951,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Page content — padding-bottom para não ficar atrás do bottom nav */}
         <main
           ref={mainRef}
-          className="flex-1 overflow-auto pb-20 lg:pb-0 relative"
+          className="hubly-admin-content min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain relative"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0].clientX;
             // Pull-to-refresh: iniciar apenas quando no topo e não está refreshing

@@ -816,7 +816,7 @@ export default function Dashboard() {
   // Mostrar onboarding apenas se a empresa nao foi configurada (nao durante carregamento)
   if (!empresaLoading && !empresa) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-8">
+      <div className="flex items-center justify-center min-h-[50dvh] p-4 sm:p-8">
         <div className="text-center max-w-sm space-y-5">
           <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto"><Sparkles className="w-7 h-7 text-white" /></div>
           <div>

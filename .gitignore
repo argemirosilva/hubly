@@ -39,3 +39,10 @@ runtime-local.json
 # Android release signing (never commit)
 android/keystore/
 android/keystore.properties
+
+# Mobile signing and local service configuration
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+android/app/google-services.json

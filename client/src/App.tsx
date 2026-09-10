@@ -63,6 +63,8 @@ import { useMobileApp } from "./hooks/useMobileApp";
 import AdminLayout from "./components/AdminLayout";
 import { PlanLimitAlert } from "./components/PlanLimitAlert";
 import { ReactNode, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
+import { isManagementAppPath } from "./lib/mobile-links";
 
 function WithAdmin({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -83,6 +85,10 @@ function MobileAppInit() {
 }
 
 function Router() {
+  const [location] = useLocation();
+  if (Capacitor.isNativePlatform() && !isManagementAppPath(location)) {
+    return <Redirect to="/admin" replace />;
+  }
   return (
     <Switch>
       <Route path="/">{() => <SitePublico />}</Route>
@@ -185,7 +191,7 @@ function App() {
           <Toaster richColors position="top-right" />
           <OfflineIndicator />
           <MobileAppInit />
-          {!isPublicSite && <PWAInstallBanner />}
+          {!Capacitor.isNativePlatform() && !isPublicSite && <PWAInstallBanner />}
           <AppOpeningMotion active={location.startsWith("/admin")} />
           <Router />
         </TooltipProvider>

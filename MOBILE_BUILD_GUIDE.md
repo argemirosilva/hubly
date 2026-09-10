@@ -1,233 +1,189 @@
-# Hubly — Guia Completo de Build e Publicação nas Lojas
+# Hubly — preparação Android e iOS
 
-O Hubly usa **Capacitor** para empacotar o web app como app nativo iOS e Android.
-O app carrega `https://hubly.orizontech.com.br` dentro de um WebView nativo.
+Atualizado em 2026-09-10. Este guia descreve o checkout real; não atesta publicação.
 
-> **Quando atualizar o código do Hubly:** se apenas o código web mudou (sem alterações nativas), **não é necessário gerar novo build** — o app já carrega a versão mais recente automaticamente. Só gere novo build quando mudar ícones, permissões, plugins Capacitor ou a versão nas lojas.
+## Arquitetura atual
 
----
+A raiz do repositório contém o cliente React/Vite (`client/`), o servidor Node/tRPC
+(`server/`) e os projetos Capacitor (`android/`, `ios/`). A pasta `hubly/` interna
+é outra árvore de código: os comandos abaixo devem ser executados na raiz.
 
-## Pré-requisitos
+Identificador das duas plataformas: `com.orizontech.hubly`. Versão nativa: 1.0,
+build/versionCode 1. O projeto Xcode tem uma equipe já configurada; confirmar sua
+propriedade e o registro desse identificador antes da assinatura de distribuição.
 
-| Ferramenta | Versão | Download |
-|---|---|---|
-| Node.js | 18+ | https://nodejs.org |
-| pnpm | 8+ | `npm i -g pnpm` |
-| Android Studio | Hedgehog+ | https://developer.android.com/studio |
-| JDK | 17+ | https://adoptium.net |
-| Xcode (Mac) | 15+ | Mac App Store |
+`capacitor.config.ts` carrega `https://hubly.orizontech.com.br/admin` remotamente.
+O aplicativo é exclusivamente para gestão: sem sessão, abre o login existente;
+com sessão, abre o painel administrativo. O roteador nativo mantém rotas de gestão,
+cadastro/onboarding empresarial, atendimento, suporte e documentos legais. As telas
+públicas e o portal de agendamento continuam disponíveis na web; dentro do app,
+essas rotas redirecionam para `/admin`. O convite PWA não aparece no app nativo.
+Essa seleção de telas não concede permissões: a autorização continua no backend. O
+backend, os cookies de sessão e as APIs continuam na mesma origem. **Alterações
+em `client/` só chegam ao app remoto depois do deploy web; gerar APK/IPA não
+publica essas alterações.** Não remover `server.url` sem adaptar e testar URLs
+relativas, cookies, CORS, OAuth, uploads e isolamento entre empresas.
 
----
+A documentação do Capacitor destina `server.url` a live reload, não a produção.
+Para a versão definitiva das lojas, avaliar empacotar a interface localmente
+com acesso explícito ao backend existente. O shell atual serve para validação
+inicial e não deve ser tratado como produto pronto para revisão.
 
-## Passo inicial (ambas as plataformas)
+## Ambiente
 
-```bash
-# Clonar o repositório
-git clone <URL_DO_REPO> && cd agendei
+- Node 22 ou superior e pnpm compatível com o `packageManager`/lockfile.
+- Xcode 26 ou superior, macOS e Swift Package Manager.
+- Android Studio 2025.2.1 ou superior, JDK 21 (o Gradle 8.14.3 deste projeto falhou com Java 25) e SDK 36.
+- Android configurado com minSdk 24 e target/compileSdk 36.
 
-# Instalar dependências
-pnpm install
-
-# Sincronizar Capacitor (sempre antes de abrir Android Studio / Xcode)
-npx cap sync
-```
-
----
-
-## Android
-
-### Build de debug (para testar no celular)
-
-```bash
-npx cap open android
-```
-
-No Android Studio:
-1. Aguarde o Gradle sync terminar (2–5 min na primeira vez)
-2. Conecte um dispositivo físico via USB ou inicie um emulador
-3. Clique em **Run ▶** (`Shift+F10`)
-
-> **Atualização:** ao instalar uma nova versão de debug em dispositivo que já tem o app, **não é necessário desinstalar** — o Android Studio substitui automaticamente.
-
-### Build de produção (AAB para Play Store)
+## Preparar e sincronizar
 
 ```bash
-npx cap open android
+cd /Users/argemironogueira/orizontech/hubly
+pnpm install --frozen-lockfile
+pnpm run test:mobile
+pnpm run mobile:sync
 ```
 
-No Android Studio:
-1. **Build → Generate Signed Bundle / APK**
-2. Selecione **Android App Bundle (.aab)**
-3. Crie ou selecione um **Keystore** (`.jks`) — guarde o arquivo e as senhas em local seguro!
-4. Preencha Key alias, Key password, Store password
-5. Selecione **release** como Build Variant → **Finish**
-6. Arquivo gerado em `android/app/release/app-release.aab`
-
-> **CRÍTICO:** O Keystore é necessário para **todas as atualizações futuras**. Se perdê-lo, não poderá atualizar o app na Play Store.
-
-### Publicar na Google Play Store
-
-1. Acesse https://play.google.com/console
-2. Crie conta de desenvolvedor (US$25 — pagamento único)
-3. **Criar app** → preencha nome, idioma, categoria (Negócios)
-4. Complete o **Formulário de conteúdo** (classificação etária, política de privacidade)
-5. Em **Produção → Criar nova versão**, faça upload do `.aab`
-6. Preencha **Notas da versão**
-7. Adicione **screenshots** (mínimo 2 por dispositivo):
-   - Telefone: mínimo 1080×1920px
-   - Tablet 7": mínimo 1200×1920px
-8. **Ícone da loja:** 512×512px PNG (já gerado em `android/app/src/main/res/`)
-9. **Enviar para revisão** (aprovação: 1–3 dias úteis)
-
-### Atualizar versão no Android
-
-Em `android/app/build.gradle`:
-```gradle
-defaultConfig {
-    versionCode 2        // Incrementar +1 a cada publicação
-    versionName "1.1"    // Versão visível ao usuário
-}
-```
-
----
-
-## iOS
-
-> **Requisito obrigatório:** Mac com Xcode 15+. Build iOS não é possível no Windows ou Linux.
-
-### Configurar notificações push (APNs) — antes do primeiro build
-
-Siga o guia detalhado em `ios/APNS_SETUP_GUIDE.md`.
-
-### Build de desenvolvimento (simulador)
+`mobile:sync` gera `dist/public` antes de `cap sync`. Não gera bundle do servidor
+nem executa migrações. `pnpm build` continua disponível para o build web/servidor.
 
 ```bash
-npx cap open ios
+pnpm run mobile:open:android
+pnpm run mobile:open:ios
 ```
 
-No Xcode:
-1. Selecione simulador (ex: iPhone 15) na barra superior
-2. Clique em **Run ▶** (`Cmd+R`)
-
-### Build para dispositivo físico
-
-1. Conecte o iPhone via USB e desbloqueie
-2. No Xcode, selecione o dispositivo na barra superior
-3. Em **Signing & Capabilities → Team**, selecione sua conta Apple Developer
-4. Clique em **Run ▶**
-
-> **Atualização:** ao instalar nova versão via Xcode em dispositivo que já tem o app, **não é necessário desinstalar** — o Xcode substitui automaticamente.
-
-### Build de produção (IPA para App Store)
-
-No Xcode:
-1. Selecione **Any iOS Device (arm64)** como destino
-2. **Product → Archive** (5–10 minutos)
-3. Na janela **Organizer**, selecione o archive
-4. **Distribute App → App Store Connect → Upload**
-5. Aguarde o processamento no App Store Connect (10–30 min)
-
-### Publicar na Apple App Store
-
-1. Acesse https://appstoreconnect.apple.com
-2. **Meus Apps → +** → preencha nome, bundle ID (`com.orizontech.hubly`), SKU
-3. **TestFlight:** distribua para testadores internos antes de publicar
-4. Em **App Store → Versão iOS**, preencha:
-   - **Descrição** (até 4000 caracteres)
-   - **Palavras-chave** (até 100 caracteres)
-   - **Screenshots obrigatórios:**
-     - iPhone 6.5": 1284×2778px
-     - iPhone 5.5": 1242×2208px
-   - **Ícone da App Store:** 1024×1024px PNG sem transparência
-5. Selecione o build enviado pelo Xcode
-6. **Enviar para revisão** (aprovação: 1–3 dias úteis)
-
-### Atualizar versão no iOS
-
-No Xcode → target **App** → aba **General**:
-- **Version:** 1.1 (visível ao usuário)
-- **Build:** 2 (deve incrementar a cada envio para App Store Connect)
-
----
-
-## Firebase Cloud Messaging (Push Notifications)
-
-### Android
-
-1. Acesse https://console.firebase.google.com → Criar projeto **Hubly**
-2. **Adicionar app → Android** → package: `com.orizontech.hubly`
-3. Baixe `google-services.json` e coloque em `android/app/`
-4. Execute: `npx cap sync android`
-5. No Firebase Console → **Cloud Messaging → Server Key** → copie a chave
-6. Adicione como `FIREBASE_SERVER_KEY` nas variáveis do projeto Hubly
-
-### iOS
-
-Siga o guia completo em `ios/APNS_SETUP_GUIDE.md`.
-
----
-
-## Checklist de Publicação
-
-### Android (Play Store)
-- [ ] `versionCode` incrementado em `android/app/build.gradle`
-- [ ] `versionName` atualizado
-- [ ] Keystore disponível (arquivo `.jks` + senhas)
-- [ ] `google-services.json` em `android/app/` (para push)
-- [ ] `npx cap sync android` executado
-- [ ] Build `.aab` gerado em modo **release** com assinatura
-- [ ] Screenshots preparados (1080×1920px mínimo)
-- [ ] Ícone 512×512px pronto
-- [ ] Notas da versão escritas
-
-### iOS (App Store)
-- [ ] Version e Build incrementados no Xcode
-- [ ] Certificado de distribuição válido no Apple Developer Portal
-- [ ] `App.entitlements` com `aps-environment: production`
-- [ ] `npx cap sync ios` executado
-- [ ] Archive gerado e enviado para App Store Connect
-- [ ] Screenshots preparados (1284×2778px e 1242×2208px)
-- [ ] Ícone 1024×1024px PNG sem transparência
-- [ ] Notas da versão escritas
-
----
-
-## Comandos de Referência
+Se os shims não tiverem permissão de execução, usar os entrypoints com Node:
 
 ```bash
-npx cap sync                    # Sincronizar código web com projetos nativos
-npx cap sync android            # Sincronizar apenas Android
-npx cap sync ios                # Sincronizar apenas iOS
-npx cap open android            # Abrir Android Studio
-npx cap open ios                # Abrir Xcode
-adb devices                     # Listar dispositivos Android conectados
-adb install app-debug.apk       # Instalar APK via linha de comando
+node node_modules/vite/bin/vite.js build
+node node_modules/@capacitor/cli/bin/capacitor sync
 ```
 
----
+## Validar sem publicação
 
-## Estrutura de Arquivos
+```bash
+cd /Users/argemironogueira/orizontech/hubly/android
+./gradlew assembleDebug
 
-```
-agendei/
-├── android/                    ← Projeto Android Studio
-│   └── app/
-│       ├── google-services.json.example  ← Renomear para .json após configurar Firebase
-│       └── src/main/res/       ← Ícones gerados automaticamente
-├── ios/
-│   ├── App/App/
-│   │   ├── App.entitlements    ← Permissões APNs
-│   │   └── Info.plist          ← Configurações iOS
-│   └── APNS_SETUP_GUIDE.md     ← Guia de configuração APNs
-├── capacitor.config.ts         ← Configuração principal do Capacitor
-└── MOBILE_BUILD_GUIDE.md       ← Este arquivo
+cd /Users/argemironogueira/orizontech/hubly
+xcodebuild -project ios/App/App.xcodeproj -scheme App \
+  -configuration Debug -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/hubly-ios-build CODE_SIGNING_ALLOWED=NO build
 ```
 
----
+No Android, definir `ANDROID_HOME` para o SDK local e `JAVA_HOME` para o JDK
+compatível quando necessário. APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
+A compilação não valida login, comportamento em celular nem entrega de push.
 
-## Suporte
+## Links e notificações
 
-- Capacitor: https://capacitorjs.com/docs
-- Google Play Console: https://support.google.com/googleplay/android-developer
-- App Store Connect: https://developer.apple.com/support/app-store-connect/
-- Firebase Console: https://console.firebase.google.com
+`useMobileApp` atende links com o app aberto e na inicialização. Aceita HTTPS
+somente em `hubly.orizontech.com.br` e os esquemas `hubly://cliente/42` e
+`hubly://agendamento/123`. As rotas protegidas mantêm a autorização existente.
+A seleção do agendamento pelo parâmetro `id` precisa ser validada na interface.
+
+O registro automático de push nativo foi retirado: chamava
+`notificacoes.registrarToken`, inexistente no servidor deste checkout, e registrava
+tokens no console. **Push nativo não está operacional.** O push web não foi alterado.
+Plugins nativos permanecem instalados para integração posterior. Antes de ativar:
+
+- implementar armazenamento de tokens autenticado e separado por usuário/empresa;
+- tratar logout, rotação/revogação e envio APNs/FCM HTTP v1;
+- configurar Firebase Android e capabilities, assinatura e callbacks iOS;
+- testar foreground, background, app encerrado, permissão negada e troca de conta.
+
+`App.entitlements` existe mas não está ligado ao target por `CODE_SIGN_ENTITLEMENTS`.
+Não declarar Universal Links ou push como operacionais sem configurar as
+associações de domínio e a assinatura. Consultar `ios/APNS_SETUP_GUIDE.md`.
+
+## Assinatura e publicação
+
+Android: usar a chave de upload do Hubly, nunca de outro aplicativo. O Gradle lê
+`android/keystore.properties` com `storeFile`, `storePassword`, `keyAlias` e
+`keyPassword`. O caminho `storeFile` é relativo à pasta `android/`. Esses dados
+ficam fora do Git. Sem configuração, um release pode sair sem assinatura.
+Gerar o AAB com `./gradlew bundleRelease` somente após configurar a assinatura;
+verificar o certificado e versionCode antes de enviar ao teste interno do Play.
+
+Apple: validar equipe, Bundle ID, certificado e perfil de distribuição no Xcode;
+executar Product → Archive e validar o archive antes de exportar/upload. Primeiro
+validar no TestFlight. Incrementar build para novos envios conforme estado real
+da loja; não reutilizar números sem consultar as versões existentes.
+
+## Pendências para submissão
+
+- Público definido: gestão somente. Validar login, painel e perfis de funcionários;
+  confirmar que o portal do cliente não abre dentro do aplicativo.
+- Resolver estratégia do conteúdo remoto/local e indisponibilidade de rede.
+- Validar login/logout, sessão após reinício, tenant, teclado, safe areas, botão voltar,
+  uploads/downloads, links externos, orientação e acessibilidade em aparelhos reais.
+- Revisar cadastro e exclusão de conta/dados conforme os fluxos disponíveis.
+- Revisar assinatura SaaS/Stripe e regras de pagamento das lojas antes de expor
+  contratação no aplicativo; não assumir que pagamentos de serviços presenciais
+  e assinaturas digitais têm o mesmo enquadramento.
+- Conferir política de privacidade publicada, suporte, formulários de dados Apple/Google,
+  SDKs incluídos e privacy manifests com base na coleta real.
+- Preparar conta de revisão, screenshots reais, ícones, descrição e classificação etária.
+  O ícone `Icon-1024.png` tem canal alfa; preparar versão sem alfa para a App Store.
+- Configurar assinatura, gerar AAB/IPA e validar em teste interno/TestFlight.
+
+Nenhum prazo de aprovação é garantido. Separar build, assinatura, upload,
+processamento, revisão e disponibilidade pública.
+
+## Referências oficiais
+
+- [Ambiente Capacitor](https://capacitorjs.com/docs/getting-started/environment-setup)
+- [Configuração e server.url](https://capacitorjs.com/docs/config)
+- [Regras Apple, incluindo 4.2](https://developer.apple.com/app-store/review/guidelines/)
+- [Target API Google Play](https://developer.android.com/google/play/requirements/target-sdk)
+
+## Reversão
+
+As mudanças de preparação não migram banco nem alteram APIs. Para reverter, restaurar
+os arquivos da preparação e repetir build/sync. Alterações web exigem o processo de
+deploy/rollback do servidor, que não foi executado nesta preparação.
+
+## Aparência do splash iOS
+
+O storyboard de lançamento usa `HublyLaunchLogo` em 204 × 64 pontos sobre
+`#fdf7ee`, o mesmo creme do login. O asset é renderizado a partir do componente
+real `HublyLogo` por `scripts/render-splash-logo.tsx`, com Poppins Light.
+Para regenerar, disponibilizar Chrome, Playwright e a fonte Poppins 300 TTF,
+configurar `PLAYWRIGHT_MODULE` e `POPPINS_FONT`, e executar:
+
+```bash
+node node_modules/tsx/dist/cli.mjs scripts/render-splash-logo.tsx
+```
+
+Depois executar build web, sync iOS e build nativo. Regeneração do asset e
+compilação nativa não publicam mudanças na animação de abertura web.
+
+## Escala fixa no iPhone
+
+`HublyBridgeViewController.swift`, registrado no storyboard principal, configura
+WKWebView para respeitar os limites de escala e aplica viewport com escala
+mínima/máxima 1, sem zoom, no documento principal do Hubly. `zoomEnabled: false`
+também está explícito no Capacitor. A política vale para a interface remota
+sem deploy web e preserva a rolagem/acomodação do teclado pelo WebKit.
+Não há bloqueio da rolagem nem alteração manual das dimensões da WebView.
+
+Os campos de login/cadastro usam `text-base` (16 px); essa alteração de CSS
+ainda depende de deploy web no modelo remoto.
+
+Validação manual no iPhone: tocar em e-mail e senha, alternar campos, fechar e
+reabrir teclado, tentar pinça/duplo toque e confirmar que a escala permanece
+estável e que todos os campos/botões continuam acessíveis por rolagem.
+A compilação não substitui esse teste físico.
+
+Referência: [WebKit — limites de escala](https://developer.apple.com/documentation/webkit/wkwebviewconfiguration/ignoresviewportscalelimits).
+
+## Rolagem da gestão
+
+A gestão autenticada utiliza `.hubly-admin-shell` limitada à altura da viewport,
+com rolagem em `.hubly-admin-content` e na navegação lateral. A classe
+`hubly-admin-root` é removida ao sair desse layout. Safe area superior fica no
+cabeçalho/sidebar e a inferior é reservada no conteúdo para não encobrir ações.
+Listas/tabelas mantêm suas rolagens existentes. Testar conteúdo extenso, menu,
+modais e teclado no dispositivo após publicar o cliente no servidor.

@@ -3,26 +3,27 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.orizontech.hubly',
   appName: 'Hubly',
+  zoomEnabled: false,
   webDir: 'dist/public',
   server: {
-    // Em produção, aponta para o domínio publicado
-    url: 'https://hubly.orizontech.com.br',
+    // Shell de gestão: AdminLayout apresenta login ou painel conforme a sessão.
+    url: 'https://hubly.orizontech.com.br/admin',
     cleartext: false,
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#0f172a',
+      backgroundColor: '#fdf7ee',
       androidSplashResourceName: 'splash',
-      androidScaleType: 'CENTER_CROP',
+      androidScaleType: 'CENTER_INSIDE',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
     },
     StatusBar: {
       style: 'dark',
-      backgroundColor: '#0f172a',
+      backgroundColor: '#fdf7ee',
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
@@ -30,11 +31,11 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'automatic',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#fdf7ee',
     preferredContentMode: 'mobile',
   },
   android: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#fdf7ee',
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
