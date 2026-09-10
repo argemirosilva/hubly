@@ -121,3 +121,31 @@ visual local; depende de deploy web para aparecer no iPhone com interface remota
 - Sem dados reais de produção, deploy ou validação interativa no iPhone nesta etapa.
   O usuário informou hospedagem em servidor próprio. O pacote nativo carrega a
   interface remota, portanto reinstalar o IPA não aplica essas mudanças de CSS.
+
+## Correção efetiva da injeção de viewport
+
+A configuração anterior adicionava o WKUserScript em `webViewConfiguration`,
+mas o Capacitor 8.3.0 substitui `userContentController` logo depois, descartando
+o script. `HublyBridgeViewController.swift` agora adiciona o script no override
+`webView(with:configuration:)`, após essa substituição e antes de navegar.
+
+Build de simulador passou; app reinstalado e aberto no iPhone 17 Pro Max virtual.
+Tela inicial inspecionada por screenshot. O toque automatizado não foi concluído:
+o macOS negou acesso assistivo ao osascript; foco/teclado requer confirmação manual.
+Não houve push ou instalação física nesta correção.
+
+## Login sem rolagem
+
+`AdminLayout.tsx` e `client/src/index.css`: login limitado à viewport, sem
+rolagem do documento, com safe areas e espaçamentos compactos em telas baixas.
+Em altura reduzida, elementos decorativos são ocultados para preservar campos,
+erros e ações. Cadastro e gestão mantêm suas rolagens. A classe global é removida
+ao alternar para cadastro ou sair do login. Não bloqueia eventos de toque/teclado.
+
+Vite, TypeScript e diff check passaram. Playwright/Chrome com API simulada
+validou 320×568, 390×844, 440×956 e 844×390, com safe areas simuladas e com/sem
+erro de senha: altura do documento igual à viewport, cartão inteiramente dentro
+da área útil. Teclado iOS real não validado nesta etapa.
+
+Alteração web local, ainda sem push/deploy; a interface remota do aplicativo
+só recebe essas mudanças após publicação no servidor.

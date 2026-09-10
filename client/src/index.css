@@ -426,6 +426,45 @@
   }
 }
 /* Classe utilitaria para areas de seguranca iOS */
+.hubly-login-root {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+.hubly-login-root body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.hubly-login-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #fdf7ee;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+@media (max-height: 700px) {
+  .hubly-login-screen .hubly-login-panel { padding: 12px 20px; }
+  .hubly-login-screen .hubly-login-logo,
+  .hubly-login-screen .hubly-login-heading { margin-bottom: 12px; }
+  .hubly-login-screen .hubly-login-card > p { margin-top: 12px; }
+  .hubly-login-screen .hubly-login-footer { margin-top: 12px; padding-top: 8px; }
+}
+@media (max-height: 500px) {
+  .hubly-login-screen .hubly-login-logo,
+  .hubly-login-screen .hubly-login-footer { display: none; }
+  .hubly-login-screen .hubly-login-heading p { display: none; }
+}
+@media (max-height: 650px) {
+  .hubly-login-screen .hubly-login-footer { display: none; }
+  .hubly-login-screen .hubly-login-logo img { height: 48px !important; }
+  .hubly-login-screen .hubly-login-logo > span > span { font-size: 26.4px !important; }
+  .hubly-login-screen .hubly-login-heading { margin-bottom: 8px; }
+  .hubly-login-screen form { display: flex; flex-direction: column; gap: 12px; }
+  .hubly-login-screen form > * { margin-block: 0; }
+  .hubly-login-screen .hubly-login-card > p { margin-top: 8px; }
+}
+
 .hubly-admin-root {
   padding: 0;
   height: 100%;

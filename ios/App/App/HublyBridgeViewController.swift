@@ -3,8 +3,9 @@ import WebKit
 
 /// Mantém a escala da gestão estável, inclusive ao focar campos com teclado.
 final class HublyBridgeViewController: CAPBridgeViewController {
-    override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
-        let configuration = super.webViewConfiguration(for: instanceConfiguration)
+    override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
+        // O Capacitor substitui userContentController após webViewConfiguration.
+        // Aqui recebemos o controller definitivo, antes da primeira navegação.
         configuration.ignoresViewportScaleLimits = false
         // Aplicado pelo pacote nativo também à interface hospedada no servidor.
         let source = """
@@ -23,6 +24,6 @@ final class HublyBridgeViewController: CAPBridgeViewController {
         configuration.userContentController.addUserScript(WKUserScript(
             source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: true
         ))
-        return configuration
+        return super.webView(with: frame, configuration: configuration)
     }
 }

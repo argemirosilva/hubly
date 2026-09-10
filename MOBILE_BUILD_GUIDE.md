@@ -187,3 +187,7 @@ com rolagem em `.hubly-admin-content` e na navegação lateral. A classe
 cabeçalho/sidebar e a inferior é reservada no conteúdo para não encobrir ações.
 Listas/tabelas mantêm suas rolagens existentes. Testar conteúdo extenso, menu,
 modais e teclado no dispositivo após publicar o cliente no servidor.
+
+A injeção de viewport deve permanecer em `webView(with:configuration:)`. Não
+mover para `webViewConfiguration`: o Capacitor substitui o userContentController
+entre esses dois pontos e descartaria o script de bloqueio de zoom.

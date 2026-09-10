@@ -250,6 +250,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.documentElement.classList.remove("hubly-admin-root");
   }, [interfaceReady, systemUser?.onboardingConcluido]);
 
+  useEffect(() => {
+    if (loading || isAuthenticated || modoLogin !== "login") return;
+    document.documentElement.classList.add("hubly-login-root");
+    return () => document.documentElement.classList.remove("hubly-login-root");
+  }, [loading, isAuthenticated, modoLogin]);
+
   // Ref para swipe na sidebar (fechar)
   const sidebarTouchStartX = useRef<number | null>(null);
 
@@ -360,7 +366,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex bg-background">
+      <div className={`${modoLogin === "login" ? "hubly-login-screen" : "min-h-screen"} flex bg-background`}>
         {/* Painel esquerdo */}
         <div className="hidden lg:flex w-1/2 flex-col justify-between p-14 relative overflow-hidden"
           style={{ background: "var(--background)", backgroundColor: '#fdf7ee' }}>
@@ -391,14 +397,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Painel direito — formulário de login */}
-        <div className="flex-1 flex items-center justify-center px-8" style={{ backgroundColor: '#fdf7ee' }}>
-          <div className="w-full max-w-sm">
-            <div className="flex justify-center mb-8">
+        <div className="hubly-login-panel flex-1 min-w-0 flex items-center justify-center px-8" style={{ backgroundColor: '#fdf7ee' }}>
+          <div className="hubly-login-card w-full max-w-sm">
+            <div className="hubly-login-logo flex justify-center mb-8">
               <HublyLogo tone="dark" height={64} />
             </div>
             {modoLogin === "login" ? (
               <>
-                <div className="space-y-2 mb-8 text-center">
+                <div className="hubly-login-heading space-y-2 mb-8 text-center">
                   <h1 className="font-bold tracking-tight" style={{ fontSize: "1.35rem" }}>
                     Bem-vindo de volta
                   </h1>
@@ -534,7 +540,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </>
             )}
             {/* Rodapé — Orizon Tech */}
-            <div className="flex items-center justify-center gap-2 mt-8 pt-5 border-t border-border">
+            <div className="hubly-login-footer flex items-center justify-center gap-2 mt-8 pt-5 border-t border-border">
               <span className="text-[10px] text-muted-foreground/50 tracking-wide">Desenvolvido por</span>
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029250418/BkCt9rpSQdtCMrvdCmsRG4/orizon-logo-v2_fbd7f19e.png"
