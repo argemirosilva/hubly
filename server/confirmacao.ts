@@ -64,7 +64,7 @@ export async function gerarTokenConfirmacao(agendamentoId: number, empresaId: nu
     empresaId,
     token,
     expiresAt,
-  });
+  }).returning({ insertId: tokensConfirmacao.id });
 
   return token;
 }

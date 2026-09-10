@@ -813,7 +813,7 @@ export default function Configuracoes() {
           </div>
           <div className="p-5 space-y-3">
             <p className="text-sm text-muted-foreground">
-              Baixe um arquivo <strong>.sql</strong> com a estrutura completa do Hubly e os dados desta empresa, pronto para importar em outra base MySQL compatível.
+              Baixe um arquivo <strong>.sql</strong> com a estrutura completa do Hubly e os dados desta empresa, pronto para importar em outra base PostgreSQL compatível.
             </p>
             <p className="text-xs text-muted-foreground">
               Por segurança, o arquivo não inclui credenciais, sessões, tokens de integração, usuários de outras empresas nem dados de cobrança Stripe.

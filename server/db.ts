@@ -1,28 +1,30 @@
 import { and, desc, eq, gt, gte, lte, sql, or, isNull, inArray } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { InsertUser, users, empresas, profissionais, permissoes, clientes, servicos, agendamentos, agendamentoItens, bloqueiosAgenda, comissoes, notificacoes, automacoes, prontuarios, coresStatus, gruposPermissoes, permissoesGrupo, membrosGrupo, convitesUsuario, tiposProfissional, profissionalTipos, categoriasDespesa, contasPagar, contasReceber, historicoEnviosAutomacao, permissoesIndividuais, meiosPagamento, taxasParcela, dashboardConfig, DashboardWidget } from "../drizzle/schema";
 import { agendamentoPagamentos, AgendamentoPagamento } from '../drizzle/schema';
 import { creditosCliente, agendamentoPessoas, automacoesExcluidas, taxasConfig, InsertTaxaConfig } from '../drizzle/schema';
 import { ENV } from './_core/env';
 
-import { createPool } from "mysql2/promise";
+import { Pool, types } from "pg";
+import { readFileSync } from "node:fs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+// COUNT e SUM de inteiros mantêm o contrato numérico anterior sem perda silenciosa.
+types.setTypeParser(20, value => {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) throw new Error("Inteiro fora do limite seguro do JavaScript");
+  return number;
+});
+types.setTypeParser(1082, value => value); // DATE permanece YYYY-MM-DD no contrato HTTP.
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       // Usar pool com reconexão automática para evitar ECONNRESET
-      const pool = createPool({
-        uri: process.env.DATABASE_URL,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
-        enableKeepAlive: true,
-        keepAliveInitialDelay: 30000,
-      });
+      const config = JSON.parse(readFileSync("database-postgres.local.json", "utf8"));
+      const pool = new Pool({ ...config, max: 10, keepAlive: true });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      _db = drizzle(pool as any);
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -52,7 +54,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
     if (!values.lastSignedIn) values.lastSignedIn = new Date();
     if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+    await db.insert(users).values(values).returning({ insertId: users.id }).onConflictDoUpdate({ target: users.openId,  set: updateSet });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -77,8 +79,8 @@ export async function getEmpresaByOwnerId(ownerId: number) {
 export async function createEmpresa(data: typeof empresas.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(empresas).values(data);
-  return result[0];
+  const [result] = await db.insert(empresas).values(data).returning({ insertId: empresas.id });
+  return result;
 }
 
 export async function updateEmpresa(id: number, data: Partial<typeof empresas.$inferInsert>) {
@@ -120,10 +122,10 @@ export async function getProfissionalById(id: number) {
 export async function createProfissional(data: typeof profissionais.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(profissionais).values(data);
+  const [result] = await db.insert(profissionais).values(data).returning({ insertId: profissionais.id });
   const id = (result as any)[0]?.insertId ?? (result as any).insertId;
   // Create default permissions
-  await db.insert(permissoes).values({ profissionalId: id });
+  await db.insert(permissoes).values({ profissionalId: id }).returning({ insertId: permissoes.id });
   return id;
 }
 
@@ -163,7 +165,7 @@ export async function getClienteById(id: number) {
 export async function createCliente(data: typeof clientes.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(clientes).values(data);
+  const [result] = await db.insert(clientes).values(data).returning({ insertId: clientes.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -197,7 +199,7 @@ export async function getServicosByEmpresa(empresaId: number) {
 export async function createServico(data: typeof servicos.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(servicos).values(data);
+  const [result] = await db.insert(servicos).values(data).returning({ insertId: servicos.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -215,7 +217,7 @@ export async function updateCategoriaServicosLote(empresaId: number, servicoIds:
   const result = await db.update(servicos)
     .set({ categoria })
     .where(and(eq(servicos.empresaId, empresaId), inArray(servicos.id, servicoIds)));
-  return (result as any)[0]?.affectedRows ?? (result as any).affectedRows ?? 0;
+  return result.rowCount ?? 0;
 }
 
 /**
@@ -380,7 +382,7 @@ export async function getAgendamentoById(id: number) {
 export async function createAgendamento(data: typeof agendamentos.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(agendamentos).values(data);
+  const [result] = await db.insert(agendamentos).values(data).returning({ insertId: agendamentos.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -395,7 +397,7 @@ export async function createAgendamentoItens(itens: (typeof agendamentoItens.$in
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   if (itens.length === 0) return;
-  await db.insert(agendamentoItens).values(itens);
+  await db.insert(agendamentoItens).values(itens).returning({ insertId: agendamentoItens.id });
 }
 
 export async function getItensByAgendamento(agendamentoId: number) {
@@ -438,7 +440,7 @@ export async function getBloqueiosByEmpresa(empresaId: number) {
 export async function createBloqueio(data: typeof bloqueiosAgenda.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(bloqueiosAgenda).values(data);
+  const [result] = await db.insert(bloqueiosAgenda).values(data).returning({ insertId: bloqueiosAgenda.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -569,7 +571,7 @@ export async function getComissoesByEmpresa(empresaId: number, profissionalId?: 
 export async function createComissao(data: typeof comissoes.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(comissoes).values(data);
+  const [result] = await db.insert(comissoes).values(data).returning({ insertId: comissoes.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -616,7 +618,7 @@ export async function getNotificacoesByEmpresa(empresaId: number, profissionalId
 export async function createNotificacao(data: typeof notificacoes.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.insert(notificacoes).values(data);
+  await db.insert(notificacoes).values(data).returning({ insertId: notificacoes.id });
 }
 
 export async function marcarNotificacaoLida(id: number) {
@@ -683,7 +685,7 @@ export async function getAutomacaoByEvento(empresaId: number, evento: string) {
         eq(automacoes.ativo, true),
         or(
           eq(automacoes.evento, evento),
-          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+          sql`(${automacoes.eventosAdicionais}::jsonb @> jsonb_build_array(${evento}::text))`,
         ),
       )
     )
@@ -710,7 +712,7 @@ export async function existeAutomacaoParaEvento(empresaId: number, evento: strin
         eq(automacoes.tipoGatilho, 'evento'),
         or(
           eq(automacoes.evento, evento),
-          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+          sql`(${automacoes.eventosAdicionais}::jsonb @> jsonb_build_array(${evento}::text))`,
         ),
       )
     )
@@ -743,7 +745,7 @@ export async function getAutomacoesByEvento(empresaId: number, evento: string) {
         eq(automacoes.ativo, true),
         or(
           eq(automacoes.evento, evento),
-          sql`JSON_CONTAINS(${automacoes.eventosAdicionais}, JSON_QUOTE(${evento}))`,
+          sql`(${automacoes.eventosAdicionais}::jsonb @> jsonb_build_array(${evento}::text))`,
         ),
       )
     );
@@ -776,7 +778,7 @@ export async function getAutomacaoByTipoGatilho(empresaId: number, tipoGatilho: 
 export async function createAutomacao(data: typeof automacoes.$inferInsert & { flowJson?: string }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(automacoes).values(data);
+  const [result] = await db.insert(automacoes).values(data).returning({ insertId: automacoes.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -807,7 +809,7 @@ export async function deleteAutomacao(id: number) {
         empresaId: automacao.empresaId,
         evento: automacao.evento,
         automacaoNome: automacao.nome,
-      });
+      }).returning({ insertId: automacoesExcluidas.id });
     }
   }
   await db.delete(automacoes).where(eq(automacoes.id, id));
@@ -829,7 +831,7 @@ export async function getProntuariosByCliente(clienteId: number) {
 export async function createProntuario(data: typeof prontuarios.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(prontuarios).values(data);
+  const [result] = await db.insert(prontuarios).values(data).returning({ insertId: prontuarios.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -844,8 +846,8 @@ export async function getCoresStatus(empresaId: number) {
 export async function upsertCoresStatus(empresaId: number, data: Partial<typeof coresStatus.$inferInsert>) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.insert(coresStatus).values({ empresaId, ...data } as any)
-    .onDuplicateKeyUpdate({ set: data });
+  await db.insert(coresStatus).values({ empresaId, ...data } as any).returning({ insertId: coresStatus.id })
+    .onConflictDoUpdate({ target: coresStatus.empresaId,  set: data });
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
@@ -946,10 +948,10 @@ export async function getGrupoById(id: number) {
 export async function createGrupo(data: typeof gruposPermissoes.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [result] = await db.insert(gruposPermissoes).values(data);
+  const [result] = await db.insert(gruposPermissoes).values(data).returning({ insertId: gruposPermissoes.id });
   const grupoId = (result as any).insertId as number;
   // Criar permissões padrão (todas false)
-  await db.insert(permissoesGrupo).values({ grupoId });
+  await db.insert(permissoesGrupo).values({ grupoId }).returning({ insertId: permissoesGrupo.id });
   return grupoId;
 }
 
@@ -1031,7 +1033,7 @@ export async function updatePermissoesGrupo(grupoId: number, data: Partial<typeo
   if (!db) throw new Error("DB not available");
   const exists = await db.select({ id: permissoesGrupo.id }).from(permissoesGrupo).where(eq(permissoesGrupo.grupoId, grupoId)).limit(1);
   if (exists.length === 0) {
-    await db.insert(permissoesGrupo).values({ grupoId, ...data });
+    await db.insert(permissoesGrupo).values({ grupoId, ...data }).returning({ insertId: permissoesGrupo.id });
   } else {
     await db.update(permissoesGrupo).set(data).where(eq(permissoesGrupo.grupoId, grupoId));
   }
@@ -1050,7 +1052,7 @@ export async function updatePermissoesIndividuais(profissionalId: number, data: 
   if (!db) throw new Error("DB not available");
   const exists = await db.select({ id: permissoesIndividuais.id }).from(permissoesIndividuais).where(eq(permissoesIndividuais.profissionalId, profissionalId)).limit(1);
   if (exists.length === 0) {
-    await db.insert(permissoesIndividuais).values({ profissionalId, ...data });
+    await db.insert(permissoesIndividuais).values({ profissionalId, ...data }).returning({ insertId: permissoesIndividuais.id });
   } else {
     await db.update(permissoesIndividuais).set(data).where(eq(permissoesIndividuais.profissionalId, profissionalId));
   }
@@ -1105,7 +1107,7 @@ export async function addMembroGrupo(grupoId: number, userId: number, empresaId:
   const exists = await db.select({ id: membrosGrupo.id }).from(membrosGrupo)
     .where(and(eq(membrosGrupo.grupoId, grupoId), eq(membrosGrupo.userId, userId))).limit(1);
   if (exists.length > 0) return exists[0]!.id;
-  const [result] = await db.insert(membrosGrupo).values({ grupoId, userId, empresaId, adicionadoPorId });
+  const [result] = await db.insert(membrosGrupo).values({ grupoId, userId, empresaId, adicionadoPorId }).returning({ insertId: membrosGrupo.id });
   return (result as any).insertId as number;
 }
 
@@ -1139,7 +1141,7 @@ export async function getConvitesByEmpresa(empresaId: number) {
 export async function createConvite(data: typeof convitesUsuario.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [result] = await db.insert(convitesUsuario).values(data);
+  const [result] = await db.insert(convitesUsuario).values(data).returning({ insertId: convitesUsuario.id });
   return (result as any).insertId as number;
 }
 
@@ -1208,7 +1210,7 @@ export async function createSystemUser(data: {
     criadoPorId: data.criadoPorId ?? null,
     corCalendario: "#6b7280",
     ativo: true,
-  });
+  }).returning({ insertId: profissionais.id });
   return { id: (result as any).insertId };
 }
 
@@ -1281,7 +1283,7 @@ export async function getPipelinesByEmpresa(empresaId: number) {
 export async function createPipeline(data: InsertPipeline) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [result] = await db.insert(pipelines).values(data);
+  const [result] = await db.insert(pipelines).values(data).returning({ insertId: pipelines.id });
   return { id: (result as any).insertId };
 }
 
@@ -1308,7 +1310,7 @@ export async function getColunasByPipeline(pipelineId: number) {
 export async function createColuna(data: InsertPipelineColuna) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [result] = await db.insert(pipelineColunas).values(data);
+  const [result] = await db.insert(pipelineColunas).values(data).returning({ insertId: pipelineColunas.id });
   return { id: (result as any).insertId };
 }
 
@@ -1334,7 +1336,7 @@ export async function getCartoesByPipeline(pipelineId: number) {
 export async function createCartao(data: InsertPipelineCartao) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [result] = await db.insert(pipelineCartoes).values(data);
+  const [result] = await db.insert(pipelineCartoes).values(data).returning({ insertId: pipelineCartoes.id });
   return { id: (result as any).insertId };
 }
 
@@ -1415,7 +1417,7 @@ import { scoreFinanceiro, alertasFinanceiros, analiseClientes, insightsClientes 
 export async function saveScoreFinanceiro(data: typeof scoreFinanceiro.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(scoreFinanceiro).values(data);
+  const [result] = await db.insert(scoreFinanceiro).values(data).returning({ insertId: scoreFinanceiro.id });
   return result;
 }
 
@@ -1441,7 +1443,7 @@ export async function getHistoricoScore(empresaId: number, limit = 30) {
 export async function saveAlertaFinanceiro(data: typeof alertasFinanceiros.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(alertasFinanceiros).values(data);
+  return db.insert(alertasFinanceiros).values(data).returning({ insertId: alertasFinanceiros.id });
 }
 
 export async function getAlertasFinanceiros(empresaId: number, apenasNaoLidos = false) {
@@ -1472,8 +1474,8 @@ export async function saveAnaliseCliente(data: typeof analiseClientes.$inferInse
   const db = await getDb();
   if (!db) return null;
   // Upsert por empresaId + clienteId
-  return db.insert(analiseClientes).values(data)
-    .onDuplicateKeyUpdate({ set: {
+  return db.insert(analiseClientes).values(data).returning({ insertId: analiseClientes.id })
+    .onConflictDoUpdate({ target: analiseClientes.id,  set: {
       classificacao: data.classificacao,
       scoreCliente: data.scoreCliente,
       resumo: data.resumo,
@@ -1503,7 +1505,7 @@ export async function getAnaliseByCliente(empresaId: number, clienteId: number) 
 export async function saveInsightCliente(data: typeof insightsClientes.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(insightsClientes).values(data);
+  return db.insert(insightsClientes).values(data).returning({ insertId: insightsClientes.id });
 }
 
 export async function getInsightsClientes(empresaId: number, apenasNaoLidos = false) {
@@ -1580,7 +1582,7 @@ export async function vincularServicoProfissional(profissionalId: number, servic
     ))
     .limit(1);
   if (existing.length > 0) return { id: existing[0].id, alreadyExists: true };
-  const [result] = await db.insert(profissionalServicos).values({ profissionalId, servicoId });
+  const [result] = await db.insert(profissionalServicos).values({ profissionalId, servicoId }).returning({ insertId: profissionalServicos.id });
   return { id: (result as any).insertId, alreadyExists: false };
 }
 
@@ -1600,7 +1602,7 @@ export async function setServicosProfissional(profissionalId: number, servicoIds
   if (servicoIds.length > 0) {
     await db.insert(profissionalServicos).values(
       servicoIds.map(servicoId => ({ profissionalId, servicoId }))
-    );
+    ).returning({ insertId: profissionalServicos.id });
   }
 }
 
@@ -1616,7 +1618,7 @@ export async function getTiposProfissionalByEmpresa(empresaId: number) {
 export async function createTipoProfissional(empresaId: number, nome: string, cor?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(tiposProfissional).values({ empresaId, nome, cor: cor ?? "#7c3aed" });
+  const [result] = await db.insert(tiposProfissional).values({ empresaId, nome, cor: cor ?? "#7c3aed" }).returning({ insertId: tiposProfissional.id });
   const id = (result as any)[0]?.insertId ?? (result as any).insertId;
   return { id, empresaId, nome, cor: cor ?? "#7c3aed", ativo: true };
 }
@@ -1687,7 +1689,7 @@ export async function setTiposProfissional(profissionalId: number, tipoIds: numb
   if (tipoIds.length > 0) {
     await db.insert(profissionalTipos).values(
       tipoIds.map(tipoProfissionalId => ({ profissionalId, tipoProfissionalId }))
-    );
+    ).returning({ insertId: profissionalTipos.id });
   }
 }
 
@@ -1703,7 +1705,7 @@ export async function getCategoriasDespesaByEmpresa(empresaId: number) {
 export async function createCategoriaDespesa(data: typeof categoriasDespesa.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(categoriasDespesa).values(data);
+  const [result] = await db.insert(categoriasDespesa).values(data).returning({ insertId: categoriasDespesa.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -1771,7 +1773,7 @@ export async function getContasPagarByEmpresa(empresaId: number, filtros?: {
 export async function createContaPagar(data: typeof contasPagar.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(contasPagar).values(data);
+  const [result] = await db.insert(contasPagar).values(data).returning({ insertId: contasPagar.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -1884,7 +1886,7 @@ export async function getContasReceberByEmpresa(empresaId: number) {
 export async function createContaReceber(data: typeof contasReceber.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(contasReceber).values(data);
+  const [result] = await db.insert(contasReceber).values(data).returning({ insertId: contasReceber.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -1970,7 +1972,7 @@ export async function importarAgendamentosParaContasReceber(empresaId: number) {
       clienteId: ag.clienteId,
       profissionalId: ag.profissionalId,
       tipoPagamento: ag.tipoPagamento ?? undefined,
-    });
+    }).returning({ insertId: contasReceber.id });
   }
   return novos.length;
 }
@@ -2105,7 +2107,7 @@ export async function registrarEnvioAutomacao(data: {
           midiaUrl: data.midiaUrl ?? null,
           isTeste: data.isTeste ?? false,
           servicoNome: data.servicoNome ?? null,
-        });
+        }).returning({ insertId: historicoEnviosAutomacao.id });
         console.log(`[Fila] Envio bloqueado na origem — agendamento ${data.agendamentoId} está ${agendamentoAtual?.status}`);
         return;
       }
@@ -2184,7 +2186,7 @@ export async function registrarEnvioAutomacao(data: {
       isTeste: data.isTeste ?? false,
       servicoNome: data.servicoNome ?? null,
       dedupeKey: data.dedupeKey ?? null,
-    });
+    }).returning({ insertId: historicoEnviosAutomacao.id });
   } catch (erro) {
     const mensagemErro = erro instanceof Error ? erro.message : String(erro);
     if (data.dedupeKey && /duplicate|unique/i.test(mensagemErro)) {
@@ -2365,7 +2367,7 @@ export async function getMeioPagamentoById(id: number) {
 export async function createMeioPagamento(data: typeof meiosPagamento.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(meiosPagamento).values(data);
+  const [result] = await db.insert(meiosPagamento).values(data).returning({ insertId: meiosPagamento.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -2399,7 +2401,7 @@ export async function upsertTaxasParcela(meioPagamentoId: number, taxas: { parce
   if (taxas.length > 0) {
     await db.insert(taxasParcela).values(
       taxas.map((t) => ({ meioPagamentoId, parcela: t.parcela, taxa: t.taxa }))
-    );
+    ).returning({ insertId: taxasParcela.id });
   }
 }
 
@@ -2512,7 +2514,7 @@ export async function addPagamentoAgendamento(data: {
     meioPagamento: data.meioPagamento ?? null,
     numeroParcelas: data.numeroParcelas ?? 1,
     observacao: data.observacao ?? null,
-  });
+  }).returning({ insertId: agendamentoPagamentos.id });
 }
 
 export async function removePagamentoAgendamento(id: number) {
@@ -2543,7 +2545,7 @@ export async function getTaxasConfigByEmpresa(empresaId: number) {
 export async function createTaxaConfig(data: InsertTaxaConfig) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(taxasConfig).values(data);
+  const [result] = await db.insert(taxasConfig).values(data).returning({ insertId: taxasConfig.id });
   return (result as any)[0]?.insertId ?? (result as any).insertId;
 }
 
@@ -2586,7 +2588,7 @@ export async function saveDashboardConfig(userId: number, empresaId: number, lay
       .set({ layout: layout as any })
       .where(eq(dashboardConfig.id, existing[0].id));
   } else {
-    await db.insert(dashboardConfig).values({ userId, empresaId, layout: layout as any });
+    await db.insert(dashboardConfig).values({ userId, empresaId, layout: layout as any }).returning({ insertId: dashboardConfig.id });
   }
 }
 
@@ -2647,7 +2649,7 @@ export async function registrarCreditoCliente(data: {
     tipo: data.tipo,
     origem: data.origem,
     agendamentoId: data.agendamentoId,
-  });
+  }).returning({ insertId: creditosCliente.id });
 }
 
 export async function getHistoricoCreditoCliente(clienteId: number, empresaId: number) {
@@ -2799,7 +2801,7 @@ export async function adicionarPessoaAgendamento(data: {
     clienteId: data.clienteId,
     isPrincipal: data.isPrincipal ?? false,
     role: data.role ?? 'acompanhante',
-  });
+  }).returning({ insertId: agendamentoPessoas.id });
   return (result as any).insertId as number;
 }
 

@@ -1,5 +1,9 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "./db";
+import { readFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { sanitizeSyncRecord } from "./sync-catalog";
 
 type SqlRow = Record<string, unknown>;
 
@@ -23,7 +27,7 @@ const FILTROS_FILHOS: Record<string, string> = {
   agendamento_pessoas: "`agendamentoId` IN (SELECT `id` FROM `agendamentos` WHERE `empresaId` = {empresaId})",
   pacotes_modelos_itens: "`modeloId` IN (SELECT `id` FROM `pacotes_modelos` WHERE `empresaId` = {empresaId})",
   pacotes_clientes_itens: "`pacoteClienteId` IN (SELECT `id` FROM `pacotes_clientes` WHERE `empresaId` = {empresaId})",
-  profissional_servicos: "`profissionalId` IN (SELECT `id` FROM `profissionais` WHERE `empresaId` = {empresaId})",
+  profissionalservicos: "`profissionalId` IN (SELECT `id` FROM `profissionais` WHERE `empresaId` = {empresaId})",
   profissional_tipos: "`profissionalId` IN (SELECT `id` FROM `profissionais` WHERE `empresaId` = {empresaId})",
   permissoes: "`profissionalId` IN (SELECT `id` FROM `profissionais` WHERE `empresaId` = {empresaId})",
   permissoes_individuais: "`profissionalId` IN (SELECT `id` FROM `profissionais` WHERE `empresaId` = {empresaId})",
@@ -37,22 +41,24 @@ const FILTROS_FILHOS: Record<string, string> = {
 };
 
 function extrairLinhas(resultado: unknown): SqlRow[] {
+  if (resultado && typeof resultado === "object" && "rows" in resultado) return (resultado as { rows: SqlRow[] }).rows;
   if (Array.isArray(resultado) && Array.isArray(resultado[0])) return resultado[0] as SqlRow[];
   return Array.isArray(resultado) ? resultado as SqlRow[] : [];
 }
 
 function escaparNome(nome: string): string {
-  return `\`${nome.replace(/`/g, "``")}\``;
+  return '"' + nome.replaceAll('"', '""') + '"';
 }
 
 export function valorSql(valor: unknown): string {
   if (valor === null || valor === undefined) return "NULL";
   if (typeof valor === "number") return Number.isFinite(valor) ? String(valor) : "NULL";
-  if (typeof valor === "boolean") return valor ? "1" : "0";
-  if (valor instanceof Date) return `'${valor.toISOString().slice(0, 19).replace("T", " ")}'`;
-  if (Buffer.isBuffer(valor)) return `X'${valor.toString("hex")}'`;
+  if (typeof valor === "boolean") return valor ? "TRUE" : "FALSE";
+  if (valor instanceof Date) return `'${valor.toISOString()}'`;
+  if (Buffer.isBuffer(valor)) return `decode('${valor.toString("hex")}', 'hex')`;
   const texto = typeof valor === "object" ? JSON.stringify(valor) : String(valor);
-  return `'${texto.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\0/g, "\\0").replace(/\n/g, "\\n").replace(/\r/g, "\\r")}'`;
+  if (texto.includes('\0')) throw new Error("Texto contém caractere NUL inválido no PostgreSQL");
+  return `'${texto.replaceAll("'", "''")}'`;
 }
 
 function insertsDaTabela(tabela: string, linhas: SqlRow[]): string[] {
@@ -82,17 +88,17 @@ export async function gerarExportacaoSqlEmpresa(empresaId: number): Promise<{ co
   if (idSeguro <= 0) throw new Error("Empresa inválida");
 
   const resultadoTabelas = await db.execute(sql`
-    SELECT table_name AS tableName
+    SELECT table_name AS "tableName"
     FROM information_schema.tables
-    WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
+    WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
     ORDER BY table_name
   `);
   const todasTabelas = extrairLinhas(resultadoTabelas).map(linha => String(linha.tableName));
 
   const resultadoDiretas = await db.execute(sql`
-    SELECT DISTINCT table_name AS tableName
+    SELECT DISTINCT table_name AS "tableName"
     FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND column_name = 'empresaId'
+    WHERE table_schema = current_schema() AND column_name = 'empresaId'
   `);
   const tabelasDiretas = new Set(extrairLinhas(resultadoDiretas).map(linha => String(linha.tableName)));
 
@@ -100,20 +106,20 @@ export async function gerarExportacaoSqlEmpresa(empresaId: number): Promise<{ co
     "-- Hubly — exportação de estrutura e dados da empresa",
     `-- Empresa ID: ${idSeguro}`,
     `-- Gerado em: ${new Date().toISOString()}`,
-    "-- Compatibilidade: MySQL 8+ / MariaDB compatível",
+    "-- Compatibilidade: PostgreSQL 17+",
     "-- Dados sensíveis de integração, sessões, tokens, usuários globais e cobrança Stripe não são incluídos.",
-    "SET NAMES utf8mb4;",
-    "SET FOREIGN_KEY_CHECKS = 0;",
+    "SET standard_conforming_strings = on;",
+    "BEGIN;",
     "",
     "-- ESTRUTURA COMPLETA DO HUBLY",
   ];
 
-  for (const tabela of todasTabelas) {
-    const resultadoCreate = await db.execute(sql.raw(`SHOW CREATE TABLE ${escaparNome(tabela)}`));
-    const createRow = extrairLinhas(resultadoCreate)[0] ?? {};
-    const ddl = String((createRow as any)["Create Table"] ?? Object.values(createRow)[1] ?? "");
-    if (ddl) linhas.push(`${ddl};`, "");
-  }
+  const config = JSON.parse(readFileSync("database-postgres.local.json", "utf8"));
+  const { stdout } = await promisify(execFile)("C:/Program Files/PostgreSQL/17/bin/pg_dump.exe", [
+    "--no-password", "--host", config.host, "--port", String(config.port), "--username", config.user,
+    "--dbname", config.database, "--schema-only", "--no-owner", "--no-privileges", "--schema", "public",
+  ], { maxBuffer: 10 * 1024 * 1024, windowsHide: true });
+  linhas.push(stdout.replace("CREATE SCHEMA public;", "CREATE SCHEMA IF NOT EXISTS public;"), "SET search_path = public;", "CREATE EXTENSION IF NOT EXISTS unaccent;");
 
   linhas.push("-- DADOS DA EMPRESA", "");
   const consultas: Array<{ tabela: string; filtro: string }> = [
@@ -131,13 +137,18 @@ export async function gerarExportacaoSqlEmpresa(empresaId: number): Promise<{ co
   for (const { tabela, filtro } of consultas) {
     if (tabelasProcessadas.has(tabela) || !todasTabelas.includes(tabela)) continue;
     tabelasProcessadas.add(tabela);
-    const resultado = await db.execute(sql.raw(`SELECT * FROM ${escaparNome(tabela)} WHERE ${filtro}`));
-    const dados = extrairLinhas(resultado);
+    const resultado = await db.execute(sql.raw(`SELECT * FROM ${escaparNome(tabela)} WHERE ${filtro.replaceAll('`', '"')}`));
+    const dados = extrairLinhas(resultado).map(sanitizeSyncRecord);
     registros += dados.length;
     linhas.push(...insertsDaTabela(tabela, dados));
     if (dados.length) linhas.push("");
   }
 
-  linhas.push("SET FOREIGN_KEY_CHECKS = 1;", "-- FIM DA EXPORTAÇÃO");
+  const identities = await db.execute(sql`SELECT table_name, column_name FROM information_schema.columns WHERE table_schema='public' AND is_identity='YES'`);
+  for (const identity of identities.rows) {
+    const tabela = String(identity.table_name), coluna = String(identity.column_name);
+    linhas.push(`SELECT setval(pg_get_serial_sequence(${valorSql('public.' + escaparNome(tabela))}, ${valorSql(coluna)}), GREATEST(COALESCE(MAX(${escaparNome(coluna)}),0)+1,1), false) FROM ${escaparNome(tabela)};`);
+  }
+  linhas.push("COMMIT;", "-- FIM DA EXPORTAÇÃO");
   return { conteudo: linhas.join("\n"), tabelasComDados: tabelasProcessadas.size, registros };
 }

@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "./runtime-config";
 import { COOKIE_NAME } from "@shared/const";
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -369,6 +370,18 @@ import { gerarExportacaoSqlEmpresa } from "./sqlExport";
 import { SQL_STATUS_NAO_OCUPAM_HORARIO } from "./agenda-conflitos";
 
 
+async function resolveWhatsAppEmpresa(ctx: Parameters<typeof resolveAdminContext>[0], manage = false) {
+  if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+  const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
+  if (!empresa || (ctx.systemUser && empresa.id !== ctx.systemUser.empresaId)) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Empresa não autorizada' });
+  }
+  if (manage && !(await resolveAdminContext(ctx, empresa, 'configuracoesEditar')).isAdmin) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão para configurar WhatsApp' });
+  }
+  return empresa;
+}
+
 export const appRouter = router({
   system: systemRouter,
   zandu: zanduRouter,
@@ -412,36 +425,36 @@ export const appRouter = router({
         // Corrigir horaInicio inválido para HH:mm (sem segundos)
         await db.execute(sql`
           UPDATE agendamentos 
-          SET horaInicio = '09:00'
-          WHERE horaInicio IS NULL 
-             OR horaInicio = '' 
-             OR horaInicio = 'NaN'
-             OR LENGTH(CAST(horaInicio AS CHAR)) < 5
+          SET "horaInicio" = '09:00'
+          WHERE "horaInicio" IS NULL 
+             OR "horaInicio"::text = '' 
+             OR "horaInicio"::text = 'NaN'
+             OR LENGTH(CAST("horaInicio" AS text)) < 5
         `);
         
         // Corrigir horaFim inválido para HH:mm (sem segundos)
         await db.execute(sql`
           UPDATE agendamentos 
-          SET horaFim = '10:00'
-          WHERE horaFim IS NULL 
-             OR horaFim = '' 
-             OR horaFim = 'NaN'
-             OR LENGTH(CAST(horaFim AS CHAR)) < 5
+          SET "horaFim" = '10:00'
+          WHERE "horaFim" IS NULL 
+             OR "horaFim"::text = '' 
+             OR "horaFim"::text = 'NaN'
+             OR LENGTH(CAST("horaFim" AS text)) < 5
         `);
         
         // Remover segundos: HH:mm:ss -> HH:mm
         await db.execute(sql`
           UPDATE agendamentos 
-          SET horaInicio = SUBSTRING(horaInicio, 1, 5)
-          WHERE LENGTH(CAST(horaInicio AS CHAR)) >= 8 
-            AND horaInicio LIKE '%:%:%'
+          SET "horaInicio" = SUBSTRING("horaInicio"::text, 1, 5)::time
+          WHERE LENGTH(CAST("horaInicio" AS text)) >= 8 
+            AND "horaInicio"::text LIKE '%:%:%'
         `);
         
         await db.execute(sql`
           UPDATE agendamentos 
-          SET horaFim = SUBSTRING(horaFim, 1, 5)
-          WHERE LENGTH(CAST(horaFim AS CHAR)) >= 8 
-            AND horaFim LIKE '%:%:%'
+          SET "horaFim" = SUBSTRING("horaFim"::text, 1, 5)::time
+          WHERE LENGTH(CAST("horaFim" AS text)) >= 8 
+            AND "horaFim"::text LIKE '%:%:%'
         `);
         
         return { success: true, message: "Agendamentos corrigidos com sucesso" };
@@ -896,6 +909,8 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error("Empresa não encontrada");
         const buffer = Buffer.from(input.arquivoBase64, "base64");
+        const clienteArquivo = await getClienteById(input.clienteId);
+        if (!clienteArquivo || clienteArquivo.empresaId !== empresa.id) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado" });
         const key = `empresa-${empresa.id}/clientes/${input.clienteId}/${nanoid()}-${input.arquivoNome}`;
         const { url } = await storagePut(key, buffer, input.arquivoTipo);
         const id = await createProntuario({
@@ -1210,7 +1225,7 @@ export const appRouter = router({
             for (const itemId of [...new Set(servicosInput.map(s => s.pacoteClienteItemId).filter(Boolean))]) {
               if (itemId) {
                 await db.update(pacotesClientesItens)
-                  .set({ quantidadeReservada: drizzleSql`quantidadeReservada + 1` })
+                  .set({ quantidadeReservada: drizzleSql`"quantidadeReservada" + 1` })
                   .where(eq(pacotesClientesItens.id, itemId as number));
               }
             }
@@ -1228,7 +1243,7 @@ export const appRouter = router({
             const db = await getDb();
             if (db) {
               await db.update(pacotesClientesItens)
-                .set({ quantidadeReservada: drizzleSql`quantidadeReservada + 1` })
+                .set({ quantidadeReservada: drizzleSql`"quantidadeReservada" + 1` })
                 .where(eq(pacotesClientesItens.id, rest.pacoteClienteItemId));
             }
           }
@@ -1255,7 +1270,7 @@ export const appRouter = router({
             const percentualReserva = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
             const valorServico = parseFloat(rest.valorTotal ?? '0');
             const valorReservaCalc = percentualReserva > 0 ? `R$ ${(valorServico * percentualReserva).toFixed(2).replace('.', ',')}` : '';
-            const _portalOrigin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+            const _portalOrigin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
             const _linkAgendamento = empresa.portalSlug ? `${_portalOrigin}/agendar/${empresa.portalSlug}` : `${_portalOrigin}/agendar?e=${empresa.id}`;
             const templateVars = {
               nome_cliente: cliente.nome || 'Cliente',
@@ -1420,7 +1435,7 @@ export const appRouter = router({
                       userId: su.id,
                       googleEventId,
                       itemIndex: idx + 1,
-                    }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+                    }).returning({ insertId: googleCalendarEventos.id }).onConflictDoUpdate({ target: [googleCalendarEventos.agendamentoId, googleCalendarEventos.userId, googleCalendarEventos.itemIndex],  set: { googleEventId, updatedAt: new Date() } });
                   }
                 }
               } else {
@@ -1444,7 +1459,7 @@ export const appRouter = router({
                     userId: su.id,
                     googleEventId,
                     itemIndex: 0,
-                  }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+                  }).returning({ insertId: googleCalendarEventos.id }).onConflictDoUpdate({ target: [googleCalendarEventos.agendamentoId, googleCalendarEventos.userId, googleCalendarEventos.itemIndex],  set: { googleEventId, updatedAt: new Date() } });
                 }
               }
             } catch (err) {
@@ -1524,8 +1539,8 @@ export const appRouter = router({
                 if (!itemPacote) continue;
                 pacoteIds.add(itemPacote.pacoteClienteId);
                 await db.update(pacotesClientesItens).set({
-                  quantidadeReservada: drizzleSql`GREATEST(quantidadeReservada - 1, 0)`,
-                  quantidadeUsada: drizzleSql`quantidadeUsada + 1`,
+                  quantidadeReservada: drizzleSql`GREATEST("quantidadeReservada" - 1, 0)`,
+                  quantidadeUsada: drizzleSql`"quantidadeUsada" + 1`,
                 }).where(eq(pacotesClientesItens.id, itemId));
               }
               for (const pacoteId of pacoteIds) {
@@ -1822,7 +1837,7 @@ export const appRouter = router({
                 const percentualReserva2 = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
                 const valorServico2 = parseFloat(String(agendamento.valorTotal ?? '0'));
                 const valorReservaCalc2 = percentualReserva2 > 0 ? `R$ ${(valorServico2 * percentualReserva2).toFixed(2).replace('.', ',')}` : '';
-                const _portalOrigin2 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+                const _portalOrigin2 = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
                 const _linkAgendamento2 = empresa.portalSlug ? `${_portalOrigin2}/agendar/${empresa.portalSlug}` : `${_portalOrigin2}/agendar?e=${empresa.id}`;
                 const templateVars2 = {
                   nome_cliente: cliente.nome,
@@ -2018,7 +2033,7 @@ export const appRouter = router({
                 agendamentoId: id,
                 userId: su.id,
                 googleEventId,
-              }).onDuplicateKeyUpdate({ set: { googleEventId, updatedAt: new Date() } });
+              }).returning({ insertId: googleCalendarEventos.id }).onConflictDoUpdate({ target: [googleCalendarEventos.agendamentoId, googleCalendarEventos.userId, googleCalendarEventos.itemIndex],  set: { googleEventId, updatedAt: new Date() } });
             }
           } catch (err) {
             console.error('[GoogleCalendarUsuario] Erro ao sincronizar no update:', err);
@@ -2302,7 +2317,7 @@ export const appRouter = router({
                 console.log(`[confirmarSinalForaDoPrazo] Sem automação 'agendamento_criado', 'agendamento_reativado' nem 'agendamento_confirmado' — envio ignorado para ag. ${input.id}`);
               }
               if (automacaoReativado && automacaoReativado.corpoMensagem) {
-                const portalOriginReativado = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+                const portalOriginReativado = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
                 const linkAgendamentoReativado = empresa.portalSlug ? `${portalOriginReativado}/agendar/${empresa.portalSlug}` : `${portalOriginReativado}/agendar?e=${empresa.id}`;
                 const percentualReservaReativado = parseFloat(String(empresa.reservaPercentual ?? 0)) / 100;
                 const valorServicoReativado = parseFloat(String(agReativado.valorTotal ?? '0'));
@@ -2557,7 +2572,7 @@ export const appRouter = router({
         if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
           try {
             const { gerarTokenConfirmacao } = await import('./confirmacao.js');
-            const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+            const origin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
             const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
             const linkConfirmacao = `${origin}/confirmar/${token}`;
             mensagemFinal = mensagemFinal.replace(
@@ -4021,7 +4036,7 @@ export const appRouter = router({
         if (envio.agendamentoId && mensagemFinal.includes('confirmar sua presença') && !mensagemFinal.match(/https?:\/\/[^\s]+confirmar/)) {
           try {
             const { gerarTokenConfirmacao } = await import('./confirmacao.js');
-            const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+            const origin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
             const token = await gerarTokenConfirmacao(envio.agendamentoId, empresa.id);
             const linkConfirmacao = `${origin}/confirmar/${token}`;
             // Inserir o link logo após a linha que pede confirmação
@@ -4251,7 +4266,7 @@ export const appRouter = router({
           valor: "R$ 100,00",
           empresa: empresa.nome,
           valor_reserva: "R$ 30,00",
-          link_confirmacao: `${process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br'}/confirmar/TESTE`,
+          link_confirmacao: `${getPublicAppUrl() ?? 'https://hubly.orizontech.com.br'}/confirmar/TESTE`,
           pacote: "Pacote Exemplo",
           sessoes_restantes: "3",
           sessoes_total: "10",
@@ -4335,7 +4350,7 @@ export const appRouter = router({
           valor: "R$ 100,00",
           empresa: empresa.nome,
           valor_reserva: "R$ 30,00",
-          link_confirmacao: `${process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br'}/confirmar/TESTE`,
+          link_confirmacao: `${getPublicAppUrl() ?? 'https://hubly.orizontech.com.br'}/confirmar/TESTE`,
           pacote: "Pacote Exemplo",
           sessoes_restantes: "3",
           sessoes_total: "10",
@@ -4778,59 +4793,61 @@ export const appRouter = router({
         const s = drizzleSql;
 
         // Exclusão em cascata — ordem respeita FKs
-        await db.execute(s`DELETE FROM push_subscriptions WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM chamado_mensagens WHERE chamadoId IN (SELECT id FROM chamados WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM chamados WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM base_conhecimento WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM automacoes_excluidas WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM agendamento_pessoas WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM agendamento_pagamentos WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM agendamento_itens WHERE agendamentoId IN (SELECT id FROM agendamentos WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM comissoes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM agendamentos WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM bloqueios_agenda WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM prontuarios WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM creditos_cliente WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM pacotes_clientes_itens WHERE pacoteId IN (SELECT id FROM pacotes_clientes WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM pacotes_clientes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM clientes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM historico_envios_automacao WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM automacoes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM profissional_tipos WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM profissional_servicos WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM permissoes WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM permissoes_individuais WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM membros_grupo WHERE profissionalId IN (SELECT id FROM profissionais WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM system_users WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM profissionais WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM permissoes_grupo WHERE grupoId IN (SELECT id FROM grupos_permissoes WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM grupos_permissoes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM servicos WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM notificacoes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM cores_status WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM pipeline_cartoes WHERE colunaId IN (SELECT id FROM pipeline_colunas WHERE pipelineId IN (SELECT id FROM pipelines WHERE empresaId = ${empresaId}))`);
-        await db.execute(s`DELETE FROM pipeline_colunas WHERE pipelineId IN (SELECT id FROM pipelines WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM pipeline_snapshots WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM pipelines WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM score_financeiro WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM alertas_financeiros WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM analise_clientes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM insights_clientes WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM pacotes_modelos_itens WHERE pacoteId IN (SELECT id FROM pacotes_modelos WHERE empresaId = ${empresaId})`);
-        await db.execute(s`DELETE FROM pacotes_modelos WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM usage_alerts WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM usage_tracker WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM wa_connection_log WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM wa_session WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM contas_pagar WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM contas_receber WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM meios_pagamento WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM taxas_parcela WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM categorias_despesa WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM tipos_profissional WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM dashboard_config WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM tokens_confirmacao WHERE empresaId = ${empresaId}`);
-        await db.execute(s`DELETE FROM notificacoes_pacotes WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM push_subscriptions WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM chamado_mensagens WHERE "chamadoId" IN (SELECT id FROM chamados WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM chamados WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM base_conhecimento WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM automacoes_excluidas WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM agendamento_pessoas WHERE "agendamentoId" IN (SELECT id FROM agendamentos WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM agendamento_pagamentos WHERE "agendamentoId" IN (SELECT id FROM agendamentos WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM agendamento_itens WHERE "agendamentoId" IN (SELECT id FROM agendamentos WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM comissoes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM agendamentos WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM bloqueios_agenda WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM prontuarios WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM creditos_cliente WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM pacotes_clientes_itens WHERE "pacoteId" IN (SELECT id FROM pacotes_clientes WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM pacotes_clientes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM clientes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM historico_envios_automacao WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM automacoes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM profissional_tipos WHERE "profissionalId" IN (SELECT id FROM profissionais WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM profissional_servicos WHERE "profissionalId" IN (SELECT id FROM profissionais WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM permissoes WHERE "profissionalId" IN (SELECT id FROM profissionais WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM permissoes_individuais WHERE "profissionalId" IN (SELECT id FROM profissionais WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM membros_grupo WHERE "profissionalId" IN (SELECT id FROM profissionais WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM system_users WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM profissionais WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM permissoes_grupo WHERE "grupoId" IN (SELECT id FROM grupos_permissoes WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM grupos_permissoes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM servicos WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM notificacoes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM cores_status WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM pipeline_cartoes WHERE "colunaId" IN (SELECT id FROM pipeline_colunas WHERE "pipelineId" IN (SELECT id FROM pipelines WHERE "empresaId" = ${empresaId}))`);
+        await db.execute(s`DELETE FROM pipeline_colunas WHERE "pipelineId" IN (SELECT id FROM pipelines WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM pipeline_snapshots WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM pipelines WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM score_financeiro WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM alertas_financeiros WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM analise_clientes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM insights_clientes WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM pacotes_modelos_itens WHERE "pacoteId" IN (SELECT id FROM pacotes_modelos WHERE "empresaId" = ${empresaId})`);
+        await db.execute(s`DELETE FROM pacotes_modelos WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM usage_alerts WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM usage_tracker WHERE "empresaId" = ${empresaId}`);
+        const { waManager } = await import('./whatsapp');
+        await waManager.forEmpresa(empresaId).disconnect();
+        await db.execute(s`DELETE FROM wa_connection_log WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM wa_session WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM contas_pagar WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM contas_receber WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM meios_pagamento WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM taxas_parcela WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM categorias_despesa WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM tipos_profissional WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM dashboard_config WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM tokens_confirmacao WHERE "empresaId" = ${empresaId}`);
+        await db.execute(s`DELETE FROM notificacoes_pacotes WHERE "empresaId" = ${empresaId}`);
         // Cancelar assinatura Stripe se existir
         try {
           const { assinaturas: assinaturasTable } = await import('../drizzle/schema');
@@ -4841,7 +4858,7 @@ export const appRouter = router({
             await stripe.subscriptions.cancel(assinatura.stripeSubscriptionId);
           }
         } catch (_e) { /* ignorar erros do Stripe na exclusão */ }
-        await db.execute(s`DELETE FROM assinaturas WHERE empresaId = ${empresaId}`);
+        await db.execute(s`DELETE FROM assinaturas WHERE "empresaId" = ${empresaId}`);
         // Excluir a empresa por último
         await db.execute(s`DELETE FROM empresas WHERE id = ${empresaId}`);
         return { success: true };
@@ -4851,96 +4868,63 @@ export const appRouter = router({
   // ─── WHATSAPP ──────────────────────────────────────────────────────────────────────────────────────
   whatsapp: router({
     getStatus: protectedProcedure.query(async ({ ctx }) => {
-      // Para plano PRO: consultar status via Z-API
-      try {
-        const userId = ctx.user?.id ?? ctx.systemUser?.id ?? 0;
-        const systemUserEmpresaId = ctx.systemUser?.empresaId ?? null;
-        const empresa = await getEmpresaDoContexto(userId, systemUserEmpresaId);
-        if (empresa?.id) {
-          const db = await getDb();
-          if (db) {
-            const { subscriptions: subsTable } = await import('../drizzle/schema');
-            const [sub] = await db
-              .select({ planType: subsTable.planType })
-              .from(subsTable)
-              .where(eq(subsTable.empresaId, empresa.id))
-              .limit(1);
-            if (sub?.planType === 'PRO') {
-              const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
-              const zapiStatus = await zapiCheckStatus(empresa.id);
-              let phoneNumber: string | null = null;
-              if (zapiStatus.connected) {
-                const phoneInfo = await zapiGetConnectedPhone(empresa.id);
-                phoneNumber = phoneInfo.phone;
-              }
-              return {
-                status: zapiStatus.connected ? 'connected' : 'disconnected',
-                phoneNumber,
-                connectedAt: null,
-                qrDataUrl: null,
-                nextReconnectAt: null,
-                provider: 'zapi' as const,
-              };
-            }
-          }
-        }
-      } catch {
-        // Se banco ou Z-API falhar, cai para Baileys abaixo
+      const empresa = await resolveWhatsAppEmpresa(ctx);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Banco indisponível' });
+      const { subscriptions: subsTable } = await import('../drizzle/schema');
+      const [sub] = await db.select({ planType: subsTable.planType }).from(subsTable)
+        .where(eq(subsTable.empresaId, empresa.id)).limit(1);
+      if (sub?.planType === 'PRO') {
+        const { zapiCheckStatus, zapiGetConnectedPhone } = await import('./zapi');
+        const status = await zapiCheckStatus(empresa.id);
+        const phone = status.connected ? await zapiGetConnectedPhone(empresa.id) : null;
+        return { status: status.connected ? 'connected' : 'disconnected',
+          phoneNumber: phone?.phone ?? null, connectedAt: null, qrDataUrl: null,
+          nextReconnectAt: null, provider: 'zapi' as const };
       }
-      // Solo / Plus / Free → Baileys
       const { waManager } = await import('./whatsapp');
-      const state = waManager.getState();
-      return {
-        status: state.status,
-        phoneNumber: state.phoneNumber,
-        connectedAt: state.connectedAt,
-        qrDataUrl: state.qrDataUrl,
-        nextReconnectAt: state.nextReconnectAt ?? null,
-        provider: 'baileys' as const,
-      };
+      return { ...waManager.forEmpresa(empresa.id).getState(), provider: 'baileys' as const };
     }),
     getConnectionLog: protectedProcedure
       .input(z.object({ limit: z.number().min(1).max(200).default(50) }).optional())
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        const empresa = await resolveWhatsAppEmpresa(ctx, true);
         const db = await getDb();
-        if (!db) return [];
-        const rows = await db.execute(
-          drizzleSql`SELECT id, event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone, createdAt
-              FROM wa_connection_log
-              ORDER BY createdAt DESC
-              LIMIT ${input?.limit ?? 50}`
-        );
-        return (rows[0] as unknown as any[]).map((r: any) => ({
-          id: r.id as number,
-          event: r.event as string,
-          detail: r.detail as string | null,
-          statusCode: r.statusCode as number | null,
-          motivo: r.motivo as string | null,
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Banco indisponível' });
+        const result = await db.execute(drizzleSql`
+          SELECT id, event, detail, "statusCode", motivo, "duracaoSessaoMs", tentativa, "detalheTecnico", telefone, "createdAt"
+          FROM wa_connection_log WHERE "empresaId" = ${empresa.id}
+          ORDER BY "createdAt" DESC LIMIT ${input?.limit ?? 50}
+        `);
+        return result.rows.map((r: any) => ({
+          id: r.id as number, event: r.event as string, detail: r.detail as string | null,
+          statusCode: r.statusCode as number | null, motivo: r.motivo as string | null,
           duracaoSessaoMs: r.duracaoSessaoMs ? Number(r.duracaoSessaoMs) : null,
-          tentativa: r.tentativa as number | null,
-          detalheTecnico: r.detalheTecnico as string | null,
-          telefone: r.telefone as string | null,
-          createdAt: new Date(r.createdAt),
+          tentativa: r.tentativa as number | null, detalheTecnico: r.detalheTecnico as string | null,
+          telefone: r.telefone as string | null, createdAt: new Date(r.createdAt),
         }));
       }),
-    connect: protectedProcedure.mutation(async () => {
+    connect: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await resolveWhatsAppEmpresa(ctx, true);
+      const { isReplicaMode } = await import('./replica-mode');
+      if (isReplicaMode()) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Conexão bloqueada no modo réplica' });
+      if ((await getEmpresaPlan(empresa.id)) === 'PRO') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Plano PRO utiliza Z-API' });
       const { waManager } = await import('./whatsapp');
-      const state = waManager.getState();
-      if (state.status === 'connected') {
-        return { success: true, message: 'Já conectado' };
-      }
-      // Iniciar conexão em background (não aguarda)
-      waManager.connect().catch(console.error);
+      const manager = waManager.forEmpresa(empresa.id);
+      if (manager.getState().status === 'connected') return { success: true, message: 'Já conectado' };
+      manager.connect().catch(() => console.error('[WhatsApp] Falha ao conectar empresa', empresa.id));
       return { success: true, message: 'Conexão iniciada' };
     }),
-    disconnect: protectedProcedure.mutation(async () => {
+    disconnect: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await resolveWhatsAppEmpresa(ctx, true);
       const { waManager } = await import('./whatsapp');
-      await waManager.disconnect();
+      await waManager.forEmpresa(empresa.id).disconnect();
       return { success: true };
     }),
-    resetSession: protectedProcedure.mutation(async () => {
+    resetSession: protectedProcedure.mutation(async ({ ctx }) => {
+      const empresa = await resolveWhatsAppEmpresa(ctx, true);
       const { waManager } = await import('./whatsapp');
-      await waManager.resetSession();
+      await waManager.forEmpresa(empresa.id).resetSession();
       return { success: true };
     }),
     sendTest: protectedProcedure
@@ -5171,7 +5155,7 @@ export const appRouter = router({
         }
         const plano = PLANOS_STRIPE[input.planType];
         const preco = input.billingCycle === "annual" ? plano.anual : plano.mensal;
-        const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+        const origin = getPublicAppUrl();
         const session = await stripeClient.checkout.sessions.create({
           customer: customerId,
           mode: "subscription",
@@ -5189,6 +5173,7 @@ export const appRouter = router({
             planType: input.planType,
             billingCycle: input.billingCycle,
           },
+          subscription_data: { metadata: { empresaId: String(empresa.id) } },
           allow_promotion_codes: true,
         });
         return { url: session.url };
@@ -5209,7 +5194,7 @@ export const appRouter = router({
         empresa.nome,
         subscription.stripeCustomerId
       );
-      const origin = ctx.req.headers.origin ?? "https://agendei-app.manus.space";
+      const origin = getPublicAppUrl();
       const session = await stripeClient.billingPortal.sessions.create({
         customer: customerId,
         return_url: `${origin}/admin/assinatura`,
@@ -5284,13 +5269,15 @@ export const appRouter = router({
             subscription: {
               id: string;
               status: string;
-              current_period_end: number;
-              items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string } } }> };
+              current_period_end?: number;
+              items: { data: Array<{ current_period_end?: number; price: { unit_amount: number; currency: string; recurring: { interval: string } } }> };
             } | null;
           };
           // Verificar que a sessão pertence à empresa
           const empresaId = sessionAny.metadata?.empresaId;
-          if (empresaId && String(empresa.id) !== empresaId) return null;
+          if (String(empresa.id) !== empresaId) return null;
+          const nextBilling = sessionAny.subscription?.items.data[0]?.current_period_end
+            ?? sessionAny.subscription?.current_period_end;
           const planType = (sessionAny.metadata?.planType ?? "SOLO") as "SOLO" | "PLUS" | "PRO";
           const billingCycle = (sessionAny.metadata?.billingCycle ?? "monthly") as "monthly" | "annual";
           const planInfo = PLAN_PRICES[planType];
@@ -5303,8 +5290,8 @@ export const appRouter = router({
             planLabel: planInfo?.label ?? planType,
             valorTotal: sessionAny.amount_total ? sessionAny.amount_total / 100 : null,
             moeda: sessionAny.currency?.toUpperCase() ?? "BRL",
-            proximaCobranca: sessionAny.subscription
-              ? new Date(sessionAny.subscription.current_period_end * 1000)
+            proximaCobranca: nextBilling && Number.isFinite(nextBilling)
+              ? new Date(nextBilling * 1000)
               : null,
             limites: PLAN_LIMITS[planType],
           };
@@ -5367,8 +5354,8 @@ export const appRouter = router({
         const subAny = sub as unknown as {
           id: string;
           status: string;
-          current_period_end: number;
-          current_period_start: number;
+          current_period_end?: number;
+          current_period_start?: number;
           cancel_at_period_end: boolean;
           cancel_at: number | null;
           default_payment_method: {
@@ -5376,7 +5363,7 @@ export const appRouter = router({
             card?: { brand: string; last4: string; exp_month: number; exp_year: number };
           } | null;
           customer: string;
-          items: { data: Array<{ price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
+          items: { data: Array<{ current_period_start?: number; current_period_end?: number; price: { unit_amount: number; currency: string; recurring: { interval: string; interval_count: number } } }> };
         };
         let pm = subAny.default_payment_method;
         // Se a assinatura não tem default_payment_method, buscar do customer
@@ -5388,8 +5375,10 @@ export const appRouter = router({
           expAno: pm.card?.exp_year ?? null,
         } : await getMetodoPagamentoDoCustomer(subAny.customer);
         // Usar dados do banco como fallback quando o Stripe não retorna os períodos
-        const inicioFromStripe = subAny.current_period_start ? new Date(subAny.current_period_start * 1000) : null;
-        const fimFromStripe = subAny.current_period_end ? new Date(subAny.current_period_end * 1000) : null;
+        const startTimestamp = subAny.items.data[0]?.current_period_start ?? subAny.current_period_start;
+        const endTimestamp = subAny.items.data[0]?.current_period_end ?? subAny.current_period_end;
+        const inicioFromStripe = startTimestamp && Number.isFinite(startTimestamp) ? new Date(startTimestamp * 1000) : null;
+        const fimFromStripe = endTimestamp && Number.isFinite(endTimestamp) ? new Date(endTimestamp * 1000) : null;
         const inicioFinal = inicioFromStripe ?? (subscription.currentPeriodStart ? new Date(subscription.currentPeriodStart) : null);
         const fimFinal = fimFromStripe ?? (subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null);
         return {
@@ -6038,7 +6027,7 @@ export const appRouter = router({
         if (!empresa) throw new TRPCError({ code: 'NOT_FOUND', message: 'Empresa não encontrada' });
         const { gerarTokenConfirmacao } = await import('./confirmacao');
         const token = await gerarTokenConfirmacao(input.agendamentoId, empresa.id);
-        const origin = input.origin ?? process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+        const origin = input.origin ?? getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
         const link = `${origin}/api/confirmar/${token}`;
         return { token, link };
       }),
@@ -6185,7 +6174,7 @@ export const appRouter = router({
                 const valorBruto2 = parseFloat(String(ag.valorTotal ?? '0'));
                 const descontoAg2 = parseFloat(String(ag.desconto ?? '0'));
                 const valorFinal2 = Math.max(0, valorBruto2 - descontoAg2);
-                const origin2 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+                const origin2 = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
                 const linkAgendamento2 = empresa2?.portalSlug ? `${origin2}/agendar/${empresa2.portalSlug}` : `${origin2}/agendar?e=${tokenRow.empresaId}`;
                 const templateVarsConf = {
                   nome_cliente: cliente2.nome,
@@ -6287,7 +6276,7 @@ export const appRouter = router({
               const valorBruto3 = parseFloat(String(ag.valorTotal ?? '0'));
               const descontoAg3 = parseFloat(String(ag.desconto ?? '0'));
               const valorFinal3 = Math.max(0, valorBruto3 - descontoAg3);
-              const origin3 = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+              const origin3 = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
               const linkAgendamento3 = empresa3?.portalSlug ? `${origin3}/agendar/${empresa3.portalSlug}` : `${origin3}/agendar?e=${tokenRow.empresaId}`;
               const templateVarsCancel = {
                 nome_cliente: cliente3.nome,

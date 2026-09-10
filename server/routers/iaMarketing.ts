@@ -8,7 +8,6 @@ import { marketingPosts, marketingTiposConteudo, marketingMetricas, marketingTip
 import { resolverTipoConteudo } from "../marketing-tipos";
 import { montarPublicacoesDoConteudo } from "../marketing-publicacoes";
 import { eq, and, desc, gte, lte, isNotNull, isNull, inArray } from "drizzle-orm";
-import OpenAI from "openai";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 const tiposPost = ["promocao", "servico", "dica", "depoimento", "novidade", "sazonal", "outro"] as const;
@@ -30,11 +29,6 @@ async function normalizarTipoConteudo(db: any, empresaId: number, tipo: string):
   return tipoNormalizado;
 }
 
-function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
-  return new OpenAI({ apiKey });
-}
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 export const iaMarketingRouter = router({
@@ -120,8 +114,7 @@ Use o contexto real do estabelecimento (serviços, pacotes e profissionais lista
 Retorne um JSON com:
 {
   "legenda": "texto completo da legenda para o post (máximo 2200 caracteres)",
-  "hashtags": "lista de 20-30 hashtags relevantes separadas por espaço",
-  "imagemPrompt": "prompt em inglês para gerar a imagem ideal para este post usando DALL-E (seja específico sobre cores, estilo, composição, ambiente de salão/beleza)"
+  "hashtags": "lista de 20-30 hashtags relevantes separadas por espaço"
 }
 
 A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços reais, e ter uma chamada para ação (CTA) clara.`;
@@ -129,7 +122,6 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
       const resultado = await invokeOpenAIJson<{
         legenda: string;
         hashtags: string;
-        imagemPrompt: string;
       }>({
         messages: [{ role: "user", content: prompt }],
         model: "gpt-4o",
@@ -147,61 +139,16 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
         tema: input.tema,
         legenda: resultado.legenda,
         hashtags: resultado.hashtags,
-        imagemPrompt: resultado.imagemPrompt,
         status: "rascunho",
-      });
+      }).returning({ insertId: marketingPosts.id });
 
       return {
         id: (inserted as any)?.insertId ?? null,
         legenda: resultado.legenda,
         hashtags: resultado.hashtags,
-        imagemPrompt: resultado.imagemPrompt,
       };
     }),
 
-  /**
-   * Gera imagem para o post usando DALL-E 3
-   */
-  gerarImagem: protectedProcedure
-    .input(z.object({
-      postId: z.number().optional(),
-      prompt: z.string().min(10).max(1000),
-      estilo: z.enum(["vivid", "natural"]).default("vivid"),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const empresa = await getEmpresaDoContexto(ctx.user.id, ctx.systemUser?.empresaId);
-      if (!empresa) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
-      if (!(await empresaHasFeature(empresa.id, "iaMarketing"))) throw new TRPCError({ code: "FORBIDDEN", message: "UPGRADE_REQUIRED:iaMarketing" });
-
-      const client = getOpenAIClient();
-
-      // Enriquecer o prompt com contexto de beleza/estética
-      const promptEnriquecido = `${input.prompt}. Style: professional beauty salon photography, warm lighting, elegant aesthetic, high quality, Instagram-worthy, ${input.estilo === 'vivid' ? 'vibrant colors' : 'natural tones'}. No text overlay.`;
-
-      const response = await client.images.generate({
-        model: "dall-e-3",
-        prompt: promptEnriquecido,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        style: input.estilo,
-      });
-
-      const imagemUrl = response.data?.[0]?.url;
-      if (!imagemUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao gerar imagem" });
-
-      // Atualizar o post com a URL da imagem se postId fornecido
-      if (input.postId) {
-        const db = await getDb();
-        if (db) {
-          await db.update(marketingPosts)
-            .set({ imagemUrl, imagemPrompt: input.prompt, updatedAt: new Date() })
-            .where(and(eq(marketingPosts.id, input.postId), eq(marketingPosts.empresaId, empresa.id)));
-        }
-      }
-
-      return { imagemUrl };
-    }),
 
   /**
    * Lista posts de marketing da empresa
@@ -386,7 +333,7 @@ A legenda deve ser envolvente, mencionar o estabelecimento ou seus serviços rea
         status: "rascunho" as const,
         statusProducao: "planejado" as const,
       }, extras);
-      await db.insert(marketingPosts).values(novasPublicacoes as any);
+      await db.insert(marketingPosts).values(novasPublicacoes as any).returning({ insertId: marketingPosts.id });
 
       return { success: true, publicacoesAdicionadas: extras.length };
     }),
@@ -550,7 +497,7 @@ Retorne um JSON com:
             status: "rascunho" as const,
           }));
 
-          await db.insert(marketingPosts).values(registros);
+          await db.insert(marketingPosts).values(registros).returning({ insertId: marketingPosts.id });
         }
       }
 
@@ -630,7 +577,7 @@ Retorne um JSON com:
         roteiro: input.roteiro,
         tags: input.tags,
         status: "rascunho",
-      });
+      }).returning({ insertId: marketingPosts.id });
 
       return { id: (inserted as any)?.insertId ?? null, success: true };
     }),
@@ -668,7 +615,7 @@ Retorne um JSON com:
         status: "rascunho" as const,
         statusProducao: "planejado" as const,
       }, input.publicacoes);
-      await db.insert(marketingPosts).values(linhas as any);
+      await db.insert(marketingPosts).values(linhas as any).returning({ insertId: marketingPosts.id });
       return { success: true, count: linhas.length };
     }),
 
@@ -822,7 +769,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
         roteiro: input.roteiro,
         tags: input.tags,
         status: "rascunho",
-      });
+      }).returning({ insertId: marketingPosts.id });
       return { id: (inserted as any)?.insertId ?? null, success: true };
     }),
 
@@ -928,7 +875,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
         empresaId: empresa.id,
         nome: input.nome.trim(),
         cor: input.cor ?? "bg-gray-50 text-gray-600 border-gray-200",
-      });
+      }).returning({ insertId: marketingTiposConteudo.id });
       return { success: true };
     }),
 
@@ -973,7 +920,7 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
           salvamentos: input.salvamentos, alcance: input.alcance, updatedAt: new Date(),
         }).where(eq(marketingMetricas.id, existente.id));
       } else {
-        await db.insert(marketingMetricas).values({ ...input, empresaId: empresa.id });
+        await db.insert(marketingMetricas).values({ ...input, empresaId: empresa.id }).returning({ insertId: marketingMetricas.id });
       }
       return { success: true };
     }),
@@ -1025,8 +972,8 @@ Seja específico, criativo e alinhado com a identidade do negócio.`;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
       await db.insert(marketingTiposOcultos)
-        .values({ empresaId: empresa.id, tipoValor: input.tipoValor })
-        .onDuplicateKeyUpdate({ set: { tipoValor: input.tipoValor } });
+        .values({ empresaId: empresa.id, tipoValor: input.tipoValor }).returning({ insertId: marketingTiposOcultos.id })
+        .onConflictDoUpdate({ target: [marketingTiposOcultos.empresaId, marketingTiposOcultos.tipoValor],  set: { tipoValor: input.tipoValor } });
       return { success: true };
     }),
 

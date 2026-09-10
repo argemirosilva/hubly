@@ -11,6 +11,18 @@ node_modules
 dist
 dist-ssr
 *.local
+.hubly-replica-mode
+.env
+.env.*
+!.env.example
+database-postgres.local.json
+runtime-local.json
+/backups/
+# Utilitários de manutenção específicos deste servidor (dados operacionais).
+/scripts/check-maria-calendar.ts
+/scripts/migrate-maria-logo.ts
+/scripts/validate-stripe-deployment.mjs
+/scripts/validate-whatsapp-tenants.mjs
 
 # Editor directories and files
 .vscode/*

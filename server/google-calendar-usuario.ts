@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "./runtime-config";
 /**
  * Integração com Google Calendar API — por Usuário/Profissional
  * Cada profissional conecta a própria conta Google no Perfil.
@@ -38,7 +39,7 @@ function formatDateTimeWithSaoPauloOffset(dateStr: string, timeStr: string): str
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const appUrl = process.env.APP_PUBLIC_URL ?? "https://hubly.orizontech.com.br";
+  const appUrl = getPublicAppUrl() ?? "https://hubly.orizontech.com.br";
   const redirectUri = `${appUrl}/api/google/user-callback`;
   if (!clientId || !clientSecret) {
     throw new Error("[GoogleCalendarUsuario] GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET são obrigatórios.");
@@ -208,7 +209,7 @@ export async function salvarTokensGoogleUsuario(params: {
       expiresAt: params.expiresAt,
       email: params.email,
       ativo: true,
-    });
+    }).returning({ insertId: googleCalendarTokensUsuario.id });
   }
 }
 

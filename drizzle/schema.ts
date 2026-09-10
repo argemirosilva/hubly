@@ -3,35 +3,43 @@ import {
   bigint,
   date,
   decimal,
-  int,
-  mysqlEnum,
-  mysqlTable,
+  integer as int,
+  pgTable,
   text,
-  longtext,
+  text as longtext,
   timestamp,
   varchar,
   time,
-  json,
-} from "drizzle-orm/mysql-core";
+  jsonb,
+  customType,
+  primaryKey,
+} from "drizzle-orm/pg-core";
+
+// Colunas legadas JSON armazenadas em TEXT mantêm o contrato objeto/array.
+const jsonText = customType<{ data: unknown; driverData: string }>({
+  dataType: () => 'text',
+  toDriver: value => JSON.stringify(value),
+  fromDriver: value => typeof value === 'string' ? JSON.parse(value) : value,
+});
 
 // Use varchar(10) for date fields to avoid Date/string type conflicts
 const dateField = (name: string) => varchar(name, { length: 10 });
 
 // ─── USERS (auth base) ────────────────────────────────────────────────────────
-export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+export const users = pgTable("users", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  role: text("role", { enum: ["user", "admin"] }).default("user").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   // Push notifications
   pushToken: text("pushToken"),
-  pushTokenPlatform: mysqlEnum("pushTokenPlatform", ["ios", "android", "web"]),
-  pushTokenUpdatedAt: timestamp("pushTokenUpdatedAt"),
+  pushTokenPlatform: text("pushTokenPlatform", { enum: ["ios", "android", "web"] }),
+  pushTokenUpdatedAt: timestamp("pushTokenUpdatedAt", { withTimezone: true, mode: 'date' }),
   // Preferências de notificação
   notifNovoAgendamento: boolean("notifNovoAgendamento").default(true),
   notifConfirmacao: boolean("notifConfirmacao").default(true),
@@ -45,10 +53,10 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // ─── EMPRESAS ─────────────────────────────────────────────────────────────────
-export const empresas = mysqlTable("empresas", {
-  id: int("id").autoincrement().primaryKey(),
+export const empresas = pgTable("empresas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   nome: varchar("nome", { length: 255 }).notNull(),
-  tipo: mysqlEnum("tipo", ["salao", "clinica", "barbearia", "consultorio", "outro"]).default("salao").notNull(),
+  tipo: text("tipo", { enum: ["salao", "clinica", "barbearia", "consultorio", "outro"] }).default("salao").notNull(),
   telefone: varchar("telefone", { length: 20 }),
   email: varchar("email", { length: 320 }),
   endereco: text("endereco"),
@@ -76,7 +84,7 @@ export const empresas = mysqlTable("empresas", {
   // Horário de funcionamento
   horaAbertura: varchar("horaAbertura", { length: 5 }).default("08:00"),
   horaFechamento: varchar("horaFechamento", { length: 5 }).default("18:00"),
-  diasFuncionamento: json("diasFuncionamento").$type<number[]>().default([1,2,3,4,5]),
+  diasFuncionamento: jsonb("diasFuncionamento").$type<number[]>().default([1,2,3,4,5]),
   intervaloMinutos: int("intervaloMinutos").default(30),
   ownerId: int("ownerId").notNull(),
   pipelineFavoritaId: int("pipelineFavoritaId"),
@@ -85,15 +93,15 @@ export const empresas = mysqlTable("empresas", {
   automacoesPausadas: boolean("automacoesPausadas").default(false).notNull(), // pausa geral: bloqueia todos os envios
   envioDelaySegundos: int("envioDelaySegundos").default(30).notNull(), // delay entre cada mensagem enviada (anti-spam)
   envioPorCiclo: int("envioPorCiclo").default(10).notNull(), // máximo de mensagens por ciclo de 1 minuto
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type Empresa = typeof empresas.$inferSelect;
 
 // ─── PROFISSIONAIS ────────────────────────────────────────────────────────────
-export const profissionais = mysqlTable("profissionais", {
-  id: int("id").autoincrement().primaryKey(),
+export const profissionais = pgTable("profissionais", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   userId: int("userId"),
   nome: varchar("nome", { length: 255 }).notNull(),
@@ -108,20 +116,20 @@ export const profissionais = mysqlTable("profissionais", {
   temAcesso: boolean("temAcesso").default(false).notNull(),           // pode fazer login
   passwordHash: varchar("passwordHash", { length: 255 }),             // null = sem acesso
   grupoId: int("grupoId"),                                            // grupo de permissões
-  ultimoAcesso: timestamp("ultimoAcesso"),
+  ultimoAcesso: timestamp("ultimoAcesso", { withTimezone: true, mode: 'date' }),
   criadoPorId: int("criadoPorId"),
   isOwner: boolean("isOwner").default(false).notNull(),
   percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"), // comissão padrão do profissional
   // ─────────────────────────────────────────────────────────────────────────
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type Profissional = typeof profissionais.$inferSelect;
 
 // ─── PERMISSÕES ───────────────────────────────────────────────────────────────
-export const permissoes = mysqlTable("permissoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const permissoes = pgTable("permissoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   profissionalId: int("profissionalId").notNull().unique(),
   podeAgendar: boolean("podeAgendar").default(true),
   podeCancelar: boolean("podeCancelar").default(false),
@@ -130,13 +138,13 @@ export const permissoes = mysqlTable("permissoes", {
   podeSolicitarBloqueio: boolean("podeSolicitarBloqueio").default(true),
   podeVerComissoes: boolean("podeVerComissoes").default(false),
   podeVerFinanceiro: boolean("podeVerFinanceiro").default(false),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── CLIENTES ─────────────────────────────────────────────────────────────────
-export const clientes = mysqlTable("clientes", {
-  id: int("id").autoincrement().primaryKey(),
+export const clientes = pgTable("clientes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }),
@@ -146,21 +154,21 @@ export const clientes = mysqlTable("clientes", {
   dataNascimento: dateField("dataNascimento"),
   endereco: text("endereco"),
   observacoes: text("observacoes"),
-  tags: json("tags").$type<string[]>().default([]),
+  tags: jsonb("tags").$type<string[]>().default([]),
   saldoSessoes: int("saldoSessoes").default(0),
   totalGasto: decimal("totalGasto", { precision: 10, scale: 2 }).default("0.00"),
   totalAtendimentos: int("totalAtendimentos").default(0),
-  ultimoAtendimento: timestamp("ultimoAtendimento"),
+  ultimoAtendimento: timestamp("ultimoAtendimento", { withTimezone: true, mode: 'date' }),
   ativo: boolean("ativo").default(true),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type Cliente = typeof clientes.$inferSelect;
 
 // ─── SERVIÇOS ─────────────────────────────────────────────────────────────────
-export const servicos = mysqlTable("servicos", {
-  id: int("id").autoincrement().primaryKey(),
+export const servicos = pgTable("servicos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   descricao: text("descricao"),
@@ -171,24 +179,24 @@ export const servicos = mysqlTable("servicos", {
   ativo: boolean("ativo").default(true),
   percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).default("0.00"),
   custoFixo: decimal("custoFixo", { precision: 10, scale: 2 }).default("0.00"), // custo de insumos/produtos do serviço
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type Servico = typeof servicos.$inferSelect;
 
 // ─── PROFISSIONAL-SERVIÇO (vínculo N:N) ──────────────────────────────────────
-export const profissionalServicos = mysqlTable("profissionalServicos", {
-  id: int("id").autoincrement().primaryKey(),
+export const profissionalServicos = pgTable("profissionalservicos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   profissionalId: int("profissionalId").notNull(),
   servicoId: int("servicoId").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ProfissionalServico = typeof profissionalServicos.$inferSelect;
 
 // ─── AGENDAMENTOS ─────────────────────────────────────────────────────────────
-export const agendamentos = mysqlTable("agendamentos", {
-  id: int("id").autoincrement().primaryKey(),
+export const agendamentos = pgTable("agendamentos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
   pacoteClienteId: int("pacoteClienteId"), // preenchido quando o agendamento foi criado dentro de um pacote
@@ -197,7 +205,7 @@ export const agendamentos = mysqlTable("agendamentos", {
   data: dateField("data").notNull(),
   horaInicio: time("horaInicio").notNull(),
   horaFim: time("horaFim").notNull(),
-  status: mysqlEnum("status", [
+  status: text("status", { enum: [
     "pre_agendado",
     "aguardando_reserva",
     "agendado",
@@ -207,33 +215,33 @@ export const agendamentos = mysqlTable("agendamentos", {
     "cancelado",
     "faltou",
     "remarcado",
-  ]).default("agendado").notNull(),
+  ] }).default("agendado").notNull(),
   valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull(),
   valorReserva: decimal("valorReserva", { precision: 10, scale: 2 }),
   reservaPaga: boolean("reservaPaga").default(false),
-  reservaPagaEm: timestamp("reservaPagaEm"),
-  reservaExpiracaoEm: timestamp("reservaExpiracaoEm"),
-  tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  reservaPagaEm: timestamp("reservaPagaEm", { withTimezone: true, mode: 'date' }),
+  reservaExpiracaoEm: timestamp("reservaExpiracaoEm", { withTimezone: true, mode: 'date' }),
+  tipoPagamento: text("tipoPagamento", { enum: ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"] }),
   desconto: decimal("desconto", { precision: 10, scale: 2 }).default("0"),
   taxaAdicional: decimal("taxaAdicional", { precision: 10, scale: 2 }).default("0"),
   nomeTaxaAdicional: varchar("nomeTaxaAdicional", { length: 100 }),
   observacoes: text("observacoes"),
   observacoesInternas: text("observacoesInternas"),
-  confirmadoEm: timestamp("confirmadoEm"),
-  concluidoEm: timestamp("concluidoEm"),
+  confirmadoEm: timestamp("confirmadoEm", { withTimezone: true, mode: 'date' }),
+  concluidoEm: timestamp("concluidoEm", { withTimezone: true, mode: 'date' }),
   notificacaoEnviada: boolean("notificacaoEnviada").default(false),
-  notificacaoEnviadaEm: timestamp("notificacaoEnviadaEm"),
+  notificacaoEnviadaEm: timestamp("notificacaoEnviadaEm", { withTimezone: true, mode: 'date' }),
   reservaLembreteEnviado: boolean("reservaLembreteEnviado").default(false),
   minutosAtraso: int("minutosAtraso").default(0), // minutos de atraso da cliente (0 = pontual)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type Agendamento = typeof agendamentos.$inferSelect;
 
 // ─── ITENS DE AGENDAMENTO (múltiplos serviços) ───────────────────────────────
-export const agendamentoItens = mysqlTable("agendamento_itens", {
-  id: int("id").autoincrement().primaryKey(),
+export const agendamentoItens = pgTable("agendamento_itens", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   agendamentoId: int("agendamentoId").notNull(),
   servicoId: int("servicoId").notNull(),
   profissionalId: int("profissionalId"), // null = usa o profissional principal do agendamento
@@ -241,27 +249,27 @@ export const agendamentoItens = mysqlTable("agendamento_itens", {
   horaFim: varchar("horaFim", { length: 5 }),       // ex: "15:00" — null = calculado pela duração do serviço
   valorUnitario: decimal("valorUnitario", { precision: 10, scale: 2 }).notNull(),
   pacoteClienteItemId: int("pacoteClienteItemId"), // null = sessão avulsa, preenchido = sessão de pacote
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type AgendamentoItem = typeof agendamentoItens.$inferSelect;
 
 // ─── PAGAMENTOS DE AGENDAMENTO ────────────────────────────────────────────────
-export const agendamentoPagamentos = mysqlTable("agendamento_pagamentos", {
-  id: int("id").autoincrement().primaryKey(),
+export const agendamentoPagamentos = pgTable("agendamento_pagamentos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   agendamentoId: int("agendamentoId").notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   meioPagamento: varchar("meioPagamento", { length: 100 }),
   numeroParcelas: int("numeroParcelas").default(1), // apenas registro informativo
   observacao: text("observacao"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type AgendamentoPagamento = typeof agendamentoPagamentos.$inferSelect;
 
 // ─── BLOQUEIOS DE AGENDA ──────────────────────────────────────────────────────
-export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {
-  id: int("id").autoincrement().primaryKey(),
+export const bloqueiosAgenda = pgTable("bloqueios_agenda", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   profissionalId: int("profissionalId").notNull(),
   dataInicio: dateField("dataInicio").notNull(),
@@ -269,41 +277,41 @@ export const bloqueiosAgenda = mysqlTable("bloqueios_agenda", {
   dataFim: dateField("dataFim").notNull(),
   horaFim: time("horaFim").notNull(),
   motivo: varchar("motivo", { length: 500 }),
-  status: mysqlEnum("status", ["pendente", "aprovado", "recusado"]).default("pendente").notNull(),
+  status: text("status", { enum: ["pendente", "aprovado", "recusado"] }).default("pendente").notNull(),
   motivoRecusa: varchar("motivoRecusa", { length: 500 }),
   aprovadoPorId: int("aprovadoPorId"),
-  recorrencia: mysqlEnum("recorrencia", ["nenhuma", "semanal", "mensal"]).default("nenhuma").notNull(),
+  recorrencia: text("recorrencia", { enum: ["nenhuma", "semanal", "mensal"] }).default("nenhuma").notNull(),
   dataFimRecorrencia: dateField("dataFimRecorrencia"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── COMISSÕES ────────────────────────────────────────────────────────────────
-export const comissoes = mysqlTable("comissoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const comissoes = pgTable("comissoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   profissionalId: int("profissionalId").notNull(),
   agendamentoId: int("agendamentoId").notNull(),
   valorServico: decimal("valorServico", { precision: 10, scale: 2 }).notNull(),
   percentualComissao: decimal("percentualComissao", { precision: 5, scale: 2 }).notNull(),
-  tipoPagamento: mysqlEnum("tipoPagamento", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  tipoPagamento: text("tipoPagamento", { enum: ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"] }),
   taxaMaquininha: decimal("taxaMaquininha", { precision: 10, scale: 2 }).default("0.00"),
   custoReposicao: decimal("custoReposicao", { precision: 10, scale: 2 }).default("0.00"),
   valorLiquido: decimal("valorLiquido", { precision: 10, scale: 2 }).notNull(),
   valorComissao: decimal("valorComissao", { precision: 10, scale: 2 }).notNull(),
   receitaDona: decimal("receitaDona", { precision: 10, scale: 2 }).default("0.00"),
   paga: boolean("paga").default(false),
-  pagaEm: timestamp("pagaEm"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  pagaEm: timestamp("pagaEm", { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
-export const notificacoes = mysqlTable("notificacoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const notificacoes = pgTable("notificacoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   destinatarioId: int("destinatarioId"),
-  tipo: mysqlEnum("tipo", [
+  tipo: text("tipo", { enum: [
     "agendamento_criado",
     "agendamento_confirmado",
     "agendamento_cancelado",
@@ -315,25 +323,25 @@ export const notificacoes = mysqlTable("notificacoes", {
     "reserva_expirada",
     "lembrete",
     "sistema",
-  ]).notNull(),
+  ] }).notNull(),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   mensagem: text("mensagem").notNull(),
-  dadosContexto: json("dadosContexto"),
+  dadosContexto: jsonb("dadosContexto"),
   agendamentoId: int("agendamentoId"),
   lida: boolean("lida").default(false),
-  lidaEm: timestamp("lidaEm"),
+  lidaEm: timestamp("lidaEm", { withTimezone: true, mode: 'date' }),
   ocultada: boolean("ocultada").default(false),
-  ocultadaEm: timestamp("ocultadaEm"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  ocultadaEm: timestamp("ocultadaEm", { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── AUTOMAÇÕES ───────────────────────────────────────────────────────────────
-export const automacoes = mysqlTable("automacoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const automacoes = pgTable("automacoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   descricao: text("descricao"),
-  tipoGatilho: mysqlEnum("tipoGatilho", [
+  tipoGatilho: text("tipoGatilho", { enum: [
     "evento",
     "data_fixa",
     "aniversario_mes",
@@ -342,7 +350,7 @@ export const automacoes = mysqlTable("automacoes", {
     "horas_apos_agendamento",
     "dias_depois_agendamento",
     "manual",
-  ]).notNull(),
+  ] }).notNull(),
   // Para tipo 'evento'
   evento: varchar("evento", { length: 100 }),
   eventosAdicionais: text("eventosAdicionais"), // JSON array de eventos adicionais para multi-trigger
@@ -355,11 +363,11 @@ export const automacoes = mysqlTable("automacoes", {
   diasAntesDepois: int("diasAntesDepois"),
   horaDisparo: time("horaDisparo"),
   // Conteúdo
-  canalEnvio: mysqlEnum("canalEnvio", ["whatsapp", "email", "sms"]).default("whatsapp").notNull(),
+  canalEnvio: text("canalEnvio", { enum: ["whatsapp", "email", "sms"] }).default("whatsapp").notNull(),
   tituloMensagem: varchar("tituloMensagem", { length: 255 }),
   corpoMensagem: text("corpoMensagem").notNull(),
   // Segmentação
-  segmentacaoTipo: mysqlEnum("segmentacaoTipo", ["todas", "por_profissional", "por_tag"]).default("todas"),
+  segmentacaoTipo: text("segmentacaoTipo", { enum: ["todas", "por_profissional", "por_tag"] }).default("todas"),
   segmentacaoValor: varchar("segmentacaoValor", { length: 255 }),
   ativo: boolean("ativo").default(true),
   isTemplate: boolean("isTemplate").default(false),
@@ -367,12 +375,12 @@ export const automacoes = mysqlTable("automacoes", {
   // Confirmação automática: confirmar agendamento automaticamente se cliente não respondeu
   confirmacaoAutoAtivo: boolean("confirmacaoAutoAtivo").default(false),
   confirmacaoAutoHorasAntes: int("confirmacaoAutoHorasAntes").default(2),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 // ─── HISTÓRICO DE ENVIOS DE AUTOMAÇÕES ──────────────────────────────────────
-export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao", {
-  id: int("id").autoincrement().primaryKey(),
+export const historicoEnviosAutomacao = pgTable("historico_envios_automacao", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   automacaoId: int("automacaoId"),
   automacaoNome: varchar("automacaoNome", { length: 255 }),
@@ -380,45 +388,45 @@ export const historicoEnviosAutomacao = mysqlTable("historico_envios_automacao",
   clienteNome: varchar("clienteNome", { length: 255 }),
   agendamentoId: int("agendamentoId"), // Para deduplicação de lembretes por agendamento
   telefone: varchar("telefone", { length: 30 }),
-  canal: mysqlEnum("canal", ["whatsapp", "email", "sms", "lembrete"]).default("whatsapp").notNull(),
+  canal: text("canal", { enum: ["whatsapp", "email", "sms", "lembrete"] }).default("whatsapp").notNull(),
   mensagem: text("mensagem"),
-  status: mysqlEnum("status", ["enviado", "falhou", "pendente", "agendado", "processando", "cancelado"]).default("enviado").notNull(),
+  status: text("status", { enum: ["enviado", "falhou", "pendente", "agendado", "processando", "cancelado"] }).default("enviado").notNull(),
   erroDetalhe: text("erroDetalhe"),
   midiaUrl: text("midiaUrl"),
   isTeste: boolean("isTeste").default(false),
-  enviarEm: timestamp("enviarEm"), // Data/hora programada para envio (para status pendente)
+  enviarEm: timestamp("enviarEm", { withTimezone: true, mode: 'date' }), // Data/hora programada para envio (para status pendente)
   servicoNome: varchar("servicoNome", { length: 255 }), // Nome do serviço do agendamento
   dedupeKey: varchar("dedupeKey", { length: 191 }).unique(), // Chave estável para impedir o mesmo lembrete duas vezes
   zapiMessageId: varchar("zapiMessageId", { length: 255 }), // ID da mensagem retornado pela Z-API
-  messageStatus: mysqlEnum("messageStatus", ["queued", "sent", "delivered", "read", "failed", "cancelled"]).default("queued"), // Status de entrega Z-API
-  messageStatusAt: timestamp("messageStatusAt"), // Quando o status foi atualizado
-  processandoEm: timestamp("processandoEm"), // Início da posse do worker, para recuperar envios interrompidos
-  enviadoEm: timestamp("enviadoEm"), // Horário real em que o provedor aceitou o envio
-  canceladoEm: timestamp("canceladoEm"), // Horário em que a fila foi revogada
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  messageStatus: text("messageStatus", { enum: ["queued", "sent", "delivered", "read", "failed", "cancelled"] }).default("queued"), // Status de entrega Z-API
+  messageStatusAt: timestamp("messageStatusAt", { withTimezone: true, mode: 'date' }), // Quando o status foi atualizado
+  processandoEm: timestamp("processandoEm", { withTimezone: true, mode: 'date' }), // Início da posse do worker, para recuperar envios interrompidos
+  enviadoEm: timestamp("enviadoEm", { withTimezone: true, mode: 'date' }), // Horário real em que o provedor aceitou o envio
+  canceladoEm: timestamp("canceladoEm", { withTimezone: true, mode: 'date' }), // Horário em que a fila foi revogada
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── PRONTUÁRIOSS ──────────────────────────────────────────────────────────────
-export const prontuarios = mysqlTable("prontuarios", {
-  id: int("id").autoincrement().primaryKey(),
+export const prontuarios = pgTable("prontuarios", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
   agendamentoId: int("agendamentoId"),
   profissionalId: int("profissionalId"),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo"),
-  tipo: mysqlEnum("tipo", ["anamnese", "evolucao", "foto", "documento", "contrato", "outro"]).default("evolucao"),
+  tipo: text("tipo", { enum: ["anamnese", "evolucao", "foto", "documento", "contrato", "outro"] }).default("evolucao"),
   arquivoUrl: text("arquivoUrl"),
   arquivoKey: text("arquivoKey"),
   arquivoNome: varchar("arquivoNome", { length: 255 }),
   arquivoTipo: varchar("arquivoTipo", { length: 100 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── CONFIGURAÇÕES DE CORES ───────────────────────────────────────────────────
-export const coresStatus = mysqlTable("cores_status", {
-  id: int("id").autoincrement().primaryKey(),
+export const coresStatus = pgTable("cores_status", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull().unique(),
   corAgendado: varchar("corAgendado", { length: 7 }).default("#3b82f6"),
   corConfirmado: varchar("corConfirmado", { length: 7 }).default("#10b981"),
@@ -427,21 +435,21 @@ export const coresStatus = mysqlTable("cores_status", {
   corFaltou: varchar("corFaltou", { length: 7 }).default("#f59e0b"),
   corPreAgendado: varchar("corPreAgendado", { length: 7 }).default("#8b5cf6"),
   corAguardandoReserva: varchar("corAguardandoReserva", { length: 7 }).default("#f97316"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // ─── GRUPOS DE PERMISSÕES ─────────────────────────────────────────────────────
-export const gruposPermissoes = mysqlTable("grupos_permissoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const gruposPermissoes = pgTable("grupos_permissoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   descricao: text("descricao"),
   cor: varchar("cor", { length: 7 }).default("#6366f1"),
   isDefault: boolean("isDefault").default(false),
   isAdmin: boolean("isAdmin").default(false), // supergrupo: bypass total de permissões, imutável
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type GrupoPermissoes = typeof gruposPermissoes.$inferSelect;
@@ -449,8 +457,8 @@ export type InsertGrupoPermissoes = typeof gruposPermissoes.$inferInsert;
 
 // ─── PERMISSÕES DO GRUPO (granulares) ─────────────────────────────────────────
 // Cada linha = 1 permissão específica de um grupo
-export const permissoesGrupo = mysqlTable("permissoes_grupo", {
-  id: int("id").autoincrement().primaryKey(),
+export const permissoesGrupo = pgTable("permissoes_grupo", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   grupoId: int("grupoId").notNull(),
   // ── Agendamentos ──
   agendamentosVer: boolean("agendamentosVer").default(false),
@@ -461,8 +469,8 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   agendamentosConfirmar: boolean("agendamentosConfirmar").default(false),
   agendamentosConcluir: boolean("agendamentosConcluir").default(false),
   agendamentosVerTodos: boolean("agendamentosVerTodos").default(false), // ver de todos os profissionais
-  agendaEscopo: mysqlEnum("agendaEscopo", ["proprio", "todos"]).default("proprio"), // escopo da agenda/calendário
-  calendarioEscopo: mysqlEnum("calendarioEscopo", ["proprio", "todos"]).default("proprio"), // escopo do calendário
+  agendaEscopo: text("agendaEscopo", { enum: ["proprio", "todos"] }).default("proprio"), // escopo da agenda/calendário
+  calendarioEscopo: text("calendarioEscopo", { enum: ["proprio", "todos"] }).default("proprio"), // escopo do calendário
   // ── Clientes ──
   clientesVer: boolean("clientesVer").default(false),
   clientesCriar: boolean("clientesCriar").default(false),
@@ -484,7 +492,7 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   servicosEditar: boolean("servicosEditar").default(false),
   servicosExcluir: boolean("servicosExcluir").default(false),
   // ── Financeiro ──
-  financeiroEscopo: mysqlEnum("financeiroEscopo", ["proprio", "todos"]).default("proprio"), // proprio = só os dados dela, todos = dados de toda a empresa
+  financeiroEscopo: text("financeiroEscopo", { enum: ["proprio", "todos"] }).default("proprio"), // proprio = só os dados dela, todos = dados de toda a empresa
   financeiroVer: boolean("financeiroVer").default(false),
   financeiroVerComissoes: boolean("financeiroVerComissoes").default(false),
   financeiroEditarComissoes: boolean("financeiroEditarComissoes").default(false),
@@ -504,7 +512,7 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   automacoesAtivar: boolean("automacoesAtivar").default(false),
   // ── Notificações ──
   notificacoesVer: boolean("notificacoesVer").default(true),
-  notificacoesEscopo: mysqlEnum("notificacoesEscopo", ["proprio", "todos"]).default("proprio"), // proprio = só as suas, todos = de toda a empresa
+  notificacoesEscopo: text("notificacoesEscopo", { enum: ["proprio", "todos"] }).default("proprio"), // proprio = só as suas, todos = de toda a empresa
   // ── Relatórios ──
   relatoriosVer: boolean("relatoriosVer").default(false),
   relatoriosExportar: boolean("relatoriosExportar").default(false),
@@ -527,44 +535,44 @@ export const permissoesGrupo = mysqlTable("permissoes_grupo", {
   // ── Dashboard ──
   dashboardVer: boolean("dashboardVer").default(false),
   dashboardVerMetricas: boolean("dashboardVerMetricas").default(false),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type PermissoesGrupo = typeof permissoesGrupo.$inferSelect;
 export type InsertPermissoesGrupo = typeof permissoesGrupo.$inferInsert;
 
 // ─── MEMBROS DO GRUPO ─────────────────────────────────────────────────────────
-export const membrosGrupo = mysqlTable("membros_grupo", {
-  id: int("id").autoincrement().primaryKey(),
+export const membrosGrupo = pgTable("membros_grupo", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   grupoId: int("grupoId").notNull(),
   userId: int("userId").notNull(),
   empresaId: int("empresaId").notNull(),
   adicionadoPorId: int("adicionadoPorId"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type MembroGrupo = typeof membrosGrupo.$inferSelect;
 
 // ─── CONVITES DE USUÁRIO ──────────────────────────────────────────────────────
-export const convitesUsuario = mysqlTable("convites_usuario", {
-  id: int("id").autoincrement().primaryKey(),
+export const convitesUsuario = pgTable("convites_usuario", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   grupoId: int("grupoId"),
   token: varchar("token", { length: 128 }).notNull().unique(),
-  status: mysqlEnum("status", ["pendente", "aceito", "expirado"]).default("pendente").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
+  status: text("status", { enum: ["pendente", "aceito", "expirado"] }).default("pendente").notNull(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: 'date' }).notNull(),
   convidadoPorId: int("convidadoPorId").notNull(),
-  aceitoEm: timestamp("aceitoEm"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  aceitoEm: timestamp("aceitoEm", { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type ConviteUsuario = typeof convitesUsuario.$inferSelect;
 
 // ─── USUÁRIOS DO SISTEMA (cadastro por admin, com senha) ──────────────────────
-export const systemUsers = mysqlTable("system_users", {
-  id: int("id").autoincrement().primaryKey(),
+export const systemUsers = pgTable("system_users", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 120 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
@@ -573,28 +581,28 @@ export const systemUsers = mysqlTable("system_users", {
   profissionalId: int("profissionalId"), // vínculo com profissional da empresa
   avatarUrl: text("avatarUrl"), // foto de perfil do usuário
   ativo: boolean("ativo").default(true).notNull(),
-  ultimoAcesso: timestamp("ultimoAcesso"),
+  ultimoAcesso: timestamp("ultimoAcesso", { withTimezone: true, mode: 'date' }),
   criadoPorId: int("criadoPorId"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type SystemUser = typeof systemUsers.$inferSelect;
 export type InsertSystemUser = typeof systemUsers.$inferInsert;
 
 // ─── PIPELINE KANBAN ──────────────────────────────────────────────────────────
-export const pipelines = mysqlTable("pipelines", {
-  id: int("id").autoincrement().primaryKey(),
+export const pipelines = pgTable("pipelines", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 120 }).notNull(),
   ordem: int("ordem").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type Pipeline = typeof pipelines.$inferSelect;
 export type InsertPipeline = typeof pipelines.$inferInsert;
 
-export const pipelineColunas = mysqlTable("pipeline_colunas", {
-  id: int("id").autoincrement().primaryKey(),
+export const pipelineColunas = pgTable("pipeline_colunas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   pipelineId: int("pipelineId").notNull(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 120 }).notNull(),
@@ -602,20 +610,20 @@ export const pipelineColunas = mysqlTable("pipeline_colunas", {
   cor: varchar("cor", { length: 7 }).default("#6366f1"),
   // Vinculo automático: quando agendamento muda para este status, cartão é movido para esta coluna
   statusVinculo: varchar("statusVinculo", { length: 50 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PipelineColuna = typeof pipelineColunas.$inferSelect;
 export type InsertPipelineColuna = typeof pipelineColunas.$inferInsert;
 
-export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
-  id: int("id").autoincrement().primaryKey(),
+export const pipelineCartoes = pgTable("pipeline_cartoes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   colunaId: int("colunaId").notNull(),
   pipelineId: int("pipelineId").notNull(),
   empresaId: int("empresaId").notNull(),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   descricao: text("descricao"),
-  status: mysqlEnum("status", ["em_andamento", "congelado", "cancelado", "concluido"]).default("em_andamento").notNull(),
+  status: text("status", { enum: ["em_andamento", "congelado", "cancelado", "concluido"] }).default("em_andamento").notNull(),
   clienteId: int("clienteId"),
   clienteNome: varchar("clienteNome", { length: 120 }),
   responsavelId: int("responsavelId"),
@@ -624,45 +632,45 @@ export const pipelineCartoes = mysqlTable("pipeline_cartoes", {
   valor: decimal("valor", { precision: 10, scale: 2 }),
   agendamentoId: int("agendamentoId"),
   ordem: int("ordem").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PipelineCartao = typeof pipelineCartoes.$inferSelect;
 export type InsertPipelineCartao = typeof pipelineCartoes.$inferInsert;
 
 // ─── PIPELINE SNAPSHOTS (histórico de versões geradas por IA) ─────────────────
-export const pipelineSnapshots = mysqlTable("pipeline_snapshots", {
-  id: int("id").autoincrement().primaryKey(),
+export const pipelineSnapshots = pgTable("pipeline_snapshots", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   pipelineId: int("pipelineId").notNull(),
   nomePipeline: varchar("nomePipeline", { length: 120 }).notNull(),
   // JSON serializado com a estrutura completa: { colunas: [...], cartoes: [...] }
   snapshot: longtext("snapshot").notNull(),
-  geradoEm: timestamp("geradoEm").defaultNow().notNull(),
+  geradoEm: timestamp("geradoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PipelineSnapshot = typeof pipelineSnapshots.$inferSelect;
 export type InsertPipelineSnapshot = typeof pipelineSnapshots.$inferInsert;
 
 // ─── IA FINANCEIRA — SCORE DE SAÚDE ──────────────────────────────────────────
-export const scoreFinanceiro = mysqlTable("score_financeiro", {
-  id: int("id").autoincrement().primaryKey(),
+export const scoreFinanceiro = pgTable("score_financeiro", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   score: int("score").notNull(), // 0-100
-  status: mysqlEnum("status", ["saudavel", "atencao", "risco"]).notNull(),
+  status: text("status", { enum: ["saudavel", "atencao", "risco"] }).notNull(),
   explicacao: text("explicacao").notNull(), // Texto simples para o usuário
-  motivos: json("motivos").notNull(), // Array de strings com motivos da nota
-  dicas: json("dicas").notNull(), // Array de strings com dicas de melhoria
-  detalhes: json("detalhes"), // Objeto com pontuação por fator
-  calculadoEm: timestamp("calculadoEm").defaultNow().notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  motivos: jsonb("motivos").notNull(), // Array de strings com motivos da nota
+  dicas: jsonb("dicas").notNull(), // Array de strings com dicas de melhoria
+  detalhes: jsonb("detalhes"), // Objeto com pontuação por fator
+  calculadoEm: timestamp("calculadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ScoreFinanceiro = typeof scoreFinanceiro.$inferSelect;
 
 // ─── IA FINANCEIRA — ALERTAS PROATIVOS ───────────────────────────────────────
-export const alertasFinanceiros = mysqlTable("alertas_financeiros", {
-  id: int("id").autoincrement().primaryKey(),
+export const alertasFinanceiros = pgTable("alertas_financeiros", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
-  tipo: mysqlEnum("tipo", [
+  tipo: text("tipo", { enum: [
     "caixa_negativo",
     "contas_vencendo",
     "inadimplencia",
@@ -672,22 +680,22 @@ export const alertasFinanceiros = mysqlTable("alertas_financeiros", {
     "concentracao_receita",
     "fluxo_negativo",
     "geral",
-  ]).notNull(),
-  prioridade: mysqlEnum("prioridade", ["alta", "media", "baixa"]).default("media").notNull(),
+  ] }).notNull(),
+  prioridade: text("prioridade", { enum: ["alta", "media", "baixa"] }).default("media").notNull(),
   titulo: varchar("titulo", { length: 200 }).notNull(),
   mensagem: text("mensagem").notNull(),
   acao: varchar("acao", { length: 300 }), // Sugestão de ação
   lido: boolean("lido").default(false).notNull(),
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type AlertaFinanceiro = typeof alertasFinanceiros.$inferSelect;
 
 // ─── IA CLIENTES — ANÁLISE INTELIGENTE ───────────────────────────────────────
-export const analiseClientes = mysqlTable("analise_clientes", {
-  id: int("id").autoincrement().primaryKey(),
+export const analiseClientes = pgTable("analise_clientes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
-  classificacao: mysqlEnum("classificacao", [
+  classificacao: text("classificacao", { enum: [
     "principal",     // 🟢 Maior gerador de receita
     "bom_pagador",   // 💎 Paga em dia e é consistente
     "em_crescimento",// 📈 Aumentando frequência/valor
@@ -696,20 +704,20 @@ export const analiseClientes = mysqlTable("analise_clientes", {
     "atraso_frequente", // ⚠️ Atrasa com frequência
     "risco",         // 🚨 Pode dar problema
     "novo",          // 🆕 Cliente novo, poucos dados
-  ]).notNull(),
+  ] }).notNull(),
   scoreCliente: int("scoreCliente").notNull(), // 0-100
   resumo: text("resumo").notNull(), // Texto simples para o usuário
-  detalhes: json("detalhes"), // Métricas brutas: totalReceita, qtdAgendamentos, etc.
-  calculadoEm: timestamp("calculadoEm").defaultNow().notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  detalhes: jsonb("detalhes"), // Métricas brutas: totalReceita, qtdAgendamentos, etc.
+  calculadoEm: timestamp("calculadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type AnaliseCliente = typeof analiseClientes.$inferSelect;
 
 // ─── IA CLIENTES — INSIGHTS ───────────────────────────────────────────────────
-export const insightsClientes = mysqlTable("insights_clientes", {
-  id: int("id").autoincrement().primaryKey(),
+export const insightsClientes = pgTable("insights_clientes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
-  tipo: mysqlEnum("tipo", [
+  tipo: text("tipo", { enum: [
     "concentracao_receita",
     "clientes_inativos",
     "inadimplencia_frequente",
@@ -717,21 +725,21 @@ export const insightsClientes = mysqlTable("insights_clientes", {
     "cliente_importante_atrasou",
     "bons_clientes",
     "geral",
-  ]).notNull(),
-  prioridade: mysqlEnum("prioridade", ["alta", "media", "baixa"]).default("media").notNull(),
+  ] }).notNull(),
+  prioridade: text("prioridade", { enum: ["alta", "media", "baixa"] }).default("media").notNull(),
   titulo: varchar("titulo", { length: 200 }).notNull(),
   mensagem: text("mensagem").notNull(),
   acao: varchar("acao", { length: 300 }),
   lido: boolean("lido").default(false).notNull(),
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type InsightCliente = typeof insightsClientes.$inferSelect;
 
 // ─── PACOTES DE SERVIÇOS ──────────────────────────────────────────────────────
 
 /** Modelos reutilizáveis de pacote (templates) */
-export const pacotesModelos = mysqlTable("pacotes_modelos", {
-  id: int("id").autoincrement().primaryKey(),
+export const pacotesModelos = pgTable("pacotes_modelos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 150 }).notNull(),
   descricao: text("descricao"),
@@ -739,13 +747,13 @@ export const pacotesModelos = mysqlTable("pacotes_modelos", {
   custo: decimal("custo", { precision: 10, scale: 2 }).notNull().default("0.00"),
   validadeDias: int("validadeDias"), // null = sem validade
   ativo: boolean("ativo").default(true).notNull(),
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PacoteModelo = typeof pacotesModelos.$inferSelect;
 
 /** Itens de um modelo de pacote (serviço + quantidade) */
-export const pacotesModelosItens = mysqlTable("pacotes_modelos_itens", {
-  id: int("id").autoincrement().primaryKey(),
+export const pacotesModelosItens = pgTable("pacotes_modelos_itens", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   modeloId: int("modeloId").notNull(),
   servicoId: int("servicoId").notNull(),
   quantidade: int("quantidade").notNull().default(1),
@@ -753,8 +761,8 @@ export const pacotesModelosItens = mysqlTable("pacotes_modelos_itens", {
 export type PacoteModeloItem = typeof pacotesModelosItens.$inferSelect;
 
 /** Pacote fechado por uma cliente específica */
-export const pacotesClientes = mysqlTable("pacotes_clientes", {
-  id: int("id").autoincrement().primaryKey(),
+export const pacotesClientes = pgTable("pacotes_clientes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
   modeloId: int("modeloId"), // null se pacote avulso
@@ -763,23 +771,23 @@ export const pacotesClientes = mysqlTable("pacotes_clientes", {
   valorTotal: decimal("valorTotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
   custoTotal: decimal("custoTotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
   valorRecebido: decimal("valorRecebido", { precision: 10, scale: 2 }).notNull().default("0.00"),
-  statusPagamento: mysqlEnum("statusPagamento", ["pendente", "parcial", "pago"]).default("pendente").notNull(),
+  statusPagamento: text("statusPagamento", { enum: ["pendente", "parcial", "pago"] }).default("pendente").notNull(),
   formaPagamento: varchar("formaPagamento", { length: 60 }),
   numeroParcelas: int("numeroParcelas").default(1).notNull(),
   valorParcela: decimal("valorParcela", { precision: 10, scale: 2 }),
-  status: mysqlEnum("status", ["ativo", "concluido", "vencido", "cancelado"]).default("ativo").notNull(),
-  dataAbertura: timestamp("dataAbertura").defaultNow().notNull(),
-  dataVencimento: timestamp("dataVencimento"), // null = sem vencimento
+  status: text("status", { enum: ["ativo", "concluido", "vencido", "cancelado"] }).default("ativo").notNull(),
+  dataAbertura: timestamp("dataAbertura", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  dataVencimento: timestamp("dataVencimento", { withTimezone: true, mode: 'date' }), // null = sem vencimento
   automacaoRenovacao: boolean("automacaoRenovacao").default(false),
   dataValidade: date("dataValidade"),
   observacoes: text("observacoes"),
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PacoteCliente = typeof pacotesClientes.$inferSelect;
 
 /** Itens de um pacote de cliente (serviço + qtd total + qtd usada) */
-export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
-  id: int("id").autoincrement().primaryKey(),
+export const pacotesClientesItens = pgTable("pacotes_clientes_itens", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   pacoteClienteId: int("pacoteClienteId").notNull(),
   servicoId: int("servicoId").notNull(),
   quantidadeTotal: int("quantidadeTotal").notNull().default(1),
@@ -789,144 +797,146 @@ export const pacotesClientesItens = mysqlTable("pacotes_clientes_itens", {
 export type PacoteClienteItem = typeof pacotesClientesItens.$inferSelect;
 
 /** Cada entrada financeira recebida para um pacote. */
-export const pacotesClientesPagamentos = mysqlTable("pacotes_clientes_pagamentos", {
-  id: int("id").autoincrement().primaryKey(),
+export const pacotesClientesPagamentos = pgTable("pacotes_clientes_pagamentos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   pacoteClienteId: int("pacoteClienteId").notNull(),
   empresaId: int("empresaId").notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   formaPagamento: varchar("formaPagamento", { length: 60 }),
-  tipo: mysqlEnum("tipo", ["sinal", "parcial", "quitacao"]).default("parcial").notNull(),
+  tipo: text("tipo", { enum: ["sinal", "parcial", "quitacao"] }).default("parcial").notNull(),
   observacoes: text("observacoes"),
-  dataPagamento: timestamp("dataPagamento").defaultNow().notNull(),
-  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  dataPagamento: timestamp("dataPagamento", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  criadoEm: timestamp("criadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PacoteClientePagamento = typeof pacotesClientesPagamentos.$inferSelect;
 
 /** Notificações enviadas sobre pacotes prestes a vencer */
-export const notificacoesPacotes = mysqlTable("notificacoes_pacotes", {
-  id: int("id").autoincrement().primaryKey(),
+export const notificacoesPacotes = pgTable("notificacoes_pacotes", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   pacoteClienteId: int("pacoteClienteId").notNull(),
   clienteId: int("clienteId").notNull(),
-  tipo: mysqlEnum("tipo", ["vencimento_proximo", "sessoes_restantes", "pacote_vencido"]).notNull(),
+  tipo: text("tipo", { enum: ["vencimento_proximo", "sessoes_restantes", "pacote_vencido"] }).notNull(),
   mensagem: text("mensagem").notNull(),
   diasParaVencer: int("diasParaVencer"), // quantos dias faltam para vencer quando a notif foi disparada
   sessoesRestantes: int("sessoesRestantes"), // total de sessões restantes no pacote
-  canal: mysqlEnum("canal", ["sistema", "whatsapp", "email"]).default("sistema").notNull(),
+  canal: text("canal", { enum: ["sistema", "whatsapp", "email"] }).default("sistema").notNull(),
   lida: boolean("lida").default(false).notNull(),
-  enviadoEm: timestamp("enviadoEm").defaultNow().notNull(),
+  enviadoEm: timestamp("enviadoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type NotificacaoPacote = typeof notificacoesPacotes.$inferSelect;
 
 // ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
-export const subscriptions = mysqlTable("subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
+export const subscriptions = pgTable("subscriptions", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull().unique(),
-  planType: mysqlEnum("planType", ["FREE", "SOLO", "PLUS", "PRO"]).default("FREE").notNull(),
-  billingCycle: mysqlEnum("billingCycle", ["monthly", "annual"]).default("monthly").notNull(),
-  status: mysqlEnum("status", ["active", "trial", "past_due", "canceled", "paused", "suspended"]).default("trial").notNull(),
-  trialEnd: timestamp("trialEnd"),
-  currentPeriodStart: timestamp("currentPeriodStart"),
-  currentPeriodEnd: timestamp("currentPeriodEnd"),
+  planType: text("planType", { enum: ["FREE", "SOLO", "PLUS", "PRO"] }).default("FREE").notNull(),
+  billingCycle: text("billingCycle", { enum: ["monthly", "annual"] }).default("monthly").notNull(),
+  status: text("status", { enum: ["active", "trial", "past_due", "canceled", "paused", "suspended"] }).default("trial").notNull(),
+  trialEnd: timestamp("trialEnd", { withTimezone: true, mode: 'date' }),
+  currentPeriodStart: timestamp("currentPeriodStart", { withTimezone: true, mode: 'date' }),
+  currentPeriodEnd: timestamp("currentPeriodEnd", { withTimezone: true, mode: 'date' }),
   stripeCustomerId: varchar("stripeCustomerId", { length: 128 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
   cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type Subscription = typeof subscriptions.$inferSelect;
 
 // ─── USAGE TRACKER ────────────────────────────────────────────────────────────
-export const usageTracker = mysqlTable("usage_tracker", {
-  id: int("id").autoincrement().primaryKey(),
+export const usageTracker = pgTable("usage_tracker", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   mesAno: varchar("mesAno", { length: 7 }).notNull(),
   agendamentosCount: int("agendamentosCount").default(0).notNull(),
   notificacoesWhatsappCount: int("notificacoesWhatsappCount").default(0).notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type UsageTracker = typeof usageTracker.$inferSelect;
 
 // ─── USAGE ALERTS ─────────────────────────────────────────────────────────────────────────────
 // Rastreia notificações de limite enviadas para evitar duplicatas (cooldown 24h)
-export const usageAlerts = mysqlTable("usage_alerts", {
-  id: int("id").autoincrement().primaryKey(),
+export const usageAlerts = pgTable("usage_alerts", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   alertType: varchar("alertType", { length: 64 }).notNull(),
   mesAno: varchar("mesAno", { length: 7 }).notNull(),
-  sentAt: timestamp("sentAt").defaultNow().notNull(),
+  sentAt: timestamp("sentAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type UsageAlert = typeof usageAlerts.$inferSelect;
 
 // ─── TIPOS DE PROFISSIONAL ────────────────────────────────────────────────────
 // Categorias como "Manicure", "Cabeleireiro", "Maquiadora", etc.
 // Vinculadas à empresa e usadas para agrupar serviços.
-export const tiposProfissional = mysqlTable("tipos_profissional", {
-  id: int("id").autoincrement().primaryKey(),
+export const tiposProfissional = pgTable("tipos_profissional", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   cor: varchar("cor", { length: 7 }).default("#7c3aed"),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type TipoProfissional = typeof tiposProfissional.$inferSelect;
 
 // Vínculo N:N entre profissional e tipos de profissional
-export const profissionalTipos = mysqlTable("profissional_tipos", {
-  id: int("id").autoincrement().primaryKey(),
+export const profissionalTipos = pgTable("profissional_tipos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   profissionalId: int("profissionalId").notNull(),
   tipoProfissionalId: int("tipoProfissionalId").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ProfissionalTipo = typeof profissionalTipos.$inferSelect;
 
 // ─── Módulo Contas a Pagar ────────────────────────────────────────────────────
 // Categorias de despesa (ex: Aluguel, Produtos, Fornecedores, Impostos, etc.)
-export const categoriasDespesa = mysqlTable("categorias_despesa", {
-  id: int("id").autoincrement().primaryKey(),
+export const categoriasDespesa = pgTable("categorias_despesa", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   cor: varchar("cor", { length: 7 }).default("#6b7280"),
   icone: varchar("icone", { length: 50 }).default("receipt"),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type CategoriaDespesa = typeof categoriasDespesa.$inferSelect;
 
 // Contas a pagar
-export const contasPagar = mysqlTable("contas_pagar", {
-  id: int("id").autoincrement().primaryKey(),
+export const contasPagar = pgTable("contas_pagar", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   descricao: varchar("descricao", { length: 200 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   dataVencimento: varchar("dataVencimento", { length: 10 }).notNull(),
   dataPagamento: varchar("dataPagamento", { length: 10 }),
   categoriaId: int("categoriaId"),
-  status: mysqlEnum("status_conta", ["pendente", "pago", "vencido", "cancelado"]).default("pendente").notNull(),
+  status: text("status_conta", { enum: ["pendente", "pago", "vencido", "cancelado"] }).default("pendente").notNull(),
   recorrente: boolean("recorrente").default(false).notNull(),
-  recorrenciaTipo: mysqlEnum("recorrencia_tipo", ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]),
+  recorrenciaTipo: text("recorrencia_tipo", { enum: ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"] }),
   observacoes: text("observacoes"),
   fornecedor: varchar("fornecedor", { length: 150 }),
   meioPagamentoId: int("meioPagamentoId"),
   comprovante: varchar("comprovante", { length: 500 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ContaPagar = typeof contasPagar.$inferSelect;
 
 // ─── SESSÃO WHATSAPP (Baileys) ────────────────────────────────────────────────
 // Persiste credenciais no banco para sobreviver a reinicializações do servidor
-export const waSession = mysqlTable("wa_session", {
-  id: varchar("id", { length: 200 }).primaryKey(),  // ex: "creds", "app-state-sync-key-xxx"
+export const waSession = pgTable("wa_session", {
+  empresaId: int("empresaId").notNull().references(() => empresas.id, { onDelete: 'cascade' }),
+  id: varchar("id", { length: 200 }).notNull(),  // chave local à empresa
   data: longtext("data").notNull(),                  // JSON serializado do objeto Baileys
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [primaryKey({ columns: [table.empresaId, table.id] })]);
 export type WaSession = typeof waSession.$inferSelect;
 
 // ─── LOG DE EVENTOS WHATSAPP ──────────────────────────────────────────────────
-export const waConnectionLog = mysqlTable("wa_connection_log", {
-  id: int("id").autoincrement().primaryKey(),
-  event: mysqlEnum("event", ["connected", "disconnected", "qr_ready", "logged_out", "reconnecting", "reconnect_attempt", "error"]).notNull(),
+export const waConnectionLog = pgTable("wa_connection_log", {
+  empresaId: int("empresaId"), // null somente para histórico legado sem proprietário conhecido
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
+  event: text("event", { enum: ["connected", "disconnected", "qr_ready", "logged_out", "reconnecting", "reconnect_attempt", "error"] }).notNull(),
   detail: varchar("detail", { length: 500 }),          // descrição human-readable
   statusCode: int("statusCode"),                       // código HTTP/Baileys da desconexão (ex: 408, 401, 515)
   motivo: varchar("motivo", { length: 100 }),           // classificação: timeout_rede, logout_dispositivo, erro_auth, servidor_reiniciou, etc.
@@ -934,56 +944,56 @@ export const waConnectionLog = mysqlTable("wa_connection_log", {
   tentativa: int("tentativa"),                         // número da tentativa de reconexão
   detalheTecnico: text("detalheTecnico"),               // stack trace ou mensagem de erro completa
   telefone: varchar("telefone", { length: 30 }),        // número conectado (quando disponível)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type WaConnectionLog = typeof waConnectionLog.$inferSelect;
 
 // ─── CONTAS A RECEBER ────────────────────────────────────────────────────────
-export const contasReceber = mysqlTable("contas_receber", {
-  id: int("id").autoincrement().primaryKey(),
+export const contasReceber = pgTable("contas_receber", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   descricao: varchar("descricao", { length: 200 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   dataVencimento: varchar("dataVencimento", { length: 10 }).notNull(),
   dataRecebimento: varchar("dataRecebimento", { length: 10 }),
-  status: mysqlEnum("status_receber", ["pendente", "recebido", "vencido", "cancelado"]).default("pendente").notNull(),
-  origem: mysqlEnum("origem_receber", ["manual", "agendamento", "pacote"]).default("manual").notNull(),
+  status: text("status_receber", { enum: ["pendente", "recebido", "vencido", "cancelado"] }).default("pendente").notNull(),
+  origem: text("origem_receber", { enum: ["manual", "agendamento", "pacote"] }).default("manual").notNull(),
   origemId: int("origemId"),
   clienteId: int("clienteId"),
   profissionalId: int("profissionalId"),
-  tipoPagamento: mysqlEnum("tipo_pagamento_receber", ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"]),
+  tipoPagamento: text("tipo_pagamento_receber", { enum: ["dinheiro", "pix", "cartao_debito", "cartao_credito", "outro"] }),
   meioPagamentoId: int("meioPagamentoId"),
   observacoes: text("observacoes"),
   recorrente: boolean("recorrente").default(false).notNull(),
-  recorrenciaTipo: mysqlEnum("recorrencia_tipo_receber", ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"]),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  recorrenciaTipo: text("recorrencia_tipo_receber", { enum: ["semanal", "quinzenal", "mensal", "bimestral", "trimestral", "semestral", "anual"] }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ContaReceber = typeof contasReceber.$inferSelect;
 
 // ─── PUSH SUBSCRIPTIONS (PWA) ─────────────────────────────────────────────────
-export const pushSubscriptions = mysqlTable("push_subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   userId: int("userId").notNull(),
   empresaId: int("empresaId").notNull(),
   endpoint: text("endpoint").notNull(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   userAgent: varchar("userAgent", { length: 500 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 
 // ─── TOKENS DE CONFIRMAÇÃO DE AGENDAMENTO ─────────────────────────────────────
-export const tokensConfirmacao = mysqlTable("tokens_confirmacao", {
-  id: int("id").autoincrement().primaryKey(),
+export const tokensConfirmacao = pgTable("tokens_confirmacao", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   agendamentoId: int("agendamentoId").notNull(),
   empresaId: int("empresaId").notNull(),
   token: varchar("token", { length: 64 }).notNull().unique(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  usadoEm: timestamp("usadoEm"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: 'date' }).notNull(),
+  usadoEm: timestamp("usadoEm", { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type TokenConfirmacao = typeof tokensConfirmacao.$inferSelect;
 
@@ -991,8 +1001,8 @@ export type TokenConfirmacao = typeof tokensConfirmacao.$inferSelect;
 // ─── PERMISSÕES INDIVIDUAIS (override sobre grupo) ────────────────────────────
 // Cada campo pode ser null (herda do grupo), true (permite) ou false (bloqueia)
 // Prioridade: individual > grupo > padrão (negar)
-export const permissoesIndividuais = mysqlTable("permissoes_individuais", {
-  id: int("id").autoincrement().primaryKey(),
+export const permissoesIndividuais = pgTable("permissoes_individuais", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   profissionalId: int("profissionalId").notNull().unique(),
   // ── Agendamentos ──
   agendamentosVer: boolean("agendamentosVer"),
@@ -1061,15 +1071,15 @@ export const permissoesIndividuais = mysqlTable("permissoes_individuais", {
   // ── Dashboard ──
   dashboardVer: boolean("dashboardVer"),
   dashboardVerMetricas: boolean("dashboardVerMetricas"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type PermissoesIndividuais = typeof permissoesIndividuais.$inferSelect;
 export type InsertPermissoesIndividuais = typeof permissoesIndividuais.$inferInsert;
 
 // ─── Meios de Pagamento ───────────────────────────────────────────────────────
-export const meiosPagamento = mysqlTable("meios_pagamento", {
-  id: int("id").primaryKey().autoincrement(),
+export const meiosPagamento = pgTable("meios_pagamento", {
+  id: int("id").primaryKey().generatedByDefaultAsIdentity(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   tipo: varchar("tipo", { length: 30 }).notNull(), // "pix" | "debito" | "credito" | "dinheiro" | "outro"
@@ -1078,15 +1088,15 @@ export const meiosPagamento = mysqlTable("meios_pagamento", {
   descontarDoVendedor: boolean("descontarDoVendedor").default(false).notNull(),
   descontarDoAtendente: boolean("descontarDoAtendente").default(false).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type MeioPagamento = typeof meiosPagamento.$inferSelect;
 export type InsertMeioPagamento = typeof meiosPagamento.$inferInsert;
 
 // Taxas por parcela (para cartão de crédito)
-export const taxasParcela = mysqlTable("taxas_parcela", {
-  id: int("id").primaryKey().autoincrement(),
+export const taxasParcela = pgTable("taxas_parcela", {
+  id: int("id").primaryKey().generatedByDefaultAsIdentity(),
   meioPagamentoId: int("meioPagamentoId").notNull(),
   parcela: int("parcela").notNull(),
   taxa: decimal("taxa", { precision: 5, scale: 2 }).notNull(),
@@ -1095,14 +1105,14 @@ export type TaxaParcela = typeof taxasParcela.$inferSelect;
 export type InsertTaxaParcela = typeof taxasParcela.$inferInsert;
 
 // ─── DASHBOARD CONFIG (layout personalizado por usuário) ──────────────────────
-export const dashboardConfig = mysqlTable("dashboard_config", {
-  id: int("id").autoincrement().primaryKey(),
+export const dashboardConfig = pgTable("dashboard_config", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   userId: int("userId").notNull(),
   empresaId: int("empresaId").notNull(),
   // JSON array de widgets: [{ id, visible, order, size }]
-  layout: json("layout").notNull().$type<DashboardWidget[]>(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  layout: jsonb("layout").notNull().$type<DashboardWidget[]>(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export type DashboardWidget = {
@@ -1116,8 +1126,8 @@ export type DashboardConfig = typeof dashboardConfig.$inferSelect;
 export type InsertDashboardConfig = typeof dashboardConfig.$inferInsert;
 
 // ─── PLANOS DE ASSINATURA ─────────────────────────────────────────────────────
-export const planos = mysqlTable("planos", {
-  id: int("id").autoincrement().primaryKey(),
+export const planos = pgTable("planos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   nome: varchar("nome", { length: 100 }).notNull(),
   descricao: text("descricao"),
   precoMensal: decimal("precoMensal", { precision: 10, scale: 2 }).notNull(),
@@ -1126,7 +1136,7 @@ export const planos = mysqlTable("planos", {
   stripePriceIdMensal: varchar("stripePriceIdMensal", { length: 128 }),
   stripePriceIdAnual: varchar("stripePriceIdAnual", { length: 128 }),
   // Qual API de WhatsApp usar para empresas neste plano (interno Orizontech)
-  apiWhatsapp: mysqlEnum("apiWhatsapp", ["baileys", "zapi"]).default("baileys").notNull(),
+  apiWhatsapp: text("apiWhatsapp", { enum: ["baileys", "zapi"] }).default("baileys").notNull(),
   limiteUsuarios: int("limiteUsuarios").default(3).notNull(),
   limiteAgendamentosMes: int("limiteAgendamentosMes").default(200).notNull(),
   temIaFinanceira: boolean("temIaFinanceira").default(false).notNull(),
@@ -1137,108 +1147,108 @@ export const planos = mysqlTable("planos", {
   slaSuporteHoras: int("slaSuporteHoras").default(48).notNull(),
   ordem: int("ordem").default(0).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
-  recursos: json("recursos").$type<string[]>().default([]),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  recursos: jsonb("recursos").$type<string[]>().default([]),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type Plano = typeof planos.$inferSelect;
 export type InsertPlano = typeof planos.$inferInsert;
 
 // ─── ASSINATURAS DAS EMPRESAS ─────────────────────────────────────────────────
-export const assinaturas = mysqlTable("assinaturas", {
-  id: int("id").autoincrement().primaryKey(),
+export const assinaturas = pgTable("assinaturas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   planoId: int("planoId").notNull(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 128 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
-  status: mysqlEnum("status", ["trial", "ativa", "inadimplente", "cancelada", "suspensa"]).default("trial").notNull(),
-  ciclo: mysqlEnum("ciclo", ["mensal", "anual"]).default("mensal").notNull(),
-  trialFim: timestamp("trialFim"),
-  periodoInicio: timestamp("periodoInicio"),
-  periodoFim: timestamp("periodoFim"),
-  canceladaEm: timestamp("canceladaEm"),
+  status: text("status", { enum: ["trial", "ativa", "inadimplente", "cancelada", "suspensa"] }).default("trial").notNull(),
+  ciclo: text("ciclo", { enum: ["mensal", "anual"] }).default("mensal").notNull(),
+  trialFim: timestamp("trialFim", { withTimezone: true, mode: 'date' }),
+  periodoInicio: timestamp("periodoInicio", { withTimezone: true, mode: 'date' }),
+  periodoFim: timestamp("periodoFim", { withTimezone: true, mode: 'date' }),
+  canceladaEm: timestamp("canceladaEm", { withTimezone: true, mode: 'date' }),
   // Configurações internas de API WhatsApp (visível apenas para Orizontech)
   zapiInstanceId: varchar("zapiInstanceId", { length: 255 }),
   zapiToken: varchar("zapiToken", { length: 255 }),
   zapiAtivo: boolean("zapiAtivo").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type Assinatura = typeof assinaturas.$inferSelect;
 export type InsertAssinatura = typeof assinaturas.$inferInsert;
 
 // ─── BASE DE CONHECIMENTO (para IA de suporte) ────────────────────────────────
-export const baseConhecimento = mysqlTable("base_conhecimento", {
-  id: int("id").autoincrement().primaryKey(),
+export const baseConhecimento = pgTable("base_conhecimento", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo").notNull(),
   categoria: varchar("categoria", { length: 100 }).default("geral"),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type BaseConhecimento = typeof baseConhecimento.$inferSelect;
 export type InsertBaseConhecimento = typeof baseConhecimento.$inferInsert;
 
 // ─── CHAMADOS DE SUPORTE ──────────────────────────────────────────────────────
-export const chamados = mysqlTable("chamados", {
-  id: int("id").autoincrement().primaryKey(),
+export const chamados = pgTable("chamados", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   titulo: varchar("titulo", { length: 255 }).notNull(),
-  status: mysqlEnum("status", ["aberto", "em_atendimento", "aguardando_cliente", "resolvido", "fechado"]).default("aberto").notNull(),
-  prioridade: mysqlEnum("prioridade", ["baixa", "media", "alta", "critica"]).default("media").notNull(),
+  status: text("status", { enum: ["aberto", "em_atendimento", "aguardando_cliente", "resolvido", "fechado"] }).default("aberto").notNull(),
+  prioridade: text("prioridade", { enum: ["baixa", "media", "alta", "critica"] }).default("media").notNull(),
   agenteId: int("agenteId"),          // profissional da Orizontech responsável
   slaHoras: int("slaHoras").default(48).notNull(),
-  slaVencidoEm: timestamp("slaVencidoEm"),
-  primeiraRespostaEm: timestamp("primeiraRespostaEm"),
-  resolvidoEm: timestamp("resolvidoEm"),
-  fechadoEm: timestamp("fechadoEm"),
+  slaVencidoEm: timestamp("slaVencidoEm", { withTimezone: true, mode: 'date' }),
+  primeiraRespostaEm: timestamp("primeiraRespostaEm", { withTimezone: true, mode: 'date' }),
+  resolvidoEm: timestamp("resolvidoEm", { withTimezone: true, mode: 'date' }),
+  fechadoEm: timestamp("fechadoEm", { withTimezone: true, mode: 'date' }),
   avaliacaoNota: int("avaliacaoNota"),       // 1-5
   avaliacaoComentario: text("avaliacaoComentario"),
   produto: varchar("produto", { length: 50 }).default("hubly").notNull(), // produto Orizontech de origem
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type Chamado = typeof chamados.$inferSelect;
 export type InsertChamado = typeof chamados.$inferInsert;
 
 // ─── MENSAGENS DE CHAMADOS ────────────────────────────────────────────────────
-export const chamadoMensagens = mysqlTable("chamado_mensagens", {
-  id: int("id").autoincrement().primaryKey(),
+export const chamadoMensagens = pgTable("chamado_mensagens", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   chamadoId: int("chamadoId").notNull(),
-  autorTipo: mysqlEnum("autorTipo", ["cliente", "agente", "ia"]).notNull(),
+  autorTipo: text("autorTipo", { enum: ["cliente", "agente", "ia"] }).notNull(),
   autorId: int("autorId"),             // userId do autor (null para IA)
   autorNome: varchar("autorNome", { length: 255 }),
   conteudo: text("conteudo").notNull(),
   lido: boolean("lido").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type ChamadoMensagem = typeof chamadoMensagens.$inferSelect;
 export type InsertChamadoMensagem = typeof chamadoMensagens.$inferInsert;
 
 // ─── CRÉDITOS DO CLIENTE ──────────────────────────────────────────────────────
-export const creditosCliente = mysqlTable("creditos_cliente", {
-  id: int("id").autoincrement().primaryKey(),
+export const creditosCliente = pgTable("creditos_cliente", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   clienteId: int("clienteId").notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(), // positivo = crédito gerado, negativo = crédito usado/devolvido
-  tipo: mysqlEnum("tipo", ["credito", "uso", "devolucao"]).notNull(),
+  tipo: text("tipo", { enum: ["credito", "uso", "devolucao"] }).notNull(),
   origem: varchar("origem", { length: 500 }),                     // descrição da origem (ex: "Pagamento a maior — Agendamento #123")
   agendamentoId: int("agendamentoId"),                            // referência opcional ao agendamento
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type CreditoCliente = typeof creditosCliente.$inferSelect;
 export type InsertCreditoCliente = typeof creditosCliente.$inferInsert;
 
 // ─── PESSOAS DA RESERVA ────────────────────────────────────────────────────────────────────────────────
 // Permite vincular múltiplas pessoas a uma reserva, com um contato principal
-export const agendamentoPessoas = mysqlTable("agendamento_pessoas", {
-  id: int("id").autoincrement().primaryKey(),
+export const agendamentoPessoas = pgTable("agendamento_pessoas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   agendamentoId: int("agendamentoId").notNull(),
   clienteId: int("clienteId").notNull(),
   isPrincipal: boolean("isPrincipal").default(false).notNull(), // true = contato principal (recebe automações)
-  role: mysqlEnum("role", ["principal", "acompanhante", "dependente", "outro"]).default("acompanhante").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  role: text("role", { enum: ["principal", "acompanhante", "dependente", "outro"] }).default("acompanhante").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type AgendamentoPessoa = typeof agendamentoPessoas.$inferSelect;
 export type InsertAgendamentoPessoa = typeof agendamentoPessoas.$inferInsert;
@@ -1247,34 +1257,34 @@ export type InsertAgendamentoPessoa = typeof agendamentoPessoas.$inferInsert;
 // Registra eventos de automações que o usuário excluiu intencionalmente.
 // O provisionador de templates verifica esta tabela para não recriar automações
 // que o usuário já excluiu de propósito.
-export const automacoesExcluidas = mysqlTable("automacoes_excluidas", {
-  id: int("id").autoincrement().primaryKey(),
+export const automacoesExcluidas = pgTable("automacoes_excluidas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   evento: varchar("evento", { length: 100 }).notNull(),
   automacaoNome: varchar("automacaoNome", { length: 255 }),
-  excluidoEm: timestamp("excluidoEm").defaultNow().notNull(),
+  excluidoEm: timestamp("excluidoEm", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type AutomacaoExcluida = typeof automacoesExcluidas.$inferSelect;
 export type InsertAutomacaoExcluida = typeof automacoesExcluidas.$inferInsert;
 // ─── TAXAS ADICIONAIS CONFIGURÁVEIS ──────────────────────────────────────────
 // Permite que a empresa pré-configure taxas reutilizáveis (ex: taxa de deslocamento)
-export const taxasConfig = mysqlTable("taxas_config", {
-  id: int("id").autoincrement().primaryKey(),
+export const taxasConfig = pgTable("taxas_config", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
-  tipo: mysqlEnum("tipo", ["fixo", "percentual"]).default("fixo").notNull(),
+  tipo: text("tipo", { enum: ["fixo", "percentual"] }).default("fixo").notNull(),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type TaxaConfig = typeof taxasConfig.$inferSelect;
 export type InsertTaxaConfig = typeof taxasConfig.$inferInsert;
 
 // ─── IA DE MARKETING ─────────────────────────────────────────────────────────
 // Armazena posts gerados pela IA de Marketing para Instagram e outras redes
-export const marketingPosts = mysqlTable("marketing_posts", {
-  id: int("id").autoincrement().primaryKey(),
+export const marketingPosts = pgTable("marketing_posts", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   // Texto livre validado no servidor: aceita tipos padrão e tipos personalizados da empresa.
   tipo: varchar("tipo", { length: 100 }).default("outro").notNull(),
@@ -1283,15 +1293,15 @@ export const marketingPosts = mysqlTable("marketing_posts", {
   hashtags: text("hashtags"),
   imagemUrl: varchar("imagemUrl", { length: 1000 }),
   imagemPrompt: text("imagemPrompt"),
-  status: mysqlEnum("status", ["rascunho", "aprovado", "agendado", "publicado", "arquivado"]).default("rascunho").notNull(),
-  agendadoPara: timestamp("agendadoPara"),
-  publicadoEm: timestamp("publicadoEm"),
+  status: text("status", { enum: ["rascunho", "aprovado", "agendado", "publicado", "arquivado"] }).default("rascunho").notNull(),
+  agendadoPara: timestamp("agendadoPara", { withTimezone: true, mode: 'date' }),
+  publicadoEm: timestamp("publicadoEm", { withTimezone: true, mode: 'date' }),
   instagramPostId: varchar("instagramPostId", { length: 255 }),
   observacoes: text("observacoes"),
   // ─── Campos do Calendário Editorial ─────────────────────────────────────────
-  plataforma: mysqlEnum("plataforma", ["instagram", "tiktok", "ambos"]).default("instagram"),
-  formato: mysqlEnum("formato", ["feed", "reels", "stories", "tiktok", "outro"]).default("feed"),
-  statusProducao: mysqlEnum("statusProducao", ["planejado", "gravado", "editado", "programado", "postado"]).default("planejado"),
+  plataforma: text("plataforma", { enum: ["instagram", "tiktok", "ambos"] }).default("instagram"),
+  formato: text("formato", { enum: ["feed", "reels", "stories", "tiktok", "outro"] }).default("feed"),
+  statusProducao: text("statusProducao", { enum: ["planejado", "gravado", "editado", "programado", "postado"] }).default("planejado"),
   dataPublicacao: dateField("dataPublicacao"),           // data planejada para publicação
   horarioPublicacao: varchar("horarioPublicacao", { length: 5 }), // ex: "19:00"
   responsavelId: int("responsavelId"),                   // profissionalId responsável pela produção
@@ -1299,77 +1309,77 @@ export const marketingPosts = mysqlTable("marketing_posts", {
   roteiro: longtext("roteiro"),                              // roteiro/conteúdo detalhado gerado pela IA
   // ─────────────────────────────────────────────────────────────────────────────
   tags: varchar("tags", { length: 500 }),                    // tags separadas por vírgula, ex: "noiva,casamento,social"
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type MarketingPost = typeof marketingPosts.$inferSelect;
 export type InsertMarketingPost = typeof marketingPosts.$inferInsert;
 
 // ─── GOOGLE CALENDAR INTEGRATION ─────────────────────────────────────────────
 // Armazena tokens OAuth2 do Google Calendar por empresa
-export const googleCalendarTokens = mysqlTable("google_calendar_tokens", {
-  id: int("id").autoincrement().primaryKey(),
+export const googleCalendarTokens = pgTable("google_calendar_tokens", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull().unique(),
   accessToken: text("accessToken").notNull(),
   refreshToken: text("refreshToken"),
-  expiresAt: timestamp("expiresAt"),
+  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: 'date' }),
   calendarId: varchar("calendarId", { length: 255 }).default("primary"),  // ID do calendário Hubly na conta Google
   calendarNome: varchar("calendarNome", { length: 255 }),
   email: varchar("email", { length: 320 }),                               // email da conta Google conectada
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type GoogleCalendarToken = typeof googleCalendarTokens.$inferSelect;
 export type InsertGoogleCalendarToken = typeof googleCalendarTokens.$inferInsert;
 
 // ─── Google Calendar Tokens por Usuário ──────────────────────────────────────
-export const googleCalendarTokensUsuario = mysqlTable("google_calendar_tokens_usuario", {
-  id: int("id").autoincrement().primaryKey(),
+export const googleCalendarTokensUsuario = pgTable("google_calendar_tokens_usuario", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   userId: int("userId").notNull().unique(),
   empresaId: int("empresaId").notNull(),
   accessToken: text("accessToken").notNull(),
   refreshToken: text("refreshToken"),
-  expiresAt: timestamp("expiresAt"),
+  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: 'date' }),
   calendarId: varchar("calendarId", { length: 255 }).default("primary"),
   calendarNome: varchar("calendarNome", { length: 255 }),
   corEvento: varchar("corEvento", { length: 7 }),  // cor hex livre para eventos no Google Calendar (ex: #8B4513), null = cor por status
   email: varchar("email", { length: 320 }),
   ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type GoogleCalendarTokenUsuario = typeof googleCalendarTokensUsuario.$inferSelect;
 export type InsertGoogleCalendarTokenUsuario = typeof googleCalendarTokensUsuario.$inferInsert;
 
 // Tabela para mapear agendamentos com eventos do Google Calendar por usuário
-export const googleCalendarEventos = mysqlTable("google_calendar_eventos", {
-  id: int("id").autoincrement().primaryKey(),
+export const googleCalendarEventos = pgTable("google_calendar_eventos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   agendamentoId: int("agendamentoId").notNull(),
   userId: int("userId").notNull(),
   googleEventId: varchar("googleEventId", { length: 255 }).notNull(),
   itemIndex: int("itemIndex").notNull().default(0), // 0 = evento único/principal; 1+ = serviços picados
   calendarId: varchar("calendarId", { length: 255 }).notNull().default("primary"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type GoogleCalendarEvento = typeof googleCalendarEventos.$inferSelect;
 export type InsertGoogleCalendarEvento = typeof googleCalendarEventos.$inferInsert;
 
 // ─── MARKETING TIPOS DE CONTEÚDO PERSONALIZADOS ───────────────────────────────
-export const marketingTiposConteudo = mysqlTable("marketing_tipos_conteudo", {
-  id: int("id").autoincrement().primaryKey(),
+export const marketingTiposConteudo = pgTable("marketing_tipos_conteudo", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   nome: varchar("nome", { length: 100 }).notNull(),
   cor: varchar("cor", { length: 50 }).default("bg-gray-50 text-gray-600 border-gray-200"),
   ordem: int("ordem").default(0),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type MarketingTipoConteudo = typeof marketingTiposConteudo.$inferSelect;
 
 // ─── MARKETING MÉTRICAS DE DESEMPENHO ─────────────────────────────────────────
-export const marketingMetricas = mysqlTable("marketing_metricas", {
-  id: int("id").autoincrement().primaryKey(),
+export const marketingMetricas = pgTable("marketing_metricas", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   postId: int("postId").notNull(),
   empresaId: int("empresaId").notNull(),
   visualizacoes: int("visualizacoes").default(0),
@@ -1379,25 +1389,25 @@ export const marketingMetricas = mysqlTable("marketing_metricas", {
   republicacoes: int("republicacoes").default(0),
   salvamentos: int("salvamentos").default(0),
   alcance: int("alcance").default(0),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type MarketingMetrica = typeof marketingMetricas.$inferSelect;
 
 // ─── MARKETING TIPOS OCULTOS (tipos padrão desativados por empresa) ────────────
-export const marketingTiposOcultos = mysqlTable("marketing_tipos_ocultos", {
-  id: int("id").autoincrement().primaryKey(),
+export const marketingTiposOcultos = pgTable("marketing_tipos_ocultos", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId").notNull(),
   tipoValor: varchar("tipoValor", { length: 50 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type MarketingTipoOculto = typeof marketingTiposOcultos.$inferSelect;
 
 // ─── INTEGRAÇÕES DE SINCRONIZAÇÃO REMOTA ──────────────────────────────────────
 // Credenciais são guardadas apenas como hash. O segredo completo é mostrado uma vez
 // quando criado e nunca fica disponível para leitura no banco.
-export const syncIntegrationClients = mysqlTable("sync_integration_clients", {
-  id: int("id").autoincrement().primaryKey(),
+export const syncIntegrationClients = pgTable("sync_integration_clients", {
+  id: int("id").generatedByDefaultAsIdentity().primaryKey(),
   clientId: varchar("clientId", { length: 80 }).notNull().unique(),
   nome: varchar("nome", { length: 255 }).notNull(),
   secretHash: varchar("secretHash", { length: 128 }).notNull(),
@@ -1407,65 +1417,65 @@ export const syncIntegrationClients = mysqlTable("sync_integration_clients", {
   empresaId: int("empresaId"),
   companyKeyHash: varchar("companyKeyHash", { length: 128 }),
   sourceSystem: varchar("sourceSystem", { length: 100 }),
-  ultimoUsoEm: timestamp("ultimoUsoEm"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  ultimoUsoEm: timestamp("ultimoUsoEm", { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 export type SyncIntegrationClient = typeof syncIntegrationClients.$inferSelect;
 
-export const syncSnapshots = mysqlTable("sync_snapshots", {
+export const syncSnapshots = pgTable("sync_snapshots", {
   id: varchar("id", { length: 64 }).primaryKey(),
   clientId: varchar("clientId", { length: 80 }).notNull(),
   manifestJson: longtext("manifestJson"),
   snapshotCursor: bigint("snapshotCursor", { mode: "number" }).default(0).notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
-export const syncChangeLog = mysqlTable("sync_change_log", {
-  cursor: bigint("cursor", { mode: "number" }).autoincrement().primaryKey(),
+export const syncChangeLog = pgTable("sync_change_log", {
+  cursor: bigint("cursor", { mode: "number" }).generatedByDefaultAsIdentity().primaryKey(),
   empresaId: int("empresaId"),
   entity: varchar("entity", { length: 100 }).notNull(),
   recordId: varchar("recordId", { length: 100 }).notNull(),
-  operation: mysqlEnum("operation", ["upsert", "delete"]).notNull(),
+  operation: text("operation", { enum: ["upsert", "delete"] }).notNull(),
   payloadJson: longtext("payloadJson"),
   schemaVersion: varchar("schemaVersion", { length: 20 }).default("v1").notNull(),
-  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+  occurredAt: timestamp("occurredAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
-export const syncAuditLog = mysqlTable("sync_audit_log", {
-  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+export const syncAuditLog = pgTable("sync_audit_log", {
+  id: bigint("id", { mode: "number" }).generatedByDefaultAsIdentity().primaryKey(),
   clientId: varchar("clientId", { length: 80 }).notNull(),
   rota: varchar("rota", { length: 255 }).notNull(),
   statusCode: int("statusCode").notNull(),
   recordsEntregues: int("recordsEntregues").default(0).notNull(),
   cursorSolicitado: varchar("cursorSolicitado", { length: 100 }),
   ipHash: varchar("ipHash", { length: 128 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // Requisições recebidas pela sincronização reversa. requestKey garante que o
 // mesmo X-Request-Id nunca seja processado duas vezes para a mesma integração.
-export const syncInboundRequests = mysqlTable("sync_inbound_requests", {
-  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+export const syncInboundRequests = pgTable("sync_inbound_requests", {
+  id: bigint("id", { mode: "number" }).generatedByDefaultAsIdentity().primaryKey(),
   requestKey: varchar("requestKey", { length: 64 }).notNull().unique(),
   clientId: varchar("clientId", { length: 80 }).notNull(),
   requestId: varchar("requestId", { length: 64 }).notNull(),
   bodyHash: varchar("bodyHash", { length: 64 }).notNull(),
-  status: mysqlEnum("status", ["processing", "processed"]).default("processing").notNull(),
+  status: text("status", { enum: ["processing", "processed"] }).default("processing").notNull(),
   responseJson: longtext("responseJson"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 // Vínculo estável entre o identificador da origem e o post local do Hubly.
-export const syncMarketingIdeaLinks = mysqlTable("sync_marketing_idea_links", {
-  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+export const syncMarketingIdeaLinks = pgTable("sync_marketing_idea_links", {
+  id: bigint("id", { mode: "number" }).generatedByDefaultAsIdentity().primaryKey(),
   linkKey: varchar("linkKey", { length: 64 }).notNull().unique(),
   clientId: varchar("clientId", { length: 80 }).notNull(),
   externalId: varchar("externalId", { length: 255 }).notNull(),
   marketingPostId: int("marketingPostId").notNull(),
   updatedAtSource: varchar("updatedAtSource", { length: 35 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });

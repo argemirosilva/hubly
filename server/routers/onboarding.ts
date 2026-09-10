@@ -66,7 +66,7 @@ export const onboardingRouter = router({
         duracaoMinutos: input.duracaoServico,
         valor: input.precoServico.toFixed(2) as any,
         ativo: true,
-      });
+      }).returning({ insertId: servicos.id });
 
       return { success: true };
     }),

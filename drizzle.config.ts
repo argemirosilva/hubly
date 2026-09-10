@@ -1,15 +1,17 @@
 import { defineConfig } from "drizzle-kit";
+import { readFileSync } from "node:fs";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL is required to run drizzle commands");
-}
+const connection = JSON.parse(readFileSync("database-postgres.local.json", "utf8"));
 
 export default defineConfig({
-  schema: "./drizzle/schema.ts",
-  out: "./drizzle",
-  dialect: "mysql",
+  schema: ["./drizzle/schema.ts", "./server/stripe-event-store.ts"],
+  out: "./drizzle-postgres",
+  dialect: "postgresql",
   dbCredentials: {
-    url: connectionString,
+    host: connection.host,
+    port: connection.port,
+    user: connection.user,
+    database: connection.database,
+    ssl: false,
   },
 });

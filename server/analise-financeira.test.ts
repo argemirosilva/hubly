@@ -25,7 +25,7 @@ describe("análise financeira detalhada", () => {
     expect(fonte).toContain("dataFim");
   });
 
-  it("retorna as visões de serviço, pacote, profissional e pagamento no período informado", async () => {
+  it.runIf(Boolean(process.env.DATABASE_URL))("retorna as visões de serviço, pacote, profissional e pagamento no período informado", async () => {
     const caller = appRouter.createCaller({ user: { id: 1 } } as any);
     const resultado = await caller.analiseFinanceira.resumo({ dataInicio: "2020-01-01", dataFim: "2030-12-31" });
 

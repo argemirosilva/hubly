@@ -1,4 +1,6 @@
 import { ENV } from "./env";
+import { getRuntimeConfig } from "../runtime-config";
+import { invokeLocalAI } from "../local-ai";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -266,7 +268,7 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  if (!getRuntimeConfig().ai) assertApiKey();
 
   const {
     messages,
@@ -312,6 +314,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
+  if (getRuntimeConfig().ai) {
+    payload.max_tokens = params.maxTokens ?? params.max_tokens ?? 4096;
+    return invokeLocalAI(payload);
+  }
   const response = await fetch(resolveApiUrl(), {
     method: "POST",
     headers: {

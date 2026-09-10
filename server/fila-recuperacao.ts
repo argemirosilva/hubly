@@ -31,7 +31,8 @@ export function quantidadeLinhasAtualizadas(resultado: unknown): number {
   if (!bruto || typeof bruto !== "object") return 0;
 
   const contagem = (bruto as { affectedRows?: unknown; rowsAffected?: unknown }).affectedRows
-    ?? (bruto as { rowsAffected?: unknown }).rowsAffected;
+    ?? (bruto as { rowsAffected?: unknown }).rowsAffected
+    ?? (bruto as { rowCount?: unknown }).rowCount;
   const numero = Number(contagem);
   return Number.isFinite(numero) ? numero : 0;
 }

@@ -93,7 +93,7 @@ async function inboundAudit(req: Request, clientId: string, statusCode: number, 
       statusCode,
       recordsEntregues: records,
       ipHash: hashIpSync(req.ip),
-    });
+    }).returning({ insertId: syncAuditLog.id });
   } catch (error) {
     console.error("[Reverse Sync] Falha ao auditar requisição", error);
   }
@@ -232,7 +232,7 @@ export function registerSyncInboundRoutes(app: Express) {
           requestId,
           bodyHash,
           status: "processing",
-        });
+        }).returning({ insertId: syncInboundRequests.id });
 
         const results: Array<Record<string, unknown>> = [];
         let created = 0;
@@ -275,7 +275,7 @@ export function registerSyncInboundRoutes(app: Express) {
           }
 
           const [inserted] = await tx.insert(marketingPosts)
-            .values(mapMarketingIdeaToPost(item, client.empresaId!));
+            .values(mapMarketingIdeaToPost(item, client.empresaId!)).returning({ insertId: marketingPosts.id });
           const marketingPostId = Number((inserted as { insertId?: number }).insertId);
           if (link) {
             await tx.update(syncMarketingIdeaLinks)
@@ -288,7 +288,7 @@ export function registerSyncInboundRoutes(app: Express) {
               externalId: item.externalId,
               marketingPostId,
               updatedAtSource: normalizedSourceTime,
-            });
+            }).returning({ insertId: syncMarketingIdeaLinks.id });
           }
           created++;
           results.push({ externalId: item.externalId, status: "created", hublyId: marketingPostId });

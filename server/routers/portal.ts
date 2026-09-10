@@ -480,13 +480,13 @@ export const portalRouter = router({
             .where(eq(clientes.id, clienteId));
         }
       } else {
-        const novoCliente = await db.insert(clientes).values({
+        const [novoCliente] = await db.insert(clientes).values({
           empresaId: input.empresaId,
           nome: input.clienteNome,
           telefone: input.clienteTelefone,
           dataNascimento: input.clienteDataNascimento ?? null,
           ativo: true,
-        });
+        }).returning({ insertId: clientes.id });
         clienteId = (novoCliente as any)[0]?.insertId ?? (novoCliente as any).insertId;
       }
 
@@ -502,7 +502,7 @@ export const portalRouter = router({
           : "agendado";
 
       // Criar agendamento
-      const novoAg = await db.insert(agendamentos).values({
+      const [novoAg] = await db.insert(agendamentos).values({
         empresaId: input.empresaId,
         clienteId,
         profissionalId: input.profissionalId ?? null,
@@ -513,7 +513,7 @@ export const portalRouter = router({
         status,
         valorTotal: String(valorTotal),
         observacoes: input.observacoes ?? null,
-      });
+      }).returning({ insertId: agendamentos.id });
       const agendamentoId = (novoAg as any)[0]?.insertId ?? (novoAg as any).insertId;
 
       // Criar itens de agendamento se múltiplos serviços
@@ -524,7 +524,7 @@ export const portalRouter = router({
             servicoId: s.servicoId,
             valorUnitario: s.valorUnitario,
           }))
-        );
+        ).returning({ insertId: agendamentoItens.id });
       }
 
        // ── Incrementar contador de uso ────────────────────────────────────────
@@ -690,7 +690,7 @@ export const portalRouter = router({
         .where(and(
           eq(clientes.empresaId, input.empresaId),
           eq(clientes.ativo, true), // Ignorar clientes inativos (excluídos)
-          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone} COLLATE "C", '+', ''), '-', ''), ' ', '') COLLATE "C" LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { encontrado: false, temCpf: false, nome: "", email: "" };
       return {
@@ -729,7 +729,7 @@ export const portalRouter = router({
         .where(and(
           eq(clientes.empresaId, input.empresaId),
           eq(clientes.ativo, true), // Ignorar clientes inativos
-          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone} COLLATE "C", '+', ''), '-', ''), ' ', '') COLLATE "C" LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { valido: false, nome: "", email: "" };
       const cliente = result[0];
@@ -768,7 +768,7 @@ export const portalRouter = router({
         .where(and(
           eq(clientes.empresaId, input.empresaId),
           eq(clientes.ativo, true), // Ignorar clientes inativos
-          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone} COLLATE "C", '+', ''), '-', ''), ' ', '') COLLATE "C" LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!result.length) return { ok: false, nome: "", email: "" };
       const cliente = result[0];
@@ -804,7 +804,7 @@ export const portalRouter = router({
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
-          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone} COLLATE "C", '+', ''), '-', ''), ' ', '') COLLATE "C" LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!clienteResult.length) return [];
 
@@ -928,7 +928,7 @@ export const portalRouter = router({
         .from(clientes)
         .where(and(
           eq(clientes.empresaId, input.empresaId),
-          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone}, '+', ''), '-', ''), ' ', '') LIKE ${`%${telSuffix}`}`,
+          sql`REPLACE(REPLACE(REPLACE(${clientes.telefone} COLLATE "C", '+', ''), '-', ''), ' ', '') COLLATE "C" LIKE ${`%${telSuffix}`}`,
         )).limit(1);
       if (!clienteResult.length) throw new Error("Cliente não encontrado");
 

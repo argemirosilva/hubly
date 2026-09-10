@@ -11,7 +11,7 @@ const catalog: SyncEntity[] = [
   ["permissions", "permissoes", "Permissões de profissional"],
   ["clients", "clientes", "Clientes"],
   ["services", "servicos", "Serviços"],
-  ["professional_services", "profissionalServicos", "Vínculos profissional-serviço"],
+  ["professional_services", "profissionalservicos", "Vínculos profissional-serviço"],
   ["appointments", "agendamentos", "Agendamentos"],
   ["appointment_items", "agendamento_itens", "Itens de agendamento"],
   ["appointment_payments", "agendamento_pagamentos", "Pagamentos de agendamento"],

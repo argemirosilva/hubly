@@ -27,7 +27,7 @@ export async function getOrCreateSubscription(empresaId: number) {
     trialEnd,
     currentPeriodStart: new Date(),
     currentPeriodEnd: trialEnd,
-  });
+  }).returning({ insertId: subscriptions.id });
 
   const created = await db.select().from(subscriptions)
     .where(eq(subscriptions.empresaId, empresaId))
@@ -114,7 +114,7 @@ export async function getOrCreateUsage(empresaId: number) {
     mesAno,
     agendamentosCount: 0,
     notificacoesWhatsappCount: 0,
-  });
+  }).returning({ insertId: usageTracker.id });
 
   const created = await db.select().from(usageTracker)
     .where(and(

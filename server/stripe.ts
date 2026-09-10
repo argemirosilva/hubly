@@ -10,8 +10,8 @@ if (!stripeKey) {
 export const stripe = new Stripe(stripeKey ?? "");
 
 console.log(
-  "[Stripe] Inicializado com chave:",
-  stripeKey ? stripeKey.substring(0, 14) + "..." : "(não configurada)",
+  "[Stripe] Inicializado:",
+  stripeKey ? "credencial configurada" : "(não configurada)",
   stripeKey?.startsWith("sk_live_") ? "(LIVE)" : stripeKey?.startsWith("sk_test_") ? "(TEST)" : "(inválida)"
 );
 

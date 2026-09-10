@@ -1,3 +1,4 @@
+import { getPublicAppUrl, getRuntimeConfig } from "./runtime-config";
 /**
  * Integração com Google Calendar API
  * Sincroniza agendamentos e bloqueios do Hubly → Google Calendar (unidirecional)
@@ -42,7 +43,9 @@ function formatDateTimeWithSaoPauloOffset(dateStr: string, timeStr: string): str
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? `${process.env.APP_PUBLIC_URL ?? "https://hubly.orizontech.com.br"}/api/google/callback`;
+  const redirectUri = getRuntimeConfig().publicUrl
+    ? `${getPublicAppUrl()}/api/google/callback`
+    : process.env.GOOGLE_REDIRECT_URI ?? `${getPublicAppUrl() ?? "https://hubly.orizontech.com.br"}/api/google/callback`;
 
   if (!clientId || !clientSecret) {
     throw new Error("[GoogleCalendar] GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET são obrigatórios. Configure no Google Cloud Console.");
@@ -343,7 +346,7 @@ export async function salvarTokensGoogle(params: {
       expiresAt: params.expiresAt,
       email: params.email,
       ativo: true,
-    });
+    }).returning({ insertId: googleCalendarTokens.id });
   }
 }
 

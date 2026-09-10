@@ -2,6 +2,8 @@
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 
 import { ENV } from './_core/env';
+import { getRuntimeConfig } from './runtime-config';
+import { localStorageGet, localStoragePut } from './local-storage';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
@@ -72,6 +74,7 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
+  if (getRuntimeConfig().storage) return localStoragePut(relKey, data, contentType);
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   const uploadUrl = buildUploadUrl(baseUrl, key);
@@ -93,6 +96,7 @@ export async function storagePut(
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
+  if (getRuntimeConfig().storage) return localStorageGet(relKey);
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
   return {

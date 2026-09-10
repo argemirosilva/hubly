@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "./runtime-config";
 /**
  * Scheduler — tarefas agendadas do servidor
  * Executa verificações periódicas sem depender de ação do usuário.
@@ -286,7 +287,7 @@ async function verificarPacotesVencendoGlobal() {
           .where(and(
             eq(notificacoesPacotes.pacoteClienteId, pacote.id),
             eq(notificacoesPacotes.tipo, "vencimento_proximo"),
-            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+            sql`${notificacoesPacotes.enviadoEm} > (NOW() - (24 * INTERVAL '1 hour'))`,
           ))
           .limit(1);
 
@@ -319,7 +320,7 @@ async function verificarPacotesVencendoGlobal() {
           sessoesRestantes,
           canal: "sistema",
           lida: false,
-        });
+        }).returning({ insertId: notificacoesPacotes.id });
         totalCriadas++;
         // WhatsApp controlado exclusivamente por verificarPacotesAutomacaoRenovacao (requer automacaoRenovacao=true no pacote).
       }
@@ -357,7 +358,7 @@ async function verificarPacotesVencendoGlobal() {
           .where(and(
             eq(notificacoesPacotes.pacoteClienteId, pacote.id),
             eq(notificacoesPacotes.tipo, "sessoes_restantes"),
-            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 48 HOUR)`,
+            sql`${notificacoesPacotes.enviadoEm} > (NOW() - (48 * INTERVAL '1 hour'))`,
           ))
           .limit(1);
 
@@ -375,7 +376,7 @@ async function verificarPacotesVencendoGlobal() {
           sessoesRestantes,
           canal: "sistema",
           lida: false,
-        });
+        }).returning({ insertId: notificacoesPacotes.id });
         totalCriadas++;
         // WhatsApp controlado exclusivamente por verificarPacotesAutomacaoRenovacao (requer automacaoRenovacao=true no pacote).
       }
@@ -438,7 +439,7 @@ async function verificarPacotesAutomacaoRenovacao() {
               .where(and(
                 eq(historicoEnviosAutomacao.empresaId, empresaId),
                 eq(historicoEnviosAutomacao.automacaoId, autoVencendo.id),
-                sql`${historicoEnviosAutomacao.mensagem} LIKE ${'%' + dedupeKey + '%'}`,
+                sql`${historicoEnviosAutomacao.mensagem} COLLATE "C" LIKE ${'%' + dedupeKey + '%'}`,
               ))
               .limit(1);
             if (existente) continue;
@@ -523,7 +524,7 @@ async function verificarPacotesAutomacaoRenovacao() {
             .where(and(
               eq(historicoEnviosAutomacao.empresaId, empresaId),
               eq(historicoEnviosAutomacao.automacaoId, autoSessoes.id),
-              sql`${historicoEnviosAutomacao.mensagem} LIKE ${'%' + dedupeKey + '%'}`,
+              sql`${historicoEnviosAutomacao.mensagem} COLLATE "C" LIKE ${'%' + dedupeKey + '%'}`,
             ))
             .limit(1);
           if (existente) continue;
@@ -599,7 +600,7 @@ async function processarAutomacoesAgendadas() {
 
     if (todasEmpresas.length === 0) return;
 
-    const origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+    const origin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
 
     for (const empresaId of todasEmpresas) {
       // Obter timezone da empresa para comparação de horaDisparo
@@ -702,7 +703,7 @@ async function processarAutomacoesAgendadas() {
             : '';
           const horaFormatada = formatarHora(ag.horaInicio);
 
-          const _schOriginDiasAntes = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _schOriginDiasAntes = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _linkAgDiasAntes = ag.empresaPortalSlug ? `${_schOriginDiasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvio,
@@ -844,7 +845,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginHorasAntes = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _schOriginHorasAntes = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _linkAgHorasAntes = ag.empresaPortalSlug ? `${_schOriginHorasAntes}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasAntes}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioHA,
@@ -984,7 +985,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginHorasApos = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _schOriginHorasApos = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _linkAgHorasApos = ag.empresaPortalSlug ? `${_schOriginHorasApos}/agendar/${ag.empresaPortalSlug}` : `${_schOriginHorasApos}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioApos,
@@ -1123,7 +1124,7 @@ async function processarAutomacoesAgendadas() {
             ? new Date(getDataStr(ag.data) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
 
-          const _schOriginDiasDepois = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _schOriginDiasDepois = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _linkAgDiasDepois = ag.empresaPortalSlug ? `${_schOriginDiasDepois}/agendar/${ag.empresaPortalSlug}` : `${_schOriginDiasDepois}/agendar?e=${ag.empresaId}`;
           const templateVars: Record<string, string> = {
             nome_cliente: nomeEnvioDD,
@@ -1238,7 +1239,7 @@ async function processarAniversarioMes() {
           ));
 
         const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
-        const _schOriginAniv = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+        const _schOriginAniv = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
         const _linkAgAniv = empresaData?.portalSlug ? `${_schOriginAniv}/agendar/${empresaData.portalSlug}` : `${_schOriginAniv}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesAniversario) {
@@ -1354,7 +1355,7 @@ async function processarDataFixa() {
           ));
 
         const [empresaData] = await db.select({ nome: empresas.nome, portalSlug: empresas.portalSlug }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
-        const _schOriginCamp = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+        const _schOriginCamp = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
         const _linkAgCamp = empresaData?.portalSlug ? `${_schOriginCamp}/agendar/${empresaData.portalSlug}` : `${_schOriginCamp}/agendar?e=${empresaId}`;
 
         for (const cliente of clientesEmpresa) {
@@ -1547,7 +1548,7 @@ async function preRegistrarEnviosPendentes() {
           if (jaExiste.length > 0) continue;
 
           // Gerar texto real da mensagem usando o template da automação
-          const _preOrigin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _preOrigin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _preLink = ag.empresaPortalSlug ? `${_preOrigin}/agendar/${ag.empresaPortalSlug}` : `${_preOrigin}/agendar?e=${ag.empresaId}`;
           const valorTotalPre = parseFloat(String(ag.valorTotal ?? '0'));
           const dataFormatadaPre = ag.data
@@ -1697,8 +1698,7 @@ export async function processarFilaPendente() {
     // NOTA: A verificação de conexão é feita por empresa dentro do routedSendMessage/routedSendMedia,
     // pois empresas PRO usam Z-API (sem necessidade de Baileys conectado).
     // Apenas pular o ciclo se Baileys estiver desconectado E não houver empresas PRO na fila.
-    const waState = waManager.getState();
-    const baileysConectado = waState.status === 'connected';
+    // Não existe conexão Baileys global; o roteador consulta a empresa de cada item.
     // Continua mesmo com Baileys desconectado — routedSendMessage trata por empresa
 
     // 4. Buscar pendentes/agendados com enviarEm <= agora (hora chegou)
@@ -1858,7 +1858,7 @@ export async function processarFilaPendente() {
       let mensagemFinal = item.mensagem;
       if (item.agendamentoId && mensagemExigeLinkConfirmacao(mensagemFinal)) {
         try {
-          const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+          const _origin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
           const _freshToken = await gerarTokenConfirmacao(item.agendamentoId, item.empresaId);
           const _freshLink = `${_origin}/confirmar/${_freshToken}`;
           mensagemFinal = inserirLinkConfirmacao(mensagemFinal, _freshLink);
@@ -2078,7 +2078,7 @@ async function cancelarPreAgendamentosExpirados() {
           sql`(
             (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} <= NOW())
             OR
-            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR))
+            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} <= (NOW() - (${horasExpiracao} * INTERVAL '1 hour')))
           )`,
         ));
 
@@ -2092,9 +2092,9 @@ async function cancelarPreAgendamentosExpirados() {
           sql`(${agendamentos.reservaPaga} = 0 OR ${agendamentos.reservaPaga} IS NULL)`,
           sql`${agendamentos.reservaLembreteEnviado} = 0 OR ${agendamentos.reservaLembreteEnviado} IS NULL`,
           sql`(
-            (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} > NOW() AND ${agendamentos.reservaExpiracaoEm} <= DATE_ADD(NOW(), INTERVAL 2 HOUR))
+            (${agendamentos.reservaExpiracaoEm} IS NOT NULL AND ${agendamentos.reservaExpiracaoEm} > NOW() AND ${agendamentos.reservaExpiracaoEm} <= (NOW() + (2 * INTERVAL '1 hour')))
             OR
-            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} > DATE_SUB(NOW(), INTERVAL ${horasExpiracao} HOUR) AND ${agendamentos.createdAt} <= DATE_SUB(NOW(), INTERVAL ${horasExpiracao - 2} HOUR))
+            (${agendamentos.reservaExpiracaoEm} IS NULL AND ${agendamentos.createdAt} > (NOW() - (${horasExpiracao} * INTERVAL '1 hour')) AND ${agendamentos.createdAt} <= (NOW() - (${horasExpiracao - 2} * INTERVAL '1 hour')))
           )`,
         ));
 
@@ -2112,7 +2112,7 @@ async function cancelarPreAgendamentosExpirados() {
             mensagem: `Um pré-agendamento expira às ${expiracaoFormatada}. Confirme o pagamento ou cancele.`,
             agendamentoId: ag.id,
             dadosContexto: { agendamentoId: ag.id, expiracaoEm: ag.reservaExpiracaoEm },
-          });
+          }).returning({ insertId: notificacoes.id });
           // WhatsApp removido: mensagens hardcoded são proibidas.
           // Para enviar mensagem neste evento, configure uma automação com gatilho 'pre_agendamento_expirando'.
           await db.update(agendamentos)
@@ -2254,7 +2254,7 @@ async function processarRecorrencias() {
           observacoes: conta.observacoes,
           fornecedor: conta.fornecedor,
           meioPagamentoId: conta.meioPagamentoId,
-        });
+        }).returning({ insertId: contasPagar.id });
         console.log(`[Recorrencia] Conta a pagar gerada: ${conta.descricao} venc. ${proximaData}`);
       }
     }
@@ -2294,7 +2294,7 @@ async function processarRecorrencias() {
           observacoes: conta.observacoes,
           recorrente: true,
           recorrenciaTipo: conta.recorrenciaTipo,
-        });
+        }).returning({ insertId: contasReceber.id });
         console.log(`[Recorrencia] Conta a receber gerada: ${conta.descricao} venc. ${proximaData}`);
       }
     }
@@ -2614,7 +2614,7 @@ export async function reagendarLembretesAgendamento(agendamentoId: number, empre
         )).limit(1);
       if (jaExiste.length > 0) continue;
 
-      const _origin = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+      const _origin = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
       const _link = ag.empresaPortalSlug ? `${_origin}/agendar/${ag.empresaPortalSlug}` : `${_origin}/agendar?e=${ag.empresaId}`;
       const valorTotal = parseFloat(String(ag.valorTotal ?? '0'));
       const dataFormatada = ag.data

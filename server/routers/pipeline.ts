@@ -417,7 +417,7 @@ Crie um pipeline Kanban que represente a jornada completa do cliente nesta empre
             pipelineId,
             nomePipeline: estruturaIA.nomePipeline,
             snapshot: JSON.stringify(snapshotData),
-          });
+          }).returning({ insertId: pipelineSnapshots.id });
         }
       } catch (snapErr) {
         console.warn("[Pipeline IA] Falha ao salvar snapshot (não crítico):", snapErr);

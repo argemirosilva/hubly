@@ -101,16 +101,16 @@ describe("Multi-trigger", () => {
     });
   });
 
-  describe("Backend — queries com OR + JSON_CONTAINS", () => {
+  describe("Backend — queries com OR + jsonb", () => {
     const dbContent = readFile(path.join(SERVER_DIR, "db.ts"));
 
     it("getAutomacaoByEvento deve usar OR para buscar em eventosAdicionais", () => {
-      expect(dbContent).toContain("JSON_CONTAINS");
+      expect(dbContent).toContain("::jsonb @> jsonb_build_array");
     });
 
     it("getAutomacoesByEvento deve usar OR para buscar em eventosAdicionais", () => {
       // Contar ocorrências de JSON_CONTAINS — deve haver pelo menos 2 (uma para cada função)
-      const matches = dbContent.match(/JSON_CONTAINS/g);
+      const matches = dbContent.match(/::jsonb @> jsonb_build_array/g);
       expect(matches).toBeTruthy();
       expect(matches!.length).toBeGreaterThanOrEqual(2);
     });

@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "./runtime-config";
 /**
  * Rota de callback OAuth2 do Google Calendar — por Usuário
  * Registrada em: GET /api/google/user-callback
@@ -15,7 +16,7 @@ import { eq } from "drizzle-orm";
 export function registerGoogleOAuthUserCallback(app: Express) {
   app.get("/api/google/user-callback", async (req, res) => {
     const { code, state, error } = req.query as Record<string, string>;
-    const appUrl = process.env.APP_PUBLIC_URL ?? "https://hubly.orizontech.com.br";
+    const appUrl = getPublicAppUrl() ?? "https://hubly.orizontech.com.br";
     const redirectBase = `${appUrl}/admin/perfil`;
 
     if (error) {

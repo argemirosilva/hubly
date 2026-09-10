@@ -26,9 +26,9 @@ async function assertOwner(userId: number, userOpenId?: string) {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
   const rows = await db.execute(
-    drizzleSql`SELECT id, openId FROM users WHERE id = ${userId} LIMIT 1`
+    drizzleSql`SELECT id, "openId" FROM users WHERE id = ${userId} LIMIT 1`
   );
-  const arr = rows[0] as unknown as Array<{ id: number; openId: string }>;
+  const arr = rows.rows as Array<{ id: number; openId: string }>;
   if (!arr?.length) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
   const u = arr[0];
   if (u.id !== 1 && (!ownerOpenId || u.openId !== ownerOpenId)) {
@@ -87,24 +87,8 @@ export const dbConsoleRouter = router({
         const result = await db.execute(drizzleSql.raw(sqlText));
         const executionMs = Date.now() - start;
 
-        // mysql2 retorna [rows, fields] para SELECT; para statements retorna ResultSetHeader
-        const raw = result as unknown;
-        let rows: Record<string, unknown>[] = [];
-        let affectedRows: number | undefined;
-
-        if (Array.isArray(raw)) {
-          const first = raw[0];
-          if (Array.isArray(first)) {
-            // SELECT: first é o array de linhas
-            rows = first as Record<string, unknown>[];
-          } else if (first && typeof first === "object" && "affectedRows" in (first as object)) {
-            // Statement: ResultSetHeader
-            affectedRows = (first as { affectedRows: number }).affectedRows;
-          } else if (first && typeof first === "object") {
-            // Algumas versões retornam diretamente as linhas
-            rows = raw as Record<string, unknown>[];
-          }
-        }
+        const rows = result.rows as Record<string, unknown>[];
+        const affectedRows = result.command === "SELECT" ? undefined : result.rowCount ?? 0;
 
         const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
@@ -130,9 +114,9 @@ export const dbConsoleRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
     const result = await db.execute(
-      drizzleSql`SELECT id, openId, name, email, role, createdAt FROM users ORDER BY id ASC LIMIT 500`
+      drizzleSql`SELECT id, "openId", name, email, role, "createdAt" FROM users ORDER BY id ASC LIMIT 500`
     );
-    const raw = result as unknown as unknown[];
+    const raw = result.rows as unknown[];
     const rows = (Array.isArray(raw[0]) ? raw[0] : raw) as Record<string, unknown>[];
     return { rows, total: rows.length };
   }),
@@ -163,17 +147,17 @@ export const dbConsoleRouter = router({
       // Verifica se a coluna já existe
       const check = await db.execute(
         drizzleSql`SELECT COLUMN_NAME FROM information_schema.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE()
+          WHERE TABLE_SCHEMA = current_schema()
             AND TABLE_NAME = 'marketing_posts'
             AND COLUMN_NAME = ${col.nome} LIMIT 1`
       );
-      const rawCheck = check as unknown as unknown[];
+      const rawCheck = check.rows as unknown[];
       const existing = (Array.isArray(rawCheck[0]) ? rawCheck[0] : rawCheck) as unknown[];
       if (existing && existing.length > 0) {
         jaExistiam.push(col.nome);
         continue;
       }
-      await db.execute(drizzleSql.raw(`ALTER TABLE \`marketing_posts\` ${col.ddl}`));
+      await db.execute(drizzleSql.raw(`ALTER TABLE "marketing_posts" ${col.ddl.replaceAll('`', '"')}`));
       aplicadas.push(col.nome);
     }
 

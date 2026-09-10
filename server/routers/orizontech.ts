@@ -18,7 +18,7 @@ async function assertOrizontech(userId: number, userOpenId?: string) {
   const ownerOpenId = process.env.OWNER_OPEN_ID;
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const rows = await db.execute(drizzleSql`SELECT id, openId FROM users WHERE id = ${userId} LIMIT 1`);
+  const rows = [(await db.execute(drizzleSql`SELECT id, "openId" FROM users WHERE id = ${userId} LIMIT 1`)).rows];
   const arr = (rows[0] as unknown as Array<{ id: number; openId: string }>);
   if (!arr?.length) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
   const u = arr[0];
@@ -34,25 +34,25 @@ export const orizontechRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
-    const totaisRes = await db.execute(drizzleSql`
+    const totaisRes = [(await db.execute(drizzleSql`
       SELECT
-        COUNT(DISTINCT e.id) as totalEmpresas,
+        COUNT(DISTINCT e.id) as "totalEmpresas",
         SUM(CASE WHEN a.status = 'ativa' THEN 1 ELSE 0 END) as ativas,
         SUM(CASE WHEN a.status = 'trial' THEN 1 ELSE 0 END) as trial,
         SUM(CASE WHEN a.status = 'inadimplente' THEN 1 ELSE 0 END) as inadimplentes,
         SUM(CASE WHEN a.status = 'cancelada' THEN 1 ELSE 0 END) as canceladas
       FROM empresas e
-      LEFT JOIN assinaturas a ON a.empresaId = e.id
-    `);
-    const mrrRes = await db.execute(drizzleSql`
-      SELECT COALESCE(SUM(p.precoMensal), 0) as mrr
+      LEFT JOIN assinaturas a ON a."empresaId" = e.id
+    `)).rows];
+    const mrrRes = [(await db.execute(drizzleSql`
+      SELECT COALESCE(SUM(p."precoMensal"), 0) as mrr
       FROM assinaturas a
-      JOIN planos p ON p.id = a.planoId
+      JOIN planos p ON p.id = a."planoId"
       WHERE a.status = 'ativa'
-    `);
-    const chamadosRes = await db.execute(drizzleSql`
+    `)).rows];
+    const chamadosRes = [(await db.execute(drizzleSql`
       SELECT COUNT(*) as total FROM chamados WHERE status IN ('aberto', 'em_atendimento')
-    `);
+    `)).rows];
 
     const t = ((totaisRes[0] as unknown as unknown[])[0] ?? {}) as Record<string, unknown>;
     const m = ((mrrRes[0] as unknown as unknown[])[0] ?? {}) as Record<string, unknown>;
@@ -110,7 +110,7 @@ export const orizontechRouter = router({
         .limit(input.porPagina)
         .offset(offset);
 
-      const countRes = await db.execute(drizzleSql`SELECT COUNT(*) as total FROM empresas`);
+      const countRes = [(await db.execute(drizzleSql`SELECT COUNT(*) as total FROM empresas`)).rows];
       const total = Number(((countRes[0] as unknown as unknown[])[0] as Record<string, unknown>)?.total ?? 0);
 
       // Filtrar em memória para simplicidade (dataset pequeno de empresas)
@@ -182,7 +182,7 @@ export const orizontechRouter = router({
           ciclo: input.ciclo ?? "mensal",
           ...(input.trialFim ? { trialFim: input.trialFim } : {}),
           ...(input.periodoFim ? { periodoFim: input.periodoFim } : {}),
-        });
+        }).returning({ insertId: assinaturas.id });
       }
       return { ok: true };
     }),
@@ -371,7 +371,7 @@ export const orizontechRouter = router({
         autorNome: ctx.user.name ?? "Suporte Hubly",
         conteudo: input.conteudo,
         lido: false,
-      });
+      }).returning({ insertId: chamadoMensagens.id });
       // Disparar push notification para os usuários da empresa
       const statusLabel: Record<string, string> = {
         em_atendimento: "Em atendimento",
@@ -413,7 +413,7 @@ export const orizontechRouter = router({
         conteudo: input.conteudo,
         categoria: input.categoria,
         ativo: true,
-      });
+      }).returning({ insertId: baseConhecimento.id });
       return { id: (result as unknown as { insertId: number }).insertId };
     }),
 
@@ -454,7 +454,7 @@ export const orizontechRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       // Remover assinatura primeiro (FK)
-      await db.execute(drizzleSql`DELETE FROM assinaturas WHERE empresaId = ${input.empresaId}`);
+      await db.execute(drizzleSql`DELETE FROM assinaturas WHERE "empresaId" = ${input.empresaId}`);
       // Remover a empresa
       await db.execute(drizzleSql`DELETE FROM empresas WHERE id = ${input.empresaId}`);
       return { ok: true };
@@ -507,7 +507,7 @@ export const orizontechRouter = router({
         stripeProductId: input.stripeProductId ?? null,
         stripePriceIdMensal: input.stripePriceIdMensal ?? null,
         stripePriceIdAnual: input.stripePriceIdAnual ?? null,
-      });
+      }).returning({ insertId: planos.id });
       return { id: (result as unknown as { insertId: number }).insertId };
     }),
 

@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  Megaphone, Sparkles, Image, Calendar, Copy, Check, RefreshCw,
+  Megaphone, Sparkles, Calendar, Copy, Check, RefreshCw,
   Wand2, Hash, Clock, Trash2, Instagram,
   Star, Lightbulb, Gift, TrendingUp, Sun, MoreHorizontal,
   ChevronLeft, ChevronRight, Plus, User, Video, Film,
@@ -641,8 +641,7 @@ export default function IAMarketing() {
   const [tom, setTom] = useState<TomPost>("descontraido");
   const [incluirEmoji, setIncluirEmoji] = useState(true);
   const [servicoSelecionado, setServicoSelecionado] = useState<string>("");
-  const [postGerado, setPostGerado] = useState<{ id: number | null; legenda: string; hashtags: string; imagemPrompt: string } | null>(null);
-  const [imagemGerada, setImagemGerada] = useState<string | null>(null);
+  const [postGerado, setPostGerado] = useState<{ id: number | null; legenda: string; hashtags: string } | null>(null);
 
   // Pauta IA
   const [focoPauta, setFocoPauta] = useState("");
@@ -669,12 +668,8 @@ export default function IAMarketing() {
 
   // ── Mutations ──
   const gerarPostMut = trpc.iaMarketing.gerarPost.useMutation({
-    onSuccess: (data) => { setPostGerado(data); setImagemGerada(null); toast.success("Post gerado!"); },
+    onSuccess: (data) => { setPostGerado(data); toast.success("Post gerado!"); },
     onError: (err: any) => toast.error(err.message ?? "Erro ao gerar post"),
-  });
-  const gerarImagemMut = trpc.iaMarketing.gerarImagem.useMutation({
-    onSuccess: (data) => { setImagemGerada(data.imagemUrl); toast.success("Imagem gerada!"); },
-    onError: (err: any) => toast.error(err.message ?? "Erro ao gerar imagem"),
   });
   const gerarPautaMut = trpc.iaMarketing.gerarPauta.useMutation({
     onSuccess: () => { toast.success("Pauta gerada e salva no calendário!"); refetchCalendario(); },
@@ -1338,26 +1333,8 @@ export default function IAMarketing() {
                 </div>
                 <p className="text-xs text-blue-600 leading-relaxed bg-muted/40 rounded-lg p-2">{postGerado.hashtags}</p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => gerarImagemMut.mutate({ postId: postGerado.id ?? undefined, prompt: postGerado.imagemPrompt })}
-                disabled={gerarImagemMut.isPending}
-              >
-                {gerarImagemMut.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-                Gerar Imagem com IA
-              </Button>
-              {imagemGerada && (
-                <div className="space-y-2">
-                  <img src={imagemGerada} alt="Arte gerada" className="w-full rounded-xl aspect-square object-cover" />
-                  <a href={imagemGerada} download="post-hubly.png" target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" className="w-full text-xs">Baixar imagem</Button>
-                  </a>
-                </div>
-              )}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setPostGerado(null); setImagemGerada(null); setTema(""); setServicoSelecionado(""); }}>
+                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setPostGerado(null); setTema(""); setServicoSelecionado(""); }}>
                   Novo post
                 </Button>
                 {postGerado.id && (

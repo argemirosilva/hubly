@@ -2,6 +2,9 @@
  * Testes unitários — integração Z-API e roteamento WhatsApp
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+vi.mock("./runtime-config", () => ({ getPublicAppUrl: () => process.env.APP_PUBLIC_URL }));
+// O teste unitário exercita o roteamento; a proteção de réplica tem teste próprio.
+vi.mock("./replica-mode", () => ({ isReplicaMode: () => false }));
 
 // ─── Mock do ENV ──────────────────────────────────────────────────────────────
 vi.mock("./_core/env", () => ({
@@ -134,9 +137,11 @@ describe("WhatsApp Router — routedSendMessage", () => {
 
   it("deve lançar erro quando banco está indisponível (sem fallback para FREE)", async () => {
     const { routedSendMessage } = await import("./whatsapp-router");
-
-    await expect(routedSendMessage(1, "11999998888", "Teste")).rejects.toThrow(
-      /Banco indisponível/
-    );
+    vi.stubEnv("APP_PUBLIC_URL", "https://hubly.orizontech.com.br");
+    try {
+      await expect(routedSendMessage(1, "11999998888", "Teste")).rejects.toThrow(/Banco indisponível/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

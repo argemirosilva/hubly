@@ -23,7 +23,7 @@ export const sincronizacaoRouter = router({
     const db = await getDb();
     if (!db) throw new Error("Banco indisponível");
     const credential = gerarCredencialSync();
-    await db.insert(syncIntegrationClients).values({ clientId: credential.clientId, nome: input.nome, secretHash: credential.secretHash, escopo: "sync.read.all", ativo: true, criadoPorUserId: ctx.user!.id });
+    await db.insert(syncIntegrationClients).values({ clientId: credential.clientId, nome: input.nome, secretHash: credential.secretHash, escopo: "sync.read.all", ativo: true, criadoPorUserId: ctx.user!.id }).returning({ insertId: syncIntegrationClients.id });
     return { clientId: credential.clientId, accessToken: `${credential.clientId}.${credential.secret}`, escopo: "sync.read.all" };
   }),
   revogarCredencial: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {

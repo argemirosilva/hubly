@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "../runtime-config";
 /**
  * Router de Pacotes de Serviços
  * Gerencia modelos de pacotes e pacotes por cliente.
@@ -168,11 +169,11 @@ export const pacotesRouter = router({
         preco: String(input.preco),
         custo: String(input.custo),
         validadeDias: input.validadeDias,
-      });
+      }).returning({ insertId: pacotesModelos.id });
       const modeloId = (result as any).insertId as number;
       await db.insert(pacotesModelosItens).values(
         input.itens.map(i => ({ modeloId, servicoId: i.servicoId, quantidade: i.quantidade }))
-      );
+      ).returning({ insertId: pacotesModelosItens.id });
       return { id: modeloId };
     }),
 
@@ -204,7 +205,7 @@ export const pacotesRouter = router({
       await db.delete(pacotesModelosItens).where(eq(pacotesModelosItens.modeloId, input.id));
       await db.insert(pacotesModelosItens).values(
         input.itens.map(i => ({ modeloId: input.id, servicoId: i.servicoId, quantidade: i.quantidade }))
-      );
+      ).returning({ insertId: pacotesModelosItens.id });
       return { ok: true };
     }),
 
@@ -271,7 +272,7 @@ export const pacotesRouter = router({
         .where(and(
           eq(pacotesClientes.empresaId, empId),
           input.status !== "todos" ? eq(pacotesClientes.status, input.status) : sql`1=1`,
-          input.busca ? like(clientes.nome, `%${input.busca}%`) : sql`1=1`,
+          input.busca ? sql`lower(unaccent(${clientes.nome}) COLLATE "C") LIKE lower(unaccent(${`%${input.busca}%`}) COLLATE "C")` : sql`1=1`,
         ))
         .orderBy(sql`${pacotesClientes.criadoEm} DESC`);
 
@@ -512,7 +513,7 @@ export const pacotesRouter = router({
           dataVencimento,
           observacoes: input.observacoes,
           ...(({ automacaoRenovacao: input.automacaoRenovacao ?? false, dataValidade: input.dataValidade ? input.dataValidade.substring(0, 10) : undefined }) as any),
-        } as any);
+        } as any).returning({ insertId: pacotesClientes.id });
         const pacoteId = (result as any).insertId as number;
         if (input.valorRecebidoInicial > 0) {
           await tx.insert(pacotesClientesPagamentos).values({
@@ -522,7 +523,7 @@ export const pacotesRouter = router({
             formaPagamento: input.formaPagamento,
             tipo: input.tipoPagamentoInicial,
             observacoes: input.observacoesPagamentoInicial,
-          });
+          }).returning({ insertId: pacotesClientesPagamentos.id });
         }
         await tx.insert(pacotesClientesItens).values(input.itens.map(i => ({
           pacoteClienteId: pacoteId,
@@ -530,7 +531,7 @@ export const pacotesRouter = router({
           quantidadeTotal: i.quantidadeTotal,
           quantidadeUsada: 0,
           quantidadeReservada: 0,
-        })));
+        }))).returning({ insertId: pacotesClientesItens.id });
         const itensCriados = await tx.select().from(pacotesClientesItens).where(eq(pacotesClientesItens.pacoteClienteId, pacoteId));
         const itemPorServico = new Map(itensCriados.map(item => [item.servicoId, item]));
         const agendamentoIds: number[] = [];
@@ -552,7 +553,7 @@ export const pacotesRouter = router({
             observacoesInternas: indicesComConflito.has(indice)
               ? `Sessão agendada pelo pacote: ${input.nome} • CONFLITO DE AGENDA ASSUMIDO`
               : `Sessão agendada pelo pacote: ${input.nome}`,
-          });
+          }).returning({ insertId: agendamentos.id });
           const agendamentoId = (agendamentoResult as any).insertId as number;
           agendamentoIds.push(agendamentoId);
           let horaItem = sessao.horaInicio;
@@ -571,7 +572,7 @@ export const pacotesRouter = router({
             };
             horaItem = horaFimItem;
             return valor;
-          }));
+          })).returning({ insertId: agendamentoItens.id });
           for (const servicoId of sessao.servicoIds) {
             const item = itemPorServico.get(servicoId)!;
             await tx.update(pacotesClientesItens).set({ quantidadeReservada: sql`${pacotesClientesItens.quantidadeReservada} + 1` }).where(eq(pacotesClientesItens.id, item.id));
@@ -610,7 +611,7 @@ export const pacotesRouter = router({
               .from(profissionais).where(inArray(profissionais.id, idsProfissionais));
             const profissionalPorId = new Map(profissionaisDaAgenda.map(profissional => [profissional.id, profissional.nome]));
             const formatarData = (data: string) => new Date(`${data}T12:00:00`).toLocaleDateString('pt-BR');
-            const origemPublica = process.env.APP_PUBLIC_URL ?? 'https://hubly.orizontech.com.br';
+            const origemPublica = getPublicAppUrl() ?? 'https://hubly.orizontech.com.br';
             const linkAgendamento = empresa.portalSlug ? `${origemPublica}/agendar/${empresa.portalSlug}` : `${origemPublica}/agendar?e=${empId}`;
             const agendaFormatada = sessoesPreparadas.map(sessao => {
               const nomesServicos = sessao.servicoIds.map(id => servicosPorId.get(id)?.nome).filter(Boolean).join(', ');
@@ -848,7 +849,7 @@ export const pacotesRouter = router({
           formaPagamento: input.formaPagamento,
           tipo: input.tipo,
           observacoes: input.observacoes,
-        });
+        }).returning({ insertId: pacotesClientesPagamentos.id });
         await tx.update(pacotesClientes).set({
           valorTotal: String(valorTotal),
           valorPago: String(valorTotal),
@@ -1332,7 +1333,7 @@ export const pacotesRouter = router({
           .where(and(
             eq(notificacoesPacotes.pacoteClienteId, pacote.id),
             eq(notificacoesPacotes.tipo, "vencimento_proximo"),
-            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+            sql`${notificacoesPacotes.enviadoEm} > (NOW() - (24 * INTERVAL '1 hour'))`,
           ))
           .limit(1);
 
@@ -1365,7 +1366,7 @@ export const pacotesRouter = router({
           sessoesRestantes,
           canal: "sistema",
           lida: false,
-        });
+        }).returning({ insertId: notificacoesPacotes.id });
         criadas++;
       }
 
@@ -1402,7 +1403,7 @@ export const pacotesRouter = router({
           .where(and(
             eq(notificacoesPacotes.pacoteClienteId, pacote.id),
             eq(notificacoesPacotes.tipo, "sessoes_restantes"),
-            sql`${notificacoesPacotes.enviadoEm} > DATE_SUB(NOW(), INTERVAL 48 HOUR)`,
+            sql`${notificacoesPacotes.enviadoEm} > (NOW() - (48 * INTERVAL '1 hour'))`,
           ))
           .limit(1);
 
@@ -1420,7 +1421,7 @@ export const pacotesRouter = router({
           sessoesRestantes,
           canal: "sistema",
           lida: false,
-        });
+        }).returning({ insertId: notificacoesPacotes.id });
         criadas++;
       }
 
@@ -1577,7 +1578,7 @@ export const pacotesRouter = router({
         formaPagamento: input.formaPagamento,
         tipo: "quitacao",
         observacoes: "Pagamento registrado na renovação do pacote",
-      });
+      }).returning({ insertId: pacotesClientesPagamentos.id });
 
        // Buscar dados do cliente para notificações
       const [clienteRow] = await db.select({
@@ -1742,7 +1743,7 @@ export const pacotesRouter = router({
                 quantidadeTotal: item.quantidade,
                 quantidadeUsada: 0,
                 quantidadeReservada: 0,
-              });
+              }).returning({ insertId: pacotesClientesItens.id });
             }
           }
           for (const existente of existentes.filter(e => !input.itens!.some(item => item.servicoId === e.servicoId))) {

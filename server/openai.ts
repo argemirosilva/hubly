@@ -7,6 +7,8 @@
  */
 
 import OpenAI from "openai";
+import { getRuntimeConfig } from "./runtime-config";
+import { invokeLocalAI } from "./local-ai";
 
 // ─── Tipos de conteúdo (texto, imagem, arquivo) ───────────────────────────────
 type TextContent = { type: "text"; text: string };
@@ -60,6 +62,9 @@ function getClient(): OpenAI {
  * Para conteúdo multimodal (imagens), usa gpt-4o automaticamente.
  */
 export async function invokeOpenAI(options: OpenAIOptions) {
+  if (getRuntimeConfig().ai) {
+    return invokeLocalAI({ ...options, max_tokens: options.max_tokens ?? 1000, temperature: options.temperature ?? 0.7 });
+  }
   const client = getClient();
 
   // Auto-selecionar modelo com visão se houver imagens no conteúdo

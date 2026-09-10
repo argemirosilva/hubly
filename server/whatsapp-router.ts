@@ -1,3 +1,4 @@
+import { getPublicAppUrl } from "./runtime-config";
 /**
  * WhatsApp Router — Roteamento inteligente de envio de mensagens.
  *
@@ -14,6 +15,7 @@ import { getDb } from "./db";
 import { subscriptions } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { zapiSendText, zapiSendMedia } from "./zapi";
+import { isReplicaMode } from "./replica-mode";
 
 // ─── Cache simples de plano por empresa (TTL: 5 minutos) ─────────────────────
 const planCache = new Map<number, { plan: string; ts: number }>();
@@ -28,7 +30,7 @@ const ORIGENS_OFICIAIS_DE_AUTOMACAO = new Set([
   "https://agendei-app-bkct9rps.manus.space",
 ]);
 
-export function origemEhOficialParaAutomacoes(origem = process.env.APP_PUBLIC_URL): boolean {
+export function origemEhOficialParaAutomacoes(origem = getPublicAppUrl()): boolean {
   if (!origem) return false;
   return ORIGENS_OFICIAIS_DE_AUTOMACAO.has(origem.replace(/\/+$/, ""));
 }
@@ -36,7 +38,7 @@ export function origemEhOficialParaAutomacoes(origem = process.env.APP_PUBLIC_UR
 function garantirAmbienteOficialParaEnvio(): boolean {
   if (origemEhOficialParaAutomacoes()) return true;
   console.error(
-    `[WA-Router] Envio bloqueado: APP_PUBLIC_URL="${process.env.APP_PUBLIC_URL ?? "ausente"}" não é uma origem oficial do Hubly.`,
+    `[WA-Router] Envio bloqueado: APP_PUBLIC_URL="${getPublicAppUrl() ?? "ausente"}" não é uma origem oficial do Hubly.`,
   );
   return false;
 }
@@ -89,6 +91,11 @@ export async function routedSendMessage(
   telefone: string,
   mensagem: string,
 ): Promise<boolean> {
+  if (isReplicaMode()) {
+    console.warn(`[WA-Router] Envio bloqueado no modo réplica (empresa ${empresaId}).`);
+    return false;
+  }
+
   if (!garantirAmbienteOficialParaEnvio()) return false;
   const plan = await getEmpresaPlan(empresaId);
 
@@ -104,11 +111,12 @@ export async function routedSendMessage(
   // Solo / Plus / Free → Baileys
   console.log(`[WA-Router] Empresa ${empresaId} (${plan}) → Baileys`);
   const { waManager } = await import("./whatsapp");
-  if (waManager.getState().status !== "connected") {
+  const manager = waManager.forEmpresa(empresaId);
+  if (manager.getState().status !== "connected") {
     console.warn(`[WA-Router] Baileys não conectado para empresa ${empresaId}`);
     return false;
   }
-  return waManager.sendMessage(telefone, mensagem);
+  return manager.sendMessage(telefone, mensagem);
 }
 
 /**
@@ -123,6 +131,11 @@ export async function routedSendMedia(
   caption?: string,
   mimeType?: string,
 ): Promise<boolean> {
+  if (isReplicaMode()) {
+    console.warn(`[WA-Router] Envio de mídia bloqueado no modo réplica (empresa ${empresaId}).`);
+    return false;
+  }
+
   if (!garantirAmbienteOficialParaEnvio()) return false;
   const plan = await getEmpresaPlan(empresaId);
 
@@ -134,5 +147,5 @@ export async function routedSendMedia(
 
   // Solo / Plus / Free → Baileys
   const { waManager } = await import("./whatsapp");
-  return waManager.sendMediaMessage(telefone, mediaUrl, caption, mimeType);
+  return waManager.forEmpresa(empresaId).sendMediaMessage(telefone, mediaUrl, caption, mimeType);
 }

@@ -31,7 +31,7 @@ async function audit(req: Request, clientId: string, statusCode: number, records
       recordsEntregues,
       cursorSolicitado: typeof req.query.after === "string" ? req.query.after : undefined,
       ipHash: hashIpSync(req.ip),
-    });
+    }).returning({ insertId: syncAuditLog.id });
   } catch (error) {
     console.error("[Sync API] Falha ao auditar chamada", error);
   }
@@ -108,7 +108,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
     if (!client || !requireGlobalRead(client, res)) return;
     const db = await getDb();
     if (!db) return res.status(503).json({ error: "sync_database_unavailable" });
-    const cursorResult = await db.execute(sql`SELECT COALESCE(MAX(\`cursor\`), 0) AS \`cursor\` FROM sync_change_log`);
+    const cursorResult = [(await db.execute(sql`SELECT COALESCE(MAX("cursor"), 0) AS "cursor" FROM sync_change_log`)).rows];
     const snapshotCursor = Number(rowsFrom(cursorResult)[0]?.cursor ?? 0);
     const snapshotId = crypto.randomUUID().replace(/-/g, "");
     const expiresAt = new Date(Date.now() + SNAPSHOT_TTL_MS);
@@ -119,7 +119,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
       manifestJson: JSON.stringify(manifest),
       snapshotCursor,
       expiresAt,
-    });
+    }).returning({ insertId: syncSnapshots.id });
     await audit(req, client.clientId, 201, manifest.length);
     res.status(201).json({ apiVersion: "v1", snapshotId, snapshotCursor, expiresAt: expiresAt.toISOString(), deletionStrategy: "remote-reconciliation", entities: manifest });
   });
@@ -139,7 +139,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
     if (!snapshot) return res.status(410).json({ error: "invalid_or_expired_snapshot" });
     const after = normalizarCursorSync(req.query.after);
     const limit = normalizarLimiteSync(req.query.limit, MAX_PAGE_SIZE);
-    const result = await db.execute(sql.raw(`SELECT * FROM \`${entity.table}\` WHERE id > ${after} ORDER BY id ASC LIMIT ${limit + 1}`));
+    const result = [(await db.execute(sql.raw(`SELECT * FROM \`${entity.table}\` WHERE id > ${after} ORDER BY id ASC LIMIT ${limit + 1}`))).rows];
     const fetched = rowsFrom(result);
     const page = paginaSync(fetched as Array<Record<string, unknown> & { id: unknown }>, limit, after);
     const records = page.records.map(sanitizeSyncRecord);
@@ -155,7 +155,7 @@ export function registerSyncIntegrationRoutes(app: Express) {
     if (!entity || !id) return res.status(404).json({ error: "unknown_entity_or_record" });
     const db = await getDb();
     if (!db) return res.status(503).json({ error: "sync_database_unavailable" });
-    const result = await db.execute(sql.raw(`SELECT * FROM \`${entity.table}\` WHERE id = ${id} LIMIT 1`));
+    const result = [(await db.execute(sql.raw(`SELECT * FROM \`${entity.table}\` WHERE id = ${id} LIMIT 1`))).rows];
     const record = rowsFrom(result)[0];
     if (!record) return res.status(404).json({ error: "record_not_found" });
     await audit(req, client.clientId, 200, 1);

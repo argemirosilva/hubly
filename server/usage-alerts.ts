@@ -72,7 +72,7 @@ async function recordAlert(
     alertType,
     mesAno,
     sentAt: new Date(),
-  });
+  }).returning({ insertId: usageAlerts.id });
 }
 
 /** Formata a mensagem de notificação */

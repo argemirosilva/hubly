@@ -68,7 +68,7 @@ export async function savePushSubscription(params: {
       p256dh: params.p256dh,
       auth: params.auth,
       userAgent: params.userAgent,
-    });
+    }).returning({ insertId: pushSubscriptions.id });
   }
 }
 

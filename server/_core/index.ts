@@ -4,6 +4,7 @@ import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
+import { registerLocalStorage } from "../local-storage";
 import { registerSystemAuthRoutes } from "./system-auth";
 import { registerOrizonAuthRoutes } from "./orizon-auth";
 import { appRouter } from "../routers";
@@ -20,6 +21,7 @@ import { registerGoogleOAuthCallback } from "../google-oauth-callback";
 import { registerGoogleOAuthUserCallback } from "../google-oauth-user-callback";
 import { registerSyncIntegrationRoutes } from "../sync-api";
 import { registerSyncInboundRoutes } from "../sync-inbound-api";
+import { isReplicaMode } from "../replica-mode";
 
 async function startServer() {
   const app = express();
@@ -38,6 +40,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // Storage proxy para assets privados
   registerStorageProxy(app);
+  registerLocalStorage(app);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // System user auth (email/senha)
@@ -85,11 +88,20 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    initScheduler();
+    const replicaMode = isReplicaMode();
+    if (replicaMode) {
+      console.warn("[Replica] Scheduler, worker e WhatsApp desativados por .hubly-replica-mode.");
+    } else {
+      initScheduler();
+    }
     // Provisionar novos tipos de automação (reserva_paga, credito_gerado) para empresas existentes
-    setTimeout(() => provisionarNovosTemplatesParaEmpresasExistentes().catch(e => console.error('[Templates] Erro:', e)), 10_000);
+    if (!replicaMode) {
+      setTimeout(() => provisionarNovosTemplatesParaEmpresasExistentes().catch(e => console.error('[Templates] Erro:', e)), 10_000);
+    }
     // Reconectar WhatsApp automaticamente se houver sessão salva no banco
-    waManager.init().catch(err => console.error('[WhatsApp] Erro na inicialização:', err));
+    if (!replicaMode) {
+      waManager.init().catch(err => console.error('[WhatsApp] Erro na inicialização:', err));
+    }
   });
 }
 

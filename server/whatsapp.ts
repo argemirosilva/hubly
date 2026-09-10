@@ -25,14 +25,16 @@ import makeWASocket, {
   AuthenticationCreds,
   SignalKeyStore,
   initAuthCreds,
+  BufferJSON,
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import * as QRCode from "qrcode";
 import { EventEmitter } from "events";
 import { getDb } from "./db";
-import { waSession } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { waSession, empresas, subscriptions } from "../drizzle/schema";
+import { and, eq, ne } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { isReplicaMode } from './replica-mode';
 
 // ─── HELPER: registrar evento de conexão no banco ────────────────────────────
 interface WaLogOptions {
@@ -46,6 +48,7 @@ interface WaLogOptions {
 }
 
 async function logWaEvent(
+  empresaId: number,
   event: "connected" | "disconnected" | "qr_ready" | "logged_out" | "reconnecting" | "reconnect_attempt" | "error",
   detailOrOptions?: string | WaLogOptions
 ): Promise<void> {
@@ -57,8 +60,9 @@ async function logWaEvent(
       : (detailOrOptions ?? {});
     // Usar SQL raw para evitar conflito de tipo do enum no tsc --watch
     await db.execute(sql`
-      INSERT INTO wa_connection_log (event, detail, statusCode, motivo, duracaoSessaoMs, tentativa, detalheTecnico, telefone)
+      INSERT INTO wa_connection_log ("empresaId", event, detail, "statusCode", motivo, "duracaoSessaoMs", tentativa, "detalheTecnico", telefone)
       VALUES (
+        ${empresaId},
         ${event},
         ${opts.detail ?? null},
         ${opts.statusCode ?? null},
@@ -72,9 +76,9 @@ async function logWaEvent(
     // Manter apenas os últimos 200 registros
     await db.execute(sql`
       DELETE FROM wa_connection_log
-      WHERE id NOT IN (
+      WHERE "empresaId" = ${empresaId} AND id NOT IN (
         SELECT id FROM (
-          SELECT id FROM wa_connection_log ORDER BY createdAt DESC LIMIT 200
+          SELECT id FROM wa_connection_log WHERE "empresaId" = ${empresaId} ORDER BY "createdAt" DESC LIMIT 200
         ) AS keep
       )
     `);
@@ -102,48 +106,55 @@ function classificarMotivo(statusCode?: number, errorMessage?: string): string {
 
 // ─── AUTH STATE PERSISTENTE NO BANCO ─────────────────────────────────────────
 
-async function useDbAuthState(): Promise<{
+export async function useDbAuthState(empresaId: number): Promise<{
   state: { creds: AuthenticationCreds; keys: SignalKeyStore };
   saveCreds: () => Promise<void>;
   clearSession: () => Promise<void>;
 }> {
   const db = await getDb();
+  if (!Number.isSafeInteger(empresaId) || empresaId <= 0) throw new Error('Empresa inválida');
+  if (!db) throw new Error('Banco indisponível para credenciais WhatsApp');
+  const [company] = await db.select({ id: empresas.id }).from(empresas).where(eq(empresas.id, empresaId)).limit(1);
+  if (!company) throw new Error('Empresa não encontrada');
+  let closed = false;
+  let pending: Promise<unknown> = Promise.resolve();
+  function enqueue(action: () => Promise<unknown>): Promise<void> {
+    const next = pending.then(async () => { if (!closed) await action(); });
+    pending = next.catch(() => {});
+    return next;
+  }
 
   async function readData(id: string): Promise<any> {
     if (!db) return null;
-    const rows = await db.select().from(waSession).where(eq(waSession.id, id)).limit(1);
+    await pending;
+    const rows = await db.select().from(waSession).where(and(eq(waSession.empresaId, empresaId), eq(waSession.id, id))).limit(1);
     if (!rows[0]) return null;
     try {
-      return JSON.parse(rows[0].data, (_, v) =>
-        v && typeof v === "object" && v.__type === "Buffer"
-          ? Buffer.from(v.data)
-          : v
-      );
+      return JSON.parse(rows[0].data, BufferJSON.reviver);
     } catch {
-      return null;
+      throw new Error('Credenciais WhatsApp inválidas; solicitar reset da própria empresa');
     }
   }
 
   async function writeData(id: string, data: any): Promise<void> {
     if (!db) return;
-    const json = JSON.stringify(data, (_, v) =>
-      Buffer.isBuffer(v) ? { __type: "Buffer", data: Array.from(v) } : v
-    );
-    await db
+    const json = JSON.stringify(data, BufferJSON.replacer);
+    await enqueue(() => db
       .insert(waSession)
-      .values({ id, data: json })
-      .onDuplicateKeyUpdate({ set: { data: json } });
+      .values({ empresaId, id, data: json })
+      .onConflictDoUpdate({ target: [waSession.empresaId, waSession.id], set: { data: json, updatedAt: new Date() } }));
   }
 
   async function removeData(id: string): Promise<void> {
     if (!db) return;
-    await db.delete(waSession).where(eq(waSession.id, id));
+    await enqueue(() => db.delete(waSession).where(and(eq(waSession.empresaId, empresaId), eq(waSession.id, id))));
   }
 
   async function clearAll(): Promise<void> {
     if (!db) return;
-    // Remove todas as chaves da sessão
-    await db.delete(waSession);
+    closed = true;
+    await pending;
+    await db.delete(waSession).where(eq(waSession.empresaId, empresaId));
   }
 
   const creds: AuthenticationCreds = (await readData("creds")) || initAuthCreds();
@@ -152,7 +163,8 @@ async function useDbAuthState(): Promise<{
     get: async (type, ids) => {
       const data: Record<string, any> = {};
       for (const id of ids) {
-        const val = await readData(`${type}-${id}`);
+        let val = await readData(`${type}-${id}`);
+        if (val && type === 'app-state-sync-key') val = proto.Message.AppStateSyncKeyData.fromObject(val);
         if (val) data[id] = val;
       }
       return data;
@@ -206,6 +218,8 @@ const RECONNECT_DELAYS = [3_000, 5_000, 10_000, 20_000, 40_000, 60_000];
 const MAX_RECONNECT_ATTEMPTS = 20;
 
 class WhatsAppManager extends EventEmitter {
+  constructor(readonly empresaId: number) { super(); }
+  private generation = 0;
   private sock: WASocket | null = null;
   private state: WAState = {
     status: "disconnected",
@@ -226,6 +240,7 @@ class WhatsAppManager extends EventEmitter {
   }
 
    async connect(): Promise<void> {
+    if (isReplicaMode()) throw new Error('Conexão bloqueada no modo réplica');
     // Evitar dupla execução simultânea do connect()
     if (this.isConnecting) {
       console.log("[WhatsApp] connect() ignorado — já há uma tentativa em andamento.");
@@ -241,6 +256,7 @@ class WhatsAppManager extends EventEmitter {
       return;
     }
     this.isConnecting = true;
+    const generation = ++this.generation;
     this.isShuttingDown = false;
     // Fechar socket anterior com pequeno delay para garantir cleanup completo
     if (this.sock) {
@@ -259,11 +275,12 @@ class WhatsAppManager extends EventEmitter {
     try {
       // Inicializar ou reutilizar o authState do banco
       if (!this.dbAuth) {
-        this.dbAuth = await useDbAuthState();
+        this.dbAuth = await useDbAuthState(this.empresaId);
       }
       const { state: authState, saveCreds } = this.dbAuth;
 
       const { version } = await fetchLatestBaileysVersion();
+      if (generation !== this.generation || this.isShuttingDown) return;
 
       this.sock = makeWASocket({
         version,
@@ -292,9 +309,12 @@ class WhatsAppManager extends EventEmitter {
       });
 
       // Salvar credenciais sempre que atualizadas
-      this.sock.ev.on("creds.update", saveCreds);
+      this.sock.ev.on("creds.update", async () => {
+        if (generation === this.generation) await saveCreds().catch(() => console.error('[WhatsApp] Falha ao persistir credenciais da empresa', this.empresaId));
+      });
 
       this.sock.ev.on("connection.update", async (update) => {
+        if (generation !== this.generation) return;
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
@@ -304,9 +324,10 @@ class WhatsAppManager extends EventEmitter {
               margin: 2,
               color: { dark: "#000000", light: "#ffffff" },
             });
+            if (generation !== this.generation) return;
             this.setState({ status: "qr_ready", qrDataUrl });
             this.emit("qr", qrDataUrl);
-            logWaEvent("qr_ready", { detail: "QR Code gerado — aguardando leitura pelo celular", motivo: "aguardando_qr" }).catch(() => {});
+            logWaEvent(this.empresaId, "qr_ready", { detail: "QR Code gerado — aguardando leitura pelo celular", motivo: "aguardando_qr" }).catch(() => {});
           } catch (err) {
             console.error("[WhatsApp] Erro ao gerar QR Code:", err);
           }
@@ -331,7 +352,7 @@ class WhatsAppManager extends EventEmitter {
           });
           this.emit("connected", phoneNumber);
           console.log(`[WhatsApp] ✅ Conectado: ${phoneNumber}`);
-          logWaEvent("connected", {
+          logWaEvent(this.empresaId, "connected", {
             detail: `Conectado com sucesso ao número ${phoneNumber}`,
             motivo: "conexao_estabelecida",
             telefone: phoneNumber ?? undefined,
@@ -352,7 +373,7 @@ class WhatsAppManager extends EventEmitter {
             await this.dbAuth?.clearSession();
             this.dbAuth = null;
             this.emit("logged_out");
-            logWaEvent("logged_out", {
+            logWaEvent(this.empresaId, "logged_out", {
               detail: "Deslogado pelo dispositivo — sessão encerrada",
               statusCode,
               motivo: "logout_dispositivo",
@@ -372,7 +393,7 @@ class WhatsAppManager extends EventEmitter {
               console.log(`[WhatsApp] ⚡ Timeout de rede (408) — reconectando imediatamente...`);
               this.setState({ status: "disconnected", nextReconnectAt: null });
               this.emit("disconnected");
-              logWaEvent("disconnected", {
+              logWaEvent(this.empresaId, "disconnected", {
                 detail: "Timeout de rede (408) — reconectando imediatamente em 500ms",
                 statusCode: 408,
                 motivo: "timeout_rede",
@@ -391,7 +412,7 @@ class WhatsAppManager extends EventEmitter {
             this.setState({ status: "disconnected", nextReconnectAt: nextAt });
             this.emit("disconnected");
             this.scheduleReconnect(delay);
-            logWaEvent("reconnect_attempt", {
+            logWaEvent(this.empresaId, "reconnect_attempt", {
               detail: `Desconectado (código ${statusCode}) — tentativa ${this.reconnectCount}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s`,
               statusCode,
               motivo: classificarMotivo(statusCode, (lastDisconnect?.error as any)?.message),
@@ -403,7 +424,7 @@ class WhatsAppManager extends EventEmitter {
           } else {
             this.setState({ status: "disconnected", nextReconnectAt: null });
             this.emit("disconnected");
-            logWaEvent("disconnected", {
+            logWaEvent(this.empresaId, "disconnected", {
               detail: `Desconectado (código ${statusCode}) — shutdown solicitado`,
               statusCode,
               motivo: "shutdown_servidor",
@@ -414,10 +435,11 @@ class WhatsAppManager extends EventEmitter {
         }
       });
     } catch (err) {
+      if (generation !== this.generation) return;
       console.error("[WhatsApp] Erro ao conectar:", err);
       this.isConnecting = false; // Liberar flag em caso de erro
       this.setState({ status: "disconnected" });
-      logWaEvent("error", {
+      logWaEvent(this.empresaId, "error", {
         detail: `Erro ao estabelecer conexão: ${(err as any)?.message ?? String(err)}`,
         motivo: "erro_conexao",
         detalheTecnico: (err as any)?.stack ?? String(err),
@@ -441,6 +463,7 @@ class WhatsAppManager extends EventEmitter {
   }
 
   async disconnect(): Promise<void> {
+    ++this.generation;
     this.isShuttingDown = true;
     this.isConnecting = false;
     this.reconnectCount = 0;
@@ -449,6 +472,8 @@ class WhatsAppManager extends EventEmitter {
       this.reconnectTimer = null;
     }
     if (this.sock) {
+      this.sock.ev.removeAllListeners('connection.update');
+      this.sock.ev.removeAllListeners('creds.update');
       try {
         await this.sock.logout();
       } catch {
@@ -457,7 +482,7 @@ class WhatsAppManager extends EventEmitter {
       this.sock = null;
     }
     // Limpar sessão do banco ao deslogar manualmente
-    await this.dbAuth?.clearSession();
+    await this.clearOwnSession();
     this.dbAuth = null;
     this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
     this.emit("disconnected");
@@ -468,6 +493,8 @@ class WhatsAppManager extends EventEmitter {
    * Útil quando o QR Code não aparece ou a sessão está corrompida.
    */
   async resetSession(): Promise<void> {
+    ++this.generation;
+    this.isConnecting = false;
     this.isShuttingDown = true;
     this.reconnectCount = 0;
     if (this.reconnectTimer) {
@@ -475,10 +502,12 @@ class WhatsAppManager extends EventEmitter {
       this.reconnectTimer = null;
     }
     if (this.sock) {
+      this.sock.ev.removeAllListeners('connection.update');
+      this.sock.ev.removeAllListeners('creds.update');
       try { this.sock.end(undefined); } catch { /* ignorar */ }
       this.sock = null;
     }
-    await this.dbAuth?.clearSession();
+    await this.clearOwnSession();
     this.dbAuth = null;
     this.isShuttingDown = false;
     this.setState({ status: "disconnected", qrDataUrl: null, phoneNumber: null, connectedAt: null });
@@ -487,6 +516,7 @@ class WhatsAppManager extends EventEmitter {
   }
 
   async sendMediaMessage(phoneNumber: string, mediaUrl: string, caption?: string, mimeType?: string): Promise<boolean> {
+    if (isReplicaMode()) return false;
     if (this.state.status !== "connected" || !this.sock) {
       console.warn("[WhatsApp] Tentativa de envio sem conexão ativa");
       return false;
@@ -523,6 +553,7 @@ class WhatsAppManager extends EventEmitter {
   }
 
   async sendMessage(phoneNumber: string, message: string): Promise<boolean> {
+    if (isReplicaMode()) return false;
     if (this.state.status !== "connected" || !this.sock) {
       console.warn("[WhatsApp] Tentativa de envio sem conexão ativa");
       return false;
@@ -547,11 +578,19 @@ class WhatsAppManager extends EventEmitter {
     this.emit("state_change", this.state);
   }
 
+  private async clearOwnSession(): Promise<void> {
+    if (this.dbAuth) return this.dbAuth.clearSession();
+    const db = await getDb();
+    if (!db) throw new Error('Banco indisponível ao limpar sessão WhatsApp');
+    await db.delete(waSession).where(eq(waSession.empresaId, this.empresaId));
+  }
+
   /**
    * Chamado ao iniciar o servidor.
    * Se houver credenciais salvas no banco, reconecta automaticamente.
    */
   async init(): Promise<void> {
+    if (isReplicaMode()) return;
     // Aguardar o banco estar disponível (retry por até 30s após deploy)
     let db = await getDb();
     if (!db) {
@@ -570,7 +609,7 @@ class WhatsAppManager extends EventEmitter {
 
     try {
       // Verificar se há credenciais salvas
-      const rows = await db.select().from(waSession).where(eq(waSession.id, "creds")).limit(1);
+      const rows = await db.select().from(waSession).where(and(eq(waSession.empresaId, this.empresaId), eq(waSession.id, "creds"))).limit(1);
       if (rows.length > 0) {
         console.log("[WhatsApp] ✅ Sessão encontrada no banco. Reconectando automaticamente...");
         await this.connect();
@@ -585,18 +624,42 @@ class WhatsAppManager extends EventEmitter {
   }
 }
 
-// ─── SINGLETON GLOBAL ─────────────────────────────────────────────────────────
-export const waManager = new WhatsAppManager();
+// Registro de conexões: nenhum estado/socket/credencial é compartilhado.
+class WhatsAppRegistry extends EventEmitter {
+  private managers = new Map<number, WhatsAppManager>();
+  forEmpresa(empresaId: number): WhatsAppManager {
+    if (!Number.isSafeInteger(empresaId) || empresaId <= 0) throw new Error('Empresa inválida');
+    let manager = this.managers.get(empresaId);
+    if (!manager) {
+      manager = new WhatsAppManager(empresaId);
+      manager.on('connected', () => this.emit('connected', empresaId));
+      this.managers.set(empresaId, manager);
+    }
+    return manager;
+  }
+  async init(): Promise<void> {
+    if (isReplicaMode()) return;
+    const db = await getDb();
+    if (!db) throw new Error('Banco indisponível ao restaurar WhatsApp');
+    const rows = await db.selectDistinct({ empresaId: waSession.empresaId }).from(waSession)
+      .innerJoin(empresas, eq(empresas.id, waSession.empresaId))
+      .innerJoin(subscriptions, eq(subscriptions.empresaId, waSession.empresaId))
+      .where(and(eq(waSession.id, 'creds'), ne(subscriptions.planType, 'PRO')));
+    for (const row of rows) await this.forEmpresa(row.empresaId).init();
+  }
+}
+export const waManager = new WhatsAppRegistry();
 
 // Funções helper de mensagem hardcoded foram REMOVIDAS.
 // Todas as mensagens agora são controladas exclusivamente pelo sistema de automações.
 // Nenhum texto fixo deve ser enviado sem automação configurada pelo usuário.
 
 export async function sendWAMedia(params: {
+  empresaId: number;
   telefone: string;
   mediaUrl: string;
   caption?: string;
   mimeType?: string;
 }): Promise<boolean> {
-  return waManager.sendMediaMessage(params.telefone, params.mediaUrl, params.caption, params.mimeType);
+  return waManager.forEmpresa(params.empresaId).sendMediaMessage(params.telefone, params.mediaUrl, params.caption, params.mimeType);
 }

@@ -176,7 +176,7 @@ export const suporteRouter = router({
         slaHoras,
         slaVencidoEm,
         produto: "hubly", // produto Orizontech de origem
-      });
+      }).returning({ insertId: chamados.id });
       const chamadoId = (res as any).insertId as number;
       await db.insert(chamadoMensagens).values({
         chamadoId,
@@ -185,7 +185,7 @@ export const suporteRouter = router({
         autorNome: ctx.user.name,
         conteudo: input.descricao,
         lido: false,
-      });
+      }).returning({ insertId: chamadoMensagens.id });
       // Notificar o owner da Orizontech + todos os atendentes registrados via push (PWA)
       try {
         const { getDb: getDb2 } = await import('../db.js');
@@ -256,7 +256,7 @@ export const suporteRouter = router({
         autorNome: ctx.user.name,
         conteudo: input.mensagem,
         lido: false,
-      });
+      }).returning({ insertId: chamadoMensagens.id });
       await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date() })
         .where(eq(chamados.id, input.chamadoId));
       return { ok: true };
@@ -356,7 +356,7 @@ export const suporteRouter = router({
         autorNome: input.agenteNome,
         conteudo: input.mensagem,
         lido: false,
-      });
+      }).returning({ insertId: chamadoMensagens.id });
       // Atualizar status e primeiraRespostaEm
       if (!chamado.primeiraRespostaEm) {
         await db.update(chamados).set({ status: "em_atendimento", updatedAt: new Date(), primeiraRespostaEm: new Date() }).where(eq(chamados.id, input.chamadoId));

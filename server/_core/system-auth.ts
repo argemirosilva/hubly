@@ -152,7 +152,7 @@ export function registerSystemAuthRoutes(app: Application) {
         tipo: "salao",
         ownerId: 0, // será atualizado após criar o profissional
         onboardingConcluido: false,
-      });
+      }).returning({ insertId: empresas.id });
       const empresaId = empresaResult.insertId;
 
       // Criar profissional owner
@@ -165,7 +165,7 @@ export function registerSystemAuthRoutes(app: Application) {
         isOwner: true,
         isProfissional: false, // não aparece na agenda por padrão
         ativo: true,
-      });
+      }).returning({ insertId: profissionais.id });
       const profId = profResult.insertId;
 
       // Atualizar ownerId da empresa
@@ -178,10 +178,10 @@ export function registerSystemAuthRoutes(app: Application) {
         descricao: 'Acesso total ao sistema',
         cor: '#ef4444',
         isAdmin: true,
-      });
+      }).returning({ insertId: gruposPermissoes.id });
       const grupoAdminId = grupoResult.insertId;
       // Criar permissões padrão do grupo (todas true para o grupo admin)
-      await db.insert(permissoesGrupo).values({ grupoId: grupoAdminId });
+      await db.insert(permissoesGrupo).values({ grupoId: grupoAdminId }).returning({ insertId: permissoesGrupo.id });
       // Vincular o owner ao grupo Administradores
       await db.update(profissionais).set({ grupoId: grupoAdminId }).where(eq(profissionais.id, profId));
 

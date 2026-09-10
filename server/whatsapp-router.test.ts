@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("./runtime-config", () => ({ getPublicAppUrl: () => process.env.APP_PUBLIC_URL }));
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   zapiSendText: vi.fn(),
   zapiSendMedia: vi.fn(),
+  replicaMode: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb }));
+vi.mock("./replica-mode", () => ({ isReplicaMode: mocks.replicaMode }));
 vi.mock("./zapi", () => ({
   zapiSendText: mocks.zapiSendText,
   zapiSendMedia: mocks.zapiSendMedia,
@@ -36,6 +39,7 @@ describe("WhatsApp Router — instância por empresa", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.replicaMode.mockReturnValue(false);
     process.env.APP_PUBLIC_URL = "https://hubly.orizontech.com.br";
     mocks.getDb.mockResolvedValue(dbComPlanoPro());
     mocks.zapiSendText.mockResolvedValue({ ok: true });
@@ -74,5 +78,11 @@ describe("WhatsApp Router — instância por empresa", () => {
     process.env.APP_PUBLIC_URL = "http://localhost:3001";
     await expect(routedSendMessage(77, "14999998888", "Olá")).resolves.toBe(false);
     expect(mocks.zapiSendText).not.toHaveBeenCalled();
+  });
+  it("bloqueia o envio pelo marcador de réplica mesmo com a URL oficial configurada", async () => {
+    mocks.replicaMode.mockReturnValue(true);
+    await expect(routedSendMessage(77, "14999998888", "Olá")).resolves.toBe(false);
+    expect(mocks.zapiSendText).not.toHaveBeenCalled();
+    expect(mocks.getDb).not.toHaveBeenCalled();
   });
 });
