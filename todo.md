@@ -3007,6 +3007,9 @@
 - [x] Organizar checklist de publicação, privacidade e informações que dependem do titular da conta
 - [x] Produzir masters de ícone e banner promocional do Google Play
 - [ ] Capturar screenshots reais do aplicativo nativo em iPhone e Android com dados de demonstração
+- [x] Selecionar as telas recebidas e definir a narrativa visual das screenshots de loja
+- [x] Criar composições explicativas premium com as telas reais do Hubly e textos de benefício
+- [x] Exportar o conjunto final de screenshots nas proporções de Apple e Google Play
 
 ## Interface — avaliação da habilidade Motion Graphics (29/08/2026)
 - [x] Identificar a habilidade Motion Graphics e seus recursos disponíveis
