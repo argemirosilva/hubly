@@ -22,7 +22,9 @@ const config: CapacitorConfig = {
       splashImmersive: true,
     },
     StatusBar: {
-      style: 'dark',
+      // LIGHT descreve o fundo: horário e ícones ficam escuros.
+      style: 'LIGHT',
+      overlaysWebView: true,
       backgroundColor: '#fdf7ee',
     },
     PushNotifications: {
@@ -30,7 +32,8 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    contentInset: 'automatic',
+    // A página já reserva as safe areas; não somar outro recuo nativo.
+    contentInset: 'never',
     backgroundColor: '#fdf7ee',
     preferredContentMode: 'mobile',
   },

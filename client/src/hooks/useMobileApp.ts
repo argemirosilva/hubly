@@ -15,6 +15,16 @@ export function useMobileApp() {
       if (!disposed && route) navigate(route);
     };
     async function init() {
+      // Aplicar também quando a interface hospedada abre em um app já instalado.
+      if (Capacitor.getPlatform() === "ios") {
+        try {
+          const { StatusBar, Style } = await import("@capacitor/status-bar");
+          if (disposed) return;
+          await StatusBar.setStyle({ style: Style.Light });
+        } catch {
+          console.warn("[Mobile] Não foi possível ajustar o contraste da barra superior.");
+        }
+      }
       const { App } = await import("@capacitor/app");
       if (disposed) return;
       listener = await App.addListener("appUrlOpen", event => openLink(event.url));

@@ -450,6 +450,23 @@
   padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
   scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
+@media (max-width: 1023px) {
+  .hubly-admin-shell {
+    --hubly-mobile-header-height: calc(3.8125rem + env(safe-area-inset-top, 0px));
+  }
+  .hubly-admin-body {
+    padding-top: var(--hubly-mobile-header-height);
+  }
+  .hubly-mobile-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--hubly-mobile-header-height);
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+}
 @media (min-width: 1024px) {
   .hubly-admin-content {
     padding-bottom: 0;
