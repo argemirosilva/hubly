@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, User, Sparkles, DollarSign, X, Calendar, Percent, Link2, Copy, Check, Plus, Trash2, CreditCard, Tag, AlertCircle, Loader2, Edit3, Wallet, Users, UserPlus, Star, Crown, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import EditarAgendamentoModal from "@/components/EditarAgendamentoModal";
+import PrazoPreAgendamento from "@/components/PrazoPreAgendamento";
 import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -526,6 +527,9 @@ export default function AgendamentoDetalheModal({ agendamentoId, open, onClose }
 
         {/* Corpo */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          {ag.status === "pre_agendado" && (
+            <PrazoPreAgendamento key={agendamentoId} agendamentoId={agendamentoId} reservaExpiracaoEm={ag.reservaExpiracaoEm} createdAt={ag.createdAt} />
+          )}
           {/* Info block */}
           <div className="rounded-xl p-4 space-y-3.5"
             style={{ background: "oklch(96.2% 0.012 75)", border: "1px solid oklch(89.5% 0.018 80)" }}>

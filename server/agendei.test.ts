@@ -175,6 +175,65 @@ describe("agendamentos.list", () => {
   });
 });
 
+describe("agendamentos.prorrogarPrazo", () => {
+  beforeEach(async () => {
+    const db = await import("./db");
+    vi.mocked(db.updateAgendamento).mockClear();
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({
+      id: 42,
+      empresaId: 1,
+      status: "pre_agendado",
+      reservaExpiracaoEm: new Date("2099-09-11T19:00:00.000Z"),
+      reservaLembreteEnviado: true,
+    } as NonNullable<Awaited<ReturnType<typeof db.getAgendamentoById>>>);
+  });
+
+  it("troca o prazo individual pelo dia 16 e permite um novo lembrete", async () => {
+    const db = await import("./db");
+    const caller = appRouter.createCaller(createAdminCtx());
+    // Dia 16 às 18h no horário de Brasília.
+    const novaDataLimite = "2099-09-16T21:00:00.000Z";
+
+    await expect(caller.agendamentos.prorrogarPrazo({ id: 42, novaDataLimite })).resolves.toEqual({ success: true });
+    expect(db.updateAgendamento).toHaveBeenCalledTimes(1);
+    expect(db.updateAgendamento).toHaveBeenCalledWith(42, {
+      reservaExpiracaoEm: new Date(novaDataLimite),
+      reservaLembreteEnviado: false,
+    });
+  });
+
+  it.each(["data-invalida", "2000-01-01T00:00:00.000Z"])("rejeita prazo inválido ou passado: %s", async (novaDataLimite) => {
+    const db = await import("./db");
+    const caller = appRouter.createCaller(createAdminCtx());
+    await expect(caller.agendamentos.prorrogarPrazo({ id: 42, novaDataLimite })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
+  });
+
+  it.each(["agendado", "confirmado", "cancelado"])("não altera prazo de agendamento %s", async (status) => {
+    const db = await import("./db");
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({ id: 42, empresaId: 1, status } as any);
+    const caller = appRouter.createCaller(createAdminCtx());
+    await expect(caller.agendamentos.prorrogarPrazo({ id: 42, novaDataLimite: "2099-09-16T21:00:00.000Z" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
+  });
+
+  it("não permite alterar pré-agendamento de outra empresa", async () => {
+    const db = await import("./db");
+    vi.mocked(db.getAgendamentoById).mockResolvedValue({ id: 42, empresaId: 2, status: "pre_agendado" } as any);
+    const caller = appRouter.createCaller(createAdminCtx());
+    await expect(caller.agendamentos.prorrogarPrazo({ id: 42, novaDataLimite: "2099-09-16T21:00:00.000Z" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
+  });
+
+  it("não altera agendamento inexistente", async () => {
+    const db = await import("./db");
+    vi.mocked(db.getAgendamentoById).mockResolvedValue(null);
+    const caller = appRouter.createCaller(createAdminCtx());
+    await expect(caller.agendamentos.prorrogarPrazo({ id: 42, novaDataLimite: "2099-09-16T21:00:00.000Z" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.updateAgendamento).not.toHaveBeenCalled();
+  });
+});
+
 describe("clientes.list", () => {
   it("retorna lista de clientes da empresa", async () => {
     const ctx = createAdminCtx();

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Trash2, Save, Loader2, Edit3, AlertTriangle, CheckCircle2 } from "lucide-react";
 import ClienteAutocomplete from "@/components/ClienteAutocomplete";
+import PrazoPreAgendamento from "@/components/PrazoPreAgendamento";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ServicoItem {
@@ -283,6 +284,9 @@ export default function EditarAgendamentoModal({ agendamentoId, open, onClose }:
 
         {/* Corpo */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1">
+          {ag.status === "pre_agendado" && (
+            <PrazoPreAgendamento key={agendamentoId} agendamentoId={agendamentoId} reservaExpiracaoEm={ag.reservaExpiracaoEm} createdAt={ag.createdAt} disabled={isPending || confirmarMutation.isPending} />
+          )}
 
           {/* Aviso: sem profissional atribuído */}
           {servicosSelecionados.every(s => !s.profissionalId) && (

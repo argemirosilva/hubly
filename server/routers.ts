@@ -2389,7 +2389,7 @@ export const appRouter = router({
         const empresa = await getEmpresaDoUsuario(ctx.user.id, ctx.systemUser?.empresaId);
         if (!empresa) throw new Error('Empresa não encontrada');
         const ag = await getAgendamentoById(input.id);
-        if (!ag) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
+        if (!ag || ag.empresaId !== empresa.id) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agendamento não encontrado' });
         if (ag.status !== 'pre_agendado') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Apenas pré-agendamentos podem ter o prazo prorrogado' });
         }
